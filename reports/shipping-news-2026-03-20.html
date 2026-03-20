@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026年3月20日</title>
+<style>
+  :root {
+    --primary: #0a2540;
+    --accent: #e63946;
+    --accent2: #f4a261;
+    --green: #2a9d8f;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #1d3557;
+    --muted: #6b7c93;
+    --border: #dde3ec;
+    --ticker-bg: #0a2540;
+    --ticker-text: #e0eaff;
+    --badge-up: #d62828;
+    --badge-dn: #2a9d8f;
+    --badge-warn: #e76f51;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── TICKER ─────────────────────────────── */
+  .ticker-wrap {
+    background: var(--ticker-bg);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 8px 0;
+    border-bottom: 3px solid var(--accent);
+  }
+  .ticker-label {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 14px;
+    margin-right: 16px;
+    vertical-align: middle;
+    border-radius: 2px;
+  }
+  .ticker-inner {
+    display: inline-block;
+    animation: ticker 38s linear infinite;
+  }
+  .ticker-inner:hover { animation-play-state: paused; }
+  .ticker-item {
+    display: inline-block;
+    color: var(--ticker-text);
+    font-size: 13px;
+    margin: 0 28px;
+    vertical-align: middle;
+  }
+  .ticker-item span.up   { color: #ff6b6b; font-weight: 700; }
+  .ticker-item span.down { color: #63e6be; font-weight: 700; }
+  .ticker-item span.flat { color: #ffd43b; font-weight: 700; }
+  @keyframes ticker {
+    0%   { transform: translateX(100vw); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, #1b3a6b 100%);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header-left .logo {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #7eaadc;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .header-left h1 {
+    font-size: 26px;
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .header-left h1 em {
+    font-style: normal;
+    color: var(--accent2);
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right .date-badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #c8dcf5;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+    display: inline-block;
+  }
+  .header-right .issue {
+    font-size: 11px;
+    color: #7eaadc;
+    letter-spacing: 1px;
+  }
+
+  /* ── ALERT BANNER ───────────────────────── */
+  .alert-banner {
+    background: linear-gradient(90deg, #7f0000, #c0392b);
+    color: #fff;
+    padding: 10px 40px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .alert-banner .alert-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .alert-banner strong { color: #ffd43b; }
+
+  /* ── MAIN LAYOUT ────────────────────────── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* ── METRICS ROW ────────────────────────── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .metric-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(10,37,64,.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.orange::before { background: var(--accent2); }
+  .metric-card .metric-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .metric-card .metric-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .metric-card .metric-delta {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .delta-up { color: var(--badge-up); }
+  .delta-dn { color: var(--badge-dn); }
+  .delta-warn { color: var(--badge-warn); }
+
+  /* ── SECTION TITLE ──────────────────────── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── NEWS GRID ──────────────────────────── */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .news-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px 22px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 10px rgba(10,37,64,.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .news-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(10,37,64,.12);
+  }
+  .news-card .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .news-card .card-num {
+    font-size: 32px;
+    font-weight: 900;
+    color: #dde3ec;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
+  .news-card .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+  .badge-crisis  { background: #fde8e8; color: #c62828; }
+  .badge-rate    { background: #fff3e0; color: #e65100; }
+  .badge-fuel    { background: #e8f5e9; color: #2e7d32; }
+  .badge-ops     { background: #e3f2fd; color: #0d47a1; }
+  .badge-policy  { background: #f3e5f5; color: #6a1b9a; }
+  .badge-market  { background: #fce4ec; color: #880e4f; }
+  .badge-energy  { background: #fff8e1; color: #f57f17; }
+  .badge-lng     { background: #e0f2f1; color: #004d40; }
+  .badge-port    { background: #ede7f6; color: #311b92; }
+  .badge-green   { background: #e8f5e9; color: #1b5e20; }
+
+  .news-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+    flex: 1;
+  }
+  .news-card p {
+    font-size: 13.5px;
+    color: #4a5568;
+    line-height: 1.7;
+  }
+  .news-card .card-meta {
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .news-card .card-meta .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* ── RATES TABLE ────────────────────────── */
+  .rates-section {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 10px rgba(10,37,64,.06);
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .rates-header {
+    background: linear-gradient(90deg, var(--primary), #1b3a6b);
+    color: #fff;
+    padding: 14px 22px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    background: #f7f9fc;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 11px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f4f8;
+    color: var(--text);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #f7f9fc; }
+  .td-up   { color: #c62828; font-weight: 700; }
+  .td-dn   { color: #2a9d8f; font-weight: 700; }
+  .td-flat { color: #e65100; font-weight: 700; }
+  .route-name { font-weight: 600; }
+
+  /* ── OUTLOOK ────────────────────────────── */
+  .outlook {
+    background: linear-gradient(135deg, #0a2540 0%, #1b3a6b 100%);
+    border-radius: 14px;
+    padding: 24px 28px;
+    color: #c8dcf5;
+    margin-bottom: 32px;
+  }
+  .outlook h2 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .outlook ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .outlook li {
+    font-size: 13.5px;
+    line-height: 1.6;
+    padding-left: 20px;
+    position: relative;
+  }
+  .outlook li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent2);
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .outlook strong { color: #ffd43b; }
+
+  /* ── FOOTER ─────────────────────────────── */
+  footer {
+    background: var(--primary);
+    color: #7eaadc;
+    padding: 16px 40px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer strong { color: #c8dcf5; }
+
+  @media (max-width: 600px) {
+    header { padding: 18px 16px 14px; }
+    .container { padding: 16px 12px; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .news-grid { grid-template-columns: 1fr; }
+    .alert-banner { padding: 8px 16px; }
+    footer { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <span class="ticker-label">实时行情</span>
+  <div class="ticker-inner">
+    <span class="ticker-item">SCFI综合指数 <span class="up">1710.35 ▲14.85%</span></span>
+    <span class="ticker-item">布伦特原油 <span class="up">102.45 USD/桶</span></span>
+    <span class="ticker-item">欧线运价 <span class="up">1618 USD/TEU ▲11.4%</span></span>
+    <span class="ticker-item">美西运价 <span class="up">2249 USD/FEU ▲15.9%</span></span>
+    <span class="ticker-item">美东运价 <span class="up">3111 USD/FEU ▲14.5%</span></span>
+    <span class="ticker-item">地中海运价 <span class="up">2666 USD/TEU ▲13.0%</span></span>
+    <span class="ticker-item">波斯湾运价 <span class="up">3220 USD/TEU ▲40.8%</span></span>
+    <span class="ticker-item">ClarkSea Index <span class="up">53,319 USD/天 历史新高</span></span>
+    <span class="ticker-item">霍尔木兹通航量 <span class="down">日均仅2艘 ▼97%</span></span>
+    <span class="ticker-item">卡塔尔LNG受损产能 <span class="down">17% 约6400万吨/5年</span></span>
+    <span class="ticker-item">SCFIS欧洲结算 <span class="up">1556.49 ▲0.7%</span></span>
+    <span class="ticker-item">SCFIS美西结算 <span class="flat">1109.11 ▼1.1%</span></span>
+    <span class="ticker-item">CCFI综合指数 <span class="up">1072.16 ▲1.7%</span></span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="logo">Container Shipping Daily Report</div>
+    <h1>集装箱航运 <em>日报</em></h1>
+  </div>
+  <div class="header-right">
+    <div class="date-badge">📅 2026年3月20日（星期五）</div>
+    <div class="issue">第 5 期 · 自动早报系统生成</div>
+  </div>
+</header>
+
+<!-- ALERT -->
+<div class="alert-banner">
+  <span class="alert-icon">🔴</span>
+  <span><strong>紧急警报：</strong>伊朗3月19日袭击卡塔尔拉斯拉凡LNG基地，17%产能瘫痪，欧洲气价单日暴涨50%；布伦特原油盘中触及 <strong>113美元/桶</strong>，航运成本再度上行。</span>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="metric-card">
+      <div class="metric-label">SCFI 综合指数（3/13）</div>
+      <div class="metric-value">1710.35</div>
+      <div class="metric-delta delta-up">▲ 14.85%  周涨+221.16点</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">布伦特原油（3/20 早盘）</div>
+      <div class="metric-value">$102.45</div>
+      <div class="metric-delta delta-up">▲ 盘中触及 $113/桶</div>
+    </div>
+    <div class="metric-card orange">
+      <div class="metric-label">霍尔木兹 日均通航</div>
+      <div class="metric-value">2 艘/天</div>
+      <div class="metric-delta delta-up">▼ 97% 较战前约100艘</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">ClarkSea Index</div>
+      <div class="metric-value">53,319</div>
+      <div class="metric-delta delta-up">美元/天 ▲ 历史新高</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">卡塔尔LNG受损量</div>
+      <div class="metric-value">~6,400万吨</div>
+      <div class="metric-delta delta-warn">未来5年潜在损失</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">波斯湾航线（3/13）</div>
+      <div class="metric-value">$3,220/TEU</div>
+      <div class="metric-delta delta-up">▲ 40.8% 一周</div>
+    </div>
+  </div>
+
+  <!-- NEWS SECTION -->
+  <div class="section-title">今日十大动态</div>
+  <div class="news-grid">
+
+    <!-- 1 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">01</span>
+        <span class="badge badge-energy">能源危机</span>
+      </div>
+      <h3>伊朗导弹袭击卡塔尔拉斯拉凡LNG基地，17%产能瘫痪</h3>
+      <p>3月19日，伊朗对全球最大液化天然气出口基地——卡塔尔拉斯拉凡实施导弹袭击，损坏14条液化生产线中的2条，造成约12.8 MTPA年产能中断，持续时间预估为3至5年，未来五年潜在供应损失高达<strong>6400万吨</strong>。卡塔尔能源公司宣布该事件属不可抗力，欧洲基准天然气（荷兰TTF）单日暴涨50%。Poten & Partners表示，市场情绪已从"可控危机"急速转向"供应焦虑"，全球LNG买家正积极争抢现货。</p>
+      <div class="card-meta"><span class="dot"></span>华尔街见闻 / 以撒航讯速递 | 3月20日</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">02</span>
+        <span class="badge badge-crisis">地缘危机</span>
+      </div>
+      <h3>霍尔木兹海峡日均通航仅2艘，2万海员受困，IMO召开紧急特别会议</h3>
+      <p>国际海事组织（IMO）3月19日召开特别会议，确认自美以军事行动以来，已有<strong>17起</strong>针对航运的袭击，超过2万名海员与约3200艘船只被困霍尔木兹海峡以西海域。海事数据显示，3月14日出现"零通航"历史事件，目前日均仅2艘油轮通行，远低于战前的100艘/天。摩根大通报告指出，伊朗目前仅完成核验后放行少数船只，霍尔木兹海峡实质封锁仍在持续。</p>
+      <div class="card-meta"><span class="dot"></span>联合国新闻 / 21经济网 | 3月19日</div>
+    </div>
+
+    <!-- 3 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">03</span>
+        <span class="badge badge-rate">运价行情</span>
+      </div>
+      <h3>SCFI三连涨至1710点，波斯湾航线两周暴涨143%</h3>
+      <p>上海航运交易所3月13日数据，SCFI综合指数报1710.35点，周涨14.85%，连续三周上涨，较2月下旬1333点累计涨幅达28.3%。各主干航线全线上扬：欧线 +11.4% 至1618美元/TEU；地中海 +13.0% 至2666美元/TEU；美西 +15.9% 至2249美元/FEU；美东 +14.5% 至3111美元/FEU；波斯湾（迪拜）+40.8% 至3220美元/TEU，两周累计涨幅高达<strong>143%</strong>。业内预期本周SCFI（3月20日）或将延续涨势。</p>
+      <div class="card-meta"><span class="dot"></span>上海航运交易所 / 信德海事网 | 3月13日数据</div>
+    </div>
+
+    <!-- 4 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">04</span>
+        <span class="badge badge-fuel">燃油附加费</span>
+      </div>
+      <h3>MSC、达飞、海洋网联相继开征紧急燃油附加费，达曼港单箱附加超4000美元</h3>
+      <p>多家船公司宣布新一轮燃油附加费：<strong>地中海航运（MSC）</strong>自3月16日起在亚欧、跨太平洋等主要航线实施紧急燃油附加费（EFS）；<strong>达飞海运（CMA CGM）</strong>自3月23日（按装货日）起在全球范围执行EFS，并已对每箱加收2000至4000美元不等的"紧急冲突附加费"；<strong>海洋网联（ONE）</strong>宣布自3月24日起加征燃油附加费，以应对伊朗冲突导致的原油价格飙升。国内三大内贸船司（泛亚、安通、中谷）已统一收取每自然箱<strong>500元人民币</strong>EFS。</p>
+      <div class="card-meta"><span class="dot"></span>NHK World / 国际船舶网 / 信德海事网 | 3月17–19日</div>
+    </div>
+
+    <!-- 5 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">05</span>
+        <span class="badge badge-ops">船司动态</span>
+      </div>
+      <h3>马士基3月16日起分批恢复中东港口订舱，达飞、MSC相继涨价</h3>
+      <p>马士基于3月16日起分步恢复部分中东港口订舱：已接受沙特（吉达港、阿卜杜拉国王港）、约旦亚喀巴港、阿曼苏哈尔及霍尔法坎港的干箱及特种货物订舱，但达曼等关键区域仍受限。同期，MSC宣布从远东至北欧、地中海及黑海港口，自3月22日起执行新一轮大幅上调价格；达飞、长荣、阳明集体宣布3月下旬至4月全线涨价，部分航线两位数涨幅。马士基CEO柯文胜公开表示"航运大年已至"。</p>
+      <div class="card-meta"><span class="dot"></span>搜狐航运 / 中华航运网 | 3月17–18日</div>
+    </div>
+
+    <!-- 6 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">06</span>
+        <span class="badge badge-market">市场重构</span>
+      </div>
+      <h3>运价体系三重重构：风险溢价制度化，船东联盟定价权强化</h3>
+      <p>新浪财经分析指出，当前全球航运运价体系正经历深刻重构：①地缘冲突推动风险溢价<strong>制度化</strong>，战险保费单周涨幅超6%，每标箱附加费1500–4000美元；②船东联盟化重塑定价权，Gemini联盟（马士基+赫伯罗特）、MSC等巨头在运价和舱位上掌握主动；③绿色合规成本纳入长期运价机制。有效运力因绕航而收缩逾20%，原本结构性过剩（新船订单占船队26%）被战争完全吸收，百亿亏损预测一夜间变成"航运大年"。</p>
+      <div class="card-meta"><span class="dot"></span>新浪财经 / 国际船舶网 | 3月17日</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">07</span>
+        <span class="badge badge-energy">能源市场</span>
+      </div>
+      <h3>布伦特原油盘中触及113美元，美联储按兵不动，通胀担忧重燃</h3>
+      <p>3月20日凌晨，受伊朗袭击卡塔尔LNG设施消息刺激，布伦特原油期货盘中飙升至<strong>113美元/桶</strong>，随后回落至102.45美元。美联储周三维持利率不变，市场持续关注石油冲击的不确定性；花旗集团分析师警告，若霍尔木兹海峡长时间关闭，布伦特二、三季度均价或达<strong>130美元/桶</strong>。道指跌422点、纳指跌191点，能源价格上行叠加通胀压力令美股承压。</p>
+      <div class="card-meta"><span class="dot"></span>新浪财经 / 每日经济新闻 | 3月20日</div>
+    </div>
+
+    <!-- 8 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">08</span>
+        <span class="badge badge-port">港口拥堵</span>
+      </div>
+      <h3>全球港口拥堵加剧：豪尔费坎锚泊279小时，美西运价坚挺，甩柜事件频发</h3>
+      <p>船视宝数据显示，全球核心集装箱港口平均锚泊时长较1月显著增加。<strong>阿联酋豪尔费坎港</strong>当前预抵44艘、锚泊49艘，锚泊时长达279小时；富查伊拉港多次遭袭处于停摆-复工循环。美西洛杉矶长滩港持续拥堵，上海→美西（40尺箱）运价3月18日报3489美元，周环比持稳。与此同时，MSC、马士基、达飞等援引"特殊海事条款"，已在中东航线出现<strong>甩柜</strong>情况，部分货物被迫滞留印度或阿联酋港口，货主额外负担转运及仓储费用。</p>
+      <div class="card-meta"><span class="dot"></span>船视宝 / 鹏康物流 | 3月18–19日</div>
+    </div>
+
+    <!-- 9 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">09</span>
+        <span class="badge badge-policy">宏观政策</span>
+      </div>
+      <h3>IMF警告：伊朗战争推高全球通胀，或拖累经济增长；伍德麦肯兹：2026年中期前难以恢复</h3>
+      <p>国际货币基金组织（IMF）3月20日发出警告，中东战事导致能源价格持续攀升，将推高全球通胀、拖累增长，对进口依赖国影响尤为突出。研究机构<strong>伍德麦肯兹</strong>表示，此前预测供应中断时间较短、可在2026年中期前恢复的乐观前景，如今已"愈发渺茫"。Global Risk Management首席分析师Arne Lohmann Rasmussen指出，"战争已进入直接攻击能源基础设施阶段"，标志着局势进一步升级，能源价格上行压力将持续。</p>
+      <div class="card-meta"><span class="dot"></span>腾讯新闻 / 财联社 | 3月20日</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="news-card">
+      <div class="card-top">
+        <span class="card-num">10</span>
+        <span class="badge badge-market">行业研判</span>
+      </div>
+      <h3>非洲航线跃升全球航运C位，欧洲班轮运价高位震荡，二季度看多情绪升温</h3>
+      <p>集装箱贸易统计公司（CTS）2025年1月数据显示，非洲航线货流量逆势增长，绕行好望角令非洲沿线港口成为全球航运热点，非洲东西岸多处港口拥堵加剧。与此同时，上海航运交易所3月16日数据显示，欧洲基本港结算运价指数（SCFIS）报1556.49点，微涨0.7%，高位企稳。多家船司巨头在路演中对二季度运价发出<strong>强烈看多</strong>信号，以马士基、MSC、中远海控为代表的头部船司Q2运价前景被分析师一致上调，航运板块资本市场表现持续强劲。</p>
+      <div class="card-meta"><span class="dot"></span>feedtrade / 知乎航运专栏 | 3月18–19日</div>
+    </div>
+
+  </div><!-- end news-grid -->
+
+  <!-- RATES TABLE -->
+  <div class="section-title">主要航线运价速览（SCFI · 2026-03-13）</div>
+  <div class="rates-section">
+    <div class="rates-header">📊 上海出口集装箱运价指数（SCFI）各航线对比</div>
+    <table>
+      <thead>
+        <tr>
+          <th>航线</th>
+          <th>单位</th>
+          <th>最新运价</th>
+          <th>周变动</th>
+          <th>周涨幅</th>
+          <th>市场信号</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="route-name">欧洲基本港</td>
+          <td>USD/TEU</td>
+          <td><strong>1,618</strong></td>
+          <td class="td-up">+166</td>
+          <td class="td-up">▲ 11.43%</td>
+          <td>🔴 强劲上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">地中海基本港</td>
+          <td>USD/TEU</td>
+          <td><strong>2,666</strong></td>
+          <td class="td-up">+306</td>
+          <td class="td-up">▲ 12.97%</td>
+          <td>🔴 强劲上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">美西基本港</td>
+          <td>USD/FEU</td>
+          <td><strong>2,249</strong></td>
+          <td class="td-up">+309</td>
+          <td class="td-up">▲ 15.93%</td>
+          <td>🔴 强劲上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">美东基本港</td>
+          <td>USD/FEU</td>
+          <td><strong>3,111</strong></td>
+          <td class="td-up">+394</td>
+          <td class="td-up">▲ 14.50%</td>
+          <td>🔴 强劲上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">波斯湾（迪拜）</td>
+          <td>USD/TEU</td>
+          <td><strong>3,220</strong></td>
+          <td class="td-up">+933</td>
+          <td class="td-up">▲ 40.80%</td>
+          <td>🚨 有行无市</td>
+        </tr>
+        <tr>
+          <td class="route-name">南美（桑托斯）</td>
+          <td>USD/TEU</td>
+          <td>–</td>
+          <td class="td-up">–</td>
+          <td class="td-up">▲ 20%+</td>
+          <td>🔴 明显上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">东南亚</td>
+          <td>USD/TEU</td>
+          <td><strong>477</strong></td>
+          <td class="td-up">+20</td>
+          <td class="td-up">▲ 4.38%</td>
+          <td>🟡 温和上行</td>
+        </tr>
+        <tr>
+          <td class="route-name">日本关西</td>
+          <td>USD/TEU</td>
+          <td><strong>316</strong></td>
+          <td class="td-up">+5</td>
+          <td class="td-up">▲ 1.61%</td>
+          <td>⚪ 基本平稳</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- OUTLOOK -->
+  <div class="section-title">市场展望</div>
+  <div class="outlook">
+    <h2>⚡ 近期走势研判（2026年3月下旬–4月）</h2>
+    <ul>
+      <li><strong>运价持续偏强：</strong>伊朗袭击卡塔尔LNG基地标志冲突进入"能源战"阶段，绕行成本与战争险附加费难以回落，SCFI在3月20日新数据公布前预期仍将上行，欧线、美线有望延续两位数涨幅。</li>
+      <li><strong>燃油成本高企：</strong>布伦特原油盘中触113美元，花旗预测Q2–Q3均价或达130美元/桶。各大船司新一轮EFS密集落地，货主运输成本压力持续攀升。</li>
+      <li><strong>LNG供应重大缺口：</strong>卡塔尔拉斯拉凡基地损坏将在未来3–5年造成持续供应短缺，欧洲气价或维持高位，进一步拉升全球通胀与工业成本。</li>
+      <li><strong>港口拥堵加剧：</strong>霍尔法坎、美西等关键港口锚泊时长攀升，甩柜风险上升，建议货主提前锁定舱位，并预留10%–15%的附加费预算。</li>
+      <li><strong>外交变数仍存：</strong>以色列据称将协助开放霍尔木兹海峡的消息使油价短暂回落，若外交出现实质进展，运价或面临快速修正，关注地缘政治每日动态。</li>
+    </ul>
+  </div>
+
+</div><!-- end container -->
+
+<footer>
+  <span>
+    <strong>集装箱航运日报</strong> · 第5期 · 2026年3月20日（星期五）<br>
+    数据来源：上海航运交易所 · IMO · 信德海事网 · 华尔街见闻 · 财联社 · 21经济网 · 新浪财经 · 船视宝 · Poten & Partners · 伍德麦肯兹
+  </span>
+  <span>本报告由 WorkBuddy 自动采编系统每日09:00生成，仅供参考，不构成投资建议。</span>
+</footer>
+
+</body>
+</html>
