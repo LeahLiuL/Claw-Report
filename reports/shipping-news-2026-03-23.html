@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-03-23 · 第7期</title>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0d2045;
+    --blue: #1a3a6b;
+    --accent: #1e5bbd;
+    --highlight: #2e7de0;
+    --gold: #f0b429;
+    --red: #e53e3e;
+    --green: #38a169;
+    --orange: #dd6b20;
+    --light: #e8f0fe;
+    --white: #ffffff;
+    --gray: #a0aec0;
+    --card-bg: #0f1e3d;
+    --card-border: #1e3a6b;
+    --text-main: #e2e8f0;
+    --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--navy);
+    color: var(--text-main);
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── TICKER ── */
+  .ticker-wrap {
+    background: var(--accent);
+    padding: 7px 0;
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--gold);
+  }
+  .ticker {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll 55s linear infinite;
+  }
+  .ticker span {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 28px;
+    letter-spacing: .4px;
+  }
+  .ticker .up { color: #4ade80; }
+  .ticker .dn { color: #f87171; }
+  .ticker .ne { color: #fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%);
+    border-bottom: 3px solid var(--gold);
+    padding: 32px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    position: relative;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-icon {
+    width: 52px; height: 52px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 18px rgba(30,91,189,0.5);
+  }
+  .brand-text h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 1px;
+  }
+  .brand-text p {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  .date-badge {
+    text-align: right;
+  }
+  .date-badge .date {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .date-badge .issue {
+    font-size: 13px;
+    color: var(--gray);
+    margin-top: 4px;
+  }
+  .header-subtitle {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--gray);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-subtitle::before {
+    content: '';
+    width: 30px; height: 2px;
+    background: var(--gold);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* ── INDEX CARDS ── */
+  .index-section {
+    padding: 24px 40px 8px;
+    background: var(--navy2);
+  }
+  .index-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .idx-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .idx-card .idx-label {
+    font-size: 11px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .idx-card .idx-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--white);
+  }
+  .idx-card .idx-chg {
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .idx-card .idx-chg.up { color: #4ade80; }
+  .idx-card .idx-chg.dn { color: #f87171; }
+  .idx-card .idx-chg.ne { color: #fde68a; }
+
+  /* ── MAIN ── */
+  .main { padding: 30px 40px 20px; }
+
+  /* ── SECTION TITLE ── */
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    margin-top: 32px;
+  }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .sec-title h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: .5px;
+  }
+  .sec-title .badge {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: var(--highlight);
+  }
+
+  /* ── HEADLINE CARD ── */
+  .headline-card {
+    background: linear-gradient(135deg, #0d2045 0%, #132f5e 100%);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .headline-card::before {
+    content: '今日重磅';
+    position: absolute;
+    top: 14px; right: 18px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--gold);
+    color: var(--navy);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .headline-card .hl-label {
+    font-size: 11px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .headline-card h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  .headline-card .hl-summary {
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .hl-impact {
+    background: rgba(240,180,41,0.1);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: #fde68a;
+    line-height: 1.6;
+  }
+  .hl-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .stars { color: var(--gold); font-size: 16px; letter-spacing: 2px; }
+  .tag {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #93c5fd;
+  }
+
+  /* ── NEWS CARDS ── */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .news-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color .2s;
+    position: relative;
+  }
+  .news-card:hover { border-color: var(--highlight); }
+  .news-card .card-num {
+    position: absolute;
+    top: 14px; right: 16px;
+    font-size: 26px;
+    font-weight: 900;
+    color: rgba(30,91,189,0.25);
+    line-height: 1;
+  }
+  .news-card .category {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+  .cat-ops { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .cat-geo { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .cat-mkt { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .cat-reg { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+  .cat-acc { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .cat-ma  { background: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3); }
+  .cat-env { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+
+  .news-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.45;
+    margin-bottom: 10px;
+    padding-right: 30px;
+  }
+  .news-card .summary {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .news-card .impact-box {
+    background: rgba(30,91,189,0.12);
+    border-left: 2px solid var(--highlight);
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: #93c5fd;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .news-card .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .news-card .stars-sm { color: var(--gold); font-size: 13px; }
+  .news-card .source { font-size: 11px; color: var(--gray); }
+
+  /* ── RATE TABLE ── */
+  .rate-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .rate-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: rgba(30,91,189,0.2);
+    color: var(--highlight);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: .3px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,91,189,0.1);
+    color: var(--text-main);
+  }
+  tbody tr:hover td { background: rgba(30,91,189,0.06); }
+  td.up { color: #4ade80; font-weight: 600; }
+  td.dn { color: #f87171; font-weight: 600; }
+  td.ne { color: #fde68a; font-weight: 600; }
+  td.alert { color: #fb923c; font-weight: 700; }
+
+  /* ── SENTIMENT ── */
+  .sentiment {
+    background: linear-gradient(135deg, #0d2045 0%, #0a1628 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 26px 28px;
+    margin-top: 32px;
+  }
+  .sentiment h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .sent-item {
+    background: rgba(30,91,189,0.1);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .sent-item .si-label { font-size: 11px; color: var(--gray); margin-bottom: 6px; }
+  .sent-item .si-val { font-size: 18px; font-weight: 800; }
+  .si-bear { color: #f87171; }
+  .si-bull { color: #4ade80; }
+  .si-neutral { color: #fde68a; }
+  .sent-para {
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.8;
+    border-top: 1px solid var(--card-border);
+    padding-top: 14px;
+  }
+  .sent-para strong { color: var(--white); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy2);
+    border-top: 1px solid var(--card-border);
+    padding: 20px 40px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 40px;
+  }
+  footer a { color: var(--highlight); text-decoration: none; }
+
+  @media(max-width:900px){
+    .index-grid { grid-template-columns: repeat(3, 1fr); }
+    .news-grid   { grid-template-columns: 1fr; }
+    .sent-grid   { grid-template-columns: repeat(2, 1fr); }
+    .header, .main, .index-section { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ TICKER ══ -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="up">🔼 SCFI&nbsp;1710.35&nbsp;(+14.85%&nbsp;3/13)</span>
+    <span class="ne">⚡ WCI&nbsp;2172&nbsp;USD/FEU&nbsp;(+2%&nbsp;3/19)</span>
+    <span class="dn">📉 集运需求：Linerlytica警告关税致抢运提前结束</span>
+    <span class="alert">🚨 霍尔木兹海峡：3200艘船·2万海员受困·日均仅2艘通行</span>
+    <span class="up">🔼 MSC+达飞宣布亚欧/跨太平洋运价双位数上涨</span>
+    <span class="ne">⚓ IMO特别会议闭幕·霍尔木兹安全框架分歧明显</span>
+    <span class="up">💰 MSC正式入股长锦商船50%·布局油轮市场</span>
+    <span class="dn">📦 OOCL&nbsp;Sunflower：32柜落海·57柜受损·已靠泊长滩</span>
+    <span class="ne">🌊 EU&nbsp;ETS&nbsp;2026年100%覆盖·碳成本同比+45%</span>
+    <span class="up">🔼 SCFI&nbsp;1710.35&nbsp;(+14.85%&nbsp;3/13)</span>
+    <span class="ne">⚡ WCI&nbsp;2172&nbsp;USD/FEU&nbsp;(+2%&nbsp;3/19)</span>
+    <span class="dn">📉 集运需求：Linerlytica警告关税致抢运提前结束</span>
+    <span class="alert">🚨 霍尔木兹海峡：3200艘船·2万海员受困·日均仅2艘通行</span>
+    <span class="up">🔼 MSC+达飞宣布亚欧/跨太平洋运价双位数上涨</span>
+    <span class="ne">⚓ IMO特别会议闭幕·霍尔木兹安全框架分歧明显</span>
+    <span class="up">💰 MSC正式入股长锦商船50%·布局油轮市场</span>
+    <span class="dn">📦 OOCL&nbsp;Sunflower：32柜落海·57柜受损·已靠泊长滩</span>
+    <span class="ne">🌊 EU&nbsp;ETS&nbsp;2026年100%覆盖·碳成本同比+45%</span>
+  </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">🚢</div>
+      <div class="brand-text">
+        <h1>集装箱航运日报</h1>
+        <p>Container Shipping Intelligence Report</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026 · 03 · 23</div>
+      <div class="issue">第 7 期 · 星期一 · 周报</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    聚焦全球集运市场核心动态 | 战争危机 · 需求拐点 · 并购整合 · 监管合规 · 本期精选10条
+  </div>
+</div>
+
+<!-- ══ INDEX CARDS ══ -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI</div>
+      <div class="idx-val">1710</div>
+      <div class="idx-chg up">▲ +14.85% (3/13)</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">WCI (德鲁里)</div>
+      <div class="idx-val">2172</div>
+      <div class="idx-chg up">▲ +2% (3/19)</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">上海→鹿特丹</div>
+      <div class="idx-val">2443</div>
+      <div class="idx-chg up">▲ +19 USD/FEU</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">上海→热那亚</div>
+      <div class="idx-val">3120</div>
+      <div class="idx-chg up">▲ +10 USD/FEU</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">布伦特原油</div>
+      <div class="idx-val">≈$108</div>
+      <div class="idx-chg ne">⚡ 高位震荡</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">霍尔木兹通航</div>
+      <div class="idx-val">≈2艘/日</div>
+      <div class="idx-chg dn">▼ 正常水平↓97%</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- ── 今日重磅 ── -->
+  <div class="sec-title" style="margin-top:0">
+    <div class="icon">🏆</div>
+    <h2>今日重磅头条</h2>
+    <span class="badge">TOP STORY</span>
+  </div>
+
+  <div class="headline-card">
+    <div class="hl-label">📌 地缘政治 · 霍尔木兹危机 · 重磅</div>
+    <h3>需求"双杀"来袭：战争扰断供应链 VS 关税萎缩货量<br>Linerlytica警示：集运真正麻烦或是贸易需求崩塌</h3>
+    <div class="hl-summary">
+      进入3月第三周，集装箱航运市场面临前所未有的"多空分裂"格局。一方面，霍尔木兹海峡持续接近封锁状态（日均通行量约2艘，较战前骤降97%），约3200艘船只、逾2万名海员滞留海湾区域；另一方面，航运分析机构Linerlytica发出警示：由于美国高关税政策持续发酵，此前被市场寄予厚望的"抢运潮"已明显降温，船公司3月中旬推涨北欧航线运价的尝试宣告失败，4月1日再次提价能否成功充满变数。<br><br>
+      Drewry WCI指数3月19日报2172美元/FEU（周涨2%，连续三周上行），而实际订舱需求尚未配合；美西线运价仍处1550-1700美元/FEU低位，美东线约2400-2500美元/FEU。供应端扰动利多与需求端关税利空，正在形成罕见对冲。
+    </div>
+    <div class="hl-impact">
+      ⚡ <strong>影响分析：</strong>战时溢价与需求萎缩同步发酵，短期运价将呈现"虚高"特征——供给受限推高报价，但实际成交量支撑不足；若中美经贸磋商谈判进展迟缓，叠加关税冲击，二季度集运市场可能出现"先扬后抑"走势，船公司二季度业绩面临较大不确定性。
+    </div>
+    <div class="hl-footer">
+      <span class="stars">⭐⭐⭐⭐⭐</span>
+      <span class="tag">地缘 / 宏观 / 需求</span>
+    </div>
+  </div>
+
+  <!-- ── 板块1：地缘政治 ── -->
+  <div class="sec-title">
+    <div class="icon">🌍</div>
+    <h2>地缘政治与运河通航</h2>
+    <span class="badge">GEOPOLITICS</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">01</span>
+      <span class="category cat-geo">地缘政治</span>
+      <h3>IMO特别会议闭幕：谴责袭船行为，呼吁建立霍尔木兹安全通道框架</h3>
+      <div class="summary">
+        国际海事组织（IMO）理事会第36届特别会议于3月18–19日在伦敦举行，讨论中东局势及其对航运与海员的影响。秘书长多明格斯表示，已有至少7名海员在事件中遇难，约3200艘船、2万余名海员受困于霍尔木兹以西海域。会议发表声明谴责17起已确认的袭船事件，并呼吁国际社会协调构建民用船只安全通行框架。然而，各方在具体安排上立场分歧明显，会议未能形成有约束力的决议。
+      </div>
+      <div class="impact-box">
+        📌 各国立场分歧将使霍尔木兹通行保障进一步复杂化；无约束力声明恐难短期改变实地安全态势，航运企业须继续自行承担绕行成本和战险保费。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐⭐</span>
+        <span class="source">来源：IMO官网 / 联合国新闻 / 新华社</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">02</span>
+      <span class="category cat-geo">地缘政治</span>
+      <h3>霍尔木兹实质封锁：约3200艘船滞留，集运受困147艘，绕非洲航程延长14天</h3>
+      <div class="summary">
+        联合海上信息中心（JMIC）数据显示，霍尔木兹海峡3月初的24小时内仅记录到约2艘商船通行，较战前日均70–77艘骤降逾97%。其中集装箱船受困约147艘，油轮和LNG船受困比例更高。船东普遍选择绕非洲好望角航行，跨印度洋航程额外增加约14天，东西行航线周转时间大幅延长，运力有效供给骤减。
+      </div>
+      <div class="impact-box">
+        📌 绕行非洲导致波斯湾–欧洲段航程增加约25%；对欧洲、印度及东非进出口货物影响最为直接；航运保险战险附加费持续高企（部分路线已较战前涨10倍以上）。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐⭐</span>
+        <span class="source">来源：JMIC / 信德海事 / 知乎航运情报</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 板块2：船公司动态 ── -->
+  <div class="sec-title">
+    <div class="icon">🚢</div>
+    <h2>船公司重要动态</h2>
+    <span class="badge">CARRIER UPDATES</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">03</span>
+      <span class="category cat-ops">运价与服务</span>
+      <h3>MSC、达飞宣布亚欧及跨太平洋航线运费双位数上涨，GRI窗口至3月29日</h3>
+      <div class="summary">
+        本周（约3月17–22日），地中海航运（MSC）和达飞海运（CMA CGM）宣布新一轮普涨率（GRI）：上海至鹿特丹运价周涨19美元至2443美元/FEU，上海至热那亚涨10美元至3120美元/FEU，跨太平洋部分航线也宣告两位数涨幅。GRI申请日期窗口为3月22–29日提单。持续的中东冲突成为此轮涨价的主要背景，德鲁里预计运费短期内将维持较高水平。
+      </div>
+      <div class="impact-box">
+        📌 涨幅主要体现在亚欧干线；跨太平洋实际成交价仍偏弱，美西约1550–1700美元/FEU，提价落地效果有待观察；部分船司已通知美国线4月提价。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：国际海运网 / 德鲁里 / 广嘉客物流</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">04</span>
+      <span class="category cat-ops">运营调整</span>
+      <h3>马士基部分恢复中东港口订舱，同步宣布3月起收取战险附加费（WRS）</h3>
+      <div class="summary">
+        马士基（Maersk）宣布自3月下旬起逐步开放对阿联酋（迪拜、阿布扎比）等部分中东港口的订舱，但不含伊朗、伊拉克战争高风险区域。与此同时，公司正式征收战险附加费（WRS），具体金额视航线和货物性质而定，并将继续绕行非洲好望角以规避高风险航段。这一举措被视为在风险可控前提下尝试恢复正常服务。
+      </div>
+      <div class="impact-box">
+        📌 部分中东贸易恢复订舱，可一定程度缓解UAE出口商的运力困境；但同步征收战险附加费意味着综合物流成本仍处高位，货主实际负担未见明显改善。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：马士基官网 / Container News / 以撒航讯</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 板块3：并购投资 ── -->
+  <div class="sec-title">
+    <div class="icon">💼</div>
+    <h2>并购、投资与造船订单</h2>
+    <span class="badge">M&A / INVESTMENT</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">05</span>
+      <span class="category cat-ma">并购整合</span>
+      <h3>MSC正式入股韩国长锦商船50%：剥离集装箱船队，豪赌120艘VLCC超级油轮版图</h3>
+      <div class="summary">
+        希腊及塞浦路斯竞争监管机构公开披露：MSC旗下卢森堡实体SAS Lux已于2月2日与长锦商船（Sinokor Maritime）签署收购50%股权协议，双方各持50%共同控制。根据协议配套安排：长锦商船将约30–60艘集装箱船以25–30亿美元出售给MSC；套现资金叠加MSC直接注资，长锦商船大规模扫货VLCC，与贸易商托克（Trafigura）深度绑定，可控VLCC总量或达120–130艘，占全球合规即期VLCC约25%。这是MSC首次官方确认进军油轮领域，实现集运、油轮、邮轮、汽车运输"四线并进"。
+      </div>
+      <div class="impact-box">
+        📌 MSC借霍尔木兹危机高油价窗口期押注能源运输；历史上从未有单一运营商掌控VLCC市场约25%份额，此举将重塑全球油轮市场定价权，同时可能触发反垄断深度审查。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐⭐</span>
+        <span class="source">来源：同花顺 / 雪球 / 新浪财经 / 航运界</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">06</span>
+      <span class="category cat-ma">并购整合</span>
+      <h3>中美经贸第六轮磋商落幕，航运贸易量前景仍待政策明确</h3>
+      <div class="summary">
+        国务院副总理何立峰于3月14–17日赴华盛顿参与第六轮中美经贸磋商。双方围绕关税减让、科技出口管制、农产品贸易等核心议题深入讨论，但暂无实质性减税协议公布。分析人士指出，若关税谈判无重大突破，跨太平洋集装箱贸易量在二季度可能继续承压；此前部分托运人已提前完成抢运，后续补货意愿明显下滑，Linerlytica发出"需求萎缩影响或超供应链中断利好"的警示。
+      </div>
+      <div class="impact-box">
+        📌 美中贸易是全球集运最大单一贸易流，关税谈判节奏是决定二季度箱量的核心变量；若达成阶段性减税协议，将对跨太平洋运价形成显著提振。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：知乎经贸快讯 / Linerlytica / 雪球集运分析</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 板块4：港口与安全 ── -->
+  <div class="sec-title">
+    <div class="icon">⚓</div>
+    <h2>港口动态与突发事故</h2>
+    <span class="badge">PORT & SAFETY</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">07</span>
+      <span class="category cat-acc">突发事故</span>
+      <h3>OOCL Sunflower遭遇北太平洋强风暴：32柜落海、57柜受损，IMO新报告规则首次激活</h3>
+      <div class="summary">
+        东方海外旗下超大型集装箱船"OOCL Sunflower"在阿留申群岛以南海域遭遇恶劣天气，造成32个集装箱落入海中，另有57个集装箱受损，已于3月16日安全抵达美国长滩港，正接受专业人员系统检查。值得注意的是，本次事故系2026年1月生效的国际海上人命安全公约（SOLAS）新修正案实施后首批强制报告案例，立即通知附近船只、沿海当局和船旗国的新规律首次在真实场景下启动。
+      </div>
+      <div class="impact-box">
+        📌 事故直接影响：32个货柜货物损失、长滩港停靠和检查导致班期延误；间接影响：SOLAS新规下的强制报告机制及时触发，对未来事故预防和保险定损流程具有示范意义。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：航运在线 / 网易航运 / AMZ123</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">08</span>
+      <span class="category cat-ops">港口拥堵</span>
+      <h3>全球港口拥堵延续：绕行非洲使亚欧航线船期混乱，联盟重组拉长泊位等待</h3>
+      <div class="summary">
+        多份行业报告（Drewry、Alphaliner）显示，受霍尔木兹绕行非洲路线大量船舶"扎堆抵港"影响，欧洲主要枢纽港（鹿特丹、汉堡、安特卫普）泊位等待时间有所延长，最长达3–5天。与此同时，年初航运联盟重组（Gemini合作、MSC独立、Premier联盟整合）引发的挂靠港调整仍在消化中，部分港口面临新旧服务切换期产生的运力堆积，预计港口混乱局面将持续至Q2。
+      </div>
+      <div class="impact-box">
+        📌 港口拥堵叠加绕行延误，等效将全球有效运力压缩约5–8%；货主需预留更多提货缓冲时间；中国出口商特别需关注东南亚中转港（新加坡、科伦坡）的中转仓位吃紧风险。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐</span>
+        <span class="source">来源：Drewry / Alphaliner / 信德海事 / 国际船舶网</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 板块5：监管与环保 ── -->
+  <div class="sec-title">
+    <div class="icon">🌿</div>
+    <h2>监管与环保政策</h2>
+    <span class="badge">REGULATION & GREEN</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">09</span>
+      <span class="category cat-env">环保监管</span>
+      <h3>EU ETS 2026年进入100%覆盖期，欧洲航线碳成本同比上涨45%，FuelEU同步施压</h3>
+      <div class="summary">
+        2026年起，欧盟碳排放交易体系（EU ETS）对航运业进入"全额覆盖"阶段（100%须购买碳配额，2024年为40%、2025年为70%）。测算显示，欧洲相关航线单位运输的碳排放成本同比上涨约45%，亚欧干线的EU ETS附加费预计每FEU约150–250美元（视燃油类型而异）。叠加同步生效的FuelEU Maritime（要求逐步降低船舶温室气体强度），船司绿色合规压力显著增加。部分大船司（马士基、达飞）已将绿色甲醇/氨能船研发及采购计划提前。
+      </div>
+      <div class="impact-box">
+        📌 碳成本全面传导将推高欧洲航线综合运价底部；货主在评估欧洲运价时须将环保附加费纳入预算，全年额外成本可能超过亿美元级（对大型托运人而言）。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：信德海事 / 新浪财经 / 欧盟官方公报</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">10</span>
+      <span class="category cat-mkt">市场数据</span>
+      <h3>集运周报（week11，3/15–3/21）：WCI连三涨至2172美元，美线弱·欧线强分化格局延续</h3>
+      <div class="summary">
+        德鲁里WCI指数3月19日报2172美元/FEU（周涨2%，连续三周上行）；CCFI同步回暖。分航线看：欧洲线受绕行+GRI支撑，亚欧运价持续走强；跨太平洋美西线运价偏弱（约1550–1700美元/FEU），美东约2400–2500美元/FEU，均明显低于欧线水平。Linerlytica在week11周报中明确指出，部分抢运需求已于3月上旬提前实现，市场情绪转向谨慎，4月1日提价能否成功是下一个关键观察节点。
+      </div>
+      <div class="impact-box">
+        📌 欧强美弱的格局短期将延续；二季度美线运价走势将高度取决于中美关税谈判进展；欧线受战争绕行支撑相对稳健，但也面临货量不足的隐患。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：Drewry WCI / 同花顺行业追踪 / Linerlytica / 雪球集运周报</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 运价速览 ── -->
+  <div class="rate-section">
+    <h3>📊 主要航线运价速览（本周参考）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>航线</th>
+          <th>船型/单位</th>
+          <th>当前运价</th>
+          <th>周变化</th>
+          <th>市场状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>上海 → 鹿特丹（亚欧）</td>
+          <td>40尺柜 FEU</td>
+          <td>2443 USD</td>
+          <td class="up">▲ +19 USD</td>
+          <td>GRI推涨 / 绕行溢价</td>
+        </tr>
+        <tr>
+          <td>上海 → 热那亚（地中海）</td>
+          <td>40尺柜 FEU</td>
+          <td>3120 USD</td>
+          <td class="up">▲ +10 USD</td>
+          <td>绕行撑价</td>
+        </tr>
+        <tr>
+          <td>上海 → 美西（跨太平洋）</td>
+          <td>40尺柜 FEU</td>
+          <td>1550–1700 USD</td>
+          <td class="ne">⇌ 横盘弱势</td>
+          <td>关税压制需求</td>
+        </tr>
+        <tr>
+          <td>上海 → 美东（跨太平洋）</td>
+          <td>40尺柜 FEU</td>
+          <td>2400–2500 USD</td>
+          <td class="ne">⇌ 小幅回调</td>
+          <td>抢运后需求降温</td>
+        </tr>
+        <tr>
+          <td>波斯湾出口航线（绕非洲）</td>
+          <td>综合（SCFI分项）</td>
+          <td>战前+143%</td>
+          <td class="up">▲ 高位维持</td>
+          <td class="alert">极度紧张</td>
+        </tr>
+        <tr>
+          <td>SCFI 综合指数</td>
+          <td>— （基期 1000 点）</td>
+          <td>1710.35</td>
+          <td class="up">▲ +14.85%（3/13）</td>
+          <td>三连涨 / 高位</td>
+        </tr>
+        <tr>
+          <td>WCI 德鲁里综合</td>
+          <td>USD/FEU</td>
+          <td>2172</td>
+          <td class="up">▲ +2%（3/19）</td>
+          <td>三连涨</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 市场情绪总结 ── -->
+  <div class="sentiment">
+    <h3>📈 今日市场情绪总结</h3>
+    <div class="sent-grid">
+      <div class="sent-item">
+        <div class="si-label">整体市场情绪</div>
+        <div class="si-val si-neutral">中性偏谨慎</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">亚欧线短期</div>
+        <div class="si-val si-bull">偏多</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">跨太平洋线</div>
+        <div class="si-val si-bear">偏空</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">中东/波湾</div>
+        <div class="si-val si-bear">极度紧张</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">4月运价方向</div>
+        <div class="si-val si-neutral">分化</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">并购活跃度</div>
+        <div class="si-val si-bull">高</div>
+      </div>
+    </div>
+    <div class="sent-para">
+      本期市场情绪的核心矛盾，在于<strong>地缘战争扰动的利多</strong>与<strong>关税冲击削弱的货量利空</strong>形成正面对冲。IMO特别会议闭幕但无约束力协议，意味着霍尔木兹绕行局面短期难以解除，亚欧线绕行溢价将维持；但Linerlytica明确警示——关税导致的需求萎缩才是集运市场真正的定时炸弹，一旦抢运节奏耗尽，货量真空将全面暴露。<br><br>
+      本期最大亮点：<strong>MSC正式入股长锦商船50%</strong>，成为全球VLCC市场最强新玩家，并购资本动作仍是行业最强信号。从监管层面，EU ETS 100%覆盖年正式开启，欧洲航线碳成本历史性抬升。<strong>建议货主锁定欧线长协运价，同时关注4月1日提价落地情况；跨太平洋方向宜观望，待中美谈判明朗后再做舱位决策。</strong>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<!-- ── FOOTER ── -->
+<footer>
+  <p>集装箱航运日报 · 第7期 · 2026-03-23（周一）&nbsp;|&nbsp;数据来源：上海航运交易所 · IMO · Drewry · Linerlytica · Alphaliner · 信德海事 · 同花顺 · 新浪财经 · 联合国新闻 · 各船公司公告</p>
+  <p style="margin-top:6px">本报告由 AI 自动生成，仅供参考，不构成投资建议&nbsp;|&nbsp;下一期：2026-03-24</p>
+</footer>
+
+</body>
+</html>
