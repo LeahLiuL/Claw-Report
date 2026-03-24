@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集装箱运价日报 - 2026年3月24日</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            padding: 40px;
+            text-align: center;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #66bb6a, #4caf50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .date {
+            font-size: 1.3em;
+            color: #a5d6a7;
+            margin-bottom: 5px;
+        }
+        
+        .header .issue {
+            color: #81c784;
+            font-size: 1.1em;
+        }
+        
+        .ticker {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .ticker-item {
+            display: inline-block;
+            padding: 8px 20px;
+            margin-right: 20px;
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .ticker-item.up {
+            background: linear-gradient(135deg, #c62828 0%, #e53935 100%);
+        }
+        
+        .ticker-item.down {
+            background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .kpi-card {
+            background: rgba(255,255,255,0.05);
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #4caf50;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .kpi-title {
+            font-size: 0.95em;
+            color: #a5d6a7;
+            margin-bottom: 10px;
+        }
+        
+        .kpi-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #66bb6a;
+        }
+        
+        .kpi-change {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        
+        .kpi-change.positive {
+            color: #ef5350;
+        }
+        
+        .kpi-change.negative {
+            color: #42a5f5;
+        }
+        
+        .kpi-change.neutral {
+            color: #bdbdbd;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.03);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #4caf50;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            margin-right: 10px;
+        }
+        
+        .region-section::before {
+            content: "🌏";
+        }
+        
+        .gri-section::before {
+            content: "📈";
+        }
+        
+        .outlook-section::before {
+            content: "🔮";
+        }
+        
+        .route-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .route-card {
+            background: rgba(255,255,255,0.05);
+            padding: 25px;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .route-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .route-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #66bb6a;
+        }
+        
+        .route-price {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .route-change {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        .route-change.up {
+            background: rgba(198, 40, 40, 0.3);
+            color: #ef5350;
+        }
+        
+        .route-change.down {
+            background: rgba(21, 101, 192, 0.3);
+            color: #42a5f5;
+        }
+        
+        .route-detail {
+            font-size: 0.95em;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        th {
+            background: rgba(76, 175, 80, 0.2);
+            font-weight: bold;
+            color: #66bb6a;
+        }
+        
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .carrier-logo {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin: 3px;
+            font-size: 0.85em;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #c62828 0%, #e53935 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(198,40,40,0.3);
+        }
+        
+        .highlight-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .highlight-title::before {
+            content: "⚠️";
+            margin-right: 10px;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: rgba(102, 187, 106, 0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .outlook-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .outlook-card {
+            background: rgba(255,255,255,0.05);
+            padding: 25px;
+            border-radius: 10px;
+        }
+        
+        .outlook-card.bullish {
+            border-left: 4px solid #c62828;
+        }
+        
+        .outlook-card.bearish {
+            border-left: 4px solid #1565c0;
+        }
+        
+        .outlook-card.neutral {
+            border-left: 4px solid #757575;
+        }
+        
+        .outlook-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .outlook-content {
+            line-height: 1.7;
+            opacity: 0.9;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #81c784;
+        }
+        
+        .bar-chart {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .bar-label {
+            width: 120px;
+            font-size: 0.9em;
+            color: #a5d6a7;
+        }
+        
+        .bar-container {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .bar {
+            height: 100%;
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        
+        .bar.up {
+            background: linear-gradient(90deg, #c62828, #ef5350);
+        }
+        
+        .bar.down {
+            background: linear-gradient(90deg, #1565c0, #42a5f5);
+        }
+        
+        .bar.neutral {
+            background: linear-gradient(90deg, #616161, #9e9e9e);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 集装箱运价日报</h1>
+            <div class="date">2026年3月24日 星期二</div>
+            <div class="issue">第 084 期</div>
+        </div>
+        
+        <div class="ticker">
+            <span class="ticker-item up">SCFI：1,706.95点 ↑221点</span>
+            <span class="ticker-item up">欧线：$2,850 ↑0.5%</span>
+            <span class="ticker-item down">美西：$1,936 ↓</span>
+            <span class="ticker-item down">美东：$3,200 ↓</span>
+            <span class="ticker-item up">中东线：高位震荡</span>
+            <span class="ticker-item down">东南亚线：小幅回落</span>
+            <span class="ticker-item up">红海航线：紧急附加费持续</span>
+        </div>
+        
+        <div class="highlight-box">
+            <div class="highlight-title">重点关注：红海危机持续，船公司征收紧急附加费</div>
+            <div style="line-height: 1.8;">
+                <p>受美伊冲突升级影响，霍尔木兹海峡实质封锁，红海航线风险持续。ONE（海洋网联船务）已宣布对所有往返波斯湾及红海受影响国家和港口的货物征收紧急附加费（EMS）：<strong>20英尺干货箱1,200美元，40英尺干货箱2,400美元</strong>，生效直至另行通知。</p>
+                <p style="margin-top: 10px;">其他主要船公司（MSC、马士基、达飞、赫伯罗特）也已采取类似措施。预计短期内红海航线运价将维持高位。</p>
+            </div>
+        </div>
+        
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">SCFI综合指数</div>
+                <div class="kpi-value">1,706.95</div>
+                <div class="kpi-change positive">↑14.9% (三周连涨)</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">欧洲航线运价</div>
+                <div class="kpi-value">$2,850</div>
+                <div class="kpi-change positive">↑0.5%</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">美西航线运价</div>
+                <div class="kpi-value">$1,936</div>
+                <div class="kpi-change negative">↓回落</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">美东航线运价</div>
+                <div class="kpi-value">$3,200</div>
+                <div class="kpi-change negative">↓回落</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">中东航线运价</div>
+                <div class="kpi-value">$1,800</div>
+                <div class="kpi-change positive">↑高位震荡</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">东南亚航线运价</div>
+                <div class="kpi-value">$450</div>
+                <div class="kpi-change negative">↓小幅回落</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">WCI世界集装箱指数</div>
+                <div class="kpi-value">$2,172</div>
+                <div class="kpi-change positive">↑2%</div>
+            </div>
+            
+            <div class="kpi-card">
+                <div class="kpi-title">德鲁里指数</div>
+                <div class="kpi-value">$2,100</div>
+                <div class="kpi-change neutral">→持平</div>
+            </div>
+        </div>
+        
+        <div class="section region-section">
+            <div class="section-title">各主要航线运价</div>
+            
+            <div class="route-grid">
+                <div class="route-card">
+                    <div class="route-title">🇪🇺 欧洲航线</div>
+                    <div class="route-price">$2,850/TEU</div>
+                    <div class="route-change up">↑ +0.5% 周涨幅</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>高位企稳<br>
+                        <strong>影响因素：</strong>红海绕行成常态，航程延长10-14天<br>
+                        <strong>需求端：</strong>春季出货旺季临近，需求略有回暖<br>
+                        <strong>运力供给：</strong>有效运力紧张，舱位利用率约85%
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🇺🇸 美西航线</div>
+                    <div class="route-price">$1,936/FEU</div>
+                    <div class="route-change down">↓ 回落</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>小幅回落<br>
+                        <strong>影响因素：</strong>需求端疲软，货主观望情绪浓<br>
+                        <strong>港口效率：</strong>美西港口运营正常，无拥堵<br>
+                        <strong>舱位情况：</strong>舱位充足，可即订即走
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🇺🇸 美东航线</div>
+                    <div class="route-price">$3,200/FEU</div>
+                    <div class="route-change down">↓ 回落</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>小幅回落<br>
+                        <strong>影响因素：</strong>需求端疲软，巴拿马运河通航正常<br>
+                        <strong>航线优势：</strong>相比美西航程长，但运价相对稳定<br>
+                        <strong>舱位情况：</strong>舱位充足，可即订即走
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🇦🇪 中东航线</div>
+                    <div class="route-price">$1,800/TEU</div>
+                    <div class="route-change up">↑ 高位震荡</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>高位震荡<br>
+                        <strong>风险溢价：</strong>霍尔木兹海峡封锁，风险溢价持续<br>
+                        <strong>附加费：</strong>EMS紧急附加费$1,200/TEU生效<br>
+                        <strong>航线调整：</strong>部分船公司改走好望角
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🔴 红海航线</div>
+                    <div class="route-price">$2,400/FEU</div>
+                    <div class="route-change up">↑ 紧急附加费</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>紧急附加费生效<br>
+                        <strong>EMS附加费：</strong>40英尺干货箱$2,400<br>
+                        <strong>风险提示：</strong>胡塞武装袭击持续，航线风险高<br>
+                        <strong>航线选择：</strong>多数船公司改绕好望角
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🌏 东南亚航线</div>
+                    <div class="route-price">$450/TEU</div>
+                    <div class="route-change down">↓ 小幅回落</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>小幅回落<br>
+                        <strong>区域贸易：</strong>亚洲区域内贸易稳定<br>
+                        <strong>运力供给：</strong>运力充足，竞争激烈<br>
+                        <strong>主要港口：</strong>新加坡、巴生、林查班、海防等
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🇯🇵 亚洲区域内航线</div>
+                    <div class="route-price">$380/TEU</div>
+                    <div class="route-change neutral">→ 持平</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>持平<br>
+                        <strong>中韩航线：</strong>需求稳定，运价稳定<br>
+                        <strong>中日航线：</strong>货量一般，运价疲软<br>
+                        <strong>两岸航线：</strong>政治因素影响，货量波动
+                    </div>
+                </div>
+                
+                <div class="route-card">
+                    <div class="route-title">🇦🇺 澳洲航线</div>
+                    <div class="route-price">$1,150/TEU</div>
+                    <div class="route-change neutral">→ 持平</div>
+                    <div class="route-detail">
+                        <strong>运价状态：</strong>持平<br>
+                        <strong>货量情况：</strong>矿产品、农产品出口稳定<br>
+                        <strong>航线特点：</strong>航程较长，运价相对稳定<br>
+                        <strong>主要港口：</strong>悉尼、墨尔本、布里斯班
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section gri-section">
+            <div class="section-title">船公司GRI与运价调整汇总</div>
+            
+            <div class="highlight-box" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%); margin-bottom: 25px;">
+                <div class="highlight-title">2026年3月集体涨价潮</div>
+                <div style="line-height: 1.8;">
+                    <p>MSC、马士基、达飞、赫伯罗特四大船公司已宣布从<strong>2026年3月1日起</strong>集中上调多条中国出口核心航线运价，涵盖欧洲、地中海、非洲及拉美等地区。</p>
+                    <p style="margin-top: 10px;">此次涨价潮是2026年首轮集中调价，各主要航线运价普遍上调<strong>200-600美元/TEU</strong>不等。</p>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>船公司</th>
+                            <th>生效日期</th>
+                            <th>涉及航线</th>
+                            <th>涨幅/标准</th>
+                            <th>附加费类型</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">MSC</span>
+                            </td>
+                            <td>2026-03-01</td>
+                            <td>欧洲、地中海、黑海、拉美、非洲</td>
+                            <td>$200-$600/TEU</td>
+                            <td>GRI</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">马士基</span>
+                            </td>
+                            <td>2026-03-01</td>
+                            <td>欧洲、地中海、非洲、拉美</td>
+                            <td>$250-$500/TEU</td>
+                            <td>GRI</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">达飞</span>
+                            </td>
+                            <td>2026-03-01</td>
+                            <td>欧洲、地中海、南美西、南美东、中美</td>
+                            <td>$300-$550/TEU</td>
+                            <td>GRI</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">赫伯罗特</span>
+                            </td>
+                            <td>2026-03-01</td>
+                            <td>欧洲、地中海、中东、非洲</td>
+                            <td>$200-$450/TEU</td>
+                            <td>GRI</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">ONE</span>
+                            </td>
+                            <td>2026-03-06</td>
+                            <td>波斯湾、红海受影响港口</td>
+                            <td>$1,200/20ft</td>
+                            <td>EMS紧急附加费</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">达飞</span>
+                            </td>
+                            <td>2026-03-27</td>
+                            <td>全球航线</td>
+                            <td>待公布</td>
+                            <td>EFS燃油附加费调整</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">马士基</span>
+                            </td>
+                            <td>2026-03-16</td>
+                            <td>远东至东非、南非、西非</td>
+                            <td>$500-$800/TEU</td>
+                            <td>PSS旺季附加费</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span class="carrier-logo">达飞</span>
+                            </td>
+                            <td>2026-03-16</td>
+                            <td>远东至东非、南非、西非</td>
+                            <td>$600-$900/TEU</td>
+                            <td>PSS旺季附加费</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section outlook-section">
+            <div class="section-title">运价走势分析与展望</div>
+            
+            <div class="outlook-grid">
+                <div class="outlook-card bullish">
+                    <div class="outlook-header">🔴 看涨因素</div>
+                    <div class="outlook-content">
+                        <p><strong>1. 地缘政治风险溢价</strong><br>
+                        美伊冲突持续，霍尔木兹海峡实质封锁，红海航线风险高企，风险溢价将持续支撑运价。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>2. 3月集体涨价生效</strong><br>
+                        四大船公司（MSC、马士基、达飞、赫伯罗特）3月GRI集中生效，运价普遍上调200-600美元/TEU。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>3. 春季出货旺季临近</strong><br>
+                        3-5月为传统春季出货旺季，货主集中出货，需求端或迎来改善。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>4. 燃油成本高企</strong><br>
+                        布伦特原油突破112美元/桶，创四年新高，燃油附加费（BAF/EFS）持续高位。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>5. 有效运力紧张</strong><br>
+                        红海绕行导致航程延长10-14天，有效运力紧张，舱位利用率提升。</p>
+                    </div>
+                </div>
+                
+                <div class="outlook-card bearish">
+                    <div class="outlook-header">🔵 看跌因素</div>
+                    <div class="outlook-content">
+                        <p><strong>1. 美线需求疲软</strong><br>
+                        美西、美东航线运价双双回落，显示美线需求端疲软，货主观望情绪浓。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>2. 红海复航预期</strong><br>
+                        若红海局势缓和并恢复通航，运力过剩问题将凸显，过剩运力或反弹至14%-15%。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>3. 新船运力持续交付</strong><br>
+                        2026年仍有大量新造船订单交付，运力供给端压力持续。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>4. 贸易摩擦不确定性</strong><br>
+                        全球贸易摩擦和关税政策不确定性增加，影响贸易流量和货主订舱意愿。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>5. 东南亚航线竞争激烈</strong><br>
+                        亚洲区域内航线运力充足，竞争激烈，运价上涨动力不足。</p>
+                    </div>
+                </div>
+                
+                <div class="outlook-card neutral">
+                    <div class="outlook-header">⚪ 中性因素</div>
+                    <div class="outlook-content">
+                        <p><strong>1. 欧线高位企稳</strong><br>
+                        欧洲航线运价在$2,850/TEU附近高位企稳，短期内涨跌幅度有限。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>2. 市场集中度提升</strong><br>
+                        全球前十大船公司占据近85%市场份额，市场集中度提高，运价更易受大玩家影响。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>3. 港口运营正常</strong><br>
+                        主要港口（美西、美东、欧洲、亚洲）运营正常，无严重拥堵。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>4. 空箱调运问题</strong><br>
+                        欧线"去4回1"的空箱调运问题持续，但影响有限。</p>
+                        
+                        <p style="margin-top: 15px;"><strong>5. 环保政策长期影响</strong><br>
+                        IMO脱碳法规推进，碳成本长期推高运营成本，但短期影响有限。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">市场情绪与建议</div>
+            
+            <div style="line-height: 1.8; font-size: 1.1em;">
+                <p><strong>当前市场情绪：谨慎乐观 ⚠️</strong></p>
+                <p style="margin-top: 15px;">受地缘政治因素主导，集装箱运价市场在<strong>看涨因素</strong>（风险溢价、GRI生效、燃油成本）和<strong>看跌因素</strong>（美线疲软、红海复航预期、运力过剩）之间博弈：</p>
+                
+                <div style="margin-top: 20px;">
+                    <p><strong>🔴 看涨因素权重：60%</strong></p>
+                    <div class="bar-chart">
+                        <div class="bar-label">看涨</div>
+                        <div class="bar-container">
+                            <div class="bar up" style="width: 60%;">60%</div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 10px;"><strong>🔵 看跌因素权重：35%</strong></p>
+                    <div class="bar-chart">
+                        <div class="bar-label">看跌</div>
+                        <div class="bar-container">
+                            <div class="bar down" style="width: 35%;">35%</div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 10px;"><strong>⚪ 中性因素权重：5%</strong></p>
+                    <div class="bar-chart">
+                        <div class="bar-label">中性</div>
+                        <div class="bar-container">
+                            <div class="bar neutral" style="width: 5%;">5%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 25px;"><strong>对货主建议：</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>欧线货主</strong>：建议提前2-3周订舱，锁定舱位和运价，避免春季旺季运价进一步上涨</li>
+                    <li><strong>美线货主</strong>：可观望等待运价回落，美西美东航线运价有进一步下行空间</li>
+                    <li><strong>中东/红海线货主</strong>：紧急附加费将持续，建议提前规划物流方案，考虑替代路线</li>
+                    <li><strong>东南亚线货主</strong>：运价相对稳定，可根据实际需求灵活订舱</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>关键关注点：</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>🔍 美伊冲突走向，霍尔木兹海峡何时恢复通航</li>
+                    <li>🔍 红海局势能否缓和，是否能在2026年实现复航</li>
+                    <li>🔍 春季出货旺季需求端表现</li>
+                    <li>🔍 船公司后续GRI和附加费调整</li>
+                    <li>🔍 燃油价格走势对运价的影响</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>📊 Claw 集装箱运价日报 | 自动生成于 2026年3月24日 10:00</p>
+            <p style="margin-top: 10px;">本报告数据来源：上海航运交易所、各大船公司公告、行业研究机构</p>
+            <p style="margin-top: 10px;">运价仅供参考，实际成交价请以船公司报价为准</p>
+        </div>
+    </div>
+</body>
+</html>
