@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freight Rate Analysis Report 2026-03-25</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #0a2a4a;
+    --secondary: #0d4f6c;
+    --accent: #00c9b1;
+    --accent2: #f59e0b;
+    --accent3: #ef4444;
+    --accent4: #10b981;
+    --light-bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--light-bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .ticker-wrap {
+    background: var(--primary);
+    overflow: hidden;
+    padding: 0;
+    border-bottom: 2px solid var(--accent);
+  }
+  .ticker-label {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--primary);
+    font-weight: 700;
+    padding: 8px 16px;
+    font-size: 12px;
+    vertical-align: middle;
+    position: relative;
+    z-index: 2;
+  }
+  .ticker-content {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 45s linear infinite;
+    color: #e2f8ff;
+    font-size: 13px;
+    padding: 8px 0;
+    vertical-align: middle;
+  }
+  .ticker-content span { margin: 0 32px; }
+  .up { color: #4ade80; }
+  .down { color: #f87171; }
+  .neutral { color: #fbbf24; }
+  @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 60%, #0a6b8a 100%);
+    color: white;
+    padding: 32px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; top: -50%; right: -10%;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(0,201,177,0.08);
+  }
+  .header-content { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header-left h1 { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  .header-left h2 { font-size: 16px; font-weight: 400; margin-top: 6px; opacity: 0.8; }
+  .header-badge {
+    background: rgba(0,201,177,0.15);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: right;
+  }
+  .header-badge .date { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .header-badge .label { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .header-meta { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+  .header-meta-item { text-align: center; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 10px 18px; }
+  .header-meta-item .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .header-meta-item .lbl { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+  .section { margin-bottom: 36px; }
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-title .icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .section-title h3 { font-size: 18px; font-weight: 700; color: var(--primary); }
+  .section-title .tag {
+    margin-left: auto;
+    font-size: 11px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .kpi-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    position: relative; overflow: hidden;
+  }
+  .kpi-card .route { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-card .price { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .kpi-card .unit { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+  .kpi-card .change { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; font-weight: 600; }
+  .kpi-card .change.up { color: #16a34a; }
+  .kpi-card .change.down { color: #dc2626; }
+  .kpi-card .change.flat { color: #6b7280; }
+  .kpi-card .bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.green .bar { background: linear-gradient(90deg, #10b981, #34d399); }
+  .kpi-card.red .bar { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .kpi-card.blue .bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .kpi-card.orange .bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .kpi-card.purple .bar { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .kpi-card .tag-badge {
+    position: absolute; top: 12px; right: 12px;
+    font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 700;
+  }
+  .alert {
+    border-radius: 10px; padding: 14px 18px;
+    margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .alert.red { background: #fef2f2; border-left: 4px solid #ef4444; }
+  .alert.yellow { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .alert.green { background: #f0fdf4; border-left: 4px solid #10b981; }
+  .alert.blue { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .alert-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    background: var(--primary); color: white;
+    padding: 10px 14px; text-align: left;
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:hover td { background: #f8fafc; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .pill.up { background: #dcfce7; color: #15803d; }
+  .pill.down { background: #fee2e2; color: #b91c1c; }
+  .pill.flat { background: #f1f5f9; color: #475569; }
+  .pill.hot { background: #fef3c7; color: #92400e; }
+  .chart-wrap { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .chart-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; }
+  .bar-label { font-size: 12px; color: var(--text-muted); width: 150px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; background: #e2e8f0; border-radius: 6px; height: 24px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; font-size: 12px; font-weight: 700; color: white; }
+  .bar-value { font-size: 12px; font-weight: 700; width: 100px; text-align: left; flex-shrink: 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media(max-width: 900px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+  .market-card {
+    background: var(--card-bg); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .market-card h4 { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .outlook-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .outlook-card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+  .outlook-card.bullish { border-top: 3px solid #10b981; }
+  .outlook-card.bearish { border-top: 3px solid #ef4444; }
+  .outlook-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .outlook-card.bullish h4 { color: #059669; }
+  .outlook-card.bearish h4 { color: #dc2626; }
+  .factor-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .factor-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; line-height: 1.5; padding: 8px 12px;
+    border-radius: 8px;
+  }
+  .outlook-card.bullish .factor-list li { background: #f0fdf4; }
+  .outlook-card.bearish .factor-list li { background: #fef2f2; }
+  .factor-list li .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .bullish .dot { background: #10b981; }
+  .bearish .dot { background: #ef4444; }
+  .company-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .company-card { background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
+  .company-name { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .company-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .company-gri { font-size: 12px; color: var(--text-muted); line-height: 1.8; }
+  .company-gri strong { color: var(--text); }
+  .supply-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media(max-width: 700px) { .supply-grid { grid-template-columns: 1fr 1fr; } }
+  .supply-card { background: var(--card-bg); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+  .supply-val { font-size: 26px; font-weight: 700; color: var(--primary); }
+  .supply-lbl { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .supply-sub { font-size: 11px; margin-top: 6px; padding: 3px 8px; border-radius: 20px; display: inline-block; font-weight: 600; }
+  .table-wrap { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .warn-strip { background: linear-gradient(90deg, #7f1d1d, #991b1b); color: white; padding: 10px 20px; text-align: center; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+  .warn-strip span { color: #fca5a5; }
+  footer { background: var(--primary); color: rgba(255,255,255,0.6); text-align: center; padding: 20px; font-size: 12px; }
+  footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- TICKER BAR -->
+<div class="ticker-wrap">
+  <span class="ticker-label">Live Rates</span>
+  <span class="ticker-content">
+    <span>Shanghai to Europe Base Port <b class="up">1,650</b> USD/TEU <span class="up">+0.9%</span></span>
+    <span>Shanghai to Med Base Port <b class="up">2,810</b> USD/TEU <span class="up">+0.9%</span></span>
+    <span>Shanghai to US West Coast <b class="neutral">2,020</b> USD/FEU <span class="down">-1.7%</span></span>
+    <span>Shanghai to US East Coast <b class="neutral">2,870</b> USD/FEU <span class="down">-1.8%</span></span>
+    <span>Shanghai to Persian Gulf (Dubai) <b class="neutral">3,380</b> USD/TEU <span class="up">+1.7%</span></span>
+    <span>Shanghai to SE Asia <b class="neutral">~490</b> USD/TEU</span>
+    <span>Shanghai to Japan (Kanto) <b class="neutral">320</b> USD/TEU</span>
+    <span>Shanghai to Korea <b class="neutral">150</b> USD/TEU</span>
+    <span>SCFI Composite <b>1,710.35</b> pts <span class="up">+14.85% (wk11)</span></span>
+    <span>CN Index <b class="up">654</b> - Very High Pressure</span>
+    <span>WARNING: Hormuz Strait Day 25 of conflict - ~2 vessels/day transit</span>
+    <span>Shanghai to Europe Base Port <b class="up">1,650</b> USD/TEU <span class="up">+0.9%</span></span>
+    <span>Shanghai to Med Base Port <b class="up">2,810</b> USD/TEU <span class="up">+0.9%</span></span>
+    <span>Shanghai to US West Coast <b class="neutral">2,020</b> USD/FEU <span class="down">-1.7%</span></span>
+    <span>Shanghai to US East Coast <b class="neutral">2,870</b> USD/FEU <span class="down">-1.8%</span></span>
+    <span>Shanghai to Persian Gulf (Dubai) <b class="neutral">3,380</b> USD/TEU <span class="up">+1.7%</span></span>
+    <span>Shanghai to SE Asia <b class="neutral">~490</b> USD/TEU</span>
+    <span>Shanghai to Japan (Kanto) <b class="neutral">320</b> USD/TEU</span>
+    <span>Shanghai to Korea <b class="neutral">150</b> USD/TEU</span>
+    <span>SCFI Composite <b>1,710.35</b> pts <span class="up">+14.85% (wk11)</span></span>
+    <span>CN Index <b class="up">654</b> - Very High Pressure</span>
+    <span>WARNING: Hormuz Strait Day 25 of conflict - ~2 vessels/day transit</span>
+  </span>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-content">
+    <div class="header-left">
+      <h1>Container Freight Rate Analysis Report</h1>
+      <h2>Freight Rate Analysis Report · Data: SSE/SCFI/CCFI/WCI/CN Index</h2>
+    </div>
+    <div class="header-badge">
+      <div class="date">2026-03-25</div>
+      <div class="label">Published: Wednesday</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="header-meta-item">
+      <div class="val">1,710.35</div>
+      <div class="lbl">SCFI Composite Index</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">654</div>
+      <div class="lbl">CN Index</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">~2,172</div>
+      <div class="lbl">WCI Drewry USD/FEU</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">+14.85%</div>
+      <div class="lbl">SCFI Wk11 Change</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">Day 25</div>
+      <div class="lbl">Gulf Conflict Duration</div>
+    </div>
+  </div>
+</header>
+
+<!-- WARN STRIP -->
+<div class="warn-strip">
+  HIGH RISK WARNING: <span>US-Iran Military Conflict Day 25</span> — Hormuz Strait transit down ~97%, Middle East lanes at record premiums, global effective capacity reduced ~10%
+</div>
+
+<div class="container">
+
+  <!-- SECTION 1: MAIN INDICES -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#eff6ff">&#x1F4CA;</div>
+      <h3>Key Freight Rate Indices (as of Mar 25, 2026)</h3>
+      <span class="tag" style="background:#fef3c7;color:#92400e">Latest Data</span>
+    </div>
+
+    <div class="two-col" style="margin-bottom:20px">
+      <div class="table-wrap">
+        <div style="padding:14px 16px;background:var(--primary);color:white;font-size:14px;font-weight:700;">
+          SCFI — Shanghai Containerized Freight Index
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Route</th><th>Unit</th><th>Rate</th><th>Weekly Change</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><b>Composite Index</b></td><td>pts</td><td><b>1,710.35</b></td><td><span class="pill up">+14.85% (Wk11)</span></td></tr>
+            <tr><td>Europe (Base Port)</td><td>USD/TEU</td><td>1,650</td><td><span class="pill up">+0.9% est.</span></td></tr>
+            <tr><td>Mediterranean (Base Port)</td><td>USD/TEU</td><td>2,810</td><td><span class="pill up">+0.9% est.</span></td></tr>
+            <tr><td>US West Coast (Base Port)</td><td>USD/FEU</td><td>2,020</td><td><span class="pill down">-1.7% est.</span></td></tr>
+            <tr><td>US East Coast (Base Port)</td><td>USD/FEU</td><td>2,870</td><td><span class="pill down">-1.8% est.</span></td></tr>
+            <tr><td>Persian Gulf (Dubai)</td><td>USD/TEU</td><td>3,380</td><td><span class="pill up">+1.7% est.</span></td></tr>
+            <tr><td>Japan (Kanto)</td><td>USD/TEU</td><td>320</td><td><span class="pill flat">Stable</span></td></tr>
+            <tr><td>Southeast Asia</td><td>USD/TEU</td><td>~490</td><td><span class="pill up">+2.1% est.</span></td></tr>
+            <tr><td>Korea</td><td>USD/TEU</td><td>150</td><td><span class="pill up">+2 USD</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <div style="padding:14px 16px;background:var(--secondary);color:white;font-size:14px;font-weight:700;">
+          WCI &amp; CN Index — Global Composite Rates
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Index</th><th>Value</th><th>Weekly Change</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><b>WCI Composite (Drewry)</b></td><td><b>~2,172 USD/FEU</b></td><td><span class="pill up">+2% (Wk12)</span></td></tr>
+            <tr><td>Shanghai to Los Angeles</td><td>~2,503</td><td><span class="pill flat">Flat</span></td></tr>
+            <tr><td>Shanghai to New York</td><td>~3,080</td><td><span class="pill flat">Flat</span></td></tr>
+            <tr><td>Shanghai to Genoa</td><td>~3,130</td><td><span class="pill flat">Flat</span></td></tr>
+            <tr><td>Shanghai to Rotterdam</td><td>~2,460</td><td><span class="pill up">+17 USD</span></td></tr>
+            <tr><td>CN Index (Container News)</td><td>654</td><td><span class="pill up">Rising</span></td></tr>
+            <tr><td>Market Pressure Zone</td><td colspan="2" style="color:#dc2626;font-weight:700">Very High Pressure</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Key Route Rate Comparison (USD/TEU or FEU, Mar 25 Reference)</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Persian Gulf (Dubai)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:95%;background:linear-gradient(90deg,#ef4444,#f97316)">3,380</div></div>
+          <div class="bar-value" style="color:#ef4444">USD/TEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Mediterranean</div>
+          <div class="bar-track"><div class="bar-fill" style="width:80%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)">2,810</div></div>
+          <div class="bar-value" style="color:#8b5cf6">USD/TEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">US East Coast</div>
+          <div class="bar-track"><div class="bar-fill" style="width:83%;background:linear-gradient(90deg,#3b82f6,#60a5fa)">2,870</div></div>
+          <div class="bar-value" style="color:#3b82f6">USD/FEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">US West Coast</div>
+          <div class="bar-track"><div class="bar-fill" style="width:58%;background:linear-gradient(90deg,#0ea5e9,#38bdf8)">2,020</div></div>
+          <div class="bar-value" style="color:#0ea5e9">USD/FEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Europe</div>
+          <div class="bar-track"><div class="bar-fill" style="width:47%;background:linear-gradient(90deg,#10b981,#34d399)">1,650</div></div>
+          <div class="bar-value" style="color:#10b981">USD/TEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Southeast Asia</div>
+          <div class="bar-track"><div class="bar-fill" style="width:14%;background:linear-gradient(90deg,#f59e0b,#fbbf24)">490</div></div>
+          <div class="bar-value" style="color:#f59e0b">USD/TEU</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Japan</div>
+          <div class="bar-track"><div class="bar-fill" style="width:9%;background:linear-gradient(90deg,#6b7280,#9ca3af)">320</div></div>
+          <div class="bar-value" style="color:#6b7280">USD/TEU</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: MIDDLE EAST / HORMUZ -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#fff7ed">&#x1F3DC;</div>
+      <h3>Middle East / Hormuz Strait Analysis (Day 25)</h3>
+      <span class="tag" style="background:#fee2e2;color:#b91c1c">Extremely Tight</span>
+    </div>
+
+    <div class="alert red">
+      <span class="alert-icon">&#x26A8;</span>
+      <div>
+        <div class="alert-title">Hormuz Strait Effectively Closed — Trump-Iran Talks Signal Possible Easing but Market Remains Skeptical</div>
+        <div class="alert-text">Day 25 of the Gulf conflict. Transit volume remains at ~2 vessels/day vs pre-war 70+. Trump signaled "productive" Iran talks, causing crude to pull back to ~$104/bbl. However, Platts simultaneously suspended Hormuz product nominations. Saudi Arabia has temporarily halted maritime license requirements to ease port access. FMC denied carrier requests to waive the 30-day surcharge waiting period — new Middle East fees from major carriers cannot take effect until early April.</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:20px">
+      <div class="kpi-card red">
+        <div class="tag-badge" style="background:#fee2e2;color:#b91c1c">Emergency</div>
+        <div class="route">Shanghai to Dubai (Jebel Ali)</div>
+        <div class="price">3,380 <span class="unit">USD/TEU</span></div>
+        <div class="change up">+1.7% week est.</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Very limited effective supply</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="tag-badge" style="background:#fef3c7;color:#92400e">Nominal</div>
+        <div class="route">Shanghai to Dammam (Gulf)</div>
+        <div class="price">3,200–3,500 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Sustained high</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Suspended, nominal quote only</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="route">Shanghai to Kuwait / Qatar</div>
+        <div class="price">3,000–3,500 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Major increase</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Most carriers suspended</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="route">Middle East to SE Asia (Return)</div>
+        <div class="price">800–1,200 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Volatile upward</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Return capacity very tight</div>
+        <div class="bar"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="market-card">
+        <h4>&#x1F534; Red Sea Route Rates (USD/TEU)</h4>
+        <table class="data-table">
+          <thead>
+            <tr><th>Port</th><th>Rate</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Shanghai to Jeddah (Saudi)</td><td>2,800–3,200</td><td><span class="pill hot">Volatile</span></td></tr>
+            <tr><td>Shanghai to Aqaba (Jordan)</td><td>2,600–3,000</td><td><span class="pill hot">Limited Space</span></td></tr>
+            <tr><td>Shanghai to Port Sudan</td><td>2,500–2,900</td><td><span class="pill down">Suspension Warning</span></td></tr>
+            <tr><td>Shanghai to Hodeidah (Yemen)</td><td>N/A</td><td><span class="pill down">Suspended</span></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.8">
+          War Risk Surcharge (WRS): <strong>+500~800 USD/TEU</strong><br>
+          Rerouting BAF Extra: <strong>+200~400 USD/TEU</strong>
+        </div>
+      </div>
+      <div class="market-card">
+        <h4>&#x1F30D; Red Sea vs Cape of Good Hope Comparison</h4>
+        <table class="data-table">
+          <thead>
+            <tr><th>Metric</th><th>Red Sea (Suez)</th><th>Cape of Good Hope</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Distance (Asia-Europe)</td><td>~11,000 km</td><td>~15,000 km</td></tr>
+            <tr><td>Transit Time</td><td>22–25 days</td><td>32–38 days</td></tr>
+            <tr><td>Extra Fuel Cost</td><td>Baseline</td><td>+$500,000/voyage</td></tr>
+            <tr><td>Current Availability</td><td><span class="pill down">Near-Closed</span></td><td><span class="pill up">Normal</span></td></tr>
+            <tr><td>War Risk Insurance</td><td>~1% vessel value</td><td>Normal rate</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: SOUTHEAST ASIA -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#f0fdf4">&#x1F334;</div>
+      <h3>Southeast Asia Route Analysis</h3>
+      <span class="tag" style="background:#dcfce7;color:#15803d">Stable Recovery</span>
+    </div>
+
+    <div class="alert green">
+      <span class="alert-icon">&#x2705;</span>
+      <div>
+        <div class="alert-title">SE Asia Lanes Stable; Vietnam Manufacturing Growth Supports Demand</div>
+        <div class="alert-text">Southeast Asia routes remain broadly stable with modest upward pressure. Vietnam, Thailand and Indonesia manufacturing growth continues to drive steady intra-Asia demand. APMT's acquisition of a 49% stake in Haiphong's HHIT terminal (announced March 24) underscores long-term confidence in Vietnam as a key export hub. Yang Ming's new CSM (China-Singapore-Malaysia) service launching this month adds capacity to key lanes.</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:20px">
+      <div class="kpi-card green">
+        <div class="route">Shanghai to Singapore</div>
+        <div class="price">360–430 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Slight uptick</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card green">
+        <div class="route">Shanghai to Port Klang (Malaysia)</div>
+        <div class="price">390–460 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Stable</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card green">
+        <div class="route">Shanghai to Laem Chabang (Thailand)</div>
+        <div class="price">430–510 <span class="unit">USD/TEU</span></div>
+        <div class="change up">+2.1% est.</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="route">Shanghai to Haiphong (Vietnam)</div>
+        <div class="price">390–470 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Demand stable</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="route">Shanghai to Jakarta (Indonesia)</div>
+        <div class="price">410–490 <span class="unit">USD/TEU</span></div>
+        <div class="change up">Volume increasing</div>
+        <div class="bar"></div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="route">Shanghai to Manila (Philippines)</div>
+        <div class="price">360–430 <span class="unit">USD/TEU</span></div>
+        <div class="change flat">Stable</div>
+        <div class="bar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: CARRIER GRI ANNOUNCEMENTS -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#fef3c7">&#x1F4E2;</div>
+      <h3>Carrier GRI / Rate Announcements</h3>
+      <span class="tag" style="background:#fef3c7;color:#92400e">This Week</span>
+    </div>
+
+    <div class="company-grid">
+      <div class="company-card">
+        <div class="company-name">
+          Maersk
+          <span class="company-tag" style="background:#dbeafe;color:#1e40af">Global</span>
+        </div>
+        <div class="company-gri">
+          <strong>Global Fuel Surcharges (GFS):</strong> Effective due to Middle East crisis<br>
+          <strong>Middle East ECS:</strong> $2,000–3,000/TEU (FMC waiver denied — effective April)<br>
+          <strong>Asia-Europe GRI:</strong> +$200–300/FEU (March 22 B/L)<br>
+          <strong>Note:</strong> Partially reopened UAE bookings with War Risk Surcharge
+        </div>
+      </div>
+      <div class="company-card">
+        <div class="company-name">
+          MSC
+          <span class="company-tag" style="background:#dcfce7;color:#15803d">Multiple Routes</span>
+        </div>
+        <div class="company-gri">
+          <strong>Emergency Fuel Surcharge (EFS):</strong> Updated for North Europe, Med, India Ocean routes<br>
+          <strong>Global Fuel Surcharge:</strong> Europe + India Ocean lanes<br>
+          <strong>Asia-Europe GRI:</strong> +19 USD/FEU (Rotterdam)<br>
+          <strong>Mid East ECS:</strong> Pending FMC 30-day wait (effective April)
+        </div>
+      </div>
+      <div class="company-card">
+        <div class="company-name">
+          CMA CGM
+          <span class="company-tag" style="background:#fef3c7;color:#92400e">Asia-Med</span>
+        </div>
+        <div class="company-gri">
+          <strong>Asia-Med/North Africa FAK:</strong> Increased effective this week<br>
+          <strong>Middle East ECS:</strong> Filed, 30-day waiting period applies<br>
+          <strong>Hormuz bypass service:</strong> Multimodal sea-rail-road corridor launched<br>
+          <strong>GRI deadline:</strong> March 29 B/L window
+        </div>
+      </div>
+      <div class="company-card">
+        <div class="company-name">
+          Yang Ming
+          <span class="company-tag" style="background:#ede9fe;color:#6d28d9">Asia</span>
+        </div>
+        <div class="company-gri">
+          <strong>CSM Service:</strong> New China-Singapore-Malaysia route launching March<br>
+          <strong>Asia Rate Restoration:</strong> Announced for intra-Asia lanes<br>
+          <strong>LNG newbuildings:</strong> 6x 13,000 TEU dual-fuel vessels approved for order
+        </div>
+      </div>
+      <div class="company-card">
+        <div class="company-name">
+          Hapag-Lloyd
+          <span class="company-tag" style="background:#fef2f2;color:#b91c1c">India-Global</span>
+        </div>
+        <div class="company-gri">
+          <strong>India Partnerships:</strong> Multiple agreements with Indian government signed<br>
+          <strong>Middle East ECS:</strong> Filed, pending 30-day FMC waiting period<br>
+          <strong>FMC Waiver:</strong> Denied — cannot implement until early April
+        </div>
+      </div>
+      <div class="company-card">
+        <div class="company-name">
+          ANL / Wan Hai
+          <span class="company-tag" style="background:#f0fdf4;color:#15803d">Asia-Pacific</span>
+        </div>
+        <div class="company-gri">
+          <strong>ANL:</strong> General Rate Increase announced for Asia-Oceania routes<br>
+          <strong>Wan Hai:</strong> Rate Restoration announced for intra-Asia services<br>
+          <strong>OOCL:</strong> Joining CSX/SKV service as slot charterer
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: SUPPLY DEMAND -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#f5f3ff">&#x1F4CA;</div>
+      <h3>Supply &amp; Demand Analysis</h3>
+      <span class="tag" style="background:#ede9fe;color:#6d28d9">Market Dynamics</span>
+    </div>
+
+    <div class="supply-grid" style="margin-bottom:20px">
+      <div class="supply-card">
+        <div class="supply-val">~10%</div>
+        <div class="supply-lbl">Effective Capacity Reduction</div>
+        <div class="supply-sub" style="background:#fee2e2;color:#b91c1c">Rerouting Impact</div>
+      </div>
+      <div class="supply-card">
+        <div class="supply-val">~147</div>
+        <div class="supply-lbl">Container Vessels Stranded</div>
+        <div class="supply-sub" style="background:#fef3c7;color:#92400e">In Persian Gulf</div>
+      </div>
+      <div class="supply-card">
+        <div class="supply-val">+14 days</div>
+        <div class="supply-lbl">Extra Transit via Cape</div>
+        <div class="supply-sub" style="background:#ede9fe;color:#6d28d9">Asia-Europe</div>
+      </div>
+      <div class="supply-card">
+        <div class="supply-val">~40-50k</div>
+        <div class="supply-lbl">TEU Stranded at Indian Ports</div>
+        <div class="supply-sub" style="background:#dcfce7;color:#15803d">Rerouted from Gulf</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: OUTLOOK -->
+  <section class="section">
+    <div class="section-title">
+      <div class="icon" style="background:#f0fdf4">&#x1F52E;</div>
+      <h3>Rate Outlook (Q2 2026)</h3>
+      <span class="tag" style="background:#f0fdf4;color:#15803d">Forecast</span>
+    </div>
+
+    <div class="outlook-grid">
+      <div class="outlook-card bullish">
+        <h4>Bullish Factors</h4>
+        <ul class="factor-list">
+          <li><span class="dot"></span>Hormuz Strait effectively closed — rerouting maintains capacity tightness</li>
+          <li><span class="dot"></span>Cape of Good Hope rerouting adds 14 extra days, absorbing vessel capacity</li>
+          <li><span class="dot"></span>Carriers imposing war risk surcharges and emergency fuel surcharges in April</li>
+          <li><span class="dot"></span>EU ETS 100% coverage from 2026 adds $150–250/FEU to European lane costs</li>
+          <li><span class="dot"></span>Saudi Arabia easing port access to maintain trade flows</li>
+          <li><span class="dot"></span>CN Index at 654 in "Very High Pressure" zone — sustained upward pressure</li>
+        </ul>
+      </div>
+      <div class="outlook-card bearish">
+        <h4>Bearish Factors</h4>
+        <ul class="factor-list">
+          <li><span class="dot"></span>US tariffs on China goods suppressing Transpacific demand</li>
+          <li><span class="dot"></span>Trump-Iran diplomatic signals could reverse Hormuz premium quickly</li>
+          <li><span class="dot"></span>Front-loading demand exhausted — post-front-loading volume vacuum risk</li>
+          <li><span class="dot"></span>COSCO reports 38% profit decline; industry normalization from pandemic highs</li>
+          <li><span class="dot"></span>Platts suspending Hormuz nominations adds pricing uncertainty</li>
+          <li><span class="dot"></span>FMC blocking carrier surcharges until April delays revenue recovery</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div><!-- end container -->
+
+<!-- FOOTER -->
+<footer>
+  <p>Container Freight Rate Analysis Report · 2026-03-25 (Wednesday) | <span>Data: SCFI · CCFI · WCI · CN Index · JOC · Splash247 · Container News · COSCO IR · FMC</span></p>
+  <p style="margin-top:6px">This report is AI-generated for reference only and does not constitute investment advice.</p>
+</footer>
+
+</body>
+</html>

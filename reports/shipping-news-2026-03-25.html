@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-03-25 · 第9期</title>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0d2045;
+    --blue: #1a3a6b;
+    --accent: #1e5bbd;
+    --highlight: #2e7de0;
+    --gold: #f0b429;
+    --red: #e53e3e;
+    --green: #38a169;
+    --orange: #dd6b20;
+    --light: #e8f0fe;
+    --white: #ffffff;
+    --gray: #a0aec0;
+    --card-bg: #0f1e3d;
+    --card-border: #1e3a6b;
+    --text-main: #e2e8f0;
+    --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--navy);
+    color: var(--text-main);
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* TICKER */
+  .ticker-wrap {
+    background: var(--accent);
+    padding: 7px 0;
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--gold);
+  }
+  .ticker {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll 55s linear infinite;
+  }
+  .ticker span {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 28px;
+    letter-spacing: .4px;
+  }
+  .ticker .up { color: #4ade80; }
+  .ticker .dn { color: #f87171; }
+  .ticker .ne { color: #fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%);
+    border-bottom: 3px solid var(--gold);
+    padding: 32px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    position: relative;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-icon {
+    width: 52px; height: 52px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 18px rgba(30,91,189,0.5);
+  }
+  .brand-text h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 1px;
+  }
+  .brand-text p {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  .date-badge {
+    text-align: right;
+  }
+  .date-badge .date {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .date-badge .issue {
+    font-size: 13px;
+    color: var(--gray);
+    margin-top: 4px;
+  }
+  .header-subtitle {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--gray);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-subtitle::before {
+    content: '';
+    width: 30px; height: 2px;
+    background: var(--gold);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* INDEX CARDS */
+  .index-section {
+    padding: 24px 40px 8px;
+    background: var(--navy2);
+  }
+  .index-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .idx-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .idx-card .idx-label {
+    font-size: 11px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .idx-card .idx-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--white);
+  }
+  .idx-card .idx-chg {
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .idx-card .idx-chg.up { color: #4ade80; }
+  .idx-card .idx-chg.dn { color: #f87171; }
+  .idx-card .idx-chg.ne { color: #fde68a; }
+
+  /* MAIN */
+  .main { padding: 30px 40px 20px; }
+
+  /* SECTION TITLE */
+  .sec-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    margin-top: 32px;
+  }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .sec-title h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: .5px;
+  }
+  .sec-title .badge {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: var(--highlight);
+  }
+
+  /* HEADLINE CARD */
+  .headline-card {
+    background: linear-gradient(135deg, #0d2045 0%, #132f5e 100%);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .headline-card::before {
+    content: 'TOP STORY';
+    position: absolute;
+    top: 14px; right: 18px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--gold);
+    color: var(--navy);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .headline-card .hl-label {
+    font-size: 11px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .headline-card h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  .headline-card .hl-summary {
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .hl-impact {
+    background: rgba(240,180,41,0.1);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: #fde68a;
+    line-height: 1.6;
+  }
+  .hl-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .stars { color: var(--gold); font-size: 16px; letter-spacing: 2px; }
+  .tag {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #93c5fd;
+  }
+
+  /* NEWS CARDS */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .news-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color .2s;
+    position: relative;
+  }
+  .news-card:hover { border-color: var(--highlight); }
+  .news-card .card-num {
+    position: absolute;
+    top: 14px; right: 16px;
+    font-size: 26px;
+    font-weight: 900;
+    color: rgba(30,91,189,0.25);
+    line-height: 1;
+  }
+  .news-card .category {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+  .cat-ops { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .cat-geo { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .cat-mkt { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .cat-reg { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+  .cat-acc { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .cat-ma  { background: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3); }
+  .cat-env { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+
+  .news-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.45;
+    margin-bottom: 10px;
+    padding-right: 30px;
+  }
+  .news-card .summary {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .news-card .impact-box {
+    background: rgba(30,91,189,0.12);
+    border-left: 2px solid var(--highlight);
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: #93c5fd;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .news-card .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .news-card .stars-sm { color: var(--gold); font-size: 13px; }
+  .news-card .source { font-size: 11px; color: var(--gray); }
+
+  /* RATE TABLE */
+  .rate-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .rate-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: rgba(30,91,189,0.2);
+    color: var(--highlight);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: .3px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,91,189,0.1);
+    color: var(--text-main);
+  }
+  tbody tr:hover td { background: rgba(30,91,189,0.06); }
+  td.up { color: #4ade80; font-weight: 600; }
+  td.dn { color: #f87171; font-weight: 600; }
+  td.ne { color: #fde68a; font-weight: 600; }
+  td.alert { color: #fb923c; font-weight: 700; }
+
+  /* SENTIMENT */
+  .sentiment {
+    background: linear-gradient(135deg, #0d2045 0%, #0a1628 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 26px 28px;
+    margin-top: 32px;
+  }
+  .sentiment h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .sent-item {
+    background: rgba(30,91,189,0.1);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .sent-item .si-label { font-size: 11px; color: var(--gray); margin-bottom: 6px; }
+  .sent-item .si-val { font-size: 18px; font-weight: 800; }
+  .si-bear { color: #f87171; }
+  .si-bull { color: #4ade80; }
+  .si-neutral { color: #fde68a; }
+  .sent-para {
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.8;
+    border-top: 1px solid var(--card-border);
+    padding-top: 14px;
+  }
+  .sent-para strong { color: var(--white); }
+
+  /* FOOTER */
+  footer {
+    background: var(--navy2);
+    border-top: 1px solid var(--card-border);
+    padding: 20px 40px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 40px;
+  }
+  footer a { color: var(--highlight); text-decoration: none; }
+
+  @media(max-width:900px){
+    .index-grid { grid-template-columns: repeat(3, 1fr); }
+    .news-grid   { grid-template-columns: 1fr; }
+    .sent-grid   { grid-template-columns: repeat(2, 1fr); }
+    .header, .main, .index-section { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="up">SCFI 1710.35 (+14.85% week11)</span>
+    <span class="ne">CN Index 654 - Very High Pressure Zone</span>
+    <span class="dn">Trump-Iran Talks: Crude Futures Drop on Ceasefire Hopes</span>
+    <span class="up">ONE acquires stake in Dongwon Busan Terminal</span>
+    <span class="ne">FMC denies carriers waiver on Middle East surcharge waiting period</span>
+    <span class="up">APMT acquires 49% stake in Haiphong HHIT terminal</span>
+    <span class="dn">Hormuz Strait: ~2 vessels/day transiting vs 70+ pre-war</span>
+    <span class="ne">Maersk: Global Fuel Surcharges effective due to Middle East crisis</span>
+    <span class="up">SCFI 1710.35 (+14.85% week11)</span>
+    <span class="ne">CN Index 654 - Very High Pressure Zone</span>
+    <span class="dn">Trump-Iran Talks: Crude Futures Drop on Ceasefire Hopes</span>
+    <span class="up">ONE acquires stake in Dongwon Busan Terminal</span>
+    <span class="ne">FMC denies carriers waiver on Middle East surcharge waiting period</span>
+    <span class="up">APMT acquires 49% stake in Haiphong HHIT terminal</span>
+    <span class="dn">Hormuz Strait: ~2 vessels/day transiting vs 70+ pre-war</span>
+    <span class="ne">Maersk: Global Fuel Surcharges effective due to Middle East crisis</span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">&#x1F6A2;</div>
+      <div class="brand-text">
+        <h1>Container Shipping Daily</h1>
+        <p>Container Shipping Intelligence Report</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026 · 03 · 25</div>
+      <div class="issue">Issue 9 · Wednesday</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    Global container market focus | Hormuz Crisis · Demand Outlook · M&amp;A · Regulatory Compliance · 10 key stories today
+  </div>
+</div>
+
+<!-- INDEX CARDS -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI</div>
+      <div class="idx-val">1710</div>
+      <div class="idx-chg up">+14.85% (3/13)</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">CN Index</div>
+      <div class="idx-val">654</div>
+      <div class="idx-chg up">Very High Pressure</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">Shanghai-Rotterdam</div>
+      <div class="idx-val">~2462</div>
+      <div class="idx-chg up">+19 USD/FEU est.</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">Transpacific WC</div>
+      <div class="idx-val">1600</div>
+      <div class="idx-chg ne">Sideways weak</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">Brent Crude</div>
+      <div class="idx-val">~$104</div>
+      <div class="idx-chg dn">Iran talks pullback</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">Hormuz Transit</div>
+      <div class="idx-val">~2/day</div>
+      <div class="idx-chg dn">-97% vs pre-war</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOP STORY -->
+  <div class="sec-title" style="margin-top:0">
+    <div class="icon">&#x1F3C6;</div>
+    <h2>Top Story of the Day</h2>
+    <span class="badge">TOP STORY</span>
+  </div>
+
+  <div class="headline-card">
+    <div class="hl-label">Geopolitics · Hormuz · Diplomacy</div>
+    <h3>Trump Reports "Productive" Iran Talks: Crude Futures Sink, Shipping Market Watches Closely for Hormuz Breakthrough</h3>
+    <div class="hl-summary">
+      U.S. President Donald Trump posted on social media Monday that talks with Iran were "productive" and ordered a five-day postponement of any strikes against Iranian energy infrastructure. Crude oil futures fell sharply on the news, with Brent dropping toward the $104/bbl range from recent highs near $108. However, Platts has suspended bids and offers for products shipments transiting the Strait of Hormuz, citing ongoing uncertainty. The strait remains effectively closed to normal commercial traffic, with an estimated 3,200 vessels and 20,000+ seafarers still stranded in the Persian Gulf.
+      <br><br>
+      Market participants are divided: optimists see a ceasefire opening that could reopen Hormuz within weeks, while analysts warn of a potential "forever war" scenario. Half the world's bunker fuel is still sold by just 10 companies, and supply chain disruptions continue to ripple through all major trade lanes. The FMC denied carrier requests to waive the 30-day waiting period before Middle East surcharges take effect — meaning carriers must wait until early April to implement new emergency fees.
+    </div>
+    <div class="hl-impact">
+      Impact: A genuine Hormuz ceasefire would trigger a sharp reversal in freight rates, especially on Asia-Europe lanes. However, even if negotiations succeed, vessel repositioning and port congestion recovery could take 4-6 weeks, keeping rates elevated near-term. Carriers and shippers should closely monitor diplomatic signals; premature surcharge lock-ins carry rollback risk.
+    </div>
+    <div class="hl-footer">
+      <span class="stars">&#x2B50;&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+      <span class="tag">Geopolitics / Energy / Rates</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: GEOPOLITICS -->
+  <div class="sec-title">
+    <div class="icon">&#x1F30D;</div>
+    <h2>Geopolitics &amp; Waterway Status</h2>
+    <span class="badge">GEOPOLITICS</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">01</span>
+      <span class="category cat-geo">Geopolitics</span>
+      <h3>Platts Suspends Hormuz Product Nominations; Analysts Fear "Forever War" Scenario Despite Diplomatic Signals</h3>
+      <div class="summary">
+        S&P Global Platts has suspended bids, offers and nominations for crude oil and refined product shipments that must transit the Strait of Hormuz. This effectively halts price discovery for the critical waterway. Meanwhile, analysts at multiple brokerages warn that even "productive" diplomatic signals from the Trump administration may not translate into rapid reopening — a "forever war" scenario where sporadic conflict continues indefinitely remains a key risk. Oil prices swung sharply, rising on "forever war" fears before dropping on Trump's diplomatic update.
+      </div>
+      <div class="impact-box">
+        Suspended price discovery at Platts adds pricing uncertainty for Middle East cargoes. Carriers operating on any route touching the Gulf remain exposed to elevated war risk insurance premiums (10x+ pre-conflict levels in some cases).
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: Ship&amp;Bunker / Platts / Reuters</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">02</span>
+      <span class="category cat-geo">Geopolitics</span>
+      <h3>Saudi Arabia Temporarily Halts Maritime License Requirements Amid Gulf Crisis, Easing Port Access for 30 Days</h3>
+      <div class="summary">
+        Saudi Arabia has announced it will temporarily suspend certain maritime license requirements for vessels seeking to call at Saudi ports, effective for an initial 30-day period with extension options. The measure is designed to ease port congestion and encourage vessels to continue calling at Saudi ports despite the ongoing Gulf crisis. This is seen as a pragmatic step to maintain trade flows through Jeddah and Dammam even as Hormuz remains restricted.
+      </div>
+      <div class="impact-box">
+        Positive for cargo owners with Saudi Arabia origin/destination. Jeddah and King Abdullah Port may see increased vessel traffic as a partial bypass for Gulf cargo. Watch for potential congestion buildup at Saudi ports as a result.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: Ship&amp;Bunker / Saudi Maritime Authority</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION 2: CARRIER UPDATES -->
+  <div class="sec-title">
+    <div class="icon">&#x1F6A2;</div>
+    <h2>Carrier Updates</h2>
+    <span class="badge">CARRIER UPDATES</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">03</span>
+      <span class="category cat-ops">Rate &amp; Service</span>
+      <h3>FMC Rejects Carrier Request to Waive 30-Day Waiting Period for Middle East Surcharges — CMA CGM, Hapag, Maersk, ZIM Must Wait Until April</h3>
+      <div class="summary">
+        The U.S. Federal Maritime Commission (FMC) has denied requests from CMA CGM, Hapag-Lloyd, Maersk, and ZIM Integrated to waive the mandatory 30-day filing and waiting period before implementing new Middle East-related emergency surcharges. The carriers had argued that the rapidly evolving crisis warranted expedited implementation. The FMC's decision means these surcharges cannot take effect until early April at the earliest, providing temporary relief for U.S. importers and exporters.
+      </div>
+      <div class="impact-box">
+        Short-term positive for U.S. shippers: surcharge increases delayed by ~2 weeks. Medium-term: carriers will still impose fees in April; shippers should budget accordingly. FMC oversight continues to be a key constraint on rate actions in the U.S. trade.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: JOC / FMC Official Statement</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">04</span>
+      <span class="category cat-ops">Service Adjustment</span>
+      <h3>CMA CGM Launches Multimodal Corridor Bypassing Strait of Hormuz via Sea-Rail-Road</h3>
+      <div class="summary">
+        CMA CGM has officially launched a multimodal transit solution combining sea, rail, and road transportation to route cargo around the Strait of Hormuz. The corridor provides an alternative for cargo destined to or originating from Gulf states, routing via alternative ports and overland connections. The solution adds transit time but provides supply chain continuity for customers whose cargo cannot afford indefinite delays waiting for Hormuz to reopen.
+      </div>
+      <div class="impact-box">
+        Relevant for shippers with Gulf destination cargo currently stranded. Expect higher landed costs vs. direct sea routing, but significantly better than indefinite delays. Other carriers may develop similar products as the crisis extends.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: Splash247 / CMA CGM Official</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION 3: M&A / INVESTMENT -->
+  <div class="sec-title">
+    <div class="icon">&#x1F4BC;</div>
+    <h2>M&amp;A, Investment &amp; Newbuilding</h2>
+    <span class="badge">M&A / INVESTMENT</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">05</span>
+      <span class="category cat-ma">M&amp;A</span>
+      <h3>ONE Acquires Stake in Dongwon-Owned Busan Terminal Ahead of Premier Alliance Network Restructuring</h3>
+      <div class="summary">
+        Ocean Network Express (ONE) has entered a long-term partnership agreement with Dongwon Group, acquiring an indirect stake in a Busan container terminal. The deal is strategically timed ahead of the Ocean Alliance's April network restructuring, which will shift focus to Busan as a key Northeast Asian hub while reducing direct calls to Japan and Taiwan. The investment gives ONE a direct foothold in a terminal co-owned by a potential HMM acquirer, adding a layer of strategic optionality.
+      </div>
+      <div class="impact-box">
+        Strengthens ONE's position at Busan — likely to be a critical hub under the new Premier Alliance structure. HMM acquisition dynamics remain in flux; ONE's terminal investment provides leverage regardless of who ultimately acquires HMM.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: Splash247 / JOC</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">06</span>
+      <span class="category cat-ma">Terminal Investment</span>
+      <h3>APM Terminals Acquires 49% Stake in Vietnam's Haiphong HHIT Deep-Water Terminal</h3>
+      <div class="summary">
+        APM Terminals has completed its transition from development partner to shareholder at the Hateco Hai Phong International Container Terminal (HHIT), acquiring a 49% stake in the deep-water facility. The move comes days after the APM Terminals-Hateco joint venture was selected as preferred bidder for a $1.8 billion container terminal project in Da Nang. Vietnam is rapidly emerging as a critical manufacturing and export hub as supply chains diversify away from China.
+      </div>
+      <div class="impact-box">
+        Reinforces Vietnam's growing importance in Asia-Pacific supply chains. Deep-water capability at Haiphong will enable direct calls from the largest container vessels, improving connectivity and reducing transshipment costs for Vietnam exporters.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: JOC / Splash247</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION 4: PORT & SAFETY -->
+  <div class="sec-title">
+    <div class="icon">&#x2693;</div>
+    <h2>Port Dynamics &amp; Safety</h2>
+    <span class="badge">PORT &amp; SAFETY</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">07</span>
+      <span class="category cat-acc">Supply Chain</span>
+      <h3>4,000–5,000 TEU of Stranded Reefer Cargo Await Hormuz Resolution at Indian Ports; Detention Charges Mounting</h3>
+      <div class="summary">
+        Market sources estimate 40,000–50,000 TEU of Asia-bound cargo has arrived at Indian ports, diverted from Gulf destinations after Hormuz closure. Nhava Sheva alone has processed approximately 25,000 TEU of discharged cargo. Perishable reefer cargo is particularly affected, with owners facing a difficult choice: pay indefinite reefer running costs and detention fees while waiting for Hormuz to reopen, or abandon/redirect cargo to alternative markets. Some Indian importers are opportunistically purchasing diverted Gulf cargo.
+      </div>
+      <div class="impact-box">
+        Immediate concern for shippers with Gulf-bound reefer cargo. Inland transportation costs from Indian ports to final Gulf destinations (overland) are significant. Consider cargo insurance claims for temperature excursions on diverted reefer shipments.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: JOC / Seatrade Maritime</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">08</span>
+      <span class="category cat-ops">Port Congestion</span>
+      <h3>Houston Port Cuts Free Reefer Storage Time as Cold Chain Imports Outpace Overall Growth</h3>
+      <div class="summary">
+        The Port of Houston is reducing the free storage period for refrigerated import containers due to growing reefer dwell-time problems. Despite reefer volumes representing a small share of overall imports, their growth rate is significantly outpacing general cargo, creating long-dwell situations that consume limited reefer-plug infrastructure. Port officials have implemented the policy change to incentivize faster cargo pickup and free up reefer-capable ground slots.
+      </div>
+      <div class="impact-box">
+        Affects importers routing refrigerated cargo through Houston. Budget for additional storage costs if cargo cannot be picked up within the new (shortened) free time window. Consider pre-arranging inland transportation to avoid penalties.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: JOC</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION 5: REGULATION & GREEN -->
+  <div class="sec-title">
+    <div class="icon">&#x1F331;</div>
+    <h2>Regulation &amp; Green Shipping</h2>
+    <span class="badge">REGULATION &amp; GREEN</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">09</span>
+      <span class="category cat-env">Environmental</span>
+      <h3>Gulf Crisis Exposes Critical Weakness in Shipping's Fuel Transition; Energy Security Concerns Now Outweigh Decarbonisation</h3>
+      <div class="summary">
+        The ongoing Gulf crisis has exposed a fundamental vulnerability in shipping's fuel transition strategy, according to Fuelre4m CEO Rob Mortimer. With conventional fuel supply chains disrupted and alternative fuel infrastructure concentrated in a few key hubs, carriers find themselves with limited resilience. Energy security concerns are now dominating boardroom discussions, overshadowing decarbonisation pathways. The bunker industry, with 50% of global sales concentrated among just 10 companies, is particularly exposed to supply chain shocks.
+      </div>
+      <div class="impact-box">
+        Long-term strategic implication: carriers may need to diversify both fuel types and supply chains. Short-term: biofuels and LNG may see demand uptick as carriers seek alternatives to conventional VLSFO supply chains that route through or near conflict zones.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: Ship&amp;Bunker / Fuelre4m</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">10</span>
+      <span class="category cat-mkt">Market Data</span>
+      <h3>COSCO Reports 38% Net Profit Decline in 2025; Says Middle East War Will "Amplify" Global Supply Chain Volatility</h3>
+      <div class="summary">
+        COSCO Shipping Holdings reported a 38% year-on-year decline in net profit for 2025, reflecting the industry-wide normalization from the extraordinary pandemic-era highs. Commenting on current conditions, COSCO executives stated that the Middle East war will "amplify" global supply chain volatility and create both risk and opportunity for carriers. The company noted that while the conflict increases costs through rerouting and war risk premiums, it also tightens effective capacity, providing rate support. COSCO maintained a cautiously optimistic outlook for H1 2026.
+      </div>
+      <div class="impact-box">
+        38% profit decline reflects sector-wide normalization; war-related costs partially offset by higher rates. COSCO's characterization of the situation as both risk and opportunity aligns with broader market consensus. Watch Q1 2026 earnings for first evidence of war impact on financials.
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">&#x2B50;&#x2B50;&#x2B50;&#x2B50;</span>
+        <span class="source">Source: JOC / COSCO Investor Relations</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RATE TABLE -->
+  <div class="rate-section">
+    <h3>&#x1F4CA; Key Lane Rate Snapshot (Week 13, Mar 25 Reference)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Trade Lane</th>
+          <th>Unit</th>
+          <th>Rate (USD)</th>
+          <th>Weekly Change</th>
+          <th>Market Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shanghai → Rotterdam (Asia-Europe)</td>
+          <td>FEU 40ft</td>
+          <td>~2,460</td>
+          <td class="up">+17 est.</td>
+          <td>GRI supported / rerouting premium</td>
+        </tr>
+        <tr>
+          <td>Shanghai → Genoa (Mediterranean)</td>
+          <td>FEU 40ft</td>
+          <td>~3,130</td>
+          <td class="ne">Flat</td>
+          <td>Rerouting support</td>
+        </tr>
+        <tr>
+          <td>Shanghai → US West Coast (Transpacific)</td>
+          <td>FEU 40ft</td>
+          <td>1,550–1,700</td>
+          <td class="ne">Sideways weak</td>
+          <td>Tariff pressure on demand</td>
+        </tr>
+        <tr>
+          <td>Shanghai → US East Coast (Transpacific)</td>
+          <td>FEU 40ft</td>
+          <td>2,400–2,500</td>
+          <td class="ne">Minor pullback</td>
+          <td>Post front-loading cooldown</td>
+        </tr>
+        <tr>
+          <td>Persian Gulf Export Lanes (via Cape)</td>
+          <td>Composite (SCFI sub-index)</td>
+          <td>+143% vs pre-war</td>
+          <td class="up">High / sustained</td>
+          <td class="alert">Extremely tight</td>
+        </tr>
+        <tr>
+          <td>SCFI Composite Index</td>
+          <td>Index (base 1000)</td>
+          <td>1,710.35</td>
+          <td class="up">+14.85% (Wk11)</td>
+          <td>3-week rally / elevated</td>
+        </tr>
+        <tr>
+          <td>CN Index (Container News)</td>
+          <td>Index</td>
+          <td>654</td>
+          <td class="up">Rising</td>
+          <td>Very High Pressure Zone</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MARKET SENTIMENT -->
+  <div class="sentiment">
+    <h3>&#x1F4C8; Market Sentiment Summary</h3>
+    <div class="sent-grid">
+      <div class="sent-item">
+        <div class="si-label">Overall Sentiment</div>
+        <div class="si-val si-neutral">Cautiously Neutral</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">Asia-Europe Short-Term</div>
+        <div class="si-val si-bull">Bullish</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">Transpacific</div>
+        <div class="si-val si-bear">Bearish</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">Middle East / Gulf</div>
+        <div class="si-val si-bear">Extremely Tense</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">Q2 Rate Direction</div>
+        <div class="si-val si-neutral">Divergent</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">Diplomatic Outlook</div>
+        <div class="si-val si-neutral">Watch &amp; Wait</div>
+      </div>
+    </div>
+    <div class="sent-para">
+      The defining tension of today's market is the <strong>Trump-Iran diplomatic signal vs. entrenched supply chain disruption</strong>. A "productive" talks signal caused crude to pull back, but Platts simultaneously suspended Hormuz product nominations — illustrating that the market has little confidence in near-term resolution. The FMC's rejection of carrier surcharge waivers provides modest, temporary relief for U.S. importers, but April surcharges are still coming.
+      <br><br>
+      The most actionable development is <strong>COSCO's explicit warning that Middle East war will amplify supply chain volatility</strong> — the world's largest carrier is essentially telling the market to plan for prolonged disruption. Meanwhile, M&amp;A activity continues at pace: ONE's Busan terminal deal and APMT's Haiphong acquisition underscore carriers' confidence in long-term Asia-Pacific growth despite near-term headwinds. <strong>Recommendation: Lock in Asia-Europe long-term rates before potential ceasefire reversal; hold off on Transpacific rate commitment until US-China tariff situation clarifies.</strong>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<!-- FOOTER -->
+<footer>
+  <p>Container Shipping Daily · Issue 9 · 2026-03-25 (Wednesday) | Data: SCFI · IMO · Drewry · CN Index · JOC · Splash247 · Ship&amp;Bunker · Platts · Seatrade Maritime · COSCO IR</p>
+  <p style="margin-top:6px">This report is AI-generated for reference only and does not constitute investment advice | Next issue: 2026-03-26</p>
+</footer>
+
+</body>
+</html>
