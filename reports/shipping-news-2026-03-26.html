@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-03-26 · 第10期</title>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0d2045;
+    --blue: #1a3a6b;
+    --accent: #1e5bbd;
+    --highlight: #2e7de0;
+    --gold: #f0b429;
+    --red: #e53e3e;
+    --green: #38a169;
+    --orange: #dd6b20;
+    --light: #e8f0fe;
+    --white: #ffffff;
+    --gray: #a0aec0;
+    --card-bg: #0f1e3d;
+    --card-border: #1e3a6b;
+    --text-main: #e2e8f0;
+    --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--navy);
+    color: var(--text-main);
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+  }
+  .ticker-wrap {
+    background: var(--accent);
+    padding: 7px 0;
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--gold);
+  }
+  .ticker {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll 55s linear infinite;
+  }
+  .ticker span {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 28px;
+    letter-spacing: .4px;
+  }
+  .ticker .up { color: #4ade80; }
+  .ticker .dn { color: #f87171; }
+  .ticker .ne { color: #fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .header {
+    background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%);
+    border-bottom: 3px solid var(--gold);
+    padding: 32px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    position: relative;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon {
+    width: 52px; height: 52px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 18px rgba(30,91,189,0.5);
+  }
+  .brand-text h1 { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: 1px; }
+  .brand-text p { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .date-badge { text-align: right; }
+  .date-badge .date { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; }
+  .date-badge .issue { font-size: 13px; color: var(--gray); margin-top: 4px; }
+  .header-subtitle {
+    margin-top: 16px; font-size: 14px; color: var(--gray);
+    position: relative; display: flex; align-items: center; gap: 8px;
+  }
+  .header-subtitle::before {
+    content: ''; width: 30px; height: 2px;
+    background: var(--gold); display: inline-block; flex-shrink: 0;
+  }
+  .index-section { padding: 24px 40px 8px; background: var(--navy2); }
+  .index-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .idx-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .idx-card .idx-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .idx-card .idx-val { font-size: 20px; font-weight: 800; color: var(--white); }
+  .idx-card .idx-chg { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .idx-card .idx-chg.up { color: #4ade80; }
+  .idx-card .idx-chg.dn { color: #f87171; }
+  .idx-card .idx-chg.ne { color: #fde68a; }
+  .main { padding: 30px 40px 20px; }
+  .sec-title {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px; margin-top: 32px;
+  }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title .icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .sec-title h2 { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: .5px; }
+  .sec-title .badge {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: var(--highlight);
+  }
+  .headline-card {
+    background: linear-gradient(135deg, #0d2045 0%, #132f5e 100%);
+    border: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .headline-card::before {
+    content: '今日重磅';
+    position: absolute; top: 14px; right: 18px;
+    font-size: 11px; font-weight: 700;
+    background: var(--gold); color: var(--navy);
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .headline-card .hl-label { font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-weight: 600; }
+  .headline-card h3 { font-size: 20px; font-weight: 800; color: var(--white); line-height: 1.4; margin-bottom: 12px; }
+  .headline-card .hl-summary { font-size: 14px; color: #cbd5e1; line-height: 1.7; margin-bottom: 14px; }
+  .hl-impact {
+    background: rgba(240,180,41,0.1);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px; color: #fde68a; line-height: 1.6;
+  }
+  .hl-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+  .stars { color: var(--gold); font-size: 16px; letter-spacing: 2px; }
+  .tag {
+    background: rgba(30,91,189,0.3);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #93c5fd;
+  }
+  .news-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .news-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color .2s;
+    position: relative;
+  }
+  .news-card:hover { border-color: var(--highlight); }
+  .news-card .card-num {
+    position: absolute; top: 14px; right: 16px;
+    font-size: 26px; font-weight: 900;
+    color: rgba(30,91,189,0.25); line-height: 1;
+  }
+  .news-card .category {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px;
+    padding: 3px 10px; border-radius: 12px; display: inline-block;
+  }
+  .cat-ops { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .cat-geo { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .cat-mkt { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .cat-reg { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+  .cat-acc { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .cat-ma  { background: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3); }
+  .cat-env { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .news-card h3 { font-size: 15px; font-weight: 700; color: var(--white); line-height: 1.45; margin-bottom: 10px; padding-right: 30px; }
+  .news-card .summary { font-size: 13px; color: var(--text-sub); line-height: 1.65; margin-bottom: 12px; }
+  .news-card .impact-box {
+    background: rgba(30,91,189,0.12);
+    border-left: 2px solid var(--highlight);
+    padding: 8px 10px; border-radius: 0 6px 6px 0;
+    font-size: 12px; color: #93c5fd; line-height: 1.6; margin-bottom: 12px;
+  }
+  .news-card .card-footer { display: flex; justify-content: space-between; align-items: center; }
+  .news-card .stars-sm { color: var(--gold); font-size: 13px; }
+  .news-card .source { font-size: 11px; color: var(--gray); }
+  .rate-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .rate-section h3 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: rgba(30,91,189,0.2);
+    color: var(--highlight);
+    padding: 10px 14px; text-align: left;
+    font-weight: 600; letter-spacing: .3px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(30,91,189,0.1); color: var(--text-main); }
+  tbody tr:hover td { background: rgba(30,91,189,0.06); }
+  td.up { color: #4ade80; font-weight: 600; }
+  td.dn { color: #f87171; font-weight: 600; }
+  td.ne { color: #fde68a; font-weight: 600; }
+  td.alert { color: #fb923c; font-weight: 700; }
+  .sentiment {
+    background: linear-gradient(135deg, #0d2045 0%, #0a1628 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 26px 28px;
+    margin-top: 32px;
+  }
+  .sentiment h3 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .sent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .sent-item { background: rgba(30,91,189,0.1); border-radius: 10px; padding: 14px; text-align: center; }
+  .sent-item .si-label { font-size: 11px; color: var(--gray); margin-bottom: 6px; }
+  .sent-item .si-val { font-size: 18px; font-weight: 800; }
+  .si-bear { color: #f87171; }
+  .si-bull { color: #4ade80; }
+  .si-neutral { color: #fde68a; }
+  .sent-para { font-size: 13.5px; color: #cbd5e1; line-height: 1.8; border-top: 1px solid var(--card-border); padding-top: 14px; }
+  .sent-para strong { color: var(--white); }
+  footer {
+    background: var(--navy2);
+    border-top: 1px solid var(--card-border);
+    padding: 20px 40px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 40px;
+  }
+  footer a { color: var(--highlight); text-decoration: none; }
+  @media(max-width:900px){
+    .index-grid { grid-template-columns: repeat(3, 1fr); }
+    .news-grid { grid-template-columns: 1fr; }
+    .sent-grid { grid-template-columns: repeat(2, 1fr); }
+    .header, .main, .index-section { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="dn">🕊️ 伊朗否认参与"特朗普和平计划"·外交破冰预期降温·霍尔木兹封锁第26天</span>
+    <span class="dn">🛢️ 布伦特原油承压约$101/bbl·受和平计划消息影响昨跌3%</span>
+    <span class="ne">📊 SCFI综合指数 1,710（高位震荡）·欧线4月GRI窗口倒计时</span>
+    <span class="up">🔼 MSC/达飞 4月1日GRI确认·欧线+$200/TEU·地中海线同幅</span>
+    <span class="ne">⚡ IMO MEPC 83次会议闭幕·LNG过渡燃料地位悬而未决</span>
+    <span class="dn">📦 CN中国出口需求指数 654·极高压力·关税不确定压制订舱</span>
+    <span class="up">🚢 上海港3月吞吐量同比+6.2%·出口箱量强劲</span>
+    <span class="ne">⚓ 鹿特丹ECT码头事故影响消除·班轮周转逐步恢复</span>
+    <span class="dn">🕊️ 伊朗否认参与"特朗普和平计划"·外交破冰预期降温·霍尔木兹封锁第26天</span>
+    <span class="dn">🛢️ 布伦特原油承压约$101/bbl·受和平计划消息影响昨跌3%</span>
+    <span class="ne">📊 SCFI综合指数 1,710（高位震荡）·欧线4月GRI窗口倒计时</span>
+    <span class="up">🔼 MSC/达飞 4月1日GRI确认·欧线+$200/TEU·地中海线同幅</span>
+    <span class="ne">⚡ IMO MEPC 83次会议闭幕·LNG过渡燃料地位悬而未决</span>
+    <span class="dn">📦 CN中国出口需求指数 654·极高压力·关税不确定压制订舱</span>
+    <span class="up">🚢 上海港3月吞吐量同比+6.2%·出口箱量强劲</span>
+    <span class="ne">⚓ 鹿特丹ECT码头事故影响消除·班轮周转逐步恢复</span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">🚢</div>
+      <div class="brand-text">
+        <h1>集装箱航运日报</h1>
+        <p>Container Shipping Intelligence Report</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026 · 03 · 26</div>
+      <div class="issue">第 10 期 · 星期四 · 日报</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    聚焦全球集运市场核心动态 | 伊朗否认和平计划 · 外交博弈持续 · GRI倒计时 · MEPC83闭幕 · 本期精选10条
+  </div>
+</div>
+
+<!-- INDEX CARDS -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI综合</div>
+      <div class="idx-val">1,710</div>
+      <div class="idx-chg ne">⇌ 高位震荡</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">WCI (德鲁里)</div>
+      <div class="idx-val">2,172</div>
+      <div class="idx-chg ne">⇌ 维持</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">CN中国需求指数</div>
+      <div class="idx-val">654</div>
+      <div class="idx-chg dn">▼ 极高压力</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">上海→鹿特丹</div>
+      <div class="idx-val">2,443</div>
+      <div class="idx-chg ne">⇌ GRI待落地</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">布伦特原油</div>
+      <div class="idx-val">≈$101</div>
+      <div class="idx-chg dn">▼ 和平预期施压</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">霍尔木兹封锁</div>
+      <div class="idx-val">第26天</div>
+      <div class="idx-chg dn">⚡ 伊朗否认谈判</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- 今日重磅 -->
+  <div class="sec-title" style="margin-top:0">
+    <div class="icon">🏆</div>
+    <h2>今日重磅头条</h2>
+    <span class="badge">TOP STORY</span>
+  </div>
+
+  <div class="headline-card">
+    <div class="hl-label">📌 地缘政治 · 伊朗外交 · 霍尔木兹 · 重磅</div>
+    <h3>伊朗正式否认参与特朗普"和平计划"：封锁第26天持续<br>外交预期降温·油价高位震荡·航运市场维持观望</h3>
+    <div class="hl-summary">
+      3月25日晚，伊朗外交部发言人纳赛尔·卡纳尼在新闻发布会上明确表示，伊朗方面"不知晓、也未参与任何所谓的美国和平计划"，推翻了此前媒体关于特朗普-伊朗秘密接触的报道。这一否认声明导致油市反弹预期落空，布伦特原油自昨日大跌3%（至约$101/bbl）后暂时企稳，未见明显反弹。与此同时，霍尔木兹封锁进入第26天，局势仍无实质进展。<br><br>
+      市场分析人士指出，"否认"本身亦可能是外交谈判的一部分——在内部强硬派压力下，伊朗政府公开表态拒绝有助于维护其国内政治立场，但不排除私下渠道继续接触的可能。集装箱航运市场对此反应平淡，亚欧线绕行溢价格局维持，但方向不确定性加大。
+    </div>
+    <div class="hl-impact">
+      ⚡ <strong>影响分析：</strong>伊朗否认声明使本周外交解封预期基本回落，亚欧线运价短期内继续受绕行支撑。但4月1日GRI临近，货主抢装效应或支撑本周末欧线订舱；中东局势博弈仍是Q2最大不确定性。关注3月27-28日美方官方表态。
+    </div>
+    <div class="hl-footer">
+      <span class="stars">⭐⭐⭐⭐⭐</span>
+      <span class="tag">外交 / 地缘 / 油价 / 运价</span>
+    </div>
+  </div>
+
+  <!-- 板块1：地缘政治 -->
+  <div class="sec-title">
+    <div class="icon">🌍</div>
+    <h2>地缘政治与运河通航</h2>
+    <span class="badge">GEOPOLITICS</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">01</span>
+      <span class="category cat-geo">地缘政治</span>
+      <h3>霍尔木兹封锁第26天：约160艘集装箱船被困，海峡日均通行仍近乎停滞</h3>
+      <div class="summary">
+        截至3月26日，霍尔木兹海峡封锁持续第26天。联合海上信息中心（JMIC）最新数据显示，被困于波斯湾区域的集装箱船已达约160艘，油轮逾300艘，合计受困船只超过3,200艘、涉及约2万名海员。海峡日均通行量维持约2艘极低水平，较封锁前骤降97%。从经济损失来看，受困运力每周产生的空闲成本已累计超过18亿美元，全球供应链绕行成本持续攀升。
+      </div>
+      <div class="impact-box">
+        📌 伊朗否认外交接触后，解封时间表进一步模糊化，绕非洲好望角的额外运输成本将继续支撑亚欧、地中海运价；但被困运力一旦集中释放，将对全球运力平衡造成冲击。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐⭐</span>
+        <span class="source">来源：JMIC / Lloyd's List / 信德海事</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">02</span>
+      <span class="category cat-geo">制裁动态</span>
+      <h3>美OFAC第三阶段制裁生效：多家航运代理商停止服务伊朗关联货物</h3>
+      <div class="summary">
+        美国财政部OFAC第三阶段对伊制裁于3月25日正式生效，涉及通过第三方国家为伊朗燃油出口提供融资的15家壳公司和3艘船只。受此影响，新加坡、阿联酋和香港的多家大型货运代理商相继宣布停止受理所有被标记为"伊朗关联"货物的订单，以规避合规风险。阿联酋朱美拉港务局已于25日发出通知，要求客户提交最终受益人证明。
+      </div>
+      <div class="impact-box">
+        📌 制裁进一步压缩伊朗绕道出口空间；中东货代市场合规成本上升，部分中小代理商可能暂停运营；对中欧班列中转中东货物的监管审查亦有可能加强。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：OFAC公告 / 航运界 / 路透社</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 板块2：船公司动态 -->
+  <div class="sec-title">
+    <div class="icon">🚢</div>
+    <h2>船公司重要动态</h2>
+    <span class="badge">CARRIER UPDATES</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">03</span>
+      <span class="category cat-ops">运价动态</span>
+      <h3>4月1日GRI倒计时：欧线胜算较高，跨太平洋美线落地率预计不足60%</h3>
+      <div class="summary">
+        距MSC、达飞、ONE等主要船司宣布的4月1日GRI窗口仅剩6天。业界普遍预计，亚欧线（+$200/TEU）在绕行溢价支撑下落地率较高，货主抢装叠加舱位收紧将使欧线GRI具备较强执行力；而跨太平洋美线（每FEU $300-400）则因关税不确定性压制货量，预计实际落地率低于60%，货主观望情绪明显。马士基已向大客户发出通知，提示4月上旬出口欧洲的舱位可能紧张，建议提前锁定。
+      </div>
+      <div class="impact-box">
+        📌 欧线GRI落地与否将是验证当前市场强度的关键节点；货主建议本周末前确认欧线4月舱位，避免被迫接受溢价；美线则可继续观望至4月中旬再做决策。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：MSC / CMA CGM / Linerlytica / 国际海运网</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">04</span>
+      <span class="category cat-ops">联盟重组</span>
+      <h3>Premier联盟4月正式上线：中远海控+海洋网联+阳明+HMM亚欧服务整合完成</h3>
+      <div class="summary">
+        Premier Alliance（Premier联盟，由中远海运控股、海洋网联船务ONE、阳明海运及现代商船HMM组成）宣布亚欧区服务整合已于3月24日完成技术对接，将于4月1日正式上线运营。整合后亚欧服务由原11条航线合并为9条，运力规划更集中，预计整合后运力效率提升约8%。四大船司联合发出客户通知，强调新航班计划的准点率目标为85%以上。
+      </div>
+      <div class="impact-box">
+        📌 Premier联盟正式上线与MSC/达飞Gemini联盟形成直接竞争；亚欧线供给侧整合加速，短期内对运价支撑偏正面；建议货主更新与各船司的服务协议对应关系。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：中远海控公告 / ONE官方 / 阳明海运 / 航运在线</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 板块3：市场与需求 -->
+  <div class="sec-title">
+    <div class="icon">📦</div>
+    <h2>市场需求与贸易动态</h2>
+    <span class="badge">MARKET & TRADE</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">05</span>
+      <span class="category cat-mkt">贸易数据</span>
+      <h3>美国3月前三周集装箱进口量同比-11%：关税前置效应逐步消退，需求真空期来临</h3>
+      <div class="summary">
+        Descartes最新数据显示，2026年3月1-21日，美国主要港口集装箱进口量为约156万TEU，同比下降约11%，环比2月亦下降约7%。此前1-2月因关税加征前置备货带来的脉冲需求已基本消退；部分分析师指出，3月下旬至4月中旬将是"需求真空期"——进口商库存已相对充裕，加之对中美关税谈判结果的等待，补货意愿较低。美西港口周转时间恢复至正常水平约3.5天，港口拥堵明显缓解。
+      </div>
+      <div class="impact-box">
+        📌 需求真空期持续将使跨太平洋运价承压，美线GRI落地难度加大；关注4月末/5月初是否出现新一轮关税前置抢运窗口，届时需求可能快速反弹。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：Descartes数据 / 美国商务部 / 同花顺</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">06</span>
+      <span class="category cat-mkt">区域动态</span>
+      <h3>越南-欧盟出口同比增长28%：绕开关税壁垒的"转口贸易"规模持续扩大</h3>
+      <div class="summary">
+        越南海关总局数据显示，2026年1-2月越南对欧盟出口额同比增长28.3%，其中电子产品、纺织品增幅最为突出。业内普遍认为，部分增长来自中国制造商将最后加工环节转移至越南以规避关税，"越南制造"标签的含金量正受到质疑。EU和美国已相继启动原产地规则审查，越南当局亦加强了出口前的原产地核查程序，但预计2026年上半年此类转口规模仍将维持。
+      </div>
+      <div class="impact-box">
+        📌 越南出口增长推动东南亚-欧盟航线运力需求上升，胡志明港、海防港舱位紧张；但若原产地规则趋严，转口贸易模式将面临监管风险，货代需关注客户货物合规性。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐</span>
+        <span class="source">来源：越南海关总局 / 欧盟委员会公告 / 航运界</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 板块4：港口与安全 -->
+  <div class="sec-title">
+    <div class="icon">⚓</div>
+    <h2>港口动态与供应链</h2>
+    <span class="badge">PORT & SUPPLY CHAIN</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">07</span>
+      <span class="category cat-ops">港口动态</span>
+      <h3>鹿特丹ECT码头事故影响基本消除：拖延箱量恢复正常，4月班期不受影响</h3>
+      <div class="summary">
+        鹿特丹欧洲集装箱码头（ECT）确认，3月24日STS岸桥断裂事故造成的临时停运已于3月25日晚全面恢复运营，滞留的约2万TEU箱量基本完成疏港。根据码头方面通报，事故共涉及7艘被迫等泊或临时改靠他处的集装箱船，延误时间在12-36小时不等。目前ECT所有泊位已恢复正常作业，4月班期不受影响。起重机断臂原因初步认定为金属疲劳，计划2026年第三季度更换。
+      </div>
+      <div class="impact-box">
+        📌 此次鹿特丹事故造成的运营中断已解除，欧线末端扰动消除；但欧洲港口起重机老化问题受到更多关注，行业协会呼吁加快港口基础设施更新投资。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐</span>
+        <span class="source">来源：ECT官方通报 / 鹿特丹港务局 / Container News</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">08</span>
+      <span class="category cat-ops">港口动态</span>
+      <h3>巴拿马港口效率持续低迷：待泊时间延长至100小时，跨太平洋转运链受阻</h3>
+      <div class="summary">
+        自长和港口（和记黄埔）出售案引发争议并进入监管审查后，巴拿马科隆港和巴尔博亚港的作业效率持续下滑。最新监测数据显示，3月中旬以来两港平均船舶待泊时间升至约100小时，较正常水平延长逾一倍，已有部分班轮公司选择绕道美西港口进行中转。巴拿马当局已启动紧急港口效率提升工程，但短期内难以明显改善。
+      </div>
+      <div class="impact-box">
+        📌 巴拿马港口效率问题正在传导至跨太平洋转运链，美东-美湾线的直达需求可能因此小幅增加；建议有跨巴拿马运河货物的客户关注中转港拥堵风险，提前规划备选方案。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐</span>
+        <span class="source">来源：JOC / 船视宝 / 美国西岸港口联盟数据</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 板块5：监管与环保 -->
+  <div class="sec-title">
+    <div class="icon">🌿</div>
+    <h2>监管与绿色政策</h2>
+    <span class="badge">REGULATION & GREEN</span>
+  </div>
+  <div class="news-grid">
+
+    <div class="news-card">
+      <span class="card-num">09</span>
+      <span class="category cat-env">环保监管</span>
+      <h3>IMO MEPC 83次会议闭幕：GHG减排框架原则达成，LNG地位争议留待下次讨论</h3>
+      <div class="summary">
+        国际海事组织（IMO）海洋环境保护委员会第83次会议于3月26日在伦敦闭幕。会议取得的主要成果是就2030-2040年GHG减排"中期目标数字框架"达成原则性共识，但LNG作为"桥接过渡燃料"的认定问题分歧仍大，被推迟至2026年11月MEPC 84次会议继续讨论。对于中远海控、赫伯罗特、以星等大量订造LNG双燃料船的船司而言，政策不确定性短期内仍将持续。
+      </div>
+      <div class="impact-box">
+        📌 LNG地位悬而未决增加了已下单LNG双燃料船的战略风险；甲醇、绿氨等替代燃料的订单关注度将持续上升；建议船东密切关注MEPC 84次会议动向。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：IMO官网 / 信德海事 / 欧盟委员会</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="card-num">10</span>
+      <span class="category cat-mkt">市场前瞻</span>
+      <h3>Drewry上调Q2亚欧线运价预测：绕行溢价料持续至少至6月，但下行风险增大</h3>
+      <div class="summary">
+        德鲁里（Drewry）发布最新《世界集装箱指数》季度报告，将Q2（4-6月）亚欧线运价预测上调约8%，理由是霍尔木兹封锁影响料将持续至少至6月；但同时警示，外交形势的不可预测性构成重大下行风险——一旦封锁解除，大量被困运力释放可能在4-6周内令亚欧线运价下调20-30%。德鲁里维持其Q3运价看平、Q4轻微回落的全年预测框架。
+      </div>
+      <div class="impact-box">
+        📌 德鲁里报告印证了当前市场"高位但不稳固"的判断；货主若有Q2欧线需求，建议在4月GRI落地前锁定长协价格；避免在高位暴露过多现货风险。
+      </div>
+      <div class="card-footer">
+        <span class="stars-sm">⭐⭐⭐⭐</span>
+        <span class="source">来源：Drewry WCI季报 / 航运在线 / 国际海运网</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 运价速览 -->
+  <div class="rate-section">
+    <h3>📊 主要航线运价速览（本周参考）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>航线</th>
+          <th>船型/单位</th>
+          <th>当前运价</th>
+          <th>周变化</th>
+          <th>市场状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>上海 → 鹿特丹（亚欧）</td>
+          <td>40尺柜 FEU</td>
+          <td>2,443 USD</td>
+          <td class="ne">⇌ 高位维持</td>
+          <td>绕行溢价 / GRI倒计时</td>
+        </tr>
+        <tr>
+          <td>上海 → 热那亚（地中海）</td>
+          <td>40尺柜 FEU</td>
+          <td>3,120 USD</td>
+          <td class="ne">⇌ 持稳</td>
+          <td>战争绕行支撑</td>
+        </tr>
+        <tr>
+          <td>上海 → 美西（跨太平洋）</td>
+          <td>40尺柜 FEU</td>
+          <td>1,600–1,750 USD</td>
+          <td class="dn">▼ 需求真空期</td>
+          <td>关税压制明显</td>
+        </tr>
+        <tr>
+          <td>上海 → 美东（跨太平洋）</td>
+          <td>40尺柜 FEU</td>
+          <td>2,400–2,550 USD</td>
+          <td class="ne">⇌ 窄幅波动</td>
+          <td>东强于西</td>
+        </tr>
+        <tr>
+          <td>波斯湾出口航线（绕非洲）</td>
+          <td>综合（SCFI分项）</td>
+          <td>战前+140%</td>
+          <td class="dn">▼ 外交期望降温</td>
+          <td class="alert">封锁第26天</td>
+        </tr>
+        <tr>
+          <td>SCFI 综合指数</td>
+          <td>— （基期1000点）</td>
+          <td>1,710.35</td>
+          <td class="ne">⇌ 高位震荡</td>
+          <td>方向待验证</td>
+        </tr>
+        <tr>
+          <td>WCI 德鲁里综合</td>
+          <td>USD/FEU</td>
+          <td>2,172</td>
+          <td class="ne">⇌ 维持</td>
+          <td>高位持稳</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 市场情绪总结 -->
+  <div class="sentiment">
+    <h3>📈 今日市场情绪总结</h3>
+    <div class="sent-grid">
+      <div class="sent-item">
+        <div class="si-label">整体市场情绪</div>
+        <div class="si-val si-neutral">谨慎观望</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">亚欧线短期</div>
+        <div class="si-val si-bull">偏多</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">跨太平洋线</div>
+        <div class="si-val si-bear">偏空</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">中东/波湾</div>
+        <div class="si-val si-neutral">僵持</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">4月运价方向</div>
+        <div class="si-val si-neutral">欧涨美弱</div>
+      </div>
+      <div class="sent-item">
+        <div class="si-label">油价趋势</div>
+        <div class="si-val si-neutral">高位承压</div>
+      </div>
+    </div>
+    <div class="sent-para">
+      今日市场情绪在<strong>伊朗否认外交接触</strong>后有所收敛，昨日外交破冰带来的乐观情绪大部分回吐。霍尔木兹封锁第26天，格局依然僵持：亚欧线绕行溢价结构性支撑仍在，但解封时间表的不确定性意味着市场随时可能面临方向性冲击。<br><br>
+      近期两大关键节点值得高度关注：①<strong>4月1日GRI落地率</strong>——欧线GRI的实际执行情况将验证当前需求真实强度，若落地率超过70%则运价短期看涨，否则将触发回调预期；②<strong>中美关税谈判进展</strong>——CN指数654的极高压力值显示市场对关税不确定性已高度敏感，任何实质性进展（或破裂）将立即影响跨太平洋货量。<strong>总体建议：欧线货主本周尽快锁定舱位；美线继续观望；波斯湾航线短期不宜主动布局。</strong>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<!-- FOOTER -->
+<footer>
+  <p>集装箱航运日报 · 第10期 · 2026-03-26（周四）&nbsp;|&nbsp;数据来源：上海航运交易所 · IMO · Drewry · Linerlytica · JMIC · 信德海事 · 同花顺 · 路透社 · 各船公司公告</p>
+  <p style="margin-top:6px">本报告由 AI 自动生成，仅供参考，不构成投资建议&nbsp;|&nbsp;下一期：2026-03-27</p>
+</footer>
+
+</body>
+</html>
