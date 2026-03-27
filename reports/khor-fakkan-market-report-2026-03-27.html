@@ -414,13 +414,76 @@
     border-top: 1px solid #e5e7eb;
   }
 
+  /* ====== 移动端响应式 ====== */
   @media (max-width: 768px) {
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    /* Hero 区域 */
+    .hero { padding: 24px 16px 20px; }
+    .hero h1 { font-size: 18px; }
+    .hero h2 { font-size: 13px; }
+    .hero-tags { gap: 6px; }
+    .hero-tag { font-size: 11px; padding: 3px 10px; }
+
+    /* 主体容器 */
+    .container { padding: 16px 12px 40px; }
+
+    /* 战争横幅 */
+    .war-banner { flex-direction: column; gap: 10px; padding: 14px 16px; }
+    .war-banner-icon { font-size: 28px; }
+
+    /* 摘要卡片：4列→2列 */
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .summary-card .value { font-size: 18px; }
+
+    /* 双栏→单栏 */
     .two-col { grid-template-columns: 1fr; }
+
+    /* 货物网格：3列→2列 */
     .cargo-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* 客户网格：3列→2列 */
     .customer-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* 运价卡：3列→1列 */
     .rate-cards { grid-template-columns: 1fr; }
+
+    /* 船公司：2列→1列 */
     .carrier-grid { grid-template-columns: 1fr; }
+
+    /* 表格：横向滚动 */
+    .section-body { padding: 14px 10px; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 520px; }
+    thead th, td { padding: 8px 10px; font-size: 12px; }
+
+    /* 柱状图适配 */
+    .trend-bar-group { gap: 3px; }
+    .trend-bar .bar-val { font-size: 8px; }
+    .trend-bar .bar-label { font-size: 9px; }
+
+    /* 路线图 */
+    .route-line { gap: 4px; }
+    .port-box { padding: 6px 10px; font-size: 11px; }
+
+    /* 时间轴 */
+    .war-timeline-item { gap: 0; }
+    .war-dot { width: 30px; height: 30px; font-size: 13px; }
+    .war-dot-wrap { margin-right: 10px; }
+    .war-item-content h4 { font-size: 12px; }
+    .war-item-content p { font-size: 11px; }
+
+    /* section header */
+    .section-header { padding: 12px 14px; }
+    .section-header h3 { font-size: 13px; }
+  }
+
+  @media (max-width: 480px) {
+    /* 超窄屏：摘要卡片也改为2列紧凑显示 */
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .cargo-grid { grid-template-columns: 1fr 1fr; }
+    .customer-grid { grid-template-columns: 1fr 1fr; }
+    .hero h1 { font-size: 16px; }
+    .summary-card { padding: 14px 10px 12px; }
+    .summary-card .value { font-size: 16px; }
   }
 </style>
 </head>
@@ -590,7 +653,7 @@
         </div>
         <div>
           <h4 style="color:#b91c1c;margin-bottom:14px;">▌ 战争对航运三大节点的影响矩阵（2026年3月当前）</h4>
-          <table>
+          <div class="table-wrap"><table>
             <thead>
               <tr>
                 <th>航运节点</th>
@@ -643,7 +706,7 @@
                 <td>联合枢纽，已纳入陆桥方案</td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
 
           <div class="info-block war-block" style="margin-top:16px;">
             <h4>🗺️ 科尔法坎的战略意义（战争时期）</h4>
@@ -858,7 +921,7 @@
 
       <div style="margin-top:20px;">
         <h4 style="color:#1a5494;margin-bottom:12px;">▌ 各主要船公司中国→科尔法坎航线基本信息（常规参数）</h4>
-        <table>
+        <div class="table-wrap"><table>
           <thead>
             <tr>
               <th>船公司</th>
@@ -927,7 +990,7 @@
               <td><span class="badge badge-green">✅ 正常服务</span></td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   </div>
@@ -1008,7 +1071,7 @@
 
           <div style="margin-top:16px;">
             <h4 style="color:#1a5494;margin-bottom:10px;">▌ 港口吞吐趋势预测（战争期间）</h4>
-            <table>
+            <div class="table-wrap"><table>
               <thead>
                 <tr><th>指标</th><th>战前（2025Q3）</th><th>当前（2026Q1）</th><th>预测走向</th></tr>
               </thead>
@@ -1019,7 +1082,7 @@
                 <tr><td>陆桥转运量</td><td>基准值</td><td>估计+40%–60%</td><td><span class="badge badge-red">急速上升</span></td></tr>
                 <tr><td>市场运价</td><td>$1,300–$1,600/20GP</td><td>$3,800–$5,500</td><td><span class="badge badge-red">战争高位</span></td></tr>
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </div>
@@ -1103,7 +1166,7 @@
 
       <div style="margin-top:24px;">
         <h4 style="color:#1a5494;margin-bottom:14px;">▌ 货主应对战争危机的行为变化总结</h4>
-        <table>
+        <div class="table-wrap"><table>
           <thead>
             <tr>
               <th>行为维度</th>
@@ -1150,7 +1213,7 @@
               <td>与客户提前书面确认</td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div class="alert" style="margin-top:16px;">
@@ -1191,7 +1254,7 @@
           </div>
         </div>
         <div>
-          <table>
+          <div class="table-wrap"><table>
             <thead>
               <tr>
                 <th>指标</th>
@@ -1207,7 +1270,7 @@
               <tr><td>地缘风险</td><td><span class="badge badge-green">极低</span></td><td><span class="badge badge-red">高（湾内）</span></td><td><span class="badge badge-orange">中等</span></td></tr>
               <tr><td>陆桥至迪拜</td><td>约130km·3h</td><td>港内直达</td><td>约115km·2.5h</td></tr>
             </tbody>
-          </table>
+          </table></div>
 
           <div class="info-block war-block" style="margin-top:14px;">
             <h4>⚡ 战时港口容量压力提示</h4>
