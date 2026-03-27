@@ -49,9 +49,47 @@
     padding: 4px 14px;
     font-size: 12px;
   }
+  .hero-tag.war { background: rgba(220,38,38,0.35); border-color: rgba(220,38,38,0.6); }
 
   /* ====== 主体布局 ====== */
   .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  /* ====== 战争警报横幅 ====== */
+  .war-banner {
+    background: linear-gradient(135deg, #7f1d1d, #991b1b, #b91c1c);
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    box-shadow: 0 4px 20px rgba(185,28,28,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .war-banner::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .war-banner-icon { font-size: 36px; flex-shrink: 0; }
+  .war-banner-content h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .war-banner-content p { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,0.9); }
+  .war-banner-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 6px;
+    letter-spacing: 0.5px;
+  }
 
   /* ====== 摘要卡片 ====== */
   .summary-grid {
@@ -68,14 +106,15 @@
     border-top: 4px solid;
     text-align: center;
   }
-  .summary-card:nth-child(1) { border-color: #1a5494; }
-  .summary-card:nth-child(2) { border-color: #0e7cc4; }
+  .summary-card:nth-child(1) { border-color: #b91c1c; }
+  .summary-card:nth-child(2) { border-color: #1a5494; }
   .summary-card:nth-child(3) { border-color: #e07b00; }
   .summary-card:nth-child(4) { border-color: #1a9b5a; }
-  .summary-card .value { font-size: 24px; font-weight: 700; color: #0d2b52; }
-  .summary-card .unit { font-size: 12px; color: #888; }
+  .summary-card .value { font-size: 22px; font-weight: 700; color: #0d2b52; }
+  .summary-card .unit { font-size: 11px; color: #888; }
   .summary-card .label { font-size: 12px; color: #555; margin-top: 4px; }
-  .summary-card .growth { font-size: 12px; color: #1a9b5a; margin-top: 2px; }
+  .summary-card .growth { font-size: 11px; color: #1a9b5a; margin-top: 2px; }
+  .summary-card .growth.red { color: #b91c1c; }
 
   /* ====== 章节 ====== */
   .section {
@@ -92,6 +131,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+  .section-header.war-header {
+    background: linear-gradient(90deg, #7f1d1d, #b91c1c);
   }
   .section-header .icon { font-size: 20px; }
   .section-header h3 { font-size: 15px; font-weight: 600; }
@@ -117,6 +159,7 @@
   .badge-orange { background: #fef3c7; color: #92400e; }
   .badge-red { background: #ffe4e6; color: #9f1239; }
   .badge-purple { background: #ede9fe; color: #5b21b6; }
+  .badge-dark { background: #1a2332; color: #fff; }
 
   /* ====== 双栏 ====== */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -125,6 +168,74 @@
   .info-block { background: #f7faff; border-left: 4px solid #1a5494; border-radius: 6px; padding: 14px 18px; margin-bottom: 16px; }
   .info-block h4 { color: #1a5494; font-size: 13px; margin-bottom: 6px; }
   .info-block p { color: #4a5568; font-size: 13px; }
+  .info-block.war-block { background: #fff5f5; border-color: #b91c1c; }
+  .info-block.war-block h4 { color: #b91c1c; }
+  .info-block.green-block { background: #f0fdf4; border-color: #1a9b5a; }
+  .info-block.green-block h4 { color: #1a9b5a; }
+  .info-block.orange-block { background: #fffbeb; border-color: #e07b00; }
+  .info-block.orange-block h4 { color: #e07b00; }
+
+  /* ====== 战争时间轴 ====== */
+  .war-timeline { padding: 0; }
+  .war-timeline-item {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    position: relative;
+  }
+  .war-timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 40px;
+    bottom: -4px;
+    width: 2px;
+    background: #fca5a5;
+    z-index: 0;
+  }
+  .war-dot-wrap { display: flex; flex-direction: column; align-items: center; margin-right: 16px; }
+  .war-dot {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    z-index: 1;
+    position: relative;
+  }
+  .war-dot.red { background: #b91c1c; color: #fff; }
+  .war-dot.orange { background: #d97706; color: #fff; }
+  .war-dot.yellow { background: #f59e0b; color: #fff; }
+  .war-dot.blue { background: #1a5494; color: #fff; }
+  .war-dot.green { background: #1a9b5a; color: #fff; }
+  .war-item-content { flex: 1; padding-bottom: 20px; }
+  .war-item-content .war-date { font-size: 11px; color: #b91c1c; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .war-item-content h4 { font-size: 13px; font-weight: 700; color: #1a2332; margin-bottom: 4px; }
+  .war-item-content p { font-size: 12px; color: #4a5568; line-height: 1.7; }
+
+  /* ====== 船公司表格 ====== */
+  .carrier-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .carrier-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 4px solid;
+  }
+  .carrier-card.active { border-left-color: #1a9b5a; }
+  .carrier-card.caution { border-left-color: #e07b00; }
+  .carrier-card.suspended { border-left-color: #b91c1c; }
+  .carrier-card .carrier-name { font-size: 14px; font-weight: 700; color: #1a2332; margin-bottom: 4px; }
+  .carrier-card .carrier-status { font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+  .carrier-card.active .carrier-status { color: #1a9b5a; }
+  .carrier-card.caution .carrier-status { color: #e07b00; }
+  .carrier-card.suspended .carrier-status { color: #b91c1c; }
+  .carrier-card .carrier-detail { font-size: 12px; color: #4a5568; line-height: 1.7; }
+  .carrier-card .carrier-surcharge { font-size: 11px; color: #b91c1c; font-weight: 600; margin-top: 6px; }
 
   /* ====== 货物列表 ====== */
   .cargo-grid {
@@ -167,6 +278,7 @@
   .customer-card .cust-desc { font-size: 11px; color: #718096; margin-top: 6px; }
   .customer-card .cust-goods { font-size: 11px; color: #4a5568; margin-top: 4px; line-height: 1.5; }
   .customer-card .cust-vol { font-size: 11px; font-weight: 600; color: #1a5494; margin-top: 8px; }
+  .customer-card .cust-war { font-size: 11px; color: #b91c1c; font-weight: 600; margin-top: 4px; }
 
   /* ====== 港口地图样式 ====== */
   .port-visual {
@@ -194,7 +306,9 @@
   }
   .port-box.china { color: #c8101a; border: 2px solid #c8101a; }
   .port-box.uae { color: #007a3d; border: 2px solid #007a3d; }
+  .port-box.danger { color: #b91c1c; border: 2px dashed #b91c1c; background: #fff5f5; }
   .route-arrow { color: #1a5494; font-size: 18px; }
+  .route-arrow.red { color: #b91c1c; }
 
   /* ====== 运价卡 ====== */
   .rate-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -207,8 +321,32 @@
   }
   .rate-card .rt-label { font-size: 11px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
   .rate-card .rt-price { font-size: 22px; font-weight: 700; color: #1a5494; margin: 6px 0; }
+  .rate-card .rt-price.war-price { color: #b91c1c; }
   .rate-card .rt-unit { font-size: 11px; color: #888; }
   .rate-card .rt-type { font-size: 12px; color: #4a5568; margin-top: 4px; }
+
+  /* ====== 走势图模拟 ====== */
+  .trend-chart {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+  }
+  .trend-chart .chart-title { font-size: 13px; font-weight: 600; color: #1a2332; margin-bottom: 14px; }
+  .trend-bar-group { display: flex; align-items: flex-end; gap: 6px; height: 120px; margin-bottom: 8px; }
+  .trend-bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    min-width: 24px;
+    transition: all 0.3s;
+  }
+  .trend-bar .bar-label { font-size: 10px; color: #718096; text-align: center; margin-top: 4px; white-space: nowrap; }
+  .trend-bar .bar-val { font-size: 10px; color: #fff; font-weight: 700; position: absolute; top: 4px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .phase-label { font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-weight: 600; }
+  .phase-normal { background: #dbeafe; color: #1a5494; }
+  .phase-crisis { background: #ffe4e6; color: #9f1239; }
+  .phase-recovery { background: #fef3c7; color: #92400e; }
 
   /* ====== 时间轴 ====== */
   .timeline { padding: 10px 0; }
@@ -241,16 +379,16 @@
     color: #78350f;
   }
   .alert strong { color: #92400e; }
-
-  /* ====== 页脚 ====== */
-  .footer {
-    text-align: center;
-    margin-top: 40px;
-    padding: 20px;
-    font-size: 12px;
-    color: #9ca3af;
-    border-top: 1px solid #e5e7eb;
+  .alert-red {
+    background: #fff5f5;
+    border-left: 4px solid #b91c1c;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #7f1d1d;
   }
+  .alert-red strong { color: #991b1b; }
 
   /* ====== 进度条 ====== */
   .progress-bar {
@@ -266,12 +404,23 @@
     background: linear-gradient(90deg, #1a5494, #0e7cc4);
   }
 
+  /* ====== 页脚 ====== */
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    font-size: 12px;
+    color: #9ca3af;
+    border-top: 1px solid #e5e7eb;
+  }
+
   @media (max-width: 768px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .two-col { grid-template-columns: 1fr; }
     .cargo-grid { grid-template-columns: repeat(2, 1fr); }
     .customer-grid { grid-template-columns: repeat(2, 1fr); }
     .rate-cards { grid-template-columns: 1fr; }
+    .carrier-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -279,690 +428,933 @@
 
 <!-- ====== 顶部横幅 ====== -->
 <div class="hero">
-  <div class="hero-meta">航运市场分析报告 · 2026年3月27日</div>
+  <div class="hero-meta">航运市场深度分析报告 · 2026年3月27日</div>
   <h1>中国 → 科尔法坎（Khor Fakkan）</h1>
-  <h2>船东市场综合分析：货量、运价、货物种类、客户分类与运输方式</h2>
+  <h2>战争背景下的航运走势、船公司动态与客户行商分析</h2>
   <div class="hero-tags">
+    <span class="hero-tag war">⚔️ 霍尔木兹封锁·红海危机</span>
     <span class="hero-tag">🚢 集装箱航运</span>
     <span class="hero-tag">🇦🇪 阿联酋·沙迦酋长国</span>
     <span class="hero-tag">📦 进出口贸易</span>
-    <span class="hero-tag">🌏 中东航线</span>
-    <span class="hero-tag">数据截至2026年3月</span>
+    <span class="hero-tag">数据截至2026年3月27日</span>
   </div>
 </div>
 
 <!-- ====== 主体 ====== -->
 <div class="container">
 
-  <!-- 摘要卡片 -->
-  <div class="summary-grid">
-    <div class="summary-card">
-      <div class="value">500万</div>
-      <div class="unit">TEU/年</div>
-      <div class="label">科尔法坎港设计吞吐能力</div>
-      <div class="growth">↑ 全球前20大集装箱港</div>
-    </div>
-    <div class="summary-card">
-      <div class="value">102亿</div>
-      <div class="unit">美元（2024年）</div>
-      <div class="label">中阿联酋双边贸易总额</div>
-      <div class="growth">↑ 同比增长约7.4%</div>
-    </div>
-    <div class="summary-card">
-      <div class="value">18–28天</div>
-      <div class="unit">海运时间</div>
-      <div class="label">中国主要港口至科尔法坎</div>
-      <div class="growth">直航约18天 · 中转约28天</div>
-    </div>
-    <div class="summary-card">
-      <div class="value">+19.2%</div>
-      <div class="unit">同比增速（2024年）</div>
-      <div class="label">中国对阿联酋出口增长</div>
-      <div class="growth">↑ 连续多年保持高速增长</div>
+  <!-- ====== 战争警报横幅 ====== -->
+  <div class="war-banner">
+    <div class="war-banner-icon">🚨</div>
+    <div class="war-banner-content">
+      <h3>⚠️ 当前形势紧急预警（2026年3月）</h3>
+      <p>
+        <span class="war-banner-tag">2026-02-28</span> 美以联合军事打击伊朗，伊朗宣布封锁霍尔木兹海峡。
+        <span class="war-banner-tag">2026-03-02</span> 胡塞武装重新恢复红海商船袭击。
+        <span class="war-banner-tag">2026-03-14</span> 富查伊拉港遭无人机袭击，油轮作业暂停。
+        中东三大航运咽喉（苏伊士运河/红海、霍尔木兹海峡、富查伊拉外海）几乎同时中断，全球中东线航运陷入2024年红海危机以来最严峻局面。
+        <strong style="color:#fbbf24;">科尔法坎港凭借阿曼湾独特地位，成为目前唯一正常运营的阿联酋集装箱枢纽港，战略价值急剧攀升。</strong>
+      </p>
     </div>
   </div>
 
-  <!-- ====== 一、港口概况 ====== -->
+  <!-- 摘要卡片 -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="value">封锁中</div>
+      <div class="unit">霍尔木兹海峡状态</div>
+      <div class="label">138艘集箱船（47万TEU）受阻</div>
+      <div class="growth red">↑ 最高战争险附加费 $4,000/TEU</div>
+    </div>
+    <div class="summary-card">
+      <div class="value">正常运营</div>
+      <div class="unit">科尔法坎港当前状态</div>
+      <div class="label">阿联酋唯一全面开放集装箱港</div>
+      <div class="growth">✅ 成为主要改港目的地</div>
+    </div>
+    <div class="summary-card">
+      <div class="value">+30%~80%</div>
+      <div class="unit">运价涨幅（战前对比）</div>
+      <div class="label">含战争险附加费叠加</div>
+      <div class="growth red">↑ 附加费最高$4,000/TEU</div>
+    </div>
+    <div class="summary-card">
+      <div class="value">+7~14天</div>
+      <div class="unit">航程延长（绕行方案）</div>
+      <div class="label">经阿曼湾卸货后陆桥转运</div>
+      <div class="growth">科尔法坎陆桥已成核心方案</div>
+    </div>
+  </div>
+
+  <!-- ====== 一、战争时间轴 ====== -->
+  <div class="section">
+    <div class="section-header war-header">
+      <span class="icon">⚔️</span>
+      <h3>一、战争与危机时间轴：2023年底至今（聚焦2026年3月）</h3>
+    </div>
+    <div class="section-body">
+      <div class="two-col">
+        <div>
+          <div class="war-timeline">
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot orange">📅</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2023年11月</div>
+                <h4>胡塞武装首次袭击红海商船</h4>
+                <p>以哈冲突爆发后，胡塞武装以支持巴勒斯坦为由，开始对途经红海/曼德海峡的商船发动袭击，200+次累计攻击，马士基、赫伯罗特等率先宣布绕行好望角。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot orange">🛳️</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2024年上半年</div>
+                <h4>红海危机全面爆发：绕行好望角成常态</h4>
+                <p>全球大部分主要班轮公司宣布暂停红海通行，改走好望角航线。中东线航程延长10–15天，运费2024年上半年最高飙升至$5,000–$8,000/FEU，科尔法坎港货量大幅增长，转口地位凸显。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot yellow">⏸️</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2025年1月–11月</div>
+                <h4>加沙停火·胡塞袭击短暂缓和</h4>
+                <p>加沙停火谈判取得进展，胡塞武装2025年11月宣布暂停袭击，部分船公司开始评估恢复红海通行方案。运价短暂回落，市场短暂出现"运力过剩"预期。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot red">💥</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年2月28日</div>
+                <h4>【重大升级】美以联合打击伊朗</h4>
+                <p>美国与以色列对伊朗核设施及军事目标发起联合军事打击，伊朗随即宣布<strong>封锁霍尔木兹海峡</strong>。这是自1988年"石油战争"以来，霍尔木兹海峡再次面临实质性封锁威胁，波斯湾全面进入战争状态。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot red">🎯</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年3月2日</div>
+                <h4>胡塞武装重启红海袭击</h4>
+                <p>利用伊朗反美气候，胡塞武装宣布重启对红海商船的导弹和无人机攻击。苏伊士运河/红海、霍尔木兹、富查伊拉三大节点同时高风险，约138艘集装箱船（47万TEU）滞留波斯湾无法通行。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot red">🔥</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年3月6日</div>
+                <h4>各大船公司宣布停航、暂停订舱</h4>
+                <p>COSCO暂停除科尔法坎/富查伊拉外全部阿联酋港口订舱；马士基、MSC暂停全部中东订舱；Hapag-Lloyd对中东征收$1,500/TEU战争险附加费；MSC对海湾货物征收$800/箱强制附加费。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot orange">💥</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年3月14日</div>
+                <h4>富查伊拉港遭无人机袭击</h4>
+                <p>富查伊拉港油轮码头遭受无人机袭击并起火，与荷兰皇家孚宝合资的石油码头暂停装载作业。集装箱作业部分受影响，科尔法坎港重要性进一步提升，多家船公司将改港目的地优先指向科尔法坎。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot blue">🔄</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年3月16–17日</div>
+                <h4>马士基、达飞率先恢复科尔法坎订舱</h4>
+                <p>马士基于3月16日起<strong>开放科尔法坎港干货订舱</strong>，达飞将科尔法坎纳入豪尔费坎陆桥通道，作为进入中东内陆的核心替代方案。宏海箱运、赫伯罗特、美国总统等多家船公司跟进。</p>
+              </div>
+            </div>
+            <div class="war-timeline-item">
+              <div class="war-dot-wrap">
+                <div class="war-dot green">📍</div>
+              </div>
+              <div class="war-item-content">
+                <div class="war-date">2026年3月27日（当前）</div>
+                <h4>科尔法坎稳定运营，成为中东线唯一安全枢纽</h4>
+                <p>根据劳氏日报3月确认，阿联酋东海岸港口（科尔法坎、苏哈尔）全面开放，ISPS一级正常运营。霍尔木兹封锁局势仍未解除，科尔法坎承接大量改道船舶，临时出现局部拥堵，但整体可控。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4 style="color:#b91c1c;margin-bottom:14px;">▌ 战争对航运三大节点的影响矩阵（2026年3月当前）</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>航运节点</th>
+                <th>当前状态</th>
+                <th>影响程度</th>
+                <th>备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>霍尔木兹海峡</strong></td>
+                <td><span class="badge badge-red">封锁高危</span></td>
+                <td>极高</td>
+                <td>伊朗宣布封锁，138艘船滞留</td>
+              </tr>
+              <tr>
+                <td><strong>红海/曼德海峡</strong></td>
+                <td><span class="badge badge-red">持续袭击</span></td>
+                <td>极高</td>
+                <td>胡塞重启攻击，苏伊士实质停航</td>
+              </tr>
+              <tr>
+                <td><strong>富查伊拉港</strong></td>
+                <td><span class="badge badge-orange">油轮受损</span></td>
+                <td>中等</td>
+                <td>集装箱作业部分受影响</td>
+              </tr>
+              <tr>
+                <td><strong>科尔法坎港</strong></td>
+                <td><span class="badge badge-green">正常运营</span></td>
+                <td>机遇</td>
+                <td>主要改港目的地，战略价值骤升</td>
+              </tr>
+              <tr>
+                <td><strong>杰贝阿里港</strong></td>
+                <td><span class="badge badge-orange">受限运营</span></td>
+                <td>高</td>
+                <td>大多数船公司暂停订舱</td>
+              </tr>
+              <tr>
+                <td><strong>吉达港（沙特）</strong></td>
+                <td><span class="badge badge-blue">有限恢复</span></td>
+                <td>中等</td>
+                <td>马士基、达飞部分恢复</td>
+              </tr>
+              <tr>
+                <td><strong>苏哈尔港（阿曼）</strong></td>
+                <td><span class="badge badge-green">正常运营</span></td>
+                <td>机遇</td>
+                <td>联合枢纽，已纳入陆桥方案</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="info-block war-block" style="margin-top:16px;">
+            <h4>🗺️ 科尔法坎的战略意义（战争时期）</h4>
+            <p>
+              科尔法坎港位于<strong>霍尔木兹海峡以东的阿曼湾</strong>，处于伊朗封锁线的"外侧"，不受波斯湾地缘封锁影响。这使其成为战争时期进入阿联酋/海湾地区货物的唯一可靠海路门户。货物经科尔法坎卸货后，可通过陆桥（约130km公路）抵达迪拜，无需进入高风险的波斯湾水域。达飞、马士基等船公司已将"<strong>豪尔费坎/科尔法坎陆桥</strong>"作为进入中东市场的核心替代通道正式推出。
+            </p>
+          </div>
+
+          <div class="trend-chart" style="margin-top:16px;">
+            <div class="chart-title">中东线（中国→科尔法坎）运价走势示意（2023Q4–2026Q1）</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+              <span class="phase-label phase-normal">2023Q4：正常期</span>
+              <span class="phase-label phase-crisis">2024H1：红海危机峰值</span>
+              <span class="phase-label phase-recovery">2025：缓和期</span>
+              <span class="phase-label phase-crisis">2026Q1：再次峰值</span>
+            </div>
+            <div class="trend-bar-group">
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:30%;background:#93c5fd;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#1e3a8a;">$1,500</span>
+                </div>
+                <div class="bar-label">23Q4</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:55%;background:#60a5fa;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#fff;">$3,200</span>
+                </div>
+                <div class="bar-label">24Q1</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:100%;background:#b91c1c;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;">$6,500</span>
+                </div>
+                <div class="bar-label">24Q2</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:72%;background:#f87171;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;">$4,700</span>
+                </div>
+                <div class="bar-label">24Q3</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:55%;background:#fca5a5;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#7f1d1d;">$3,600</span>
+                </div>
+                <div class="bar-label">24Q4</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:32%;background:#a3e635;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#365314;">$2,100</span>
+                </div>
+                <div class="bar-label">25Q1</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:24%;background:#bbf7d0;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#166534;">$1,600</span>
+                </div>
+                <div class="bar-label">25Q2</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:20%;background:#d1fae5;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#166534;">$1,300</span>
+                </div>
+                <div class="bar-label">25Q3</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:22%;background:#bbf7d0;width:100%;position:relative;border-radius:4px 4px 0 0;">
+                  <span class="bar-val" style="font-size:9px;color:#166534;">$1,450</span>
+                </div>
+                <div class="bar-label">25Q4</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                <div class="trend-bar" style="height:85%;background:#dc2626;width:100%;position:relative;border-radius:4px 4px 0 0;animation:pulse 2s infinite;">
+                  <span class="bar-val" style="font-size:9px;">$5,500+</span>
+                </div>
+                <div class="bar-label" style="color:#b91c1c;font-weight:700;">26Q1🔥</div>
+              </div>
+            </div>
+            <style>@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.75;}}</style>
+            <div style="font-size:11px;color:#718096;margin-top:4px;">单位：20GP整箱海运费参考（不含战争险附加费），当前处于2024年红海危机以来第二个高峰</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 二、船公司最新动态 ====== -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🚢</span>
+      <h3>二、各大船公司在中国→科尔法坎航线的最新动态（截至2026年3月27日）</h3>
+    </div>
+    <div class="section-body">
+      <div class="carrier-grid">
+
+        <!-- 马士基 -->
+        <div class="carrier-card active">
+          <div class="carrier-name">Maersk 马士基</div>
+          <div class="carrier-status">✅ 科尔法坎已恢复订舱（3月16日起）</div>
+          <div class="carrier-detail">
+            主要服务：AE-1/Shogun、AE-7/Condor 中东航线<br>
+            • 3月初暂停全部阿联酋/中东订舱<br>
+            • <strong>3月16日率先恢复科尔法坎干货订舱</strong>，提供从中国主要港口（上海/深圳/宁波）直发科尔法坎服务<br>
+            • 空箱回程：要求客户将空箱发至苏哈尔、吉达等替代枢纽<br>
+            • FM1 航线（远东-中东）临时调整挂靠计划，改港至科尔法坎/苏哈尔
+          </div>
+          <div class="carrier-surcharge">附加费：海湾区域战争险附加费约$800–$1,200/TEU</div>
+        </div>
+
+        <!-- MSC -->
+        <div class="carrier-card caution">
+          <div class="carrier-name">MSC 地中海航运</div>
+          <div class="carrier-status">⚠️ 海湾区域暂停，阿曼湾视情况接单</div>
+          <div class="carrier-detail">
+            主要服务：AEX2（亚洲-中东快线）、Britannia 航线<br>
+            • 3月宣布暂停所有发往中东地区的新订舱<br>
+            • 已在途货物：宣布部分"航次终止（Voyage termination）"，在最近安全港（科尔法坎/苏哈尔）卸货，后续运输由货主自行安排<br>
+            • 科尔法坎列为有限开放港口，个案处理<br>
+            • 仍在评估恢复科尔法坎直接挂靠服务的时间表
+          </div>
+          <div class="carrier-surcharge">附加费：海湾强制附加费$800/箱；战争险附加费$2,000–$4,000/TEU</div>
+        </div>
+
+        <!-- CMA CGM -->
+        <div class="carrier-card active">
+          <div class="carrier-name">CMA CGM 达飞轮船</div>
+          <div class="carrier-status">✅ 已恢复，科尔法坎纳入陆桥通道</div>
+          <div class="carrier-detail">
+            主要服务：French Asia Line (FAL)、CIMEX 航线<br>
+            • 3月11日率先恢复中东进出口订舱<br>
+            • <strong>推出"豪尔费坎/科尔法坎陆桥通道"</strong>：货物卸至科尔法坎，通过保税陆桥+支线船/卡车转运至迪拜、阿布扎比等<br>
+            • 提供多式联运方案覆盖伊拉克、科威特、卡塔尔、巴林等内陆目的地<br>
+            • 法国海军增派护航作为部分线路恢复依据
+          </div>
+          <div class="carrier-surcharge">附加费：紧急冲突附加费(ECS) $2,000/20'，$3,000/40'</div>
+        </div>
+
+        <!-- COSCO -->
+        <div class="carrier-card caution">
+          <div class="carrier-name">COSCO 中远海运集运</div>
+          <div class="carrier-status">⚠️ 科尔法坎为例外开放港口</div>
+          <div class="carrier-detail">
+            主要服务：CMX/中远中东快线、AEM 航线<br>
+            • 暂停：卡塔尔、巴林、伊拉克、科威特、沙特阿拉伯（除吉达）订舱<br>
+            • 阿联酋方面：<strong>科尔法坎（豪尔费坎）和富查伊拉明确列为例外，仍可接单</strong><br>
+            • 杰贝阿里等波斯湾内港口订舱暂停<br>
+            • 巴拿马巴尔博亚港3月10日起暂停服务（连锁影响）
+          </div>
+          <div class="carrier-surcharge">附加费：中东战争险附加费$600–$1,000/TEU（根据目的港）</div>
+        </div>
+
+        <!-- Evergreen -->
+        <div class="carrier-card active">
+          <div class="carrier-name">Evergreen 长荣海运</div>
+          <div class="carrier-status">✅ 科尔法坎正常接单，挂靠稳定</div>
+          <div class="carrier-detail">
+            主要服务：AEX（亚洲-欧洲/中东）、MEX 中东快线<br>
+            • 持续挂靠科尔法坎，周班运营未中断<br>
+            • 从上海/宁波/深圳/青岛提供稳定直航服务至科尔法坎<br>
+            • 航程约21–24天（好望角绕行方案约28–32天）<br>
+            • 波斯湾内港口根据局势动态调整，科尔法坎为稳定锚点
+          </div>
+          <div class="carrier-surcharge">附加费：中东线BAF浮动+战险费，具体报价为准</div>
+        </div>
+
+        <!-- Hapag-Lloyd -->
+        <div class="carrier-card caution">
+          <div class="carrier-name">Hapag-Lloyd 赫伯罗特</div>
+          <div class="carrier-status">⚠️ 科尔法坎可接单，KCT码头附加费</div>
+          <div class="carrier-detail">
+            主要服务：ME1、ME2、AEX 中东线<br>
+            • 暂停：阿联酋（杰贝阿里）、科威特、卡塔尔、巴林、阿曼（索哈）、沙特（达曼/朱拜勒）<br>
+            • <strong>科尔法坎(KCT)码头货物征收$100/箱紧急运营恢复附加费</strong><br>
+            • 战争险附加费(WRS)：$1,500/TEU，冷藏箱$3,500/箱<br>
+            • 正在评估通过科尔法坎/苏哈尔延伸服务覆盖中东内陆
+          </div>
+          <div class="carrier-surcharge">附加费：WRS $1,500/TEU；KCT $100/箱；冷藏箱$3,500</div>
+        </div>
+
+        <!-- Yang Ming / ONE -->
+        <div class="carrier-card active">
+          <div class="carrier-name">Yang Ming 阳明 / ONE</div>
+          <div class="carrier-status">✅ 科尔法坎持续运营</div>
+          <div class="carrier-detail">
+            主要服务：PMX、HMX 中东线<br>
+            • 阳明、ONE、HMM 等亚洲船公司持续维持科尔法坎挂靠服务<br>
+            • 波斯湾内港口订舱已暂停或大幅限制<br>
+            • 部分航次改道苏哈尔/科尔法坎联合服务<br>
+            • 为客户提供科尔法坎转内陆卡车/陆桥服务
+          </div>
+          <div class="carrier-surcharge">附加费：随市场动态调整，建议直接询价</div>
+        </div>
+
+        <!-- WHL / PIL -->
+        <div class="carrier-card suspended">
+          <div class="carrier-name">WHL 万海 / PIL / ZIM</div>
+          <div class="carrier-status">🔴 暂停订舱，部分改道</div>
+          <div class="carrier-detail">
+            • <strong>万海(WHL)</strong>：货物暂时在印度蒙德拉港卸载，后续视局势转运，额外费用由货主承担<br>
+            • <strong>ZIM</strong>：暂停全球到中东区域的订舱<br>
+            • <strong>PIL 太平船务</strong>：暂停接受中东多国货物，评估替代路线<br>
+            • 区域小型船公司普遍处于观望状态，等待主要班轮公司重开信号
+          </div>
+          <div class="carrier-surcharge">改道费：万海蒙德拉转运$500–$800额外费用由货主承担</div>
+        </div>
+
+      </div>
+
+      <div class="alert-red" style="margin-top:20px;">
+        <strong>⚠️ 船公司公告频率提示：</strong>当前局势高度动态化，各船公司通知每2–3天更新一次。以上信息截至2026年3月17–27日，建议货主/货代<strong>每日关注船公司官网最新公告</strong>，在任何订舱前必须确认当日有效状态。
+      </div>
+
+      <div style="margin-top:20px;">
+        <h4 style="color:#1a5494;margin-bottom:12px;">▌ 各主要船公司中国→科尔法坎航线基本信息（常规参数）</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>船公司</th>
+              <th>主要航线名称</th>
+              <th>主要挂靠中国港</th>
+              <th>航程（正常）</th>
+              <th>班期</th>
+              <th>科尔法坎当前状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Maersk 马士基</strong></td>
+              <td>AE-1 Shogun / AE-7</td>
+              <td>上海、宁波、盐田</td>
+              <td>约21天</td>
+              <td>每周</td>
+              <td><span class="badge badge-green">✅ 已恢复（3/16）</span></td>
+            </tr>
+            <tr>
+              <td><strong>MSC 地中海</strong></td>
+              <td>AEX2 / Britannia</td>
+              <td>上海、宁波、深圳</td>
+              <td>约20天</td>
+              <td>每周</td>
+              <td><span class="badge badge-orange">⚠️ 个案处理</span></td>
+            </tr>
+            <tr>
+              <td><strong>CMA CGM 达飞</strong></td>
+              <td>FAL / CIMEX</td>
+              <td>上海、盐田、广州</td>
+              <td>约22天</td>
+              <td>每周</td>
+              <td><span class="badge badge-green">✅ 陆桥通道运营</span></td>
+            </tr>
+            <tr>
+              <td><strong>COSCO 中远</strong></td>
+              <td>CMX / AEM</td>
+              <td>上海、宁波、青岛、天津</td>
+              <td>约20天</td>
+              <td>每周</td>
+              <td><span class="badge badge-green">✅ 例外港开放</span></td>
+            </tr>
+            <tr>
+              <td><strong>Evergreen 长荣</strong></td>
+              <td>AEX / MEX</td>
+              <td>上海、宁波、深圳</td>
+              <td>约21天</td>
+              <td>每周</td>
+              <td><span class="badge badge-green">✅ 正常挂靠</span></td>
+            </tr>
+            <tr>
+              <td><strong>Hapag-Lloyd 赫伯罗特</strong></td>
+              <td>ME1 / ME2</td>
+              <td>上海、厦门、盐田</td>
+              <td>约22天</td>
+              <td>每周</td>
+              <td><span class="badge badge-orange">⚠️ +$100/箱 KCT费</span></td>
+            </tr>
+            <tr>
+              <td><strong>Yang Ming 阳明</strong></td>
+              <td>PMX / HMX</td>
+              <td>上海、宁波、高雄</td>
+              <td>约23天</td>
+              <td>每周</td>
+              <td><span class="badge badge-green">✅ 正常服务</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 三、当前航线走势分析 ====== -->
+  <div class="section">
+    <div class="section-header war-header">
+      <span class="icon">📈</span>
+      <h3>三、当前航线走势分析（2026年3月·战争背景）</h3>
+    </div>
+    <div class="section-body">
+      <div class="two-col">
+        <div>
+          <h4 style="color:#b91c1c;margin-bottom:14px;">▌ 运价走势（2026年3月当前报价）</h4>
+          <div class="rate-cards" style="grid-template-columns: repeat(3, 1fr); margin-bottom:16px;">
+            <div class="rate-card">
+              <div class="rt-label">20GP 整箱</div>
+              <div class="rt-price war-price">$3,800–$5,500</div>
+              <div class="rt-unit">美元 / 箱（含BAF）</div>
+              <div class="rt-type" style="color:#b91c1c;font-size:11px;">战前：$1,500–$2,200<br>涨幅约 +120%–+150%</div>
+            </div>
+            <div class="rate-card">
+              <div class="rt-label">40GP / 40HQ</div>
+              <div class="rt-price war-price">$5,500–$8,000</div>
+              <div class="rt-unit">美元 / 箱（含BAF）</div>
+              <div class="rt-type" style="color:#b91c1c;font-size:11px;">战前：$2,300–$3,500<br>涨幅约 +100%–+130%</div>
+            </div>
+            <div class="rate-card">
+              <div class="rt-label">战争险附加费</div>
+              <div class="rt-price war-price">+$800–$4,000</div>
+              <div class="rt-unit">美元 / TEU（额外叠加）</div>
+              <div class="rt-type" style="color:#b91c1c;font-size:11px;">因船公司/目的港不同<br>差异极大，须单独确认</div>
+            </div>
+          </div>
+
+          <h4 style="color:#1a5494;margin-bottom:10px;margin-top:16px;">▌ 走势研判（当前时点）</h4>
+          <div class="info-block orange-block">
+            <h4>📊 运价：处于第二波高峰，短期难以回落</h4>
+            <p>2026年3月运价已接近2024年红海危机峰值。霍尔木兹封锁叠加红海袭击，属双重冲击。若局势在未来4–6周内未实质缓解，运价预计维持$4,000–$6,000/20GP区间高位。</p>
+          </div>
+          <div class="info-block war-block">
+            <h4>⏰ 舱位：极度紧张，科尔法坎优先级提高</h4>
+            <p>由于138艘集装箱船（47万TEU）被"锁定"在波斯湾，可用运力骤降。同时改道科尔法坎的需求激增，科尔法坎港现已出现局部临时性拥堵，舱位订购需提前<strong>2–4周</strong>操作，现舱极为稀缺。</p>
+          </div>
+          <div class="info-block green-block">
+            <h4>🌊 科尔法坎货量：急速上升中</h4>
+            <p>多家船公司将科尔法坎列为"安全挂靠港"和中东陆桥起点，估计2026年3月科尔法坎进港箱量较战前增长30%–50%。港口Gulftainer运营团队已启动应急运营计划，24小时高效作业。</p>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="color:#1a5494;margin-bottom:14px;">▌ 科尔法坎港战时地位：前所未有的战略窗口</h4>
+
+          <div class="port-visual">
+            <div style="font-size:13px;font-weight:600;color:#1a5494;margin-bottom:8px;">战争时期：中国→中东 唯一安全海路通道</div>
+            <div class="route-line">
+              <div class="port-box china">上海/深圳/宁波</div>
+              <span class="route-arrow">→</span>
+              <div style="font-size:11px;color:#718096;text-align:center;">印度洋航线<br>（绕避霍尔木兹/红海）</div>
+              <span class="route-arrow">→</span>
+              <div class="port-box uae" style="box-shadow:0 0 0 3px #1a9b5a,0 2px 8px rgba(0,0,0,0.2);">✅ 科尔法坎 AEKFA</div>
+            </div>
+            <div style="text-align:center;font-size:18px;color:#1a9b5a;margin:8px 0;">↓ 陆桥转运（130km公路）</div>
+            <div class="route-line" style="justify-content:center;gap:6px;">
+              <div class="port-box uae">迪拜 DXB</div>
+              <div class="port-box uae">沙迦 SHJ</div>
+              <div class="port-box uae">阿布扎比 AUH</div>
+            </div>
+            <div style="margin-top:12px;border-top:1px dashed #e2e8f0;padding-top:10px;">
+              <div style="font-size:11px;color:#b91c1c;font-weight:700;margin-bottom:6px;">⛔ 封锁/高危通道（当前回避）：</div>
+              <div class="route-line" style="justify-content:center;gap:8px;flex-wrap:wrap;">
+                <div class="port-box danger">霍尔木兹 ⚠️封锁</div>
+                <div class="port-box danger">红海/苏伊士 ⚠️袭击</div>
+                <div class="port-box danger">富查伊拉油轮 ⚠️受损</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <h4 style="color:#1a5494;margin-bottom:10px;">▌ 港口吞吐趋势预测（战争期间）</h4>
+            <table>
+              <thead>
+                <tr><th>指标</th><th>战前（2025Q3）</th><th>当前（2026Q1）</th><th>预测走向</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>月均进港箱量</td><td>约923 TEU进/720出</td><td>估计+30%–50%</td><td><span class="badge badge-red">持续上升</span></td></tr>
+                <tr><td>船公司挂靠频率</td><td>每周6–8个航班</td><td>估计每周9–12个</td><td><span class="badge badge-red">大幅增加</span></td></tr>
+                <tr><td>港口等泊时间</td><td>1–3天（旺季7天）</td><td>估计2–5天</td><td><span class="badge badge-orange">拥堵加剧</span></td></tr>
+                <tr><td>陆桥转运量</td><td>基准值</td><td>估计+40%–60%</td><td><span class="badge badge-red">急速上升</span></td></tr>
+                <tr><td>市场运价</td><td>$1,300–$1,600/20GP</td><td>$3,800–$5,500</td><td><span class="badge badge-red">战争高位</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-red" style="margin-top:16px;">
+        <strong>⚠️ 现货订舱注意事项（2026年3月紧急提示）：</strong>
+        当前舱位极度紧张，请务必：①提前3–4周订舱；②确认船公司当前是否接受科尔法坎目的港；③在预算中加入战争险附加费（$800–$4,000/TEU 不等）；④为延误准备弹性交货期（建议比往常多留2–3周缓冲）；⑤提前与收货人沟通陆桥转运安排。
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 四、客户行商动态分析 ====== -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">👥</span>
+      <h3>四、客户行商动态：战争背景下的进出口商行为变化（2026年3月）</h3>
+    </div>
+    <div class="section-body">
+      <div class="customer-grid">
+        <div class="customer-card">
+          <div class="cust-icon">🏪</div>
+          <div class="cust-type">综合贸易商 / 进口批发商</div>
+          <div class="cust-desc">阿联酋本地及印巴裔批发进口商，迪拜龙城/沙迦商户</div>
+          <div class="cust-goods">
+            货物：消费电子、服装、家居日百<br>
+            占比：约40%–50%（市场最大群体）
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：大量货物改走科尔法坎，急备货叠加斋月备货，订舱需求大增30%+；部分客户担心延误提前备货。运费上涨造成采购成本压力，部分商户推迟或缩减进口量，转向空运补急货。</div>
+        </div>
+        <div class="customer-card">
+          <div class="cust-icon">🔧</div>
+          <div class="cust-type">工程 / 建材采购商</div>
+          <div class="cust-desc">建筑开发商、工程总包、基础设施项目方</div>
+          <div class="cust-goods">
+            货物：铝材、钢材、脚手架、发电设备<br>
+            占比：约15%–20%
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：阿联酋基础设施建设持续推进（世博遗址再开发、阿布扎比新城等），刚需不减。运费上涨转嫁项目方困难，部分项目启动"运费对冲"协议。优先走科尔法坎，陆桥送达迪拜/沙迦工业区效率高于往常。</div>
+        </div>
+        <div class="customer-card">
+          <div class="cust-icon">🛒</div>
+          <div class="cust-type">电商卖家 / 跨境平台商</div>
+          <div class="cust-desc">亚马逊UAE、Noon平台卖家（以中国商家为主）</div>
+          <div class="cust-goods">
+            货物：小家电、3C配件、服装、玩具<br>
+            占比：约10%–15%（快速增长）
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：受运费暴涨影响最重，利润空间大幅压缩。大量中小卖家被迫减少备货量或暂缓新品上架。旺季节点（斋月/开斋节）前仍有刚需，转而寻求LCL拼箱降低成本，空运比例有所上升。部分卖家向快时尚、快消品类集中（高毛利品类承受运费冲击能力更强）。</div>
+        </div>
+        <div class="customer-card">
+          <div class="cust-icon">🏭</div>
+          <div class="cust-type">在阿联酋的中资制造企业</div>
+          <div class="cust-desc">沙迦工业区中资厂、哈姆里耶自贸区企业</div>
+          <div class="cust-goods">
+            货物：化工原料、塑料粒子、零部件<br>
+            占比：约8%–12%
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：因原材料进口依赖，对运费上涨极为敏感，部分工厂开始囤积备货以应对供应链中断风险。科尔法坎是其唯一可靠的海运进口门户，部分工厂已向Gulftainer申请优先泊位和陆桥绿色通道。</div>
+        </div>
+        <div class="customer-card">
+          <div class="cust-icon">🚙</div>
+          <div class="cust-type">汽车 / 新能源车经销商</div>
+          <div class="cust-desc">阿联酋汽配经销商，中国电动车/摩托车进口商</div>
+          <div class="cust-goods">
+            货物：汽配、电动车、摩托车、工程车<br>
+            占比：约5%–8%（高增速）
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：中国新能源汽车（BYD、吉利等）在阿联酋销售持续强劲，战时仍保持较高进口需求。RoRo（滚装船）航线受霍尔木兹影响较大，部分整车改FCL集装箱走科尔法坎进港，运费上涨但需求刚性较强。</div>
+        </div>
+        <div class="customer-card">
+          <div class="cust-icon">🔄</div>
+          <div class="cust-type">转口再出口贸易商</div>
+          <div class="cust-desc">自贸区注册公司，向南亚/东非/中亚再分拨</div>
+          <div class="cust-goods">
+            目的地：印度、巴基斯坦、肯尼亚、中亚<br>
+            占比：约5%–8%（战时显著增长）
+          </div>
+          <div class="cust-war">⚔️ 战争期间动态：<strong>战争反而加速了科尔法坎转口枢纽地位的确立。</strong>由于霍尔木兹封锁，原本直发波斯湾港口的货物被迫在科尔法坎中转，实际上大幅增加了科尔法坎的转口货量。向印度/巴基斯坦的支线船需求激增。</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <h4 style="color:#1a5494;margin-bottom:14px;">▌ 货主应对战争危机的行为变化总结</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>行为维度</th>
+              <th>战前常规操作</th>
+              <th>战争期间（2026年3月）</th>
+              <th>建议对策</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>订舱时机</strong></td>
+              <td>提前7–14天订舱</td>
+              <td>提前3–4周，恐慌性抢舱明显</td>
+              <td>建立长协舱位优先</td>
+            </tr>
+            <tr>
+              <td><strong>目的港选择</strong></td>
+              <td>杰贝阿里为主</td>
+              <td>科尔法坎为首选，避开波斯湾</td>
+              <td>与陆桥服务商提前签约</td>
+            </tr>
+            <tr>
+              <td><strong>运输方式</strong></td>
+              <td>FCL海运为主</td>
+              <td>部分急货改空运，LCL比例上升</td>
+              <td>提前备货减少急货比例</td>
+            </tr>
+            <tr>
+              <td><strong>备货策略</strong></td>
+              <td>JIT准时进货</td>
+              <td>保险库存提升，斋月前大量备货</td>
+              <td>供应链韧性建设</td>
+            </tr>
+            <tr>
+              <td><strong>运费承受</strong></td>
+              <td>以市场价为基准</td>
+              <td>战争险附加费$800–$4,000/TEU</td>
+              <td>提前锁定长期运费协议</td>
+            </tr>
+            <tr>
+              <td><strong>交货期预期</strong></td>
+              <td>18–22天直航</td>
+              <td>预留30–40天（含不确定因素）</td>
+              <td>与客户提前书面确认</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert" style="margin-top:16px;">
+        <strong>📅 斋月 × 战争双重叠加提示（2026年3月）：</strong>
+        2026年斋月恰逢战争冲击高峰期（3月），形成"战争备货+节日备货"双重驱动。斋月前进口备货高峰本已造成港口拥堵，战争导致的舱位紧张进一步加剧供需失衡。预计3–4月科尔法坎港口拥堵指数将达到有史以来最高水平，建议所有货主在<strong>4月中旬开斋节</strong>前完成进港提货安排。
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 五、港口概况 ====== -->
   <div class="section">
     <div class="section-header">
       <span class="icon">⚓</span>
-      <h3>一、科尔法坎港（Khor Fakkan）港口概况</h3>
+      <h3>五、科尔法坎港（Khor Fakkan）基础概况</h3>
     </div>
     <div class="section-body">
       <div class="two-col">
         <div>
           <div class="info-block">
-            <h4>🌍 战略地理位置</h4>
-            <p>科尔法坎港（港口代码：AEKFA）位于阿联酋东海岸沙迦酋长国辖区内，面朝阿曼湾，处于霍尔木兹海峡以外。这一独特位置使其成为阿联酋唯一不受波斯湾地缘政治风险影响的全运营集装箱码头，是中东地区最具战略价值的港口之一。</p>
+            <h4>🌍 战略地理位置（战争时期格外关键）</h4>
+            <p>科尔法坎港（AEKFA）位于阿联酋东海岸沙迦酋长国，面朝阿曼湾，处于<strong>霍尔木兹海峡以外</strong>。伊朗无论如何封锁霍尔木兹，均无法切断从阿曼湾直达科尔法坎的航路。这是阿联酋唯一不受波斯湾局势影响的全运营集装箱码头。</p>
           </div>
           <div class="info-block">
             <h4>🏗️ 港口基础设施</h4>
             <p><strong>泊位数量：</strong>6个深水泊位，岸线总长1,880米<br>
-            <strong>最大吃水：</strong>16.0米（可接纳世界最大型集装箱船）<br>
+            <strong>最大吃水：</strong>16.0米（接纳超大型集装箱船）<br>
             <strong>岸桥数量：</strong>18台（含8台超巴拿马型 + 10台超级超巴拿马型）<br>
             <strong>堆场面积：</strong>450,000平方米<br>
-            <strong>运营时间：</strong>全年365天 × 7天 × 24小时不间断</p>
+            <strong>运营时间：</strong>365天 × 24小时，战时启动应急运营计划</p>
           </div>
-          <div class="info-block">
-            <h4>🔗 陆桥优势</h4>
-            <p>通过科尔法坎港进港的货物，经沙迦内陆集装箱堆场（ICD）陆桥转运，比其他阿联酋港口提前 <strong>4–5天</strong> 送达收货人仓库，显著降低物流总成本。</p>
+          <div class="info-block green-block">
+            <h4>🔗 陆桥优势（战时核心价值）</h4>
+            <p>通过沙迦内陆集装箱堆场（ICD）陆桥：<br>
+            • 至迪拜：约130km，正常2–3小时<br>
+            • 至沙迦市区：约50km，约1小时<br>
+            • 至阿布扎比：约200km，约3小时<br>
+            比经波斯湾港口（杰贝阿里等）<strong>提前4–5天</strong>送达收货人仓库。战时，这个优势变为<strong>4–15天</strong>（因为竞争港口已停止运营）。</p>
           </div>
         </div>
         <div>
-          <div class="port-visual">
-            <div style="font-size:13px;font-weight:600;color:#1a5494;margin-bottom:12px;">中国主要装运港 → 科尔法坎 主要航线示意</div>
-            <div class="route-line">
-              <div class="port-box china">上海 SHA</div>
-              <span class="route-arrow">→</span>
-              <div class="port-box china">宁波 NGB</div>
-              <span class="route-arrow">→</span>
-              <div class="port-box china">深圳 SZX</div>
-            </div>
-            <div style="text-align:center;font-size:22px;color:#1a5494;margin:8px 0;">↓ &nbsp; ↓ &nbsp; ↓</div>
-            <div style="font-size:12px;color:#718096;margin-bottom:8px;">航程 18–28天 · 经印度洋/绕好望角</div>
-            <div class="route-line" style="justify-content:center;">
-              <div class="port-box uae">科尔法坎 AEKFA</div>
-            </div>
-            <div style="font-size:12px;color:#718096;margin-top:10px;">↓ 陆桥转运（4–5天优势）</div>
-            <div style="font-size:12px;color:#1a5494;margin-top:6px;font-weight:600;">沙迦 · 迪拜 · 阿布扎比 · 中东/南亚再分拨</div>
-          </div>
-          <br>
           <table>
             <thead>
               <tr>
-                <th>港口对比项</th>
+                <th>指标</th>
                 <th>科尔法坎（KFA）</th>
                 <th>杰贝阿里（JEA）</th>
+                <th>富查伊拉（FUJ）</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>位置</td><td>阿曼湾（霍尔木兹海峡外）</td><td>波斯湾（迪拜）</td></tr>
-              <tr><td>地缘风险</td><td><span class="badge badge-green">极低</span></td><td><span class="badge badge-orange">中等</span></td></tr>
-              <tr><td>最大吃水</td><td>16.0米</td><td>17.0米</td></tr>
-              <tr><td>转运能力</td><td><span class="badge badge-blue">强（区域枢纽）</span></td><td><span class="badge badge-blue">极强（全球枢纽）</span></td></tr>
-              <tr><td>内陆交货</td><td>陆桥，快4–5天</td><td>直接进港</td></tr>
-              <tr><td>运费水平</td><td>相对较低</td><td>相对较高</td></tr>
+              <tr><td>位置</td><td>阿曼湾东岸</td><td>波斯湾迪拜</td><td>阿曼湾东岸</td></tr>
+              <tr><td>战争期间状态</td><td><span class="badge badge-green">正常运营</span></td><td><span class="badge badge-red">多数暂停</span></td><td><span class="badge badge-orange">油轮受损</span></td></tr>
+              <tr><td>主要功能</td><td>集装箱+转口</td><td>集装箱全球枢纽</td><td>油轮+小集箱</td></tr>
+              <tr><td>地缘风险</td><td><span class="badge badge-green">极低</span></td><td><span class="badge badge-red">高（湾内）</span></td><td><span class="badge badge-orange">中等</span></td></tr>
+              <tr><td>陆桥至迪拜</td><td>约130km·3h</td><td>港内直达</td><td>约115km·2.5h</td></tr>
             </tbody>
           </table>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ====== 二、市场货量 ====== -->
-  <div class="section">
-    <div class="section-header">
-      <span class="icon">📊</span>
-      <h3>二、市场货量分析</h3>
-    </div>
-    <div class="section-body">
-      <div class="two-col">
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:14px;">中国至科尔法坎货量概况（2024–2026）</h4>
-          <table>
-            <thead>
-              <tr><th>指标</th><th>数值</th><th>说明</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>科尔法坎港年设计吞吐量</td><td><strong>500万 TEU</strong></td><td>Gulftainer官方设计容量</td></tr>
-              <tr><td>月均进港箱量（参考）</td><td><strong>约923 TEU进/720 TEU出</strong></td><td>2025年2月港口实测数据</td></tr>
-              <tr><td>中国对阿联酋出口额（2024）</td><td><strong>655.9亿美元</strong></td><td>UN Comtrade数据</td></tr>
-              <tr><td>2024年增速</td><td><strong>+19.2%</strong></td><td>连续高速增长</td></tr>
-              <tr><td>中阿联酋双边贸易（2024）</td><td><strong>102亿美元</strong></td><td>含进出口双向</td></tr>
-              <tr><td>斋月/旺季港口等泊时间</td><td>最长7天</td><td>3–4月及11–12月高峰期</td></tr>
-            </tbody>
-          </table>
-          <div class="alert">
-            <strong>⚠️ 货量警示：</strong>红海局势影响下（胡塞武装袭击），部分船公司绕行好望角，导致中东线航程延长10–15天，运费上涨20%–30%，建议提前预留舱位。
-          </div>
-        </div>
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:14px;">中国各装运港贡献占比（估算）</h4>
-          <div style="padding: 8px 0;">
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 上海（SHA/洋山/外高桥）</span><span style="font-weight:600;color:#1a5494;">约30%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:30%;"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 深圳（盐田/蛇口）</span><span style="font-weight:600;color:#1a5494;">约25%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:25%;"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 宁波（舟山）</span><span style="font-weight:600;color:#1a5494;">约18%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:18%;"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 广州（南沙/黄埔）</span><span style="font-weight:600;color:#1a5494;">约12%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:12%;"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 青岛</span><span style="font-weight:600;color:#1a5494;">约8%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:8%;"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 天津</span><span style="font-weight:600;color:#1a5494;">约5%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#e07b00,#f59e0b);"></div></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;"><span>🔵 厦门/汕头/其他</span><span style="font-weight:600;color:#1a5494;">约2%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:2%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div>
-            </div>
-          </div>
-          <div class="info-block" style="margin-top:10px;">
-            <h4>📌 货量特征</h4>
-            <p>华东（上海+宁波）和华南（深圳+广州）合计占总货量约85%，是最主要的发货来源地。华北天津主要贡献重工业机械和汽配类货物。华南广东省是纺织品、日用消费品的主力发货区域。</p>
+          <div class="info-block war-block" style="margin-top:14px;">
+            <h4>⚡ 战时港口容量压力提示</h4>
+            <p>科尔法坎港虽具备500万TEU设计年容量，但短期内大量改道货物涌入，已造成局部临时性拥堵。主要表现为：
+            <br>• 等泊时间从1–3天上升至2–5天
+            <br>• 陆桥拖车运力紧张，卡车预约需提前3–5天
+            <br>• 港口空箱堆积，需定期组织空箱回运
+            <br>建议货主提前与目的港收货人确认提柜安排，并预留充足的内陆运输时间。</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== 三、主要货物种类 ====== -->
+  <!-- ====== 六、货物种类 ====== -->
   <div class="section">
     <div class="section-header">
       <span class="icon">📦</span>
-      <h3>三、主要货物种类（中国出口至科尔法坎）</h3>
+      <h3>六、主要货物种类（战时结构变化）</h3>
     </div>
     <div class="section-body">
       <div class="cargo-grid">
         <div class="cargo-card">
           <div class="cargo-icon">💻</div>
           <div class="cargo-name">机械及电子产品</div>
-          <div class="cargo-desc">工业机械、家电、消费电子、通信设备、太阳能板、锂电池</div>
-          <div class="cargo-share">市场占比最高类别 | FCL整箱为主</div>
+          <div class="cargo-desc">工业机械、家电、消费电子、太阳能板、锂电池</div>
+          <div class="cargo-share">占比最高 | FCL整箱为主</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">👕</div>
           <div class="cargo-name">服装纺织品</div>
-          <div class="cargo-desc">成衣、面料、鞋类、箱包，广东/浙江/江苏产地为主</div>
-          <div class="cargo-share">出货量大，季节性明显 | FCL+LCL</div>
+          <div class="cargo-desc">成衣、面料、鞋类、箱包，广东/浙江/江苏为主</div>
+          <div class="cargo-share">季节性显著，斋月备货高峰</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">🏗️</div>
           <div class="cargo-name">建材及钢铁制品</div>
-          <div class="cargo-desc">铝合金型材、管材、脚手架、玻璃、陶瓷砖、石材</div>
-          <div class="cargo-share">重货比例高，多用20GP | 项目货物</div>
-        </div>
-        <div class="cargo-card">
-          <div class="cargo-icon">🛋️</div>
-          <div class="cargo-name">家具及家居用品</div>
-          <div class="cargo-desc">实木家具、板式家具、灯具、装饰品、床上用品</div>
-          <div class="cargo-share">轻抛货多，选用40HQ | 零售/批发</div>
+          <div class="cargo-desc">铝型材、管材、脚手架、玻璃、陶瓷砖</div>
+          <div class="cargo-share">重货，多用20GP | 项目刚需</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">🚗</div>
-          <div class="cargo-name">汽车配件及整车</div>
-          <div class="cargo-desc">发动机零件、轮胎、汽车饰件、电动车及摩托车</div>
-          <div class="cargo-share">高增长品类 | Ro-Ro/FCL混装</div>
+          <div class="cargo-name">汽车配件及新能源车</div>
+          <div class="cargo-desc">整车、电动车、发动机零件、摩托车</div>
+          <div class="cargo-share" style="color:#b91c1c;">战时高增长 | 部分改FCL替代RoRo</div>
+        </div>
+        <div class="cargo-card">
+          <div class="cargo-icon">⚡</div>
+          <div class="cargo-name">新能源设备</div>
+          <div class="cargo-desc">光伏板、储能设备、充电桩、风电零件</div>
+          <div class="cargo-share" style="color:#1a9b5a;">战时持续增长 | 阿联酋2030绿色战略</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">🧴</div>
           <div class="cargo-name">化工品及塑料</div>
-          <div class="cargo-desc">塑料颗粒、日化原料、包装材料、工业化学品</div>
+          <div class="cargo-desc">塑料颗粒、日化原料、工业化学品</div>
           <div class="cargo-share">需IMO/MSDS证明 | 危化品特种箱</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">🍜</div>
           <div class="cargo-name">食品及农产品</div>
-          <div class="cargo-desc">调味品、干货、速冻食品（冷藏箱）、茶叶、水产</div>
-          <div class="cargo-share">需清真认证(Halal) | 冷藏箱+干货箱</div>
+          <div class="cargo-desc">调味品、干货、速冻食品、茶叶</div>
+          <div class="cargo-share">需清真认证(Halal) | 斋月备货旺</div>
         </div>
         <div class="cargo-card">
-          <div class="cargo-icon">🎮</div>
-          <div class="cargo-name">玩具及体育用品</div>
-          <div class="cargo-desc">儿童玩具、运动器材、户外设备、文具</div>
-          <div class="cargo-share">旺季集中Q3–Q4 | LCL+FCL</div>
+          <div class="cargo-icon">🛋️</div>
+          <div class="cargo-name">家具及家居用品</div>
+          <div class="cargo-desc">实木/板式家具、灯具、装饰品、床品</div>
+          <div class="cargo-share">轻抛货多，40HQ | 零售/批发</div>
         </div>
         <div class="cargo-card">
           <div class="cargo-icon">⚙️</div>
           <div class="cargo-name">工程及项目货物</div>
           <div class="cargo-desc">发电机组、变压器、大型设备、超限件</div>
-          <div class="cargo-share">单票价值高 | 开顶箱/平板箱/重件船</div>
+          <div class="cargo-share">单票价值高 | 开顶箱/平板箱</div>
         </div>
       </div>
       <div class="alert" style="margin-top:16px;">
-        <strong>🔎 特别说明：</strong>阿联酋海关要求所有提单须声明"船舶未停靠以色列港口"；食品类需提供清真宰杀证明（Halal）；木质包装须熏蒸处理并加贴IPPC标识；电子产品标签须使用中/阿双语。
+        <strong>🔎 特别说明：</strong>阿联酋海关要求所有提单须声明"船舶未停靠以色列港口"；食品类需提供清真宰杀证明（Halal）；木质包装须熏蒸处理；战争期间保险覆盖范围须特别确认，普通货运险不包括战争及地雷、炸弹等导致的损失。
       </div>
     </div>
   </div>
 
-  <!-- ====== 四、市场运价 ====== -->
-  <div class="section">
-    <div class="section-header">
-      <span class="icon">💰</span>
-      <h3>四、中国 → 科尔法坎市场运价（2026年3月参考）</h3>
-    </div>
-    <div class="section-body">
-      <div class="rate-cards">
-        <div class="rate-card">
-          <div class="rt-label">20GP 整箱</div>
-          <div class="rt-price">$1,500–$4,600</div>
-          <div class="rt-unit">美元 / 箱</div>
-          <div class="rt-type">上海/深圳/宁波出发<br><span style="color:#e07b00;font-size:11px;">天津出发约$4,561</span></div>
-        </div>
-        <div class="rate-card">
-          <div class="rt-label">40GP / 40HQ 整箱</div>
-          <div class="rt-price">$2,300–$5,523</div>
-          <div class="rt-unit">美元 / 箱</div>
-          <div class="rt-type">华南港口约$2,300起<br><span style="color:#e07b00;font-size:11px;">天津出发约$5,453</span></div>
-        </div>
-        <div class="rate-card">
-          <div class="rt-label">LCL 拼箱</div>
-          <div class="rt-price">$60–$110</div>
-          <div class="rt-unit">美元 / CBM</div>
-          <div class="rt-type">适合1–15 CBM小批量货<br><span style="color:#1a9b5a;font-size:11px;">运输时间约25–32天</span></div>
-        </div>
-      </div>
-
-      <div style="margin-top:20px;">
-        <h4 style="color:#1a5494;margin-bottom:12px;">各主要港口运价汇总（整箱FCL，含天津最新报价）</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>出发港</th>
-              <th>20GP（美元/箱）</th>
-              <th>40GP（美元/箱）</th>
-              <th>40HQ（美元/箱）</th>
-              <th>航程（天）</th>
-              <th>主要船期</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>上海（SHA）</strong></td>
-              <td>$1,500–$2,200</td>
-              <td>$2,300–$3,500</td>
-              <td>$2,500–$3,800</td>
-              <td>18–22天</td>
-              <td>每周多班</td>
-            </tr>
-            <tr>
-              <td><strong>深圳/广州（SZX/CAN）</strong></td>
-              <td>$1,500–$2,100</td>
-              <td>$2,300–$3,400</td>
-              <td>$2,400–$3,600</td>
-              <td>18–22天</td>
-              <td>每周多班</td>
-            </tr>
-            <tr>
-              <td><strong>宁波（NGB）</strong></td>
-              <td>$1,500–$2,100</td>
-              <td>$2,400–$3,500</td>
-              <td>$2,500–$3,700</td>
-              <td>20–25天</td>
-              <td>每周多班</td>
-            </tr>
-            <tr>
-              <td><strong>青岛（QDG）</strong></td>
-              <td>$1,800–$2,500</td>
-              <td>$2,800–$4,000</td>
-              <td>$3,000–$4,200</td>
-              <td>22–28天</td>
-              <td>每周</td>
-            </tr>
-            <tr>
-              <td><strong>天津（TSN）</strong></td>
-              <td>$4,561（最新报价）</td>
-              <td>$5,453</td>
-              <td>$5,453–$5,523</td>
-              <td>25–30天</td>
-              <td>每周</td>
-            </tr>
-            <tr>
-              <td><strong>厦门（XMN）</strong></td>
-              <td>$1,600–$2,200</td>
-              <td>$2,500–$3,600</td>
-              <td>$2,600–$3,800</td>
-              <td>20–25天</td>
-              <td>每周</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:20px;" class="two-col">
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:12px;">附加费用说明</h4>
-          <table>
-            <thead>
-              <tr><th>费用名称</th><th>参考金额</th><th>说明</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>燃油附加费（BAF）</td><td>随市场浮动</td><td>红海绕行可上涨20–30%</td></tr>
-              <tr><td>拥堵附加费（PSS）</td><td>$200–$400/箱</td><td>斋月及旺季期间征收</td></tr>
-              <tr><td>海关滞港费</td><td>$100/天·箱</td><td>港口拥堵时产生</td></tr>
-              <tr><td>文件费</td><td>$50–$100/票</td><td>提单、原产地证等</td></tr>
-              <tr><td>阿联酋进口关税</td><td>CIF价5%</td><td>大多数商品适用</td></tr>
-              <tr><td>增值税（VAT）</td><td>5%</td><td>阿联酋国内消费环节</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:12px;">运价影响因素分析</h4>
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot">🔴</div>
-              <div class="timeline-content">
-                <h4>红海/霍尔木兹地缘局势</h4>
-                <p>胡塞武装袭击导致绕行好望角，单程增加10–15天，运费额外上涨20–30%，对中东线影响持续。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">📅</div>
-              <div class="timeline-content">
-                <h4>斋月/节日旺季（3–4月、11–12月）</h4>
-                <p>斋月前进口备货高峰，港口拥堵，等泊时间最长7天，建议提前2–3周订舱。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">⚙️</div>
-              <div class="timeline-content">
-                <h4>箱型与货重</h4>
-                <p>天津等北方港口运价显著高于华南/华东，北方港口运价溢价约30–50%，华南港口性价比最优。</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== 五、运输方式 ====== -->
-  <div class="section">
-    <div class="section-header">
-      <span class="icon">🚛</span>
-      <h3>五、运输方式详解</h3>
-    </div>
-    <div class="section-body">
-      <div class="two-col">
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:14px;">主要运输方式对比</h4>
-          <table>
-            <thead>
-              <tr>
-                <th>运输方式</th>
-                <th>时效</th>
-                <th>适用货物</th>
-                <th>成本</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="badge badge-blue">FCL整箱海运</span></td>
-                <td>18–30天</td>
-                <td>批量货物 &gt;15CBM</td>
-                <td><span class="badge badge-green">低–中</span></td>
-              </tr>
-              <tr>
-                <td><span class="badge badge-blue">LCL拼箱海运</span></td>
-                <td>25–35天</td>
-                <td>小批量 1–15CBM</td>
-                <td><span class="badge badge-green">最低</span></td>
-              </tr>
-              <tr>
-                <td><span class="badge badge-orange">空运</span></td>
-                <td>3–7天</td>
-                <td>急货/高值/轻货</td>
-                <td><span class="badge badge-red">高</span></td>
-              </tr>
-              <tr>
-                <td><span class="badge badge-orange">国际快递</span></td>
-                <td>2–5天</td>
-                <td>样品/文件/&lt;100kg</td>
-                <td><span class="badge badge-red">最高</span></td>
-              </tr>
-              <tr>
-                <td><span class="badge badge-purple">DDP门到门</span></td>
-                <td>20–35天</td>
-                <td>新手进口商</td>
-                <td><span class="badge badge-orange">中–高（含税）</span></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div style="margin-top:16px;" class="info-block">
-            <h4>🚛 内陆运输：拖车 vs 其他</h4>
-            <p>
-              <strong>拖车（Truck/Road Haulage）：</strong>货物在科尔法坎港卸货后，通过陆路拖车转运至沙迦、迪拜、阿布扎比等目的地，是最主要的门到门交货方式，占内陆配送约 <strong>80%以上</strong>。<br><br>
-              <strong>内陆ICD转运：</strong>通过沙迦内陆集装箱堆场中转分拨，再由拖车配送至最终客户。<br><br>
-              <strong>铁路：</strong>阿联酋铁路网络建设中，目前铁路运输占比较低，主要用于部分长距离内陆货物。<br><br>
-              <strong>航空补充：</strong>时效要求高的货物（电子配件、快时尚服装）采用迪拜/沙迦机场空运补充。
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <h4 style="color:#1a5494;margin-bottom:14px;">各运输环节时间轴（FCL整箱·深圳→科尔法坎）</h4>
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot">1</div>
-              <div class="timeline-content">
-                <h4>工厂提货 → 深圳港</h4>
-                <p>拖车内陆提货：1–3天；东莞/佛山等珠三角工厂就近提货，广州等地通过二程驳运进港。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">2</div>
-              <div class="timeline-content">
-                <h4>港口报关 → 装船</h4>
-                <p>出口报关、海关查验、装船：1–3天；重要：提前2–3天截关，旺季提前5天。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">3</div>
-              <div class="timeline-content">
-                <h4>海运（深圳 → 科尔法坎）</h4>
-                <p>直航约19天；如绕行好望角则约28–33天。合作船公司：MSC、CMA CGM、Evergreen、COSCO等主要班轮。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">4</div>
-              <div class="timeline-content">
-                <h4>科尔法坎港清关</h4>
-                <p>正常清关1–3天；文件不全可能延误5–10天；价值申报偏差超10%触发审价。</p>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">5</div>
-              <div class="timeline-content">
-                <h4>拖车内陆配送</h4>
-                <p>科尔法坎→沙迦约50km；→迪拜约130km；→阿布扎比约200km。比经杰贝阿里港提前4–5天到达。</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="info-block">
-            <h4>📋 主要合作船公司（中东航线挂靠科尔法坎）</h4>
-            <p>
-              <span class="badge badge-blue" style="margin:2px;">MSC 地中海航运</span>
-              <span class="badge badge-blue" style="margin:2px;">CMA CGM 法国达飞</span>
-              <span class="badge badge-blue" style="margin:2px;">Evergreen 长荣</span>
-              <span class="badge badge-blue" style="margin:2px;">COSCO 中远海运</span>
-              <span class="badge badge-blue" style="margin:2px;">Yang Ming 阳明</span>
-              <span class="badge badge-blue" style="margin:2px;">WHL 万海</span>
-              <span class="badge badge-orange" style="margin:2px;">Emirates Shipping</span>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== 六、客户分类 ====== -->
-  <div class="section">
-    <div class="section-header">
-      <span class="icon">👥</span>
-      <h3>六、前往科尔法坎的客户分类</h3>
-    </div>
-    <div class="section-body">
-      <div class="customer-grid">
-        <div class="customer-card">
-          <div class="cust-icon">🏪</div>
-          <div class="cust-type">综合贸易商 / 进口商</div>
-          <div class="cust-desc">阿联酋本地或外籍批发进口商，通过科尔法坎进货后分销中东各地</div>
-          <div class="cust-goods">常见货物：消费电子、服装、家居用品、日用百货</div>
-          <div class="cust-vol">📦 市场占比最大，约40–50%</div>
-        </div>
-        <div class="customer-card">
-          <div class="cust-icon">🔧</div>
-          <div class="cust-type">工程/建材采购商</div>
-          <div class="cust-desc">建筑开发商、工程总包商，直接从中国采购建材及设备</div>
-          <div class="cust-goods">常见货物：铝材、钢材、瓷砖、发电设备、脚手架</div>
-          <div class="cust-vol">📦 市场占比约15–20%</div>
-        </div>
-        <div class="customer-card">
-          <div class="cust-icon">🛒</div>
-          <div class="cust-type">电商卖家 / 跨境平台</div>
-          <div class="cust-desc">在亚马逊UAE、Noon等平台销售的卖家，多为中国商家直发</div>
-          <div class="cust-goods">常见货物：小家电、3C配件、服装、工具、玩具</div>
-          <div class="cust-vol">📦 快速增长，约10–15%</div>
-        </div>
-        <div class="customer-card">
-          <div class="cust-icon">🏭</div>
-          <div class="cust-type">制造工厂 / OEM客户</div>
-          <div class="cust-desc">在阿联酋建厂的中资或本地企业，进口原材料及半成品</div>
-          <div class="cust-goods">常见货物：化工原料、塑料粒子、机械零部件、金属材料</div>
-          <div class="cust-vol">📦 市场占比约8–12%</div>
-        </div>
-        <div class="customer-card">
-          <div class="cust-icon">🚙</div>
-          <div class="cust-type">汽车/机械经销商</div>
-          <div class="cust-desc">阿联酋及周边国家汽配经销商，进口中国汽车零配件及整车</div>
-          <div class="cust-goods">常见货物：汽车配件、电动车、摩托车、工程车辆</div>
-          <div class="cust-vol">📦 高增速类别，约5–8%</div>
-        </div>
-        <div class="customer-card">
-          <div class="cust-icon">🔄</div>
-          <div class="cust-type">转口再出口贸易商</div>
-          <div class="cust-desc">利用科尔法坎战略位置，将中国货物转运至南亚、东非、中亚市场</div>
-          <div class="cust-goods">目的地：印度、巴基斯坦、孟加拉、肯尼亚、伊朗周边</div>
-          <div class="cust-vol">📦 转运比例约5–8%</div>
-        </div>
-      </div>
-
-      <div style="margin-top:24px;">
-        <h4 style="color:#1a5494;margin-bottom:14px;">客户地域来源与目的地分布</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>客户类型</th>
-              <th>主要国籍/背景</th>
-              <th>主要发货地（中国）</th>
-              <th>主要目的地（阿联酋及周边）</th>
-              <th>运输方式</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>综合贸易商</td>
-              <td>阿联酋本地人、印巴裔、中国商人</td>
-              <td>广州、深圳、义乌、宁波</td>
-              <td>沙迦、迪拜龙城（China Mall）</td>
-              <td>FCL / LCL</td>
-            </tr>
-            <tr>
-              <td>工程/建材商</td>
-              <td>阿联酋本地、欧美工程公司</td>
-              <td>天津、上海、佛山</td>
-              <td>阿布扎比、沙迦工业区</td>
-              <td>FCL / 项目船</td>
-            </tr>
-            <tr>
-              <td>电商卖家</td>
-              <td>中国出口卖家为主</td>
-              <td>深圳、广州、杭州</td>
-              <td>迪拜自贸区（JAFZA/SAIF）</td>
-              <td>LCL / 空运</td>
-            </tr>
-            <tr>
-              <td>制造工厂</td>
-              <td>中资企业、当地合资厂</td>
-              <td>上海、宁波、青岛</td>
-              <td>沙迦工业区、哈姆里耶</td>
-              <td>FCL</td>
-            </tr>
-            <tr>
-              <td>汽配经销商</td>
-              <td>阿联酋/海湾国家经销商</td>
-              <td>重庆、武汉、广州</td>
-              <td>迪拜、沙迦汽配市场</td>
-              <td>FCL / Ro-Ro</td>
-            </tr>
-            <tr>
-              <td>转口贸易商</td>
-              <td>阿联酋自贸区注册公司</td>
-              <td>全国主要口岸</td>
-              <td>印度、巴基斯坦、东非、中亚</td>
-              <td>FCL（中转箱）</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== 七、重点市场洞察 ====== -->
+  <!-- ====== 七、市场机遇与风险 ====== -->
   <div class="section">
     <div class="section-header">
       <span class="icon">🔍</span>
-      <h3>七、市场机遇与风险提示</h3>
+      <h3>七、战时市场机遇与风险提示（2026年3月综合评估）</h3>
     </div>
     <div class="section-body">
       <div class="two-col">
         <div>
-          <h4 style="color:#1a9b5a;margin-bottom:12px;">✅ 市场机遇</h4>
-          <div class="info-block" style="border-color:#1a9b5a;background:#f0fdf4;">
-            <h4>📈 贸易高速增长</h4>
-            <p>2024年中阿联酋双边贸易达102亿美元，中国出口增速+19.2%，中东市场对中国商品需求持续强劲。</p>
+          <h4 style="color:#1a9b5a;margin-bottom:12px;">✅ 科尔法坎当前市场机遇</h4>
+          <div class="info-block green-block">
+            <h4>🏆 不可替代的安全枢纽价值</h4>
+            <p>霍尔木兹封锁期间，科尔法坎是阿联酋唯一全面运营的集装箱港口，大量原本流向杰贝阿里的货物被迫改道，为科尔法坎创造了历史性的货量增长机会。</p>
           </div>
-          <div class="info-block" style="border-color:#1a9b5a;background:#f0fdf4;">
-            <h4>🏗️ 基础设施红利</h4>
-            <p>科尔法坎500万TEU年吞吐设计容量，6个深水泊位，陆桥优势比杰贝阿里提前4–5天交货，对时效敏感客户极具吸引力。</p>
+          <div class="info-block green-block">
+            <h4>🔗 陆桥服务供不应求</h4>
+            <p>科尔法坎→迪拜/阿布扎比陆桥运输需求激增40%–60%，专业陆桥运营商正快速扩大车队，本地货代利润率大幅提升。</p>
           </div>
-          <div class="info-block" style="border-color:#1a9b5a;background:#f0fdf4;">
-            <h4>🔄 转口枢纽价值</h4>
-            <p>科尔法坎作为进入南亚（印巴）、东非、中亚的跳板，转口贸易需求持续增长，市场腹地覆盖超30亿人口。</p>
+          <div class="info-block green-block">
+            <h4>🔄 转口枢纽地位确立</h4>
+            <p>前往印度、巴基斯坦、东非的支线船需求暴增，科尔法坎成为新的中东转口中心，长期战略价值被重新定价。</p>
           </div>
-          <div class="info-block" style="border-color:#1a9b5a;background:#f0fdf4;">
-            <h4>⚡ 新能源/新能源车</h4>
-            <p>阿联酋积极推进2030绿色转型，中国新能源汽车、光伏板、储能设备出口高速增长，是新兴高潜力品类。</p>
+          <div class="info-block green-block">
+            <h4>⚡ 新能源/绿色产品高增长</h4>
+            <p>阿联酋2030清洁能源计划持续推进，光伏、储能、电动车需求不受战争冲击，是当前最确定的增量品类。</p>
           </div>
         </div>
         <div>
           <h4 style="color:#dc2626;margin-bottom:12px;">⚠️ 风险与注意事项</h4>
-          <div class="info-block" style="border-color:#dc2626;background:#fff5f5;">
-            <h4>🚢 红海/霍尔木兹地缘风险</h4>
-            <p>胡塞武装袭击导致绕行好望角，航程延长10–15天，运费上涨20–30%，不确定性持续存在。</p>
+          <div class="info-block war-block">
+            <h4>🚨 战争升级风险（最高级别风险）</h4>
+            <p>当前霍尔木兹封锁和红海袭击局势高度不稳定，若冲突扩大至科尔法坎附近阿曼湾，将对整个中东集装箱航运造成灾难性影响。建议购买战争险保险并密切监控局势。</p>
           </div>
-          <div class="info-block" style="border-color:#dc2626;background:#fff5f5;">
-            <h4>📋 严格清关要求</h4>
-            <p>阿联酋海关要求提单声明未停靠以色列；食品需Halal认证；价值申报偏差超10%触发审价（延误5–10天）；木质包装必须熏蒸处理。</p>
+          <div class="info-block war-block">
+            <h4>💰 运价和附加费极度不确定</h4>
+            <p>战争险附加费每周调整，最高已达$4,000/TEU。加上基本运价，20GP总费用可能超过$8,000–$10,000，对利润率较低的货物影响极大，须谨慎评估是否订舱。</p>
           </div>
-          <div class="info-block" style="border-color:#dc2626;background:#fff5f5;">
-            <h4>📅 季节性拥堵</h4>
-            <p>斋月（3–4月）和电商旺季（11–12月）港口严重拥堵，等泊时间最长7天，滞箱费每天高达$100，建议提前订舱。</p>
+          <div class="info-block war-block">
+            <h4>📦 港口拥堵和延误风险</h4>
+            <p>科尔法坎临时性拥堵加剧，等泊可能延长至5–7天，陆桥拖车资源紧张，建议预留充足缓冲时间并提前与港口和卡车公司确认档期。</p>
           </div>
-          <div class="info-block" style="border-color:#dc2626;background:#fff5f5;">
-            <h4>💱 运价波动</h4>
-            <p>全球航运市场运价大幅波动，天津等北方港口运价比华南溢价30–50%，应密切关注SCFI中东线指数并锁定长协价。</p>
+          <div class="info-block war-block">
+            <h4>📋 战时清关严格</h4>
+            <p>阿联酋海关在战争期间加强安检，提单须声明"未停靠以色列港口"，货物来源和用途审查更严，任何文件瑕疵均可能导致滞港5–15天。</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 结语 -->
-  <div class="info-block" style="background:linear-gradient(135deg,#e8f0fb,#dbeafe);border-color:#1a5494;padding:20px;">
-    <h4 style="font-size:14px;margin-bottom:8px;">📌 综合结论</h4>
-    <p>
-      科尔法坎港凭借霍尔木兹海峡外的独特地理位置、500万TEU年处理能力和陆桥优势，是中国对阿联酋及中东市场出口的重要门户。中国对阿联酋出口2024年达655.9亿美元，增速19.2%，中东线是全球最活跃的集装箱贸易走廊之一。主要货物涵盖机械电子、服装、建材、家具、汽配等品类；客户以综合贸易商、电商卖家和工程采购商为主；运输方式以FCL整箱海运+拖车内陆配送为核心模式，陆桥ICD转运提供差异化竞争优势。
+  <!-- ====== 综合结论 ====== -->
+  <div class="info-block" style="background:linear-gradient(135deg,#fff5f5,#ffe4e6);border-color:#b91c1c;padding:20px;margin-top:8px;">
+    <h4 style="font-size:15px;margin-bottom:10px;color:#7f1d1d;">📌 综合结论与当前时点建议（2026年3月27日）</h4>
+    <p style="font-size:13px;color:#4a5568;line-height:1.9;">
+      <strong>当前正处于中东线航运史上最严峻的危机时刻之一。</strong>2026年2月起，霍尔木兹海峡封锁叠加红海胡塞袭击重启，三大航运咽喉同时高危，全球集装箱供应链面临重大冲击。<br><br>
+      <strong>对中国→科尔法坎航线而言，这是"危中有机"的特殊时期：</strong>科尔法坎凭借阿曼湾独特位置，成为目前中东地区唯一全面正常运营的集装箱枢纽港，战略价值前所未有地突出。马士基、达飞、中远、长荣等主要船公司均已确认科尔法坎为优先挂靠港，陆桥通道成为进入迪拜/阿联酋内陆的核心替代方案。<br><br>
+      <strong>当前形势下的核心行动建议：</strong>①立即锁定科尔法坎舱位（提前3–4周）；②在预算中纳入$800–$4,000/TEU战争险附加费；③与收货人提前协定陆桥转运计划；④为斋月/开斋节备货提前2–3周启动操作；⑤每日关注船公司最新公告，警惕局势变化导致的订舱政策调整。
     </p>
   </div>
 
   <!-- 页脚 -->
   <div class="footer">
-    报告生成时间：2026年3月27日 &nbsp;|&nbsp; 数据来源：Gulftainer、UN Comtrade、上海航运交易所、各货代公司实时报价、公开市场数据综合整理
-    &nbsp;|&nbsp; 本报告数据为市场参考，实际运价以订舱时确认为准。
+    报告生成时间：2026年3月27日 &nbsp;|&nbsp; 数据来源：信德海事网、劳氏日报、大数跨境、青岛麦特国际货代、Alphaliner、各船公司官方公告（MSC、Maersk、CMA CGM、COSCO、Hapag-Lloyd）、UN Comtrade、公开市场数据综合整理
+    &nbsp;|&nbsp; 本报告数据为市场参考，局势高度动态化，实际运价以订舱时确认为准。
   </div>
 
 </div>
