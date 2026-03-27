@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>航线市场分析报告 2026-03-27</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --primary: #1a3a6b;
+    --accent: #e8392a;
+    --green: #1a9b5a;
+    --orange: #d97706;
+    --blue: #1a5494;
+    --light-bg: #f0f4f8;
+    --card: #fff;
+    --border: #e2e8f0;
+    --text: #1a2332;
+    --muted: #6b7a8d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+    background: var(--light-bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 14px;
+    overflow-x: hidden;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: linear-gradient(135deg, #0f1e3d 0%, #1a3a6b 60%, #1a5494 100%);
+    color: #fff;
+    padding: 28px 40px 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .header-left h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+  .header-left h2 { font-size: 13px; opacity: 0.75; margin-top: 4px; font-weight: 400; }
+  .header-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .header-tag {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .header-right { text-align: right; }
+  .header-right .date { font-size: 12px; opacity: 0.7; }
+  .header-right .alert-badge {
+    display: inline-block;
+    background: #e8392a;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  /* ===== NAV ===== */
+  .nav {
+    background: #fff;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-tab {
+    padding: 12px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .nav-tab:hover:not(.active) { color: var(--text); background: #f8fafc; }
+
+  /* ===== PAGE ===== */
+  .page { display: none; padding: 20px 32px 40px; max-width: 1400px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ===== KPI ROW ===== */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--primary);
+  }
+  .kpi-card.red { border-left-color: var(--accent); }
+  .kpi-card.green { border-left-color: var(--green); }
+  .kpi-card.orange { border-left-color: var(--orange); }
+  .kpi-card.blue { border-left-color: var(--blue); }
+  .kpi-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 800; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .kpi-trend-up { color: var(--accent); font-size: 11px; font-weight: 700; }
+  .kpi-trend-down { color: var(--green); font-size: 11px; font-weight: 700; }
+
+  /* ===== SECTION ===== */
+  .section {
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    overflow: visible;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .icon { font-size: 16px; }
+  .section-body { padding: 16px 20px; }
+
+  /* ===== CHART ROW ===== */
+  .chart-row { display: grid; gap: 16px; margin-bottom: 16px; }
+  .chart-row.col2 { grid-template-columns: 1fr 1fr; }
+  .chart-row.col3 { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-row.wide-left { grid-template-columns: 2fr 1fr; }
+  .chart { width: 100%; border-radius: 8px; overflow: hidden; }
+
+  /* ===== TABLE ===== */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { background: #f1f5f9; color: var(--primary); font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:hover td { background: #f8fafc; }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ===== BADGES ===== */
+  .badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+  .badge-red { background: #fef2f2; color: #b91c1c; }
+  .badge-green { background: #f0fdf4; color: #15803d; }
+  .badge-orange { background: #fffbeb; color: #b45309; }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+  .badge-purple { background: #faf5ff; color: #7e22ce; }
+
+  /* ===== ALERT ===== */
+  .alert {
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 10px;
+  }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert-red { background: #fef2f2; border-left: 4px solid #e8392a; }
+  .alert-orange { background: #fffbeb; border-left: 4px solid #d97706; }
+  .alert-blue { background: #eff6ff; border-left: 4px solid #1a5494; }
+  .alert-green { background: #f0fdf4; border-left: 4px solid #1a9b5a; }
+
+  /* ===== INSIGHT CARDS ===== */
+  .insight-row { display: grid; gap: 14px; }
+  .insight-row.col3 { grid-template-columns: repeat(3,1fr); }
+  .insight-row.col2 { grid-template-columns: repeat(2,1fr); }
+  .insight-card {
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+  }
+  .insight-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .insight-card p { font-size: 12px; color: #4a5568; line-height: 1.6; }
+  .insight-card.red { border-left: 3px solid var(--accent); }
+  .insight-card.blue { border-left: 3px solid var(--blue); }
+  .insight-card.green { border-left: 3px solid var(--green); }
+  .insight-card.orange { border-left: 3px solid var(--orange); }
+
+  /* ===== CARRIER GRID ===== */
+  .carrier-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .carrier-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .carrier-card .carrier-name { font-size: 13px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
+  .carrier-card .carrier-detail { font-size: 12px; color: #4a5568; line-height: 1.7; }
+
+  /* ===== PORT TABLE ===== */
+  .port-map-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+  .port-group { background: #f8fafc; border-radius: 8px; padding: 14px 16px; }
+  .port-group h4 { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .port-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12px; }
+  .port-item:last-child { border-bottom: none; }
+  .port-code { font-weight: 700; color: var(--blue); font-family: monospace; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+  /* ===== MOBILE ===== */
+  @media (max-width: 768px) {
+    .header { padding: 16px 16px 14px; flex-direction: column; }
+    .header-right { text-align: left; }
+    .page { padding: 14px 12px 30px; }
+    .kpi-row { grid-template-columns: repeat(2,1fr) !important; gap: 10px; }
+    .kpi-value { font-size: 18px; }
+    .chart-row.col2, .chart-row.col3, .chart-row.wide-left { grid-template-columns: 1fr !important; }
+    .insight-row.col3, .insight-row.col2 { grid-template-columns: 1fr !important; }
+    .carrier-grid { grid-template-columns: 1fr !important; }
+    .port-map-row { grid-template-columns: 1fr !important; }
+    .section-body { padding: 12px 10px; }
+    .section-header { padding: 10px 12px; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .data-table { min-width: 520px; }
+    .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+    .chart[style*="height:400"] { height: 260px !important; }
+    .chart[style*="height:360"] { height: 240px !important; }
+    .chart[style*="height:320"] { height: 220px !important; }
+    .chart[style*="height:280"] { height: 200px !important; }
+    .chart[style*="height:500"] { height: 300px !important; }
+  }
+  @media (max-width: 480px) {
+    .kpi-value { font-size: 15px; }
+    .kpi-label { font-size: 10px; }
+    .header-left h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>🚢 航线市场分析报告</h1>
+    <h2>红海航线 · 中东航线 · 泰越航线 · 台湾航线 | 2026年3月</h2>
+    <div class="header-tags">
+      <span class="header-tag">🔴 红海危机持续</span>
+      <span class="header-tag">⚠️ 霍尔木兹封锁</span>
+      <span class="header-tag">📦 4大航线覆盖</span>
+      <span class="header-tag">🗺️ 38个港口节点</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="date">数据截至：2026年3月27日</div>
+    <div class="alert-badge">⚡ 战时特别版</div>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="switchPage('overview')">📊 总览</div>
+  <div class="nav-tab" onclick="switchPage('redsea')">🔴 红海航线</div>
+  <div class="nav-tab" onclick="switchPage('mideast')">🛢️ 中东航线</div>
+  <div class="nav-tab" onclick="switchPage('seasia')">🌿 泰越航线</div>
+  <div class="nav-tab" onclick="switchPage('taiwan')">🏝️ 台湾航线</div>
+  <div class="nav-tab" onclick="switchPage('carriers')">🚢 竞争格局</div>
+  <div class="nav-tab" onclick="switchPage('ports')">⚓ 港口概览</div>
+</div>
+
+<!-- ========== PAGE: 总览 ========== -->
+<div class="page active" id="page-overview">
+
+  <div class="kpi-row">
+    <div class="kpi-card red">
+      <div class="kpi-label">红海绕航增加航程</div>
+      <div class="kpi-value">+12~14天</div>
+      <div class="kpi-sub kpi-trend-up">↑ 绕好望角</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">中国→中东综合运价</div>
+      <div class="kpi-value">$3,800~5,500</div>
+      <div class="kpi-sub kpi-trend-up">↑ 战前 +280%</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">泰越航线运价（20GP）</div>
+      <div class="kpi-value">$400~700</div>
+      <div class="kpi-sub kpi-trend-down">↓ 相对平稳</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">台湾航线运价（20GP）</div>
+      <div class="kpi-value">$250~450</div>
+      <div class="kpi-sub kpi-trend-down">↔ 市场竞争激烈</div>
+    </div>
+  </div>
+
+  <div class="alert alert-red">
+    <div class="alert-icon">🚨</div>
+    <div><strong>战时市场警报：</strong>红海危机与霍尔木兹封锁双重叠加，中东直航全线暂停，主流船公司绕道好望角或科尔法坎路桥转运。红海/波斯湾进港船舶每月下降约35%，运价居高不下，供给端持续紧张。</div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📈</span>各航线2026年运价走势（$USD/20GP）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-price-trend" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📦</span>各航线货量占比（估算TEU%）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-volume-pie" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-row wide-left">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">🗺️</span>主要船公司运力部署（2026Q1，各航线舱位份额%）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-carrier-share" style="height:300px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">⚠️</span>市场风险评级</div>
+      </div>
+      <div class="section-body">
+        <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fef2f2;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">红海航线</span>
+            <span class="badge badge-red">极高风险 ★★★★★</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fef2f2;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">中东航线（波斯湾）</span>
+            <span class="badge badge-red">极高风险 ★★★★★</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fffbeb;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">中东（阿曼湾，科尔法坎）</span>
+            <span class="badge badge-orange">中等风险 ★★★☆☆</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f0fdf4;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">泰越航线</span>
+            <span class="badge badge-green">低风险 ★★☆☆☆</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#eff6ff;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">台湾航线</span>
+            <span class="badge badge-blue">极低风险 ★☆☆☆☆</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#faf5ff;border-radius:6px">
+            <span style="font-size:12px;font-weight:700">东南亚转口（新加坡/巴生）</span>
+            <span class="badge badge-purple">低风险 ★★☆☆☆</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">🌐</span>最新市场动态（截至2026年3月27日）</div>
+    </div>
+    <div class="section-body">
+      <div class="insight-row col3">
+        <div class="insight-card red">
+          <h4>🔴 红海封锁升级</h4>
+          <p>胡塞武装持续扩大攻击范围，不再仅针对以色列关联船只。目前几乎所有经苏伊士运河航线船舶全部绕行好望角，绕航成本增加约$800K~1.2M/航次。</p>
+        </div>
+        <div class="insight-card red">
+          <h4>⚡ 霍尔木兹封锁</h4>
+          <p>伊朗宣布限制性封锁霍尔木兹海峡（2026年2月起），波斯湾港口（杰贝阿里JEBEL ALI、科威特、巴林）实际运营大幅萎缩，改道科尔法坎路桥成主流。</p>
+        </div>
+        <div class="insight-card orange">
+          <h4>📦 运力重新分配</h4>
+          <p>绕行导致运力紧张，MSC/Maersk已将原红海船舶调至亚洲内部航线。泰越、台湾航线出现运力小幅增加，运价下行压力可能持续。</p>
+        </div>
+        <div class="insight-card blue">
+          <h4>🏗️ 科尔法坎跃升</h4>
+          <p>科尔法坎（AEKLF）已成为阿联酋事实上的唯一正常运营集装箱港，吞吐量环比增长约85%，拥堵明显，等待泊位时间3~5天。</p>
+        </div>
+        <div class="insight-card green">
+          <h4>🇹🇭 泰国需求升温</h4>
+          <p>泰国制造业外迁加速（友联迁厂潮），电子、汽配出口增长。林查班（THLCH）吞吐量2025年增长12%，目前中国→泰国段运价稳定。</p>
+        </div>
+        <div class="insight-card orange">
+          <h4>🇹🇼 台湾市场分化</h4>
+          <p>台湾科技件出货旺盛，半导体相关货量增加；传统纺织轻工持续下滑。高雄（TWKHH）外贸重组，COSCO/Evergreen竞争激烈，运价受压。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== PAGE: 红海航线 ========== -->
+<div class="page" id="page-redsea">
+
+  <div class="alert alert-red">
+    <div class="alert-icon">🚨</div>
+    <div><strong>红海航线当前状态：高度危险，全线绕行好望角。</strong>胡塞武装持续对过境船只发动导弹/无人机攻击，苏伊士运河航运量较2023年高峰下降约70%。埃及运河收入损失累计超120亿美元。</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card red">
+      <div class="kpi-label">中国→埃及运价（20GP）</div>
+      <div class="kpi-value">$4,200~6,800</div>
+      <div class="kpi-sub kpi-trend-up">↑ 含绕行附加费</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">绕行好望角增加天数</div>
+      <div class="kpi-value">+14~18天</div>
+      <div class="kpi-sub">上海→亚历山大港</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">苏伊士运河通行量下降</div>
+      <div class="kpi-value">-68%</div>
+      <div class="kpi-sub">vs 2023年高峰</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">战争附加费（WRS）</div>
+      <div class="kpi-value">$800~1,500/箱</div>
+      <div class="kpi-sub">视船公司及货主而定</div>
+    </div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📊</span>红海各港口活跃度对比（2026年3月）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-redsea-ports" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📈</span>中国→埃及运价月度走势（$USD/20GP）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-redsea-price" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">⚓</span>红海航线港口现状</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>港口代码</th><th>港口名称</th><th>国家/地区</th><th>当前状态</th><th>主要功能</th><th>风险等级</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td class="port-code">EGSOK</td><td>塞得港东（Port Said East）</td><td>埃及</td><td><span class="badge badge-orange">受限运营</span></td><td>苏伊士运河北端口、转口</td><td><span class="badge badge-orange">高风险</span></td><td>运河北端，通行量大幅下降</td></tr>
+            <tr><td class="port-code">EGSUE</td><td>塞得港西（Port Said West）</td><td>埃及</td><td><span class="badge badge-orange">受限运营</span></td><td>苏伊士运河北端口</td><td><span class="badge badge-orange">高风险</span></td><td>与EGSOK互补</td></tr>
+            <tr><td class="port-code">EGALY</td><td>亚历山大港（Alexandria）</td><td>埃及</td><td><span class="badge badge-green">正常运营</span></td><td>埃及最大商业港</td><td><span class="badge badge-blue">中等</span></td><td>远离红海，地中海沿岸，相对安全</td></tr>
+            <tr><td class="port-code">SAJED</td><td>吉达（Jeddah）</td><td>沙特阿拉伯</td><td><span class="badge badge-orange">部分暂停</span></td><td>红海沿岸最大港口</td><td><span class="badge badge-red">极高风险</span></td><td>多次受到袭击威胁，主流船公司暂停挂靠</td></tr>
+            <tr><td class="port-code">YEADE</td><td>亚丁（Aden）</td><td>也门</td><td><span class="badge badge-red">事实关闭</span></td><td>战前也门主要港口</td><td><span class="badge badge-red">极高风险</span></td><td>被胡塞武装控制区包围，几乎无商业挂靠</td></tr>
+            <tr><td class="port-code">DJJIB</td><td>吉布提（Djibouti）</td><td>吉布提</td><td><span class="badge badge-green">正常运营</span></td><td>非洲之角战略转口港</td><td><span class="badge badge-orange">中等</span></td><td>距胡塞控制区较近，目前仍在运营，作为应急中转枢纽</td></tr>
+            <tr><td class="port-code">SDPZU</td><td>苏丹港（Port Sudan）</td><td>苏丹</td><td><span class="badge badge-red">严重受限</span></td><td>苏丹唯一主要港口</td><td><span class="badge badge-red">极高风险</span></td><td>内战导致港口功能受损，基本停止国际商业挂靠</td></tr>
+            <tr><td class="port-code">TRIST</td><td>伊斯坦布尔（Istanbul）</td><td>土耳其</td><td><span class="badge badge-green">正常运营</span></td><td>博斯普鲁斯海峡门户</td><td><span class="badge badge-green">低风险</span></td><td>地中海北端，不直接受红海影响</td></tr>
+            <tr><td class="port-code">TRIZT</td><td>伊兹密特（Izmit/Derince）</td><td>土耳其</td><td><span class="badge badge-green">正常运营</span></td><td>土耳其工业区港口</td><td><span class="badge badge-green">低风险</span></td><td>马尔马拉海，汽车出口要港</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">👥</span>客户与货物分析</div>
+    </div>
+    <div class="section-body">
+      <div class="insight-row col3" style="margin-bottom:16px">
+        <div class="insight-card red">
+          <h4>主要货物类型</h4>
+          <p>日用消费品（40%）、纺织服装（20%）、电子电器（15%）、建材化工（15%）、农机设备（10%）</p>
+        </div>
+        <div class="insight-card blue">
+          <h4>主要客户类型</h4>
+          <p>中小贸易商（FMCG）、土耳其纺织进口商、埃及综合贸易公司、中东转口贸易商（经吉布提中转非洲）</p>
+        </div>
+        <div class="insight-card orange">
+          <h4>货代市场</h4>
+          <p>大型货代（Kuehne+Nagel、DB Schenker、Expeditors）因战时附加费不透明纷纷转向合约运价；中小货代被边缘化。</p>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>货物类型</th><th>主要装货港</th><th>主要卸货港</th><th>战时影响</th><th>运价变化</th></tr></thead>
+          <tbody>
+            <tr><td>日用消费品（FMCG）</td><td>CNSHA/CNNGB/CNTAO</td><td>EGALY/EGSOK</td><td><span class="badge badge-orange">中等</span>（绕行延误+14天）</td><td><span class="badge badge-red">+180%~220%</span></td></tr>
+            <tr><td>纺织服装</td><td>CNSWA/CNSHK/HKHKG</td><td>TRIST/TRIZT</td><td><span class="badge badge-green">较小</span>（走地中海段）</td><td><span class="badge badge-orange">+60%~80%</span></td></tr>
+            <tr><td>建材化工</td><td>CNTAO/CNNGB</td><td>SAJED/DJJIB</td><td><span class="badge badge-red">严重</span>（吉达暂停）</td><td><span class="badge badge-red">+250%~300%</span></td></tr>
+            <tr><td>电子电器</td><td>CNSHA/CNNGB/CNSHK</td><td>EGALY/TRIST</td><td><span class="badge badge-orange">中等</span>（绕行为主）</td><td><span class="badge badge-orange">+120%~160%</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: 中东航线 ========== -->
+<div class="page" id="page-mideast">
+
+  <div class="alert alert-red">
+    <div class="alert-icon">⚡</div>
+    <div><strong>中东航线双重危机：</strong>霍尔木兹封锁叠加红海危机，波斯湾港口（杰贝阿里AEJEA等）实际已成半停摆状态。科尔法坎（AEKLF）作为阿曼湾东岸替代港口，当前承接约90%阿联酋集装箱吞吐量，路桥转运（KHF→JEA，约130km）成为主流方案。</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card red">
+      <div class="kpi-label">中国→杰贝阿里（20GP）</div>
+      <div class="kpi-value">$3,800~5,500</div>
+      <div class="kpi-sub kpi-trend-up">↑ 战前 +280%</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">科尔法坎港口拥堵</div>
+      <div class="kpi-value">3~5天</div>
+      <div class="kpi-sub">等待泊位时间</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">科尔法坎吞吐量增幅</div>
+      <div class="kpi-value">+85%</div>
+      <div class="kpi-sub">vs 2025年同期</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">路桥转运费用</div>
+      <div class="kpi-value">$250~400/箱</div>
+      <div class="kpi-sub">KHF→JEA（130km）</div>
+    </div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📊</span>中东港口吞吐量变化（月度，TEU万箱）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-mideast-ports" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">💰</span>中国各主要港口→科尔法坎运价（$USD/20GP）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-mideast-price" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">⚓</span>中东航线港口现状</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>港口代码</th><th>港口名称</th><th>当前状态</th><th>替代方案</th><th>主要货物</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td class="port-code">AEJEA</td><td>杰贝阿里（Jebel Ali）</td><td><span class="badge badge-red">大幅萎缩</span></td><td>→ AEKLF路桥转运</td><td>全品类</td><td>波斯湾深水枢纽，受封锁影响严重，仅保留部分feeder</td></tr>
+            <tr><td class="port-code">AEKLF</td><td>科尔法坎（Khor Fakkan）</td><td><span class="badge badge-green">高速运营</span></td><td>—（当前核心港）</td><td>全品类+RO-RO</td><td>阿曼湾东岸，目前阿联酋集装箱枢纽，拥堵中</td></tr>
+            <tr><td class="port-code">INNSA</td><td>新孟买/那瓦塞瓦（JNPT）</td><td><span class="badge badge-green">正常运营</span></td><td>—</td><td>印度出口、中转</td><td>印度最大集装箱港，受中东危机间接影响（绕行成本转嫁）</td></tr>
+            <tr><td class="port-code">INMUN</td><td>蒙德拉（Mundra）</td><td><span class="badge badge-green">正常运营</span></td><td>—</td><td>能源、工业品</td><td>Adani旗下，近年快速扩张，部分中东货物经此中转</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">📦</span>客户与货物分析</div>
+    </div>
+    <div class="section-body">
+      <div class="insight-row col3" style="margin-bottom:16px">
+        <div class="insight-card red">
+          <h4>主要货物类型</h4>
+          <p>建材（大理石/瓷砖）30%、电子家电25%、食品饮料15%、汽配零件15%、服装日用品15%</p>
+        </div>
+        <div class="insight-card blue">
+          <h4>主要客户类型</h4>
+          <p>综合贸易商（迪拜进口商/贸易中心）、工程项目货主（建材/设备）、汽配分销商、中国商品转口贸易商（再出口非洲/伊朗）</p>
+        </div>
+        <div class="insight-card orange">
+          <h4>战时客户行为变化</h4>
+          <p>① 库存备货周期拉长（+30~60天）；② 优先抢占科尔法坎仓储；③ 订舱提前期从7天延长至21天；④ 高价值货物转空运</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: 泰越航线 ========== -->
+<div class="page" id="page-seasia">
+
+  <div class="alert alert-green">
+    <div class="alert-icon">✅</div>
+    <div><strong>泰越航线相对稳定：</strong>马六甲海峡及南海航路基本正常，但受全球供应链重组影响，东南亚制造业迁移加速，泰越出口需求持续增长。运价处于历史相对低位，竞争激烈。</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card green">
+      <div class="kpi-label">中国→林查班（20GP）</div>
+      <div class="kpi-value">$400~700</div>
+      <div class="kpi-sub kpi-trend-down">↔ 同比-10%</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">中国→胡志明（20GP）</div>
+      <div class="kpi-value">$350~600</div>
+      <div class="kpi-sub kpi-trend-down">↔ 市场竞争激烈</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">泰国工厂迁移潮</div>
+      <div class="kpi-value">+34%</div>
+      <div class="kpi-sub">中国→泰国投资额（2025年）</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">越南出口增长率</div>
+      <div class="kpi-value">+8.2%</div>
+      <div class="kpi-sub">2025年全年出口 YoY</div>
+    </div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📈</span>泰越航线运价走势（$USD/20GP，月度）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-seasia-price" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📊</span>东南亚各港货量对比（估算，TEU千箱/月）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-seasia-volume" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">⚓</span>泰越航线港口概览</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>港口代码</th><th>港口名称</th><th>国家</th><th>当前状态</th><th>主要货物</th><th>年吞吐（TEU）</th><th>趋势</th></tr></thead>
+          <tbody>
+            <tr><td class="port-code">VNSGN</td><td>胡志明市（HCMC / Cat Lai）</td><td>越南</td><td><span class="badge badge-green">正常运营</span></td><td>电子、服装、鞋类、家具</td><td>约600万</td><td><span class="badge badge-green">↑ 持续增长</span></td></tr>
+            <tr><td class="port-code">THLCH</td><td>林查班（Laem Chabang）</td><td>泰国</td><td><span class="badge badge-green">正常运营</span></td><td>汽车、电子、橡胶、聚合物</td><td>约870万</td><td><span class="badge badge-green">↑ 2025+12%</span></td></tr>
+            <tr><td class="port-code">THBKK</td><td>曼谷港（Bangkok）</td><td>泰国</td><td><span class="badge badge-green">正常运营</span></td><td>大米、建材、食品</td><td>约150万</td><td><span class="badge badge-gray">↔ 平稳</span></td></tr>
+            <tr><td class="port-code">THSCS</td><td>是拉差（Sriracha）</td><td>泰国</td><td><span class="badge badge-green">正常运营</span></td><td>汽车、工业品</td><td>约80万</td><td><span class="badge badge-green">↑ 汽车增长</span></td></tr>
+            <tr><td class="port-code">THSSW</td><td>宋卡（Songkhla）</td><td>泰国</td><td><span class="badge badge-green">正常运营</span></td><td>橡胶、渔产品</td><td>约25万</td><td><span class="badge badge-gray">↔ 平稳</span></td></tr>
+            <tr><td class="port-code">SGSIN</td><td>新加坡（Singapore PSA）</td><td>新加坡</td><td><span class="badge badge-green">正常运营</span></td><td>转口枢纽，全品类</td><td>约3,700万</td><td><span class="badge badge-green">↑ 转口增加</span></td></tr>
+            <tr><td class="port-code">MYPKG</td><td>巴生港（Port Klang）</td><td>马来西亚</td><td><span class="badge badge-green">正常运营</span></td><td>电子、橡胶、棕榈油、转口</td><td>约1,600万</td><td><span class="badge badge-green">↑ 转口增加</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">🏭</span>货物与客户分析</div>
+    </div>
+    <div class="section-body">
+      <div class="insight-row col3">
+        <div class="insight-card green">
+          <h4>主要货物结构</h4>
+          <p>入口货：中国机械设备、半成品、原材料（钢铁/化工）；出口货：泰国汽车/汽配、越南电子成品/服装、马来西亚电子/棕榈油</p>
+        </div>
+        <div class="insight-card blue">
+          <h4>主要客户类型</h4>
+          <p>日系/欧系制造工厂（在泰越生产基地）、中国转移工厂、当地进口商、电商平台仓储货主（越南TikTok Shop/Lazada）</p>
+        </div>
+        <div class="insight-card orange">
+          <h4>市场机会</h4>
+          <p>美国加征中国关税驱动的"产地迁移"订单大量流入越南/泰国，预计2026年仍为主要增量来源。新加坡/巴生转口需求因欧洲买家规避制裁而上升。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: 台湾航线 ========== -->
+<div class="page" id="page-taiwan">
+
+  <div class="alert alert-blue">
+    <div class="alert-icon">ℹ️</div>
+    <div><strong>台湾航线：科技件旺，传统件弱。</strong>台湾半导体产业供应链出货强劲，但台海政治敏感性导致部分欧美买家有意分散供应链，长期订单向大陆/越南转移趋势未变。短期市场稳定，竞争激烈，运价处于历史低位。</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card blue">
+      <div class="kpi-label">中国→高雄（20GP）</div>
+      <div class="kpi-value">$250~450</div>
+      <div class="kpi-sub kpi-trend-down">↓ 竞争激烈</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">中国→基隆/台北（20GP）</div>
+      <div class="kpi-value">$280~480</div>
+      <div class="kpi-sub kpi-trend-down">↓ 科技件旺季附加费</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">台湾科技出口增长</div>
+      <div class="kpi-value">+15%</div>
+      <div class="kpi-sub">2025年半导体及电子</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">传统轻工出口变化</div>
+      <div class="kpi-value">-8%</div>
+      <div class="kpi-sub">纺织/五金/轻工 YoY</div>
+    </div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📈</span>台湾主要港口运价走势（$USD/20GP）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-taiwan-price" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📊</span>台湾各港货量分布（2026Q1，TEU万箱）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-taiwan-volume" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">⚓</span>台湾港口现状</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>港口代码</th><th>港口名称</th><th>当前状态</th><th>主要功能</th><th>主要货物</th><th>年吞吐（TEU）</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td class="port-code">TWKHH</td><td>高雄（Kaohsiung）</td><td><span class="badge badge-green">正常运营</span></td><td>台湾最大港，转口枢纽</td><td>电子、石化、机械</td><td>约1,050万</td><td>COSCO/Evergreen/ONE主要挂靠港，竞争激烈</td></tr>
+            <tr><td class="port-code">TWTPE</td><td>台北港（Taipei）</td><td><span class="badge badge-green">正常运营</span></td><td>北部工业区出口</td><td>电子半导体、科技件</td><td>约130万</td><td>靠近新竹科学园，科技出口占比高</td></tr>
+            <tr><td class="port-code">TWKEL</td><td>基隆（Keelung）</td><td><span class="badge badge-green">正常运营</span></td><td>台北都会区主港</td><td>综合货物、进口车</td><td>约200万</td><td>老港，近年被台北港分流，吞吐量下滑</td></tr>
+            <tr><td class="port-code">TWTXG</td><td>台中（Taichung）</td><td><span class="badge badge-green">正常运营</span></td><td>中部工业出口</td><td>木材、机械、塑料制品</td><td>约170万</td><td>台中工业区依托港，增长稳定</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: 竞争格局 ========== -->
+<div class="page" id="page-carriers">
+
+  <div class="alert alert-orange">
+    <div class="alert-icon">⚠️</div>
+    <div><strong>竞争格局剧变：</strong>红海/霍尔木兹危机导致主流船公司运力部署大洗牌。MSC、Maersk退出部分中东直航，转运力至亚内航线；COSCO/Evergreen加码中东、东南亚，市场份额进一步集中。</div>
+  </div>
+
+  <div class="chart-row wide-left">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📊</span>各船公司各航线运力份额估算（2026Q1）</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-carrier-routes" style="height:380px"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title"><span class="icon">📈</span>亚洲区运力增减变化</div>
+      </div>
+      <div class="section-body">
+        <div class="chart" id="chart-carrier-change" style="height:380px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">🚢</span>主要船公司动态（2026年3月）</div>
+    </div>
+    <div class="section-body">
+      <div class="carrier-grid">
+        <div class="carrier-card">
+          <div class="carrier-name">MSC（地中海航运）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 全线暂停红海直航，绕好望角</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 科尔法坎路桥转运为主，杰贝阿里服务萎缩</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> 保持AAS/MEX2等服务</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 挂靠高雄，与Evergreen合作</div>
+            <div style="margin-bottom:4px"><strong>附加费：</strong>WRS $800~1,200/箱</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">Maersk（马士基）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 全线暂停，绕行好望角</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 推"Khor Fakkan Express"陆桥服务</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> Shogun/Dragon等亚内航线</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> TP2/TP5挂靠基隆/高雄</div>
+            <div style="margin-bottom:4px"><strong>附加费：</strong>PSS+WRS组合，约$950~1,400</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">CMA CGM（达飞）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 暂停直航，绕行+陆桥并行</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 推"豪尔费坎陆桥"，运营科尔法坎服务</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> SEA/AEX等多条亚内航线</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> TAT/FEE挂靠高雄/基隆</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>最早推科尔法坎路桥方案的船公司</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">COSCO（中远海运）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 有条件地维持部分绕行服务（中伊关系特殊）</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> MEX/AEU服务挂靠科尔法坎</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> SEA-1/SEA-2，运力大</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 挂靠高雄，竞争激烈</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>中资背景，中东政治优势</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">Evergreen（长荣）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 全面暂停直航，绕好望角</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> MEA/IAX等服务经科尔法坎</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> SEA系列，在台湾市场份额第一</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 台湾母公司，挂靠全部4个台湾港口</div>
+            <div style="margin-bottom:4px"><strong>优势：</strong>台湾本土品牌优势明显</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">ONE（海洋网联）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 全线绕行</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 通过联盟共舱服务科尔法坎</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> 多条亚内航线，与MOL合并后规模扩大</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> FEP/TP7挂靠高雄</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>日系背景，日本进出口货优势</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">Hapag-Lloyd（赫伯罗特）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-red">红海</span> 全线绕行好望角</div>
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 部分调整挂靠科尔法坎</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> 亚内航线网络</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 挂靠高雄</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>德系品牌，在欧线、中东附加费激进</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">PIL（太平船务）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-orange">中东</span> 维持部分中东直航（小船）</div>
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> 东南亚区域航线，覆盖广</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 有限挂靠</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>新加坡系，区域细分市场</div>
+          </div>
+        </div>
+        <div class="carrier-card">
+          <div class="carrier-name">WAN HAI（万海）</div>
+          <div class="carrier-detail">
+            <div style="margin-bottom:4px"><span class="badge badge-green">泰越</span> 东南亚区域强势，中小货主友好</div>
+            <div style="margin-bottom:4px"><span class="badge badge-blue">台湾</span> 台湾本土船公司，挂靠全部台湾港口</div>
+            <div style="margin-bottom:4px"><span class="badge badge-gray">红海/中东</span> 不涉及</div>
+            <div style="margin-bottom:4px"><strong>特点：</strong>亚内短途航线专家，频率高</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">💰</span>各船公司运价对比（2026年3月，$/20GP）</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>船公司</th><th>中国→埃及（EGALY）</th><th>中国→科尔法坎（AEKLF）</th><th>中国→林查班（THLCH）</th><th>中国→高雄（TWKHH）</th><th>战时附加费（WRS）</th></tr></thead>
+          <tbody>
+            <tr><td><strong>MSC</strong></td><td>$5,800~6,800</td><td>$4,200~5,500</td><td>$450~700</td><td>$280~450</td><td>$1,200/箱</td></tr>
+            <tr><td><strong>Maersk</strong></td><td>$5,500~6,500</td><td>$4,000~5,200</td><td>$420~680</td><td>$300~480</td><td>$950/箱</td></tr>
+            <tr><td><strong>CMA CGM</strong></td><td>$5,200~6,200</td><td>$3,800~5,000</td><td>$400~650</td><td>$260~420</td><td>$800~1,000</td></tr>
+            <tr><td><strong>COSCO</strong></td><td>$4,800~5,800</td><td>$3,600~4,800</td><td>$380~600</td><td>$250~400</td><td>$700~900</td></tr>
+            <tr><td><strong>Evergreen</strong></td><td>$5,000~6,000</td><td>$3,700~4,900</td><td>$400~620</td><td>$260~420</td><td>$800~1,000</td></tr>
+            <tr><td><strong>Hapag-Lloyd</strong></td><td>$5,800~6,800</td><td>$4,200~5,400</td><td>$440~680</td><td>$290~460</td><td>$1,100~1,400</td></tr>
+            <tr><td><strong>ONE</strong></td><td>$5,000~5,800</td><td>$3,800~4,900</td><td>$400~640</td><td>$270~420</td><td>$900/箱</td></tr>
+            <tr><td><strong>WAN HAI</strong></td><td>不服务</td><td>不服务</td><td>$350~550</td><td>$230~380</td><td>不适用</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: 港口概览 ========== -->
+<div class="page" id="page-ports">
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">🇨🇳</span>中国装货港（8个主要港口）</div>
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table class="data-table">
+          <thead><tr><th>港口代码</th><th>港口名称</th><th>区域</th><th>优势货类</th><th>运力说明</th><th>港口特点</th></tr></thead>
+          <tbody>
+            <tr><td class="port-code">CNSHA</td><td>上海港</td><td>华东</td><td>电子、汽车、化工、全品类</td><td>全球最大集装箱港，运力充足</td><td>全球第1，年吞吐约5,000万TEU</td></tr>
+            <tr><td class="port-code">CNNGB</td><td>宁波舟山港</td><td>华东</td><td>电子、机械、化工原料</td><td>全球第3，运力充裕</td><td>靠近义乌，小商品出口重要港</td></tr>
+            <tr><td class="port-code">CNTAO</td><td>青岛港</td><td>华北/华东</td><td>矿石、机械、橡胶、轻工</td><td>北方最大集装箱港</td><td>对日韩航线优势明显</td></tr>
+            <tr><td class="port-code">CNSHK</td><td>蛇口港（深圳）</td><td>华南</td><td>电子、服装、玩具</td><td>深圳港区之一，运力充足</td><td>靠近电子制造中心</td></tr>
+            <tr><td class="port-code">CNNAS</td><td>南沙港（广州）</td><td>华南</td><td>家具、建材、日用品</td><td>广州港新港区，快速增长</td><td>珠三角家具出口枢纽</td></tr>
+            <tr><td class="port-code">CNGCT</td><td>广州港（黄埔）</td><td>华南</td><td>电子、服装、食品</td><td>广州老港区</td><td>与南沙分工互补</td></tr>
+            <tr><td class="port-code">CNSWA</td><td>汕头港</td><td>华南</td><td>轻工、塑料、玩具、纸品</td><td>区域港，货量相对小</td><td>靠近潮汕产业集群</td></tr>
+            <tr><td class="port-code">CNHMN</td><td>虎门港（东莞）</td><td>华南</td><td>服装、电子、玩具</td><td>珠三角内河港，有深水延伸</td><td>东莞制造业出口要港</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title"><span class="icon">🗺️</span>航线覆盖港口全览（按区域）</div>
+    </div>
+    <div class="section-body">
+      <div class="port-map-row">
+        <div class="port-group">
+          <h4>🇭🇰 香港 / 🇹🇼 台湾</h4>
+          <div class="port-item"><span class="port-code">HKHKG</span><span>香港港（转口枢纽）</span></div>
+          <div class="port-item"><span class="port-code">TWKHH</span><span>高雄港（台湾最大）</span></div>
+          <div class="port-item"><span class="port-code">TWTPE</span><span>台北港（科技件）</span></div>
+          <div class="port-item"><span class="port-code">TWKEL</span><span>基隆港（台北都会）</span></div>
+          <div class="port-item"><span class="port-code">TWTXG</span><span>台中港（中部工业）</span></div>
+        </div>
+        <div class="port-group">
+          <h4>🇻🇳🇹🇭 越南 / 泰国</h4>
+          <div class="port-item"><span class="port-code">VNSGN</span><span>胡志明市（Cat Lai）</span></div>
+          <div class="port-item"><span class="port-code">THLCH</span><span>林查班港（泰国最大）</span></div>
+          <div class="port-item"><span class="port-code">THBKK</span><span>曼谷港</span></div>
+          <div class="port-item"><span class="port-code">THSCS</span><span>是拉差港</span></div>
+          <div class="port-item"><span class="port-code">THSSW</span><span>宋卡港</span></div>
+        </div>
+        <div class="port-group">
+          <h4>🇸🇬🇲🇾🇮🇳 东南亚 / 南亚</h4>
+          <div class="port-item"><span class="port-code">SGSIN</span><span>新加坡港（全球枢纽）</span></div>
+          <div class="port-item"><span class="port-code">MYPKG</span><span>巴生港（Port Klang）</span></div>
+          <div class="port-item"><span class="port-code">INNSA</span><span>新孟买/那瓦塞瓦</span></div>
+          <div class="port-item"><span class="port-code">INMUN</span><span>蒙德拉港</span></div>
+        </div>
+        <div class="port-group">
+          <h4>🇦🇪🇾🇪🇸🇦 中东 / 红海</h4>
+          <div class="port-item"><span class="port-code">AEKLF</span><span>科尔法坎（当前核心）</span></div>
+          <div class="port-item"><span class="port-code">AEJEA</span><span>杰贝阿里（受限）</span></div>
+          <div class="port-item"><span class="port-code">YEADE</span><span>亚丁（事实关闭）</span></div>
+          <div class="port-item"><span class="port-code">DJJIB</span><span>吉布提（中转应急）</span></div>
+          <div class="port-item"><span class="port-code">SAJED</span><span>吉达（部分暂停）</span></div>
+          <div class="port-item"><span class="port-code">SDPZU</span><span>苏丹港（受限）</span></div>
+        </div>
+        <div class="port-group">
+          <h4>🇪🇬🇹🇷 埃及 / 土耳其</h4>
+          <div class="port-item"><span class="port-code">EGSOK</span><span>塞得港东（苏伊士北端）</span></div>
+          <div class="port-item"><span class="port-code">EGSUE</span><span>塞得港西</span></div>
+          <div class="port-item"><span class="port-code">EGALY</span><span>亚历山大港（正常）</span></div>
+          <div class="port-item"><span class="port-code">TRIST</span><span>伊斯坦布尔港</span></div>
+          <div class="port-item"><span class="port-code">TRIZT</span><span>伊兹密特港</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== 页签切换 ==========
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const tabMap = {overview:0,redsea:1,mideast:2,seasia:3,taiwan:4,carriers:5,ports:6};
+  tabs[tabMap[name]].classList.add('active');
+  setTimeout(()=>{
+    document.querySelectorAll('.chart').forEach(el=>{
+      const inst = echarts.getInstanceByDom(el);
+      if(inst) inst.resize();
+    });
+  }, 50);
+}
+
+// ========== ECharts 初始化 ==========
+const defaultColor = ['#1a3a6b','#e8392a','#1a9b5a','#d97706','#7e22ce','#0891b2','#db2777'];
+
+// 1. 总览-运价走势
+(function(){
+  const c = echarts.init(document.getElementById('chart-price-trend'));
+  c.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['红海/埃及','中东/科尔法坎','泰越','台湾'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:20,left:55,right:20,bottom:50},
+    xAxis:{type:'category',data:['2025-03','2025-06','2025-09','2025-12','2026-01','2026-02','2026-03'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',name:'$/20GP',nameTextStyle:{fontSize:11},axisLabel:{formatter:v=>'$'+v,fontSize:11}},
+    series:[
+      {name:'红海/埃及',type:'line',data:[1800,2200,3800,5200,5600,5800,6000],lineStyle:{width:2,color:'#e8392a'},symbol:'circle',symbolSize:5},
+      {name:'中东/科尔法坎',type:'line',data:[1400,1800,2800,4200,4500,4800,5000],lineStyle:{width:2,color:'#d97706'},symbol:'circle',symbolSize:5},
+      {name:'泰越',type:'line',data:[600,580,520,460,440,420,450],lineStyle:{width:2,color:'#1a9b5a'},symbol:'circle',symbolSize:5},
+      {name:'台湾',type:'line',data:[400,380,360,320,300,290,300],lineStyle:{width:2,color:'#1a5494'},symbol:'circle',symbolSize:5},
+    ]
+  });
+})();
+
+// 2. 总览-货量饼图
+(function(){
+  const c = echarts.init(document.getElementById('chart-volume-pie'));
+  c.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}% ({d}%)'},
+    legend:{orient:'vertical',right:10,top:'center',textStyle:{fontSize:11}},
+    series:[{
+      name:'货量占比',type:'pie',radius:['35%','65%'],
+      center:['40%','50%'],
+      data:[
+        {value:35,name:'中东航线',itemStyle:{color:'#d97706'}},
+        {value:25,name:'泰越航线',itemStyle:{color:'#1a9b5a'}},
+        {value:22,name:'台湾航线',itemStyle:{color:'#1a5494'}},
+        {value:18,name:'红海/埃及/土耳其',itemStyle:{color:'#e8392a'}},
+      ],
+      label:{formatter:'{b}\n{d}%',fontSize:11},
+      emphasis:{itemStyle:{shadowBlur:8,shadowColor:'rgba(0,0,0,0.2)'}}
+    }]
+  });
+})();
+
+// 3. 总览-船公司份额
+(function(){
+  const c = echarts.init(document.getElementById('chart-carrier-share'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['MSC','Maersk','CMA CGM','COSCO','Evergreen','Others'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:80,right:20,bottom:55},
+    yAxis:{type:'category',data:['红海/埃及','中东/科尔法坎','泰越','台湾'],axisLabel:{fontSize:11}},
+    xAxis:{type:'value',axisLabel:{formatter:v=>v+'%',fontSize:11},max:100},
+    series:[
+      {name:'MSC',type:'bar',stack:'total',data:[22,18,14,12],itemStyle:{color:'#1a3a6b'}},
+      {name:'Maersk',type:'bar',stack:'total',data:[20,16,12,10],itemStyle:{color:'#e8392a'}},
+      {name:'CMA CGM',type:'bar',stack:'total',data:[18,15,13,9],itemStyle:{color:'#1a5494'}},
+      {name:'COSCO',type:'bar',stack:'total',data:[15,20,16,18],itemStyle:{color:'#d97706'}},
+      {name:'Evergreen',type:'bar',stack:'total',data:[10,12,14,22],itemStyle:{color:'#1a9b5a'}},
+      {name:'Others',type:'bar',stack:'total',data:[15,19,31,29],itemStyle:{color:'#94a3b8'}},
+    ]
+  });
+})();
+
+// 4. 红海-港口活跃度
+(function(){
+  const c = echarts.init(document.getElementById('chart-redsea-ports'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{top:15,left:100,right:30,bottom:40},
+    yAxis:{type:'category',data:['TRIZT','TRIST','EGALY','DJJIB','SAJED','EGSOK','YEADE','SDPZU'],axisLabel:{fontSize:11}},
+    xAxis:{type:'value',name:'活跃度（%）',nameTextStyle:{fontSize:11},axisLabel:{formatter:v=>v+'%',fontSize:10}},
+    series:[{
+      type:'bar',barWidth:'55%',
+      data:[
+        {value:85,itemStyle:{color:'#1a9b5a'}},
+        {value:80,itemStyle:{color:'#1a9b5a'}},
+        {value:90,itemStyle:{color:'#1a9b5a'}},
+        {value:65,itemStyle:{color:'#d97706'}},
+        {value:30,itemStyle:{color:'#e8392a'}},
+        {value:25,itemStyle:{color:'#e8392a'}},
+        {value:5,itemStyle:{color:'#7f1d1d'}},
+        {value:8,itemStyle:{color:'#7f1d1d'}},
+      ],
+      label:{show:true,position:'right',fontSize:11,formatter:p=>p.value+'%'}
+    }]
+  });
+})();
+
+// 5. 红海-运价走势
+(function(){
+  const c = echarts.init(document.getElementById('chart-redsea-price'));
+  c.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['上海→亚历山大','上海→吉达','上海→土耳其'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:60,right:20,bottom:50},
+    xAxis:{type:'category',data:['2025-06','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'],axisLabel:{fontSize:10,rotate:20}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+v,fontSize:11}},
+    series:[
+      {name:'上海→亚历山大',type:'line',data:[3200,3800,4500,5200,5600,5900,6200,6000],itemStyle:{color:'#e8392a'},smooth:true},
+      {name:'上海→吉达',type:'line',data:[2600,3200,4000,5500,6000,6200,null,null],itemStyle:{color:'#d97706'},smooth:true},
+      {name:'上海→土耳其',type:'line',data:[1400,1600,1800,2200,2600,3000,3200,3100],itemStyle:{color:'#7e22ce'},smooth:true},
+    ]
+  });
+})();
+
+// 6. 中东-港口吞吐
+(function(){
+  const c = echarts.init(document.getElementById('chart-mideast-ports'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['2025Q3基准','2026Q1实际'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:60,right:20,bottom:50},
+    xAxis:{type:'category',data:['AEJEA\n杰贝阿里','AEKLF\n科尔法坎','INNSA\n新孟买','INMUN\n蒙德拉'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',name:'万TEU',axisLabel:{fontSize:11}},
+    series:[
+      {name:'2025Q3基准',type:'bar',data:[120,18,45,30],itemStyle:{color:'#94a3b8'},barGap:'10%'},
+      {name:'2026Q1实际',type:'bar',data:[35,33,48,32],itemStyle:{color:'#e8392a'},barGap:'10%'},
+    ]
+  });
+})();
+
+// 7. 中东-各港运价
+(function(){
+  const c = echarts.init(document.getElementById('chart-mideast-price'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{top:15,left:70,right:30,bottom:40},
+    yAxis:{type:'category',data:['CNGCT广州','CNHMN虎门','CNSWA汕头','HKHKG香港','CNSHK蛇口','CNNGB宁波','CNSHA上海','CNTAO青岛'],axisLabel:{fontSize:11}},
+    xAxis:{type:'value',name:'$/20GP',axisLabel:{formatter:v=>'$'+v,fontSize:10}},
+    series:[{
+      type:'bar',barWidth:'55%',
+      data:[3800,3850,3900,3950,4000,4100,4300,4500],
+      itemStyle:{color:function(p){return p.value>4200?'#e8392a':p.value>4000?'#d97706':'#1a9b5a'}},
+      label:{show:true,position:'right',fontSize:11,formatter:p=>'$'+p.value}
+    }]
+  });
+})();
+
+// 8. 泰越-运价走势
+(function(){
+  const c = echarts.init(document.getElementById('chart-seasia-price'));
+  c.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['上海→林查班','上海→胡志明','上海→新加坡','上海→巴生'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:60,right:20,bottom:50},
+    xAxis:{type:'category',data:['2025-06','2025-09','2025-12','2026-01','2026-02','2026-03'],axisLabel:{fontSize:10}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+v,fontSize:11}},
+    series:[
+      {name:'上海→林查班',type:'line',data:[620,580,480,460,440,450],itemStyle:{color:'#1a9b5a'},smooth:true},
+      {name:'上海→胡志明',type:'line',data:[580,540,450,430,410,420],itemStyle:{color:'#d97706'},smooth:true},
+      {name:'上海→新加坡',type:'line',data:[320,300,260,250,240,250],itemStyle:{color:'#1a5494'},smooth:true},
+      {name:'上海→巴生',type:'line',data:[340,320,280,265,255,260],itemStyle:{color:'#7e22ce'},smooth:true},
+    ]
+  });
+})();
+
+// 9. 泰越-货量
+(function(){
+  const c = echarts.init(document.getElementById('chart-seasia-volume'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['进口（中国装）','出口（目的港出）'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:70,right:20,bottom:50},
+    xAxis:{type:'category',data:['VNSGN','THLCH','THBKK','THSCS','SGSIN','MYPKG'],axisLabel:{fontSize:11}},
+    yAxis:{type:'value',name:'千TEU/月',axisLabel:{fontSize:11}},
+    series:[
+      {name:'进口（中国装）',type:'bar',data:[45,38,12,8,180,80],itemStyle:{color:'#1a5494'}},
+      {name:'出口（目的港出）',type:'bar',data:[52,55,10,6,210,95],itemStyle:{color:'#1a9b5a'}},
+    ]
+  });
+})();
+
+// 10. 台湾-运价
+(function(){
+  const c = echarts.init(document.getElementById('chart-taiwan-price'));
+  c.setOption({
+    tooltip:{trigger:'axis'},
+    legend:{data:['上海→高雄','上海→基隆','上海→台北','上海→台中'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:60,right:20,bottom:50},
+    xAxis:{type:'category',data:['2025-06','2025-09','2025-12','2026-01','2026-02','2026-03'],axisLabel:{fontSize:10}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+v,fontSize:11}},
+    series:[
+      {name:'上海→高雄',type:'line',data:[380,360,330,310,295,300],itemStyle:{color:'#1a3a6b'},smooth:true},
+      {name:'上海→基隆',type:'line',data:[400,380,350,330,315,320],itemStyle:{color:'#e8392a'},smooth:true},
+      {name:'上海→台北',type:'line',data:[410,395,360,340,325,330],itemStyle:{color:'#1a9b5a'},smooth:true},
+      {name:'上海→台中',type:'line',data:[390,370,340,320,305,310],itemStyle:{color:'#d97706'},smooth:true},
+    ]
+  });
+})();
+
+// 11. 台湾-货量
+(function(){
+  const c = echarts.init(document.getElementById('chart-taiwan-volume'));
+  c.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}万TEU ({d}%)'},
+    legend:{orient:'vertical',right:10,top:'center',textStyle:{fontSize:11}},
+    series:[{
+      name:'台湾港口',type:'pie',radius:['35%','65%'],center:['40%','50%'],
+      data:[
+        {value:105,name:'高雄TWKHH',itemStyle:{color:'#1a3a6b'}},
+        {value:20,name:'基隆TWKEL',itemStyle:{color:'#e8392a'}},
+        {value:17,name:'台中TWTXG',itemStyle:{color:'#1a9b5a'}},
+        {value:13,name:'台北TWTPE',itemStyle:{color:'#d97706'}},
+      ],
+      label:{formatter:'{b}\n{d}%',fontSize:11}
+    }]
+  });
+})();
+
+// 12. 船公司-各航线份额
+(function(){
+  const c = echarts.init(document.getElementById('chart-carrier-routes'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['MSC','Maersk','CMA CGM','COSCO','Evergreen','Hapag','ONE','Others'],bottom:0,textStyle:{fontSize:11}},
+    grid:{top:15,left:90,right:20,bottom:55},
+    yAxis:{type:'category',data:['红海/埃及航线','中东/科尔法坎','泰越/东南亚','台湾航线'],axisLabel:{fontSize:11}},
+    xAxis:{type:'value',axisLabel:{formatter:v=>v+'%',fontSize:10},max:100},
+    series:[
+      {name:'MSC',type:'bar',stack:'t',data:[22,18,14,12],itemStyle:{color:'#1a3a6b'}},
+      {name:'Maersk',type:'bar',stack:'t',data:[20,16,12,10],itemStyle:{color:'#2563eb'}},
+      {name:'CMA CGM',type:'bar',stack:'t',data:[18,15,13,9],itemStyle:{color:'#e8392a'}},
+      {name:'COSCO',type:'bar',stack:'t',data:[15,20,16,18],itemStyle:{color:'#d97706'}},
+      {name:'Evergreen',type:'bar',stack:'t',data:[10,12,14,22],itemStyle:{color:'#1a9b5a'}},
+      {name:'Hapag',type:'bar',stack:'t',data:[8,8,7,6],itemStyle:{color:'#f59e0b'}},
+      {name:'ONE',type:'bar',stack:'t',data:[4,5,8,8],itemStyle:{color:'#7e22ce'}},
+      {name:'Others',type:'bar',stack:'t',data:[3,6,16,15],itemStyle:{color:'#94a3b8'}},
+    ]
+  });
+})();
+
+// 13. 船公司-运力增减
+(function(){
+  const c = echarts.init(document.getElementById('chart-carrier-change'));
+  c.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{top:15,left:90,right:40,bottom:30},
+    yAxis:{type:'category',data:['MSC','Maersk','CMA CGM','COSCO','Evergreen','Hapag-Lloyd','ONE'],axisLabel:{fontSize:11}},
+    xAxis:{type:'value',axisLabel:{formatter:v=>v+'%',fontSize:10}},
+    series:[{
+      type:'bar',barWidth:'55%',
+      data:[
+        {value:-15,itemStyle:{color:'#e8392a'}},
+        {value:-18,itemStyle:{color:'#e8392a'}},
+        {value:-12,itemStyle:{color:'#e8392a'}},
+        {value:8,itemStyle:{color:'#1a9b5a'}},
+        {value:5,itemStyle:{color:'#1a9b5a'}},
+        {value:-10,itemStyle:{color:'#e8392a'}},
+        {value:-8,itemStyle:{color:'#e8392a'}},
+      ],
+      label:{show:true,position:function(p){return p.value>=0?'right':'left'},fontSize:11,formatter:p=>(p.value>0?'+':'')+p.value+'%'}
+    }]
+  });
+})();
+
+// resize
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.chart').forEach(el=>{
+    const inst=echarts.getInstanceByDom(el);
+    if(inst) inst.resize();
+  });
+});
+</script>
+</body>
+</html>
