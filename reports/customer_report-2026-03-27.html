@@ -52,7 +52,7 @@
   .kpi-unit { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
 
   /* Section card */
-  .section { background: var(--card); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+  .section { background: var(--card); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: visible; }
   .section-header { padding: 16px 22px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
   .section-title { font-size: 15px; font-weight: 600; color: var(--primary); }
   .section-desc { font-size: 12px; color: var(--muted); }
@@ -140,6 +140,80 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: #f1f5f9; }
   ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+  /* ===== 移动端响应式 ===== */
+  body { overflow-x: hidden; }
+
+  /* 表格横向滚动包裹 */
+  .table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+
+  @media (max-width: 768px) {
+    /* Header */
+    .header { padding: 16px 16px 14px; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .header .date { margin-top: 4px; }
+
+    /* Nav: 横向滚动 */
+    .nav { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; flex-wrap: nowrap; }
+    .nav-tab { padding: 10px 14px; font-size: 12px; flex-shrink: 0; }
+
+    /* Page content */
+    .page { padding: 14px 12px 30px; }
+
+    /* KPI: 4列→2列 */
+    .kpi-row { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+    .kpi-card { padding: 14px 14px; }
+    .kpi-value { font-size: 20px; }
+
+    /* Insight row: 3列→1列 */
+    .insight-row { grid-template-columns: 1fr !important; gap: 10px; }
+
+    /* Chart row: 多列→1列 */
+    .chart-row.col2,
+    .chart-row.col3,
+    .chart-row.wide-left { grid-template-columns: 1fr !important; }
+
+    /* 图表高度适配小屏 */
+    .chart[style*="height:440px"] { height: 300px !important; }
+    .chart[style*="height:400px"] { height: 280px !important; }
+    .chart[style*="height:380px"] { height: 260px !important; }
+    .chart[style*="height:360px"] { height: 260px !important; }
+    .chart[style*="height:340px"] { height: 240px !important; }
+    .chart[style*="height:260px"] { height: 200px !important; }
+    .chart[style*="height:500px"] { height: 340px !important; }
+
+    /* Section */
+    .section-header { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px 10px; }
+    .section-body { padding: 12px 10px; }
+    .section-title { font-size: 13px; }
+
+    /* 表格容器横向滚动 */
+    .sticky-table,
+    .section-body > table,
+    .section-body [style*="padding:0"] { overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; width: 100%; }
+    .data-table { min-width: 520px; }
+    .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+
+    /* 客户名称列宽限制 */
+    .data-table td[style*="max-width:280px"],
+    .data-table td[style*="max-width:260px"] { max-width: 150px !important; }
+
+    /* 搜索栏 */
+    .table-controls { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .search-input { width: 100%; }
+
+    /* Priority grid: 2列→1列 */
+    .priority-grid { grid-template-columns: 1fr !important; }
+
+    /* 图表 chart 不设 min-width */
+    .chart { width: 100% !important; }
+  }
+
+  @media (max-width: 480px) {
+    .kpi-value { font-size: 17px; }
+    .kpi-label { font-size: 11px; }
+    .chart[style*="height:440px"] { height: 240px !important; }
+    .chart[style*="height:500px"] { height: 280px !important; }
+  }
 </style>
 </head>
 <body>
@@ -797,6 +871,33 @@ renderVisitTables();
 renderLaneTable();
 renderMonthlyTable();
 renderCharts('overview');
+
+// ===== MOBILE: wrap tables for horizontal scroll =====
+(function wrapTables(){
+  document.querySelectorAll('.section-body, .sticky-table').forEach(container => {
+    const tables = container.querySelectorAll(':scope > table');
+    tables.forEach(tbl => {
+      if(tbl.parentElement.classList.contains('tbl-wrap')) return;
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%';
+      wrap.className = 'tbl-wrap';
+      tbl.parentNode.insertBefore(wrap, tbl);
+      wrap.appendChild(tbl);
+    });
+  });
+})();
+
+// Resize charts when tab switches (ensures charts fill new layout)
+const _origSwitch = switchPage;
+window.switchPage = function(name){
+  _origSwitch(name);
+  setTimeout(()=>{
+    document.querySelectorAll('.chart').forEach(el=>{
+      const inst = echarts.getInstanceByDom(el);
+      if(inst) inst.resize();
+    });
+  }, 50);
+};
 
 // Resize
 window.addEventListener('resize',()=>{
