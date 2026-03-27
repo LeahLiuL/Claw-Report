@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>总部维度 · 客户贡献分析报告</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --primary: #1a3a5c;
+    --accent: #e84c30;
+    --accent2: #f5a623;
+    --green: #27ae60;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #718096;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a3a5c 0%, #2c5f8a 100%);
+    color: white; padding: 28px 40px 20px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+  .header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+  .header .date { font-size: 12px; opacity: 0.7; }
+
+  /* Nav tabs */
+  .nav { background: var(--primary); padding: 0 40px; display: flex; gap: 0; border-bottom: 2px solid rgba(255,255,255,0.1); }
+  .nav-tab { padding: 12px 20px; color: rgba(255,255,255,0.65); cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+  .nav-tab:hover { color: white; }
+  .nav-tab.active { color: white; border-bottom-color: #f5a623; font-weight: 600; }
+
+  /* Content */
+  .page { display: none; padding: 24px 40px 40px; }
+  .page.active { display: block; }
+
+  /* KPI cards */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--card); border-radius: 10px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid transparent; }
+  .kpi-card.blue { border-left-color: #3b82f6; }
+  .kpi-card.red { border-left-color: #e84c30; }
+  .kpi-card.gold { border-left-color: #f5a623; }
+  .kpi-card.green { border-left-color: #27ae60; }
+  .kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: var(--text); }
+  .kpi-unit { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+
+  /* Section card */
+  .section { background: var(--card); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+  .section-header { padding: 16px 22px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .section-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+  .section-desc { font-size: 12px; color: var(--muted); }
+  .section-body { padding: 16px 22px; }
+
+  /* Charts */
+  .chart { width: 100%; }
+  .chart-row { display: grid; gap: 16px; margin-bottom: 20px; }
+  .chart-row.col2 { grid-template-columns: 1fr 1fr; }
+  .chart-row.col3 { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-row.wide-left { grid-template-columns: 2fr 1fr; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .data-table td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+  .data-table tr:hover td { background: #f8fbff; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .rank { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
+  .rank.gold { background: #f5a623; }
+  .rank.silver { background: #94a3b8; }
+  .rank.bronze { background: #cd7f32; }
+  .rank.normal { background: #cbd5e0; color: #4a5568; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.s { background: #fef3c7; color: #92400e; }
+  .badge.a { background: #dbeafe; color: #1e40af; }
+  .badge.b { background: #dcfce7; color: #166534; }
+  .badge.c { background: #f3f4f6; color: #4b5563; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .bar-bg { flex: 1; background: #eef2f7; border-radius: 3px; height: 8px; max-width: 120px; }
+  .bar-fill { height: 8px; border-radius: 3px; background: #3b82f6; }
+  .bar-fill.red { background: #e84c30; }
+  .bar-fill.gold { background: #f5a623; }
+  .bar-fill.green { background: #27ae60; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .highlight { color: #e84c30; font-weight: 700; }
+  .green-text { color: #27ae60; font-weight: 600; }
+
+  /* Score ring */
+  .score-ring { position: relative; width: 52px; height: 52px; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 700; color: var(--primary); }
+
+  /* Visit priority */
+  .priority-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .priority-group { border-radius: 8px; padding: 16px; }
+  .priority-group.p1 { background: #fff5f5; border: 1px solid #fed7d7; }
+  .priority-group.p2 { background: #fffaf0; border: 1px solid #fef3c7; }
+  .priority-group.p3 { background: #f0fff4; border: 1px solid #c6f6d5; }
+  .priority-group.p4 { background: #ebf8ff; border: 1px solid #bee3f8; }
+  .priority-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .priority-title .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .priority-item { padding: 8px 10px; background: white; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .priority-item:last-child { margin-bottom: 0; }
+  .priority-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; color: var(--text); }
+  .priority-cm { font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+  /* Summary boxes */
+  .insight-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .insight-box { background: var(--card); border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .insight-icon { font-size: 24px; margin-bottom: 10px; }
+  .insight-title { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .insight-content { font-size: 13px; color: var(--text); line-height: 1.7; }
+
+  /* Tooltip custom */
+  .tooltip-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Pagination */
+  .table-controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 4px; }
+  .table-controls span { font-size: 12px; color: var(--muted); }
+  .btn { padding: 5px 12px; border: 1px solid var(--border); border-radius: 5px; background: white; cursor: pointer; font-size: 12px; color: var(--text); }
+  .btn:hover { background: #f0f4f8; }
+  .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .search-input { padding: 6px 12px; border: 1px solid var(--border); border-radius: 5px; font-size: 12px; width: 200px; }
+  .search-input:focus { outline: none; border-color: #3b82f6; }
+
+  /* Sticky header */
+  .sticky-table { max-height: 520px; overflow-y: auto; }
+  .sticky-table thead th { position: sticky; top: 0; z-index: 2; }
+
+  /* Footer */
+  .footer { text-align: center; color: var(--muted); font-size: 11px; padding: 20px 0 30px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:24px;font-weight:700;letter-spacing:0.5px;color:white;">客户贡献分析报告 · 总部维度</div>
+    <div class="subtitle">数据周期：2025年01月 — 2026年02月 &nbsp;|&nbsp; 共14个月 &nbsp;|&nbsp; 44条航线</div>
+  </div>
+  <div class="date">生成时间：2026-03-27</div>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="switchPage('overview')">📊 总览</div>
+  <div class="nav-tab" onclick="switchPage('customers')">🏆 客户排行</div>
+  <div class="nav-tab" onclick="switchPage('visit')">📌 拜访优先级</div>
+  <div class="nav-tab" onclick="switchPage('lanes')">🚢 航线分析</div>
+  <div class="nav-tab" onclick="switchPage('trend')">📈 月度趋势</div>
+</div>
+
+<!-- ====== PAGE: OVERVIEW ====== -->
+<div class="page active" id="page-overview">
+  <div class="kpi-row">
+    <div class="kpi-card blue">
+      <div class="kpi-label">累计运量</div>
+      <div class="kpi-value">546,838<span class="kpi-unit">TEU</span></div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">累计毛利润（CM）</div>
+      <div class="kpi-value">$316.6M<span class="kpi-unit">USD</span></div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">平均每TEU利润</div>
+      <div class="kpi-value">$578.9<span class="kpi-unit">/TEU</span></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">活跃客户数</div>
+      <div class="kpi-value">5,267<span class="kpi-unit">家</span></div>
+    </div>
+  </div>
+
+  <div class="insight-row">
+    <div class="insight-box">
+      <div class="insight-icon">💎</div>
+      <div class="insight-title">TOP客户集中度</div>
+      <div class="insight-content">
+        前5名客户贡献利润 <strong style="color:#e84c30">$35.4M</strong>，占总利润 <strong>11.2%</strong><br>
+        前20名客户贡献 <strong style="color:#e84c30">$76.4M</strong>，占总利润 <strong>24.1%</strong><br>
+        前50名客户贡献约 <strong>38%</strong> 的总利润
+      </div>
+    </div>
+    <div class="insight-box">
+      <div class="insight-icon">🚀</div>
+      <div class="insight-title">最强航线</div>
+      <div class="insight-content">
+        <strong>REX航线</strong> 利润贡献 <strong style="color:#e84c30">$138M</strong>，占比43.6%<br>
+        <strong>AM1航线</strong> 贡献 $31.6M，Per TEU达 $1,203<br>
+        <strong>RE1航线</strong> Per TEU最高，达 $1,668/TEU
+      </div>
+    </div>
+    <div class="insight-box">
+      <div class="insight-icon">📆</div>
+      <div class="insight-title">月度走势</div>
+      <div class="insight-content">
+        <strong>2025年6月</strong> 利润峰值 $36.7M，Per TEU达 $792<br>
+        全年总体呈 <strong>旺季明显</strong> 特征（6-8月高峰）<br>
+        2026年2月回升至 $21.5M，Per TEU $608
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-row wide-left">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Top 20 客户 CM 贡献（万美元）</div>
+        <div class="section-desc">条形越长代表累计利润贡献越高</div>
+      </div>
+      <div class="section-body">
+        <div id="chart-top20-bar" class="chart" style="height:440px;"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">利润来源分布</div>
+        <div class="section-desc">Top20 vs 其余客户</div>
+      </div>
+      <div class="section-body">
+        <div id="chart-pie-contrib" class="chart" style="height:200px;"></div>
+        <div id="chart-lane-pie" class="chart" style="height:200px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">月度 TEU & CM 趋势</div>
+      <div class="section-desc">2025年1月 ~ 2026年2月</div>
+    </div>
+    <div class="section-body">
+      <div id="chart-monthly-overview" class="chart" style="height:260px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE: CUSTOMERS ====== -->
+<div class="page" id="page-customers">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">客户贡献排行榜 · Top 50</div>
+      <div class="section-desc">按累计 CM（毛利润）排序 · 数据周期2025/01-2026/02</div>
+    </div>
+    <div class="section-body" style="padding-top:12px;">
+      <div class="table-controls">
+        <input class="search-input" type="text" placeholder="搜索客户名称..." id="cust-search" oninput="filterTable()">
+        <span id="table-count">共50条</span>
+      </div>
+      <div class="sticky-table" style="margin-top:10px;">
+        <table class="data-table" id="cust-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">排名</th>
+              <th>客户名称</th>
+              <th class="num">累计TEU</th>
+              <th class="num">累计CM ($)</th>
+              <th class="num">CM占比</th>
+              <th class="num">Per TEU ($)</th>
+              <th class="num">活跃月份</th>
+              <th class="num">航线数</th>
+              <th>评级</th>
+              <th class="num" style="width:120px;">CM贡献</th>
+            </tr>
+          </thead>
+          <tbody id="cust-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Per TEU vs CM 散点分析</div>
+      <div class="section-desc">气泡大小=TEU量，位置=盈利效率(Y轴) × 总贡献(X轴)</div>
+    </div>
+    <div class="section-body">
+      <div id="chart-scatter" class="chart" style="height:380px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE: VISIT ====== -->
+<div class="page" id="page-visit">
+  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
+    <div class="kpi-card red">
+      <div class="kpi-label">🔴 S级客户（必访）</div>
+      <div class="kpi-value" style="font-size:18px;">CM &gt; $3M，全程稳定</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">🟡 A级客户（重点维护）</div>
+      <div class="kpi-value" style="font-size:18px;">CM $1-3M，高活跃度</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">🟢 B级客户（挖掘潜力）</div>
+      <div class="kpi-value" style="font-size:18px;">Per TEU高，体量有提升空间</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">拜访优先级矩阵</div>
+      <div class="section-desc">综合评分=CM贡献(70%) + 活跃度·航线广度(30%)</div>
+    </div>
+    <div class="section-body">
+      <div id="chart-visit-matrix" class="chart" style="height:400px;"></div>
+    </div>
+  </div>
+
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header"><div class="section-title">🔴 S级 · 必访客户（CM &gt; $3M）</div></div>
+      <div class="section-body" style="padding:0;">
+        <table class="data-table" id="s-table">
+          <thead>
+            <tr><th>客户名称</th><th class="num">CM ($)</th><th class="num">Per TEU</th><th class="num">活跃月</th><th>评级</th></tr>
+          </thead>
+          <tbody id="s-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">🟡 A级 · 重点维护（CM $1-3M）</div></div>
+      <div class="section-body" style="padding:0;">
+        <table class="data-table" id="a-table">
+          <thead>
+            <tr><th>客户名称</th><th class="num">CM ($)</th><th class="num">Per TEU</th><th class="num">活跃月</th><th>评级</th></tr>
+          </thead>
+          <tbody id="a-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">🟢 B级 · 高价值潜力客户（Per TEU &gt; $1,500，体量可扩大）</div>
+      <div class="section-desc">当前体量不大但单箱利润极高，值得深入拜访挖掘更多舱位</div>
+    </div>
+    <div class="section-body" style="padding:0;">
+      <table class="data-table">
+        <thead>
+          <tr><th>客户名称</th><th class="num">累计TEU</th><th class="num">累计CM ($)</th><th class="num">Per TEU ($)</th><th class="num">活跃月</th><th class="num">航线数</th><th>建议行动</th></tr>
+        </thead>
+        <tbody id="hv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE: LANES ====== -->
+<div class="page" id="page-lanes">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">航线 CM 贡献排行</div>
+      <div class="section-desc">44条航线 · 按累计利润排序</div>
+    </div>
+    <div class="section-body">
+      <div id="chart-lane-bar" class="chart" style="height:500px;"></div>
+    </div>
+  </div>
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header"><div class="section-title">航线 Per TEU 效率对比</div></div>
+      <div class="section-body">
+        <div id="chart-lane-perteu" class="chart" style="height:340px;"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">航线 TEU & CM 气泡图</div></div>
+      <div class="section-body">
+        <div id="chart-lane-bubble" class="chart" style="height:340px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="section-title">航线明细</div></div>
+    <div class="section-body" style="padding:0;">
+      <table class="data-table">
+        <thead>
+          <tr><th>航线</th><th class="num">累计TEU</th><th class="num">累计CM ($)</th><th class="num">Per TEU ($)</th><th class="num">客户数</th><th style="width:150px;">CM占比</th></tr>
+        </thead>
+        <tbody id="lane-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE: TREND ====== -->
+<div class="page" id="page-trend">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">月度 TEU · CM · Per TEU 趋势</div>
+      <div class="section-desc">2025年1月 — 2026年2月</div>
+    </div>
+    <div class="section-body">
+      <div id="chart-trend-main" class="chart" style="height:360px;"></div>
+    </div>
+  </div>
+  <div class="chart-row col2">
+    <div class="section">
+      <div class="section-header"><div class="section-title">月度 CM 柱状对比</div></div>
+      <div class="section-body">
+        <div id="chart-cm-bar" class="chart" style="height:260px;"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">月度 Per TEU 走势</div></div>
+      <div class="section-body">
+        <div id="chart-perteu-line" class="chart" style="height:260px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="section-title">月度数据明细</div></div>
+    <div class="section-body" style="padding:0;">
+      <table class="data-table">
+        <thead>
+          <tr><th>年月</th><th class="num">TEU</th><th class="num">CM ($)</th><th class="num">Per TEU ($)</th><th style="width:180px;">CM趋势</th></tr>
+        </thead>
+        <tbody id="monthly-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="footer">数据来源：总部维度.xlsx &nbsp;·&nbsp; 报告生成于 2026-03-27 &nbsp;·&nbsp; 仅供内部参考</div>
+
+<script>
+// ===== DATA =====
+const overview = {"total_teu":546838,"total_cm":316560929,"total_cust":5267,"avg_per_teu":578.9};
+
+const top50 = [{"NAME":"Hainan Midea International Logistics Technology Co., Ltd","TEU":15284,"CM":10939641,"PER_TEU":715.8,"CM_share":3.46,"months":14,"lanes":15,"visit_score":96.3},{"NAME":"UNICORN SUPPLY CHAIN(SHENZHEN)CO.,LTD","TEU":5150,"CM":6460501,"PER_TEU":1254.5,"CM_share":2.04,"months":14,"lanes":12,"visit_score":65.8},{"NAME":"Ningbo JATO International Shipping Co.,ltd","TEU":5474,"CM":6393397,"PER_TEU":1168,"CM_share":2.02,"months":14,"lanes":14,"visit_score":66.6},{"NAME":"NINGBO UNION OCEAN SHIPPING CO., LTD","TEU":4997,"CM":6098436,"PER_TEU":1220.4,"CM_share":1.93,"months":14,"lanes":13,"visit_score":64.1},{"NAME":"SINOOCEAN GROUP LTD","TEU":5402,"CM":5942709,"PER_TEU":1100.1,"CM_share":1.88,"months":14,"lanes":13,"visit_score":63.1},{"NAME":"UNIGLOBAL SHIPPING COMPANY LIMITED","TEU":8068,"CM":5902949,"PER_TEU":731.6,"CM_share":1.86,"months":14,"lanes":6,"visit_score":58.6},{"NAME":"ZHEJIANG MINGJUN SUPPLY CHAIN MANAGEMENT CO., LTD","TEU":6570,"CM":5902927,"PER_TEU":898.5,"CM_share":1.86,"months":14,"lanes":12,"visit_score":62.3},{"NAME":"SINOOCEAN GROUP LTD","TEU":3845,"CM":5839346,"PER_TEU":1518.7,"CM_share":1.84,"months":14,"lanes":11,"visit_score":61.2},{"NAME":"ZHONGJUN SUPPLY CHAIN MANAGEMENT(SHANGHAI)CO.,LTD","TEU":5243,"CM":5085993,"PER_TEU":970.1,"CM_share":1.61,"months":14,"lanes":17,"visit_score":60.1},{"NAME":"ZHEJIANG HADA INTERNATIONAL LOGISTICS CO.,LTD","TEU":3109,"CM":4900139,"PER_TEU":1576.1,"CM_share":1.55,"months":10,"lanes":4,"visit_score":46},{"NAME":"United Ocean International Logistics (GUANGZHOU)Co.,Ltd","TEU":3732,"CM":4849557,"PER_TEU":1299.5,"CM_share":1.53,"months":14,"lanes":15,"visit_score":57.4},{"NAME":"NINGBO  HAPPYPORT LOGISTICS CO.,LTD","TEU":6090,"CM":4650664,"PER_TEU":763.7,"CM_share":1.47,"months":14,"lanes":12,"visit_score":54.2},{"NAME":"YQN South-Logistics (Shanghai) Co., Ltd","TEU":4722,"CM":4421798,"PER_TEU":936.4,"CM_share":1.4,"months":14,"lanes":15,"visit_score":54.6},{"NAME":"NINGBO ARK INTERNATIONAL LOGISTICS CO.,LTD","TEU":5863,"CM":4253487,"PER_TEU":725.5,"CM_share":1.34,"months":14,"lanes":13,"visit_score":52.3},{"NAME":"NINGBO LEADOCEAN INTERNATIONAL LOGISTICS CO.,LTD","TEU":3859,"CM":4109408,"PER_TEU":1064.9,"CM_share":1.3,"months":14,"lanes":13,"visit_score":51.4},{"NAME":"GUANGZHOU  KD  INTL  LOG  LTD","TEU":2701,"CM":3955458,"PER_TEU":1464.4,"CM_share":1.25,"months":8,"lanes":11,"visit_score":41.8},{"NAME":"SHENZHEN FULL-TRANS LOGISTICS CO.,LTD","TEU":11157,"CM":3890281,"PER_TEU":348.7,"CM_share":1.23,"months":14,"lanes":12,"visit_score":49.4},{"NAME":"SINOTRANS CENTRAL CHINA CO.,LTD","TEU":2930,"CM":3877795,"PER_TEU":1323.5,"CM_share":1.22,"months":14,"lanes":15,"visit_score":51.1},{"NAME":"GLORY INTERNATIONAL LOGISTICS LIMITED","TEU":2374,"CM":3799722,"PER_TEU":1600.6,"CM_share":1.2,"months":14,"lanes":13,"visit_score":49.4},{"NAME":"Ningbo kostar supply chain co., ltd","TEU":5024,"CM":3706513,"PER_TEU":737.8,"CM_share":1.17,"months":14,"lanes":12,"visit_score":48.2},{"NAME":"QINGDAO SKY OCEAN SHIPPING LIMITED","TEU":3106,"CM":3697940,"PER_TEU":1190.6,"CM_share":1.17,"months":14,"lanes":15,"visit_score":50},{"NAME":"Passion (Shanghai) Shipping Co., Ltd","TEU":3306,"CM":3696961,"PER_TEU":1118.3,"CM_share":1.17,"months":14,"lanes":17,"visit_score":51.2},{"NAME":"NINGBO RAPID INTERNAITONAL FREIGHT AGENCY CO., LTD","TEU":3232,"CM":3622486,"PER_TEU":1120.8,"CM_share":1.14,"months":14,"lanes":7,"visit_score":44.6},{"NAME":"LONGSAIL SUPPLY CHAIN CO.,LTD","TEU":5429,"CM":3546657,"PER_TEU":653.3,"CM_share":1.12,"months":14,"lanes":21,"visit_score":52.7},{"NAME":"ORIENTAL LOGISTICS GROUP LTD","TEU":2343,"CM":2883016,"PER_TEU":1230.5,"CM_share":0.91,"months":14,"lanes":15,"visit_score":44.8},{"NAME":"GUANGZHOU CHAMPION INT'L LOGISTICS LIMITED","TEU":1587,"CM":2868019,"PER_TEU":1807.2,"CM_share":0.91,"months":6,"lanes":7,"visit_score":30},{"NAME":"NINGBO YAOHONG INTERNATIONAL FORWARDING AGENCY CO.,LTD","TEU":3469,"CM":2823502,"PER_TEU":813.9,"CM_share":0.89,"months":14,"lanes":10,"visit_score":41.3},{"NAME":"WORLD TRADE SHIPPING LIMITED","TEU":2277,"CM":2671829,"PER_TEU":1173.4,"CM_share":0.84,"months":1,"lanes":2,"visit_score":19.5},{"NAME":"SANCO INTERNATIONAL LOGISTICS LTD","TEU":5347,"CM":2589592,"PER_TEU":484.3,"CM_share":0.82,"months":14,"lanes":9,"visit_score":39.2},{"NAME":"NINGBO SINOWAY INTERNATIONAL LOGISTICS CO.,LTD","TEU":2588,"CM":2536445,"PER_TEU":980.1,"CM_share":0.8,"months":14,"lanes":11,"visit_score":40.1},{"NAME":"SHENZHEN TALENT LOGISTICS CO.,LTD","TEU":1467,"CM":2463656,"PER_TEU":1679.4,"CM_share":0.78,"months":12,"lanes":12,"visit_score":37.8},{"NAME":"GUANGZHOU KD INTL LOG LTD","TEU":1854,"CM":2396428,"PER_TEU":1292.6,"CM_share":0.76,"months":9,"lanes":8,"visit_score":31.3},{"NAME":"GUANGZHOU TOPJET INTERNATIONAL LOGISTICS CO.,LTD","TEU":1688,"CM":2375705,"PER_TEU":1407.4,"CM_share":0.75,"months":14,"lanes":17,"visit_score":42.8},{"NAME":"SHANGHAI ASIACARGO INTERNATIONAL TRANSPORTATION.CO.,LTD","TEU":1613,"CM":2251255,"PER_TEU":1395.7,"CM_share":0.71,"months":13,"lanes":8,"visit_score":35.2},{"NAME":"QINGDAO PUFA CENTURY SHIPPING CO.,LTD","TEU":1793,"CM":2247617,"PER_TEU":1253.6,"CM_share":0.71,"months":14,"lanes":13,"visit_score":39.5},{"NAME":"Eurasia Connection Container Line Limited","TEU":1416,"CM":2102555,"PER_TEU":1484.9,"CM_share":0.66,"months":5,"lanes":2,"visit_score":20.8},{"NAME":"SUNTOP INTERNATIONAL LOGISTICS GUANGZHOU LIMITED","TEU":1551,"CM":2066284,"PER_TEU":1332.2,"CM_share":0.65,"months":14,"lanes":7,"visit_score":34.7},{"NAME":"YHY LOGISTICS SHENZHEN CO.LTD","TEU":1409,"CM":1969048,"PER_TEU":1397.5,"CM_share":0.62,"months":10,"lanes":12,"visit_score":32.2},{"NAME":"Safround Logistics Co.,Ltd","TEU":2118,"CM":1831521,"PER_TEU":864.7,"CM_share":0.58,"months":14,"lanes":11,"visit_score":35.6},{"NAME":"GUANGZHOU GW LOGISTICS CO., LTD","TEU":1247,"CM":1792721,"PER_TEU":1437.6,"CM_share":0.57,"months":14,"lanes":11,"visit_score":35.3},{"NAME":"PATENT INTERNATIONAL LOGISTICS (SHENZHEN) CO., LTD","TEU":3435,"CM":1664735,"PER_TEU":484.6,"CM_share":0.53,"months":14,"lanes":17,"visit_score":38.2},{"NAME":"QINGDAO DSI LOGISTICS CO.,LTD","TEU":1780,"CM":1658052,"PER_TEU":931.5,"CM_share":0.52,"months":14,"lanes":14,"visit_score":36.3},{"NAME":"ANHAI LOGISTICS DEVELOPMENT CO.,LTD","TEU":935,"CM":1603343,"PER_TEU":1714.8,"CM_share":0.51,"months":11,"lanes":4,"visit_score":26.2},{"NAME":"CTS INTERNATIONAL LOGISTICS CORPORATION LIMITED","TEU":1844,"CM":1597542,"PER_TEU":866.3,"CM_share":0.5,"months":14,"lanes":7,"visit_score":31.7},{"NAME":"QINGDAO WINTOP WORLDWIDE LOGISTICS CO.,LTD","TEU":1533,"CM":1572240,"PER_TEU":1025.6,"CM_share":0.5,"months":14,"lanes":13,"visit_score":35.2},{"NAME":"SHENZHEN UNITED LOGISTICS DEVELOPMENT CO.,LTD","TEU":2039,"CM":1500860,"PER_TEU":736.1,"CM_share":0.47,"months":9,"lanes":9,"visit_score":26.1},{"NAME":"Sinotrans Eastern Co.Ltd","TEU":1422,"CM":1500266,"PER_TEU":1055,"CM_share":0.47,"months":14,"lanes":12,"visit_score":34.1},{"NAME":"PACIFIC STAR EXPRESS (CHINA) CO., LTD","TEU":1775,"CM":1483280,"PER_TEU":835.7,"CM_share":0.47,"months":14,"lanes":12,"visit_score":34},{"NAME":"SHENZHEN HUAGUANDA INTERNATIONAL FREIGHT FORWARDING CO., LIMITED","TEU":1608,"CM":1478540,"PER_TEU":919.5,"CM_share":0.47,"months":6,"lanes":10,"visit_score":22.9},{"NAME":"Worldwide Logistics Co.,Ltd","TEU":1360,"CM":1440448,"PER_TEU":1059.2,"CM_share":0.46,"months":14,"lanes":13,"visit_score":34.3}];
+
+const monthly = [{"YM":"202501","TEU":37235,"CM":24075886,"PER_TEU":646.6},{"YM":"202502","TEU":35301,"CM":23702474,"PER_TEU":671.4},{"YM":"202503","TEU":42089,"CM":19432048,"PER_TEU":461.7},{"YM":"202504","TEU":44001,"CM":21913321,"PER_TEU":498},{"YM":"202505","TEU":41142,"CM":22493744,"PER_TEU":546.7},{"YM":"202506","TEU":46374,"CM":36740622,"PER_TEU":792.3},{"YM":"202507","TEU":40174,"CM":27996013,"PER_TEU":696.9},{"YM":"202508","TEU":42499,"CM":25212640,"PER_TEU":593.3},{"YM":"202509","TEU":34295,"CM":18449228,"PER_TEU":538},{"YM":"202510","TEU":39796,"CM":19892619,"PER_TEU":499.9},{"YM":"202511","TEU":32381,"CM":15163009,"PER_TEU":468.3},{"YM":"202512","TEU":41988,"CM":23523172,"PER_TEU":560.2},{"YM":"202601","TEU":34168,"CM":16432570,"PER_TEU":480.9},{"YM":"202602","TEU":35395,"CM":21533583,"PER_TEU":608.4}];
+
+const laneData = [{"LANE":"REX","TEU":103849,"CM":138169211,"PER_TEU":1330.5,"cust":1133},{"LANE":"AM1","TEU":26243,"CM":31587652,"PER_TEU":1203.7,"cust":672},{"LANE":"RE1","TEU":11896,"CM":19840186,"PER_TEU":1667.8,"cust":165},{"LANE":"JFX","TEU":23549,"CM":13956113,"PER_TEU":592.6,"cust":482},{"LANE":"CST","TEU":64172,"CM":12802654,"PER_TEU":199.5,"cust":734},{"LANE":"ST1","TEU":38787,"CM":12533308,"PER_TEU":323.1,"cust":608},{"LANE":"CCT","TEU":45158,"CM":12521585,"PER_TEU":277.3,"cust":486},{"LANE":"ST3","TEU":42580,"CM":11420476,"PER_TEU":268.2,"cust":581},{"LANE":"CI3","TEU":20696,"CM":10918190,"PER_TEU":527.6,"cust":535},{"LANE":"IMR","TEU":30361,"CM":6719187,"PER_TEU":221.3,"cust":945},{"LANE":"HDT","TEU":11686,"CM":6023418,"PER_TEU":515.4,"cust":109},{"LANE":"CHT","TEU":27232,"CM":5145565,"PER_TEU":189,"cust":639},{"LANE":"CP8","TEU":5988,"CM":3156488,"PER_TEU":527.1,"cust":83},{"LANE":"CGX","TEU":5466,"CM":3126843,"PER_TEU":572.1,"cust":161},{"LANE":"VG3","TEU":7057,"CM":3124387,"PER_TEU":442.7,"cust":430},{"LANE":"VG2","TEU":6631,"CM":2605580,"PER_TEU":392.9,"cust":328},{"LANE":"TP1","TEU":2091,"CM":2555509,"PER_TEU":1222.1,"cust":4},{"LANE":"SGS","TEU":4923,"CM":1711504,"PER_TEU":347.7,"cust":413},{"LANE":"LHT","TEU":1293,"CM":1595277,"PER_TEU":1233.8,"cust":64},{"LANE":"SGX","TEU":2425,"CM":1539658,"PER_TEU":634.9,"cust":117}];
+
+const highValue = [{"NAME":"Unitex International Forwarding (Guangzhou) Limited","TEU":187,"CM":379109,"PER_TEU":2027.3,"months":7,"lanes":3},{"NAME":"Guangzhou Haozhan International Supply Chain Co., LTD","TEU":74,"CM":141351,"PER_TEU":1910.1,"months":9,"lanes":5},{"NAME":"GUANGDONG HAIZONG SUPPLY CHAIN MANAGEMENT CO.,LTD","TEU":230,"CM":423251,"PER_TEU":1840.2,"months":6,"lanes":7},{"NAME":"JYT(Qingdao) Logistics Co., Ltd","TEU":185,"CM":335938,"PER_TEU":1815.9,"months":11,"lanes":8},{"NAME":"GUANGZHOU CHAMPION INT'L LOGISTICS LIMITED","TEU":1587,"CM":2868019,"PER_TEU":1807.2,"months":6,"lanes":7},{"NAME":"ANHAI LOGISTICS DEVELOPMENT CO.,LTD","TEU":935,"CM":1603343,"PER_TEU":1714.8,"months":11,"lanes":4},{"NAME":"SHENZHEN TALENT LOGISTICS CO.,LTD","TEU":1467,"CM":2463656,"PER_TEU":1679.4,"months":12,"lanes":12},{"NAME":"FAR EAST INTERNATIONAL FORWARDING CO.LTD","TEU":704,"CM":1111524,"PER_TEU":1578.9,"months":14,"lanes":10},{"NAME":"ZHEJIANG HADA INTERNATIONAL LOGISTICS CO.,LTD","TEU":3109,"CM":4900139,"PER_TEU":1576.1,"months":10,"lanes":4},{"NAME":"GLORY INTERNATIONAL LOGISTICS LIMITED","TEU":2374,"CM":3799722,"PER_TEU":1600.6,"months":14,"lanes":13},{"NAME":"SINOOCEAN GROUP LTD","TEU":3845,"CM":5839346,"PER_TEU":1518.7,"months":14,"lanes":11},{"NAME":"QINGDAO PUFA CENTURY SHIPPING CO.,LTD","TEU":1793,"CM":2247617,"PER_TEU":1253.6,"months":14,"lanes":13},{"NAME":"SINOTRANS CENTRAL CHINA CO.,LTD","TEU":2930,"CM":3877795,"PER_TEU":1323.5,"months":14,"lanes":15},{"NAME":"GUANGZHOU KD INTL LOG LTD","TEU":1854,"CM":2396428,"PER_TEU":1292.6,"months":9,"lanes":8},{"NAME":"GUANGZHOU TOPJET INTERNATIONAL LOGISTICS CO.,LTD","TEU":1688,"CM":2375705,"PER_TEU":1407.4,"months":14,"lanes":17}];
+
+// ===== UTILS =====
+function fmt(n){return n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':n.toString();}
+function fmtFull(n){return n.toLocaleString('en-US');}
+function grade(cm,months){
+  if(cm>=3000000)return '<span class="badge s">S级</span>';
+  if(cm>=1000000)return '<span class="badge a">A级</span>';
+  if(cm>=500000)return '<span class="badge b">B级</span>';
+  return '<span class="badge c">C级</span>';
+}
+function getRankHtml(i){
+  if(i===0)return '<span class="rank gold">1</span>';
+  if(i===1)return '<span class="rank silver">2</span>';
+  if(i===2)return '<span class="rank bronze">3</span>';
+  return '<span class="rank normal">'+(i+1)+'</span>';
+}
+
+// ===== TABS =====
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const tabs={'overview':0,'customers':1,'visit':2,'lanes':3,'trend':4};
+  document.querySelectorAll('.nav-tab')[tabs[name]].classList.add('active');
+  renderCharts(name);
+}
+
+// ===== RENDER TABLES =====
+function renderCustomerTable(){
+  const tbody=document.getElementById('cust-tbody');
+  const maxCM=top50[0].CM;
+  tbody.innerHTML=top50.map((d,i)=>{
+    const pct=Math.round(d.CM/maxCM*100);
+    const perTeuColor=d.PER_TEU>overview.avg_per_teu?'green-text':'';
+    return `<tr>
+      <td>${getRankHtml(i)}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d.NAME}">${d.NAME}</td>
+      <td class="num">${fmtFull(d.TEU)}</td>
+      <td class="num highlight">$${fmtFull(d.CM)}</td>
+      <td class="num">${d.CM_share}%</td>
+      <td class="num ${perTeuColor}">$${d.PER_TEU}</td>
+      <td class="num">${d.months}/14</td>
+      <td class="num">${d.lanes}</td>
+      <td>${grade(d.CM,d.months)}</td>
+      <td><div class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div><span style="font-size:11px;color:#94a3b8">${d.CM_share}%</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderVisitTables(){
+  const s=top50.filter(d=>d.CM>=3000000);
+  const a=top50.filter(d=>d.CM>=1000000&&d.CM<3000000);
+  
+  document.getElementById('s-tbody').innerHTML=s.map((d,i)=>`<tr>
+    <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i+1}. ${d.NAME}</td>
+    <td class="num highlight">$${fmtFull(d.CM)}</td>
+    <td class="num">${d.PER_TEU}</td>
+    <td class="num">${d.months}/14</td>
+    <td><span class="badge s">必访</span></td>
+  </tr>`).join('');
+
+  document.getElementById('a-tbody').innerHTML=a.map((d,i)=>`<tr>
+    <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i+1}. ${d.NAME}</td>
+    <td class="num" style="color:#92400e;font-weight:700;">$${fmtFull(d.CM)}</td>
+    <td class="num">${d.PER_TEU}</td>
+    <td class="num">${d.months}/14</td>
+    <td><span class="badge a">重点</span></td>
+  </tr>`).join('');
+
+  document.getElementById('hv-tbody').innerHTML=highValue.map((d,i)=>{
+    const action=d.TEU<300?'拓展体量，签框架协议':'深化合作，扩大航线覆盖';
+    return `<tr>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i+1}. ${d.NAME}</td>
+      <td class="num">${fmtFull(d.TEU)}</td>
+      <td class="num">$${fmtFull(d.CM)}</td>
+      <td class="num green-text">$${d.PER_TEU}</td>
+      <td class="num">${d.months}/14</td>
+      <td class="num">${d.lanes}</td>
+      <td><span class="badge b">${action}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderLaneTable(){
+  const total=laneData.reduce((s,d)=>s+d.CM,0);
+  document.getElementById('lane-tbody').innerHTML=laneData.map((d,i)=>{
+    const pct=(d.CM/316560929*100).toFixed(1);
+    const barW=Math.round(d.CM/138169211*100);
+    return `<tr>
+      <td><strong>${d.LANE}</strong></td>
+      <td class="num">${fmtFull(d.TEU)}</td>
+      <td class="num highlight">$${fmtFull(d.CM)}</td>
+      <td class="num ${d.PER_TEU>578.9?'green-text':''}">${d.PER_TEU}</td>
+      <td class="num">${d.cust}</td>
+      <td><div class="bar-cell"><div class="bar-bg"><div class="bar-fill red" style="width:${barW}%"></div></div><span style="font-size:11px">${pct}%</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMonthlyTable(){
+  const maxCM=Math.max(...monthly.map(d=>d.CM));
+  document.getElementById('monthly-tbody').innerHTML=monthly.map(d=>{
+    const ym=d.YM.slice(0,4)+'/'+d.YM.slice(4);
+    const barW=Math.round(d.CM/maxCM*100);
+    const trend=d.CM>=25000000?'🔴':d.CM>=20000000?'🟡':'🔵';
+    return `<tr>
+      <td>${trend} ${ym}</td>
+      <td class="num">${fmtFull(d.TEU)}</td>
+      <td class="num">$${fmtFull(d.CM)}</td>
+      <td class="num ${d.PER_TEU>578.9?'green-text':''}">${d.PER_TEU}</td>
+      <td><div class="bar-cell"><div class="bar-bg"><div class="bar-fill gold" style="width:${barW}%"></div></div><span style="font-size:11px">${(d.CM/1e6).toFixed(1)}M</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== SEARCH =====
+function filterTable(){
+  const q=document.getElementById('cust-search').value.toLowerCase();
+  const rows=document.querySelectorAll('#cust-tbody tr');
+  let vis=0;
+  rows.forEach(r=>{
+    const name=r.cells[1].textContent.toLowerCase();
+    if(name.includes(q)){r.style.display='';vis++;}else{r.style.display='none';}
+  });
+  document.getElementById('table-count').textContent='显示 '+vis+' 条';
+}
+
+// ===== CHARTS =====
+const chartsRendered={};
+function renderCharts(page){
+  if(chartsRendered[page])return;
+  chartsRendered[page]=true;
+  if(page==='overview')renderOverviewCharts();
+  if(page==='customers')renderCustomerCharts();
+  if(page==='visit')renderVisitCharts();
+  if(page==='lanes')renderLaneCharts();
+  if(page==='trend')renderTrendCharts();
+}
+
+function renderOverviewCharts(){
+  // Top 20 bar
+  const top20=top50.slice(0,20);
+  const c1=echarts.init(document.getElementById('chart-top20-bar'));
+  const shortNames=top20.map(d=>d.NAME.length>30?d.NAME.slice(0,28)+'…':d.NAME);
+  c1.setOption({
+    tooltip:{trigger:'axis',formatter:p=>`<b>${top20[p[0].dataIndex].NAME}</b><br/>CM: $${fmtFull(top20[p[0].dataIndex].CM)}<br/>Per TEU: $${top20[p[0].dataIndex].PER_TEU}`},
+    grid:{left:20,right:120,top:10,bottom:10,containLabel:true},
+    xAxis:{type:'value',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(1)+'M'},splitLine:{lineStyle:{type:'dashed'}}},
+    yAxis:{type:'category',data:shortNames.slice().reverse(),axisLabel:{fontSize:11,width:200,overflow:'truncate'}},
+    series:[{type:'bar',data:top20.map(d=>d.CM).reverse(),
+      itemStyle:{color:params=>params.dataIndex>=17?'#64b5f6':params.dataIndex>=12?'#1e88e5':'#1565c0'},
+      label:{show:true,position:'right',formatter:p=>'$'+(p.value/1e6).toFixed(2)+'M',fontSize:11}
+    }]
+  });
+
+  // Pie contrib
+  const top20cm=top50.slice(0,20).reduce((s,d)=>s+d.CM,0);
+  const c2=echarts.init(document.getElementById('chart-pie-contrib'));
+  c2.setOption({
+    tooltip:{trigger:'item'},
+    legend:{bottom:0,textStyle:{fontSize:11}},
+    series:[{type:'pie',radius:['40%','68%'],center:['50%','45%'],
+      data:[
+        {value:top50.slice(0,5).reduce((s,d)=>s+d.CM,0),name:'Top 5 客户',itemStyle:{color:'#e84c30'}},
+        {value:top50.slice(5,20).reduce((s,d)=>s+d.CM,0),name:'Top 6-20',itemStyle:{color:'#f5a623'}},
+        {value:top50.slice(20).reduce((s,d)=>s+d.CM,0),name:'Top 21-50',itemStyle:{color:'#3b82f6'}},
+        {value:overview.total_cm-top50.reduce((s,d)=>s+d.CM,0),name:'其余5200+客户',itemStyle:{color:'#e2e8f0'}}
+      ],
+      label:{fontSize:11},
+      emphasis:{itemStyle:{shadowBlur:10}}
+    }]
+  });
+
+  // Lane pie top8
+  const c3=echarts.init(document.getElementById('chart-lane-pie'));
+  const topLanes=laneData.slice(0,8);
+  const otherCM=316560929-topLanes.reduce((s,d)=>s+d.CM,0);
+  c3.setOption({
+    tooltip:{trigger:'item',formatter:p=>`${p.name}<br/>$${(p.value/1e6).toFixed(1)}M (${p.percent}%)`},
+    legend:{bottom:0,textStyle:{fontSize:10}},
+    series:[{type:'pie',radius:['35%','62%'],center:['50%','42%'],
+      data:[...topLanes.map(d=>({value:d.CM,name:d.LANE})),{value:otherCM,name:'其他航线',itemStyle:{color:'#e2e8f0'}}],
+      label:{fontSize:10},
+    }]
+  });
+
+  // Monthly overview
+  const c4=echarts.init(document.getElementById('chart-monthly-overview'));
+  const months=monthly.map(d=>d.YM.slice(0,4)+'/'+d.YM.slice(4));
+  c4.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'cross'}},
+    legend:{top:0,textStyle:{fontSize:12}},
+    grid:{left:60,right:60,top:40,bottom:30},
+    xAxis:{type:'category',data:months,axisLabel:{fontSize:11}},
+    yAxis:[{type:'value',name:'CM($M)',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(0)+'M',fontSize:10}},
+           {type:'value',name:'TEU',axisLabel:{fontSize:10}}],
+    series:[
+      {name:'CM',type:'bar',data:monthly.map(d=>d.CM),itemStyle:{color:p=>p.value>=25000000?'#e84c30':p.value>=20000000?'#f5a623':'#3b82f6'},yAxisIndex:0},
+      {name:'TEU',type:'line',data:monthly.map(d=>d.TEU),smooth:true,lineStyle:{color:'#27ae60'},itemStyle:{color:'#27ae60'},yAxisIndex:1,symbol:'circle',symbolSize:5}
+    ]
+  });
+}
+
+function renderCustomerCharts(){
+  // Scatter: CM vs PER_TEU, bubble=TEU
+  const c=echarts.init(document.getElementById('chart-scatter'));
+  c.setOption({
+    tooltip:{formatter:p=>`<b>${p.data[3]}</b><br/>CM: $${(p.data[0]/1e6).toFixed(2)}M<br/>Per TEU: $${p.data[1]}<br/>TEU: ${fmtFull(p.data[2])}`},
+    grid:{left:70,right:30,top:20,bottom:50},
+    xAxis:{type:'value',name:'累计CM ($M)',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(1)+'M',fontSize:10},splitLine:{lineStyle:{type:'dashed'}}},
+    yAxis:{type:'value',name:'Per TEU ($)',splitLine:{lineStyle:{type:'dashed'}},axisLabel:{fontSize:10}},
+    series:[{
+      type:'scatter',
+      symbolSize:d=>Math.sqrt(d[2])*0.3+6,
+      data:top50.map(d=>[d.CM,d.PER_TEU,d.TEU,d.NAME]),
+      itemStyle:{color:d=>{
+        const v=d.data;
+        if(v[0]>=3e6&&v[1]>=578.9)return '#e84c30';
+        if(v[0]>=3e6)return '#f5a623';
+        if(v[1]>=1500)return '#27ae60';
+        return '#3b82f6';
+      },opacity:0.75},
+      label:{show:true,formatter:p=>p.data[3].split(' ')[0].slice(0,10),fontSize:9,position:'right',color:'#555'}
+    },{
+      type:'line',markLine:{silent:true,lineStyle:{color:'#94a3b8',type:'dashed'},
+        data:[{yAxis:578.9,name:'均值Per TEU'}]}
+    }]
+  });
+}
+
+function renderVisitCharts(){
+  // Visit score bar
+  const c=echarts.init(document.getElementById('chart-visit-matrix'));
+  const top20=top50.slice(0,20);
+  const colors=top20.map(d=>d.CM>=3000000?'#e84c30':d.CM>=1000000?'#f5a623':'#3b82f6');
+  c.setOption({
+    tooltip:{trigger:'axis',formatter:p=>{
+      const d=top20[p[0].dataIndex];
+      return `<b>${d.NAME}</b><br/>综合评分: ${d.visit_score}<br/>CM: $${(d.CM/1e6).toFixed(2)}M<br/>活跃月份: ${d.months}/14<br/>航线数: ${d.lanes}`;
+    }},
+    grid:{left:20,right:100,top:10,bottom:10,containLabel:true},
+    xAxis:{type:'value',max:100,axisLabel:{formatter:v=>v+'分'}},
+    yAxis:{type:'category',data:top20.map(d=>d.NAME.length>35?d.NAME.slice(0,33)+'…':d.NAME).reverse(),axisLabel:{fontSize:11}},
+    series:[{
+      type:'bar',
+      data:top20.map((d,i)=>({value:d.visit_score,itemStyle:{color:colors[i]}})).reverse(),
+      label:{show:true,position:'right',formatter:p=>p.value+'分',fontSize:11}
+    }]
+  });
+}
+
+function renderLaneCharts(){
+  // Lane bar
+  const c1=echarts.init(document.getElementById('chart-lane-bar'));
+  const top15=laneData.slice(0,15);
+  c1.setOption({
+    tooltip:{trigger:'axis',formatter:p=>`<b>${top15[p[0].dataIndex].LANE}</b><br/>CM: $${(top15[p[0].dataIndex].CM/1e6).toFixed(1)}M<br/>Per TEU: $${top15[p[0].dataIndex].PER_TEU}<br/>客户: ${top15[p[0].dataIndex].cust}家`},
+    grid:{left:50,right:80,top:10,bottom:30,containLabel:true},
+    xAxis:{type:'category',data:top15.map(d=>d.LANE),axisLabel:{fontSize:12}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(0)+'M'}},
+    series:[{type:'bar',data:top15.map(d=>d.CM),
+      itemStyle:{color:p=>p.value>=50e6?'#c0392b':p.value>=20e6?'#e74c3c':p.value>=10e6?'#f39c12':'#3498db'},
+      label:{show:true,position:'top',formatter:p=>'$'+(p.value/1e6).toFixed(0)+'M',fontSize:10}
+    }]
+  });
+
+  // Per TEU bar
+  const c2=echarts.init(document.getElementById('chart-lane-perteu'));
+  const sorted=[...laneData].sort((a,b)=>b.PER_TEU-a.PER_TEU).slice(0,15);
+  c2.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:50,right:20,top:10,bottom:20,containLabel:true},
+    xAxis:{type:'category',data:sorted.map(d=>d.LANE),axisLabel:{fontSize:11}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+v}},
+    series:[{type:'bar',data:sorted.map(d=>d.PER_TEU),
+      itemStyle:{color:p=>p.value>=1000?'#27ae60':p.value>=578.9?'#3b82f6':'#94a3b8'},
+      label:{show:true,position:'top',formatter:p=>'$'+p.value,fontSize:9}
+    },{type:'line',markLine:{data:[{yAxis:578.9,name:'均值'}],lineStyle:{color:'#e84c30',type:'dashed'},label:{formatter:'均值$578.9'}}}]
+  });
+
+  // Bubble
+  const c3=echarts.init(document.getElementById('chart-lane-bubble'));
+  c3.setOption({
+    tooltip:{formatter:p=>`<b>${p.data[3]}</b><br/>TEU: ${fmtFull(p.data[0])}<br/>CM: $${(p.data[1]/1e6).toFixed(1)}M<br/>Per TEU: $${p.data[2]}`},
+    grid:{left:60,right:20,top:20,bottom:40},
+    xAxis:{type:'value',name:'TEU',axisLabel:{fontSize:10}},
+    yAxis:{type:'value',name:'CM ($M)',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(0)+'M',fontSize:10}},
+    series:[{type:'scatter',symbolSize:d=>Math.sqrt(d[2])*0.25+5,
+      data:laneData.map(d=>[d.TEU,d.CM,d.PER_TEU,d.LANE]),
+      label:{show:true,formatter:p=>p.data[3],fontSize:9,color:'#333'},
+      itemStyle:{color:d=>d.data[2]>=1000?'#27ae60':d.data[2]>=578.9?'#3b82f6':'#94a3b8',opacity:0.8}
+    }]
+  });
+}
+
+function renderTrendCharts(){
+  const months=monthly.map(d=>d.YM.slice(0,4)+'/'+d.YM.slice(4));
+  
+  // Main trend
+  const c1=echarts.init(document.getElementById('chart-trend-main'));
+  c1.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'cross'}},
+    legend:{top:0},
+    grid:{left:70,right:70,top:50,bottom:40},
+    xAxis:{type:'category',data:months,axisLabel:{rotate:30,fontSize:11}},
+    yAxis:[{type:'value',name:'CM ($M)',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(0)+'M'}},
+           {type:'value',name:'TEU / Per TEU ($)',axisLabel:{fontSize:10}}],
+    series:[
+      {name:'CM',type:'bar',data:monthly.map(d=>d.CM),itemStyle:{color:'rgba(59,130,246,0.7)'},yAxisIndex:0},
+      {name:'TEU',type:'line',data:monthly.map(d=>d.TEU),smooth:true,lineStyle:{color:'#27ae60',width:2},itemStyle:{color:'#27ae60'},yAxisIndex:1,symbol:'circle'},
+      {name:'Per TEU',type:'line',data:monthly.map(d=>d.PER_TEU),smooth:true,lineStyle:{color:'#e84c30',width:2.5},itemStyle:{color:'#e84c30'},yAxisIndex:1,symbol:'diamond',symbolSize:7}
+    ]
+  });
+
+  // CM bar
+  const c2=echarts.init(document.getElementById('chart-cm-bar'));
+  c2.setOption({
+    tooltip:{trigger:'axis',formatter:p=>`${months[p[0].dataIndex]}<br/>CM: $${(p[0].value/1e6).toFixed(2)}M`},
+    grid:{left:60,right:10,top:10,bottom:40},
+    xAxis:{type:'category',data:months,axisLabel:{rotate:30,fontSize:10}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+(v/1e6).toFixed(0)+'M'}},
+    series:[{type:'bar',data:monthly.map(d=>d.CM),
+      itemStyle:{color:p=>p.value>=30e6?'#c0392b':p.value>=22e6?'#e74c3c':p.value>=18e6?'#f39c12':'#3498db'},
+      label:{show:true,position:'top',formatter:p=>'$'+(p.value/1e6).toFixed(1)+'M',fontSize:10}
+    }]
+  });
+
+  // Per TEU line
+  const c3=echarts.init(document.getElementById('chart-perteu-line'));
+  c3.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:60,right:10,top:10,bottom:40},
+    xAxis:{type:'category',data:months,axisLabel:{rotate:30,fontSize:10}},
+    yAxis:{type:'value',axisLabel:{formatter:v=>'$'+v}},
+    series:[{type:'line',data:monthly.map(d=>d.PER_TEU),smooth:true,lineStyle:{color:'#e84c30',width:2.5},
+      itemStyle:{color:'#e84c30'},symbol:'circle',symbolSize:7,
+      areaStyle:{color:'rgba(232,76,48,0.08)'},
+      markLine:{data:[{yAxis:578.9,name:'均值$578.9'}],lineStyle:{color:'#3b82f6',type:'dashed'},label:{formatter:'均值$578.9'}}
+    }]
+  });
+}
+
+// ===== INIT =====
+renderCustomerTable();
+renderVisitTables();
+renderLaneTable();
+renderMonthlyTable();
+renderCharts('overview');
+
+// Resize
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.chart').forEach(el=>{
+    const inst=echarts.getInstanceByDom(el);
+    if(inst)inst.resize();
+  });
+});
+</script>
+</body>
+</html>
