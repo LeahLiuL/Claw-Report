@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>航运燃油价格日报 2026-03-30</title>
+<style>
+  :root {
+    --navy: #0a1628; --navy2: #0d2045; --accent: #1e5bbd;
+    --highlight: #2e7de0; --gold: #f0b429; --white: #ffffff;
+    --gray: #a0aec0; --card-bg: #0f1e3d; --card-border: #1e3a6b;
+    --text-main: #e2e8f0; --text-sub: #94a3b8;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--text-main); font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; min-height:100vh; }
+  .ticker-wrap { background: var(--accent); padding: 7px 0; overflow: hidden; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+  .ticker { display:flex; white-space:nowrap; animation: scroll 60s linear infinite; }
+  .ticker span { font-size:13px; font-weight:600; padding:0 28px; }
+  .up { color:#4ade80; } .dn { color:#f87171; } .ne { color:#fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .header { background: linear-gradient(135deg,#0a1628,#0d2045,#132f5e); border-bottom:3px solid var(--gold); padding:32px 40px 28px; }
+  .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .brand-icon { width:52px;height:52px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px; }
+  .brand-text h1 { font-size:22px;font-weight:800;color:var(--white); }
+  .brand-text p { font-size:12px;color:var(--gray);margin-top:2px; }
+  .date-badge .date { font-size:28px;font-weight:800;color:var(--gold); }
+  .date-badge .sub { font-size:13px;color:var(--gray);margin-top:4px;text-align:right; }
+  .subtitle { margin-top:14px;font-size:14px;color:var(--gray);display:flex;align-items:center;gap:8px; }
+  .subtitle::before { content:'';width:30px;height:2px;background:var(--gold);display:inline-block; }
+  .main { padding:30px 40px; }
+  .section-title { display:flex;align-items:center;gap:10px;margin:32px 0 18px; }
+  .section-title:first-child { margin-top:0; }
+  .section-title .icon { width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px; }
+  .section-title h2 { font-size:17px;font-weight:700;color:var(--white); }
+  .section-title .badge { background:rgba(30,91,189,0.3);border:1px solid var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--highlight); }
+  .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px; }
+  .kpi-card { background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:18px 16px;text-align:center; }
+  .kpi-label { font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px; }
+  .kpi-val { font-size:24px;font-weight:800;color:var(--white); }
+  .kpi-chg { font-size:13px;font-weight:600;margin-top:5px; }
+  .kpi-sub { font-size:11px;color:var(--gray);margin-top:3px; }
+  .alert-box { background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:13px;color:#fdba74;display:flex;align-items:center;gap:10px; }
+  table { width:100%;border-collapse:collapse;font-size:13px; }
+  thead th { background:rgba(30,91,189,0.2);color:var(--highlight);padding:10px 14px;text-align:left;font-weight:600;border-bottom:1px solid var(--card-border); }
+  tbody td { padding:10px 14px;border-bottom:1px solid rgba(30,91,189,0.1);color:var(--text-main); }
+  tbody tr:hover td { background:rgba(30,91,189,0.06); }
+  td.up{color:#4ade80;font-weight:600;} td.dn{color:#f87171;font-weight:600;} td.ne{color:#fde68a;font-weight:600;} td.alert{color:#fb923c;font-weight:700;}
+  .table-wrap { background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:24px 28px;margin-bottom:24px; }
+  .table-wrap h3 { font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px; }
+  .port-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px; }
+  .port-card { background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:18px; }
+  .port-card .port-name { font-size:14px;font-weight:700;color:var(--white);margin-bottom:12px;display:flex;align-items:center;gap:6px; }
+  .port-card .fuel-row { display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(30,91,189,0.15); }
+  .port-card .fuel-row:last-child { border-bottom:none; }
+  .fuel-name { font-size:12px;color:var(--text-sub); }
+  .fuel-price { font-size:14px;font-weight:700;color:var(--white); }
+  .fuel-chg { font-size:11px;font-weight:600; }
+  .insight-row { display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:10px; }
+  .ins-card { background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:18px; }
+  .ins-card .ins-icon { font-size:20px;margin-bottom:8px; }
+  .ins-card h4 { font-size:14px;font-weight:700;color:var(--white);margin-bottom:6px; }
+  .ins-card p { font-size:12.5px;color:var(--text-sub);line-height:1.65; }
+  .footer { background:var(--navy2);border-top:1px solid var(--card-border);padding:24px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px; }
+  .footer-brand { font-size:13px;font-weight:700;color:var(--white); }
+  .footer-info { font-size:12px;color:var(--gray);text-align:right; }
+  @media (max-width:768px) {
+    .header,.main { padding:18px 16px; }
+    .kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .port-grid { grid-template-columns:1fr; }
+    .insight-row { grid-template-columns:1fr; }
+    .footer { padding:16px;flex-direction:column; }
+    .footer-info { text-align:left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 滚动行情 -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="dn">VLSFO新加坡 $834/mt ▼-4.50</span>
+    <span class="up">VLSFO鹿特丹 $746/mt ▲+9.00</span>
+    <span class="up">VLSFO富查伊拉 $866/mt ▲+5.50</span>
+    <span class="up">VLSFO香港 $928/mt ▲+10.50</span>
+    <span class="up">MGO新加坡 $1728/mt ▲+55.00</span>
+    <span class="dn">MGO鹿特丹 $1285/mt ▼-45.50</span>
+    <span class="up">MGO富查伊拉 $1710/mt ▲+89.00</span>
+    <span class="up">IFO380新加坡 $707/mt ▲+34.00</span>
+    <span class="ne">全球燃油月均涨幅 +30~35%</span>
+    <span class="dn">VLSFO新加坡 $834/mt ▼-4.50</span>
+    <span class="up">VLSFO鹿特丹 $746/mt ▲+9.00</span>
+    <span class="up">VLSFO富查伊拉 $866/mt ▲+5.50</span>
+    <span class="up">VLSFO香港 $928/mt ▲+10.50</span>
+    <span class="up">MGO新加坡 $1728/mt ▲+55.00</span>
+    <span class="dn">MGO鹿特丹 $1285/mt ▼-45.50</span>
+    <span class="up">MGO富查伊拉 $1710/mt ▲+89.00</span>
+    <span class="up">IFO380新加坡 $707/mt ▲+34.00</span>
+    <span class="ne">全球燃油月均涨幅 +30~35%</span>
+  </div>
+</div>
+
+<!-- 页头 -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">⛽</div>
+      <div class="brand-text">
+        <h1>航运燃油价格日报</h1>
+        <p>Bunker Fuel Daily · Claw Intelligence</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-03-30</div>
+      <div class="sub">第14期 · 星期一 · 数据截至03-29</div>
+    </div>
+  </div>
+  <div class="subtitle">双危机推高燃油成本：全球月均涨幅30-35%，富查伊拉库容逼近极限</div>
+</div>
+
+<div class="main">
+
+  <!-- KPI -->
+  <div class="section-title">
+    <div class="icon">⛽</div>
+    <h2>核心燃油价格（VLSFO）</h2>
+    <span class="badge">$/公吨 · 2026-03-29</span>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">新加坡 VLSFO</div>
+      <div class="kpi-val" style="color:#fde68a;">$834</div>
+      <div class="kpi-chg dn">▼ -4.50</div>
+      <div class="kpi-sub">区间：815–877</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">鹿特丹 VLSFO</div>
+      <div class="kpi-val" style="color:#fde68a;">$746</div>
+      <div class="kpi-chg up">▲ +9.00</div>
+      <div class="kpi-sub">区间：715–765</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">富查伊拉 VLSFO</div>
+      <div class="kpi-val" style="color:#fb923c;">$866</div>
+      <div class="kpi-chg up">▲ +5.50</div>
+      <div class="kpi-sub">区间：855–897</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">香港 VLSFO</div>
+      <div class="kpi-val" style="color:#fde68a;">$928</div>
+      <div class="kpi-chg up">▲ +10.50</div>
+      <div class="kpi-sub">区间：910–962</div>
+    </div>
+  </div>
+
+  <!-- 警示 -->
+  <div class="alert-box">
+    🔥 <strong>富查伊拉燃油警告：</strong>双危机背景下，大量船舶改停富查伊拉加油，港口储油及装卸能力已接近极限；加油排期延误风险上升，VLSFO报价$866/mt处近期高位，建议航线预提前安排燃油补给计划。
+  </div>
+
+  <!-- 各港口详细价格 -->
+  <div class="section-title">
+    <div class="icon">🗺️</div>
+    <h2>全球主要港口燃油价格</h2>
+    <span class="badge">$/公吨 · 数据截至03-29</span>
+  </div>
+
+  <div class="port-grid">
+    <div class="port-card">
+      <div class="port-name">🇸🇬 新加坡 Singapore</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price">$834</span>
+        <span class="fuel-chg dn">▼-4.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price">$1,728</span>
+        <span class="fuel-chg up">▲+55.00</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$707</span>
+        <span class="fuel-chg up">▲+34.00</span>
+      </div>
+    </div>
+
+    <div class="port-card">
+      <div class="port-name">🇳🇱 鹿特丹 Rotterdam</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price">$746</span>
+        <span class="fuel-chg up">▲+9.00</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price">$1,285</span>
+        <span class="fuel-chg dn">▼-45.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$693</span>
+        <span class="fuel-chg dn">▼-3.00</span>
+      </div>
+    </div>
+
+    <div class="port-card">
+      <div class="port-name">🇦🇪 富查伊拉 Fujairah</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price" style="color:#fb923c;">$866</span>
+        <span class="fuel-chg up">▲+5.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price" style="color:#fb923c;">$1,710</span>
+        <span class="fuel-chg up">▲+89.00</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$709</span>
+        <span class="fuel-chg up">▲+15.00</span>
+      </div>
+    </div>
+
+    <div class="port-card">
+      <div class="port-name">🇭🇰 香港 Hong Kong</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price">$928</span>
+        <span class="fuel-chg up">▲+10.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price">$1,497</span>
+        <span class="fuel-chg up">▲+7.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$775</span>
+        <span class="fuel-chg up">▲+12.50</span>
+      </div>
+    </div>
+
+    <div class="port-card">
+      <div class="port-name">🇺🇸 休斯顿 Houston</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price">$868</span>
+        <span class="fuel-chg up">▲+36.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price">$1,275</span>
+        <span class="fuel-chg dn">▼-37.00</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$639</span>
+        <span class="fuel-chg dn">▼-20.50</span>
+      </div>
+    </div>
+
+    <div class="port-card">
+      <div class="port-name">🇺🇸 纽约 New York</div>
+      <div class="fuel-row">
+        <span class="fuel-name">VLSFO 0.5%</span>
+        <span class="fuel-price">$825</span>
+        <span class="fuel-chg up">▲+46.00</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">MGO 0.1%</span>
+        <span class="fuel-price">$1,431</span>
+        <span class="fuel-chg up">▲+85.50</span>
+      </div>
+      <div class="fuel-row">
+        <span class="fuel-name">IFO380 HSFO</span>
+        <span class="fuel-price">$683</span>
+        <span class="fuel-chg up">▲+31.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VLSFO价差对比 -->
+  <div class="section-title">
+    <div class="icon">📊</div>
+    <h2>VLSFO与MGO价差对比</h2>
+    <span class="badge">$/公吨</span>
+  </div>
+
+  <div class="table-wrap">
+    <h3>主要港口 VLSFO vs MGO 价差分析</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>VLSFO ($/mt)</th>
+          <th>MGO ($/mt)</th>
+          <th>VLSFO/MGO 价差</th>
+          <th>IFO380 ($/mt)</th>
+          <th>加油建议</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>🇸🇬 新加坡</td>
+          <td>834</td>
+          <td class="alert">1,728</td>
+          <td class="alert">894</td>
+          <td>707</td>
+          <td class="ne">VLSFO 相对优选</td>
+        </tr>
+        <tr>
+          <td>🇳🇱 鹿特丹</td>
+          <td>746</td>
+          <td>1,285</td>
+          <td class="ne">539</td>
+          <td>693</td>
+          <td class="up">价格较低，推荐补给</td>
+        </tr>
+        <tr>
+          <td>🇦🇪 富查伊拉</td>
+          <td class="alert">866</td>
+          <td class="alert">1,710</td>
+          <td class="alert">844</td>
+          <td>709</td>
+          <td class="dn">高位，提前规划</td>
+        </tr>
+        <tr>
+          <td>🇭🇰 香港</td>
+          <td class="alert">928</td>
+          <td class="alert">1,497</td>
+          <td>569</td>
+          <td>775</td>
+          <td class="dn">价格偏高</td>
+        </tr>
+        <tr>
+          <td>🇺🇸 休斯顿</td>
+          <td class="ne">868</td>
+          <td>1,275</td>
+          <td>407</td>
+          <td>639</td>
+          <td class="ne">MGO价差较窄</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 分析洞察 -->
+  <div class="section-title">
+    <div class="icon">💡</div>
+    <h2>燃油市场分析</h2>
+    <span class="badge">OUTLOOK</span>
+  </div>
+
+  <div class="insight-row">
+    <div class="ins-card">
+      <div class="ins-icon">🔥</div>
+      <h4>双危机推高燃油成本：月涨30-35%</h4>
+      <p>霍尔木兹封锁+红海绕行双重驱动，好望角绕行使单程增加约500吨额外燃油消耗。叠加战争险保费上涨，船公司综合运营成本大幅攀升，BAF附加费持续上调传导至运价。</p>
+    </div>
+    <div class="ins-card">
+      <div class="ins-icon">⛽</div>
+      <h4>鹿特丹是当前最优加油港</h4>
+      <p>鹿特丹VLSFO报$746/mt，在主要港口中价格最低，且较富查伊拉便宜120$/mt。对于欧线船舶，建议在鹿特丹足量补给，减少在高价港口（富查伊拉/香港）加油频次。</p>
+    </div>
+    <div class="ins-card">
+      <div class="ins-icon">📈</div>
+      <h4>MGO价格异常波动，需关注合规成本</h4>
+      <p>新加坡MGO本日涨55$/mt至$1,728，富查伊拉MGO涨89$/mt至$1,710，均创近期高位。港口排放控制区内需使用MGO，建议航线提前核算进港合规成本，必要时调整挂靠计划。</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- 页脚 -->
+<div class="footer">
+  <div>
+    <div class="footer-brand">⛽ 航运燃油价格日报 · Claw Intelligence</div>
+    <div style="font-size:12px;color:var(--gray);margin-top:4px;">数据来源：Asian Oil / Ship&Bunker / 航运交易公报 · 仅供参考</div>
+  </div>
+  <div class="footer-info">
+    发布时间：2026-03-30 &nbsp;|&nbsp; 第14期<br>
+    收件：Marine@culines.com &nbsp;|&nbsp; Claw Daily Report
+  </div>
+</div>
+
+</body>
+</html>
