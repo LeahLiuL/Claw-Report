@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claw Daily Intelligence Brief — 2026-03-31</title>
+<title>Claw Daily Brief — 2026-03-31</title>
 <style>
 :root {
   --navy: #05111f;
@@ -15,106 +15,132 @@
   --red: #ef4444;
   --green: #22c55e;
   --orange: #f97316;
-  --purple: #a855f7;
-  --cyan: #06b6d4;
   --white: #f1f5f9;
-  --gray: #64748b;
   --sub: #94a3b8;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; }
+body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
 
-/* ── TOP BAR ── */
-.topbar { background: var(--accent); padding: 6px 0; overflow: hidden; position: sticky; top: 0; z-index: 200; border-bottom: 2px solid var(--gold); }
+/* TICKER */
+.topbar { background: var(--accent); padding: 5px 0; overflow: hidden; border-bottom: 2px solid var(--gold); }
 .ticker { display: flex; white-space: nowrap; animation: ticker 55s linear infinite; }
-.ticker span { padding: 0 24px; font-size: 12.5px; font-weight: 600; }
+.ticker span { padding: 0 24px; font-size: 12px; font-weight: 600; }
 .up { color: #4ade80; } .dn { color: #f87171; } .ne { color: #fde68a; }
 @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
-/* ── HEADER ── */
-.header { background: linear-gradient(135deg, #05111f 0%, #0a1e35 55%, #0f2d52 100%); border-bottom: 3px solid var(--gold); padding: 28px 40px 22px; }
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-.brand { display: flex; align-items: center; gap: 14px; }
-.brand-icon { width: 50px; height: 50px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 0 20px rgba(26,92,219,0.5); }
-.brand h1 { font-size: 21px; font-weight: 800; letter-spacing: 1px; }
+/* HEADER */
+.header { background: linear-gradient(135deg,#05111f 0%,#0a1e35 60%,#0f2d52 100%); border-bottom: 3px solid var(--gold); padding: 24px 32px 18px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 46px; height: 46px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #fff; box-shadow: 0 0 18px rgba(26,92,219,.5); }
+.brand h1 { font-size: 19px; font-weight: 800; letter-spacing: 1px; }
 .brand p { font-size: 12px; color: var(--sub); margin-top: 2px; }
-.date-block { text-align: right; }
-.date-block .d { font-size: 30px; font-weight: 800; color: var(--gold); line-height: 1; }
-.date-block .s { font-size: 12px; color: var(--sub); margin-top: 4px; }
-.alert-bar { margin-top: 16px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; padding: 10px 16px; font-size: 13px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+.date-block .d { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; text-align: right; }
+.date-block .s { font-size: 11px; color: var(--sub); margin-top: 3px; text-align: right; }
+.alert-bar { margin-top: 14px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.4); border-radius: 7px; padding: 9px 14px; font-size: 13px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
 
-/* ── KPI ROW ── */
-.kpi-row { background: var(--navy2); padding: 18px 40px; display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; }
-.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 10px; text-align: center; }
-.kpi .lbl { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
-.kpi .val { font-size: 20px; font-weight: 800; }
-.kpi .chg { font-size: 11.5px; font-weight: 600; margin-top: 3px; }
+/* KPI */
+.kpi-row { background: var(--navy2); padding: 14px 32px; display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; }
+.kpi .lbl { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.kpi .val { font-size: 18px; font-weight: 800; }
+.kpi .chg { font-size: 11px; font-weight: 600; margin-top: 2px; }
 
-/* ── LAYOUT ── */
-.body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
-.dept { border-bottom: 1px solid var(--border); padding: 28px 36px; }
-.dept:nth-child(odd) { border-right: 1px solid var(--border); }
-.dept.full { grid-column: 1 / -1; border-right: none; }
+/* TAB NAV */
+.tab-nav { background: var(--navy2); border-bottom: 2px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; position: sticky; top: 0; z-index: 100; }
+.tab-nav::-webkit-scrollbar { height: 4px; }
+.tab-nav::-webkit-scrollbar-thumb { background: var(--border); }
+.tab-btn {
+  padding: 13px 18px 11px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  top: 2px;
+}
+.tab-btn:hover { color: var(--white); background: rgba(255,255,255,.04); }
+.tab-btn.active { color: #fff; border-bottom-color: var(--gold); }
+.tab-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
+.tb-red { background: rgba(239,68,68,.25); color: #fca5a5; }
+.tb-amber { background: rgba(245,158,11,.25); color: #fde68a; }
+.tb-green { background: rgba(34,197,94,.25); color: #86efac; }
+.tab-icon { font-size: 15px; }
 
-/* ── DEPT HEADER ── */
-.dh { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-.dh-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
-.dh h2 { font-size: 15px; font-weight: 700; }
-.dh .sub { font-size: 11px; color: var(--sub); margin-top: 1px; }
-.dh .badge { margin-left: auto; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; flex-shrink: 0; }
-.ic-mgmt { background: rgba(240,180,41,0.15); } .ic-sales { background: rgba(34,197,94,0.15); }
-.ic-ops { background: rgba(6,182,212,0.15); } .ic-bunker { background: rgba(249,115,22,0.15); }
-.ic-fin { background: rgba(168,85,247,0.15); } .ic-box { background: rgba(26,92,219,0.15); }
-.ic-legal { background: rgba(239,68,68,0.15); }
-.bdg-red { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
-.bdg-amber { background: rgba(245,158,11,0.15); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); }
-.bdg-green { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+/* TAB PANELS */
+.tab-panel { display: none; padding: 28px 32px 40px; }
+.tab-panel.active { display: block; }
 
-/* ── RISK LIST ── */
-.risk-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
-.risk-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--sub); }
-.risk-list li .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-.dot-red { background: var(--red); } .dot-amber { background: var(--orange); } .dot-green { background: var(--green); }
-.risk-list li strong { color: var(--white); }
+/* SECTION TITLE */
+.sect-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin: 24px 0 10px; }
+.sect-title:first-child { margin-top: 0; }
 
-/* ── TABLE ── */
-.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-.tbl th { text-align: left; font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .4px; padding: 6px 10px; border-bottom: 1px solid var(--border); }
-.tbl td { padding: 8px 10px; border-bottom: 1px solid rgba(30,58,96,0.4); color: var(--sub); }
-.tbl td:first-child { color: var(--white); font-weight: 600; }
+/* CARDS GRID */
+.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card .cl { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+.card .cv { font-size: 22px; font-weight: 800; }
+.card .cc { font-size: 12px; font-weight: 600; margin-top: 3px; }
+
+/* TABLE */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px; }
+.tbl th { background: var(--card); color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.tbl td { padding: 9px 12px; border-bottom: 1px solid rgba(26,58,96,.5); }
 .tbl tr:last-child td { border-bottom: none; }
-.up { color: #4ade80; font-weight: 700; } .dn { color: #f87171; font-weight: 700; } .ne { color: #fde68a; font-weight: 700; }
-.alert-td { color: #f87171 !important; }
+.tbl tr:hover td { background: rgba(26,92,219,.07); }
 
-/* ── STATUS PILLS ── */
-.pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-.pill-green { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
-.pill-red { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
-.pill-amber { background: rgba(245,158,11,0.15); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); }
-.pill-blue { background: rgba(26,92,219,0.15); color: #93c5fd; border: 1px solid rgba(26,92,219,0.3); }
+/* PILLS */
+.pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
+.pill-green { background: rgba(34,197,94,.18); color: #86efac; }
+.pill-amber { background: rgba(245,158,11,.18); color: #fde68a; }
+.pill-red { background: rgba(239,68,68,.18); color: #fca5a5; }
+.alert-td { color: #fca5a5; font-weight: 700; }
 
-/* ── INLINE KPI MINI ── */
-.mini-kpi { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
-.mk { background: var(--navy2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: center; }
-.mk .ml { font-size: 10.5px; color: var(--sub); margin-bottom: 4px; }
-.mk .mv { font-size: 17px; font-weight: 800; }
-.mk .ms { font-size: 11px; margin-top: 2px; }
+/* NOTICE BOX */
+.notice { padding: 11px 14px; border-radius: 7px; font-size: 12.5px; margin: 10px 0; }
+.notice-red { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #fca5a5; }
+.notice-amber { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: #fde68a; }
+.notice-green { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); color: #86efac; }
+.notice-blue { background: rgba(26,92,219,.08); border: 1px solid rgba(26,92,219,.35); color: #93c5fd; }
 
-/* ── FOOTER ── */
-.footer { background: var(--navy2); border-top: 2px solid var(--border); padding: 18px 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.footer .fl { font-size: 12px; color: var(--sub); }
-.footer a { color: var(--accent); text-decoration: none; font-size: 12px; }
-.report-links { display: flex; gap: 12px; flex-wrap: wrap; }
-.rlink { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 7px 14px; color: var(--white); text-decoration: none; font-size: 12.5px; font-weight: 600; transition: border-color .2s; }
-.rlink:hover { border-color: var(--accent); }
+/* RISK LIST */
+.risk-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.risk-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.dot-red { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.5); }
+.dot-amber { background: var(--orange); box-shadow: 0 0 6px rgba(249,115,22,.5); }
+.dot-green { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
 
-@media (max-width: 768px) {
-  .body { grid-template-columns: 1fr; }
-  .dept:nth-child(odd) { border-right: none; }
+/* MINI KPI */
+.mini-kpi { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+.mk { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.ml { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.mv { font-size: 20px; font-weight: 800; }
+.ms { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+/* FOOTER */
+.footer { background: var(--navy2); border-top: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--sub); }
+.rlink { color: var(--sub); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 20px; font-size: 11.5px; transition: all .2s; }
+.rlink:hover { color: #fff; border-color: var(--accent); }
+.report-links { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 680px) {
   .kpi-row { grid-template-columns: repeat(3,1fr); }
+  .cards { grid-template-columns: repeat(2,1fr); }
   .mini-kpi { grid-template-columns: repeat(2,1fr); }
-  .header, .dept, .footer { padding-left: 20px; padding-right: 20px; }
-  .kpi-row { padding-left: 20px; padding-right: 20px; }
+  .tab-btn { padding: 10px 12px 9px; font-size: 12px; }
+  .header { padding: 18px 16px 14px; }
+  .tab-nav { padding: 0 10px; }
+  .tab-panel { padding: 20px 16px 30px; }
+  .kpi-row { padding: 12px 16px; }
 }
 </style>
 </head>
@@ -123,20 +149,26 @@ body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Ar
 <!-- TICKER -->
 <div class="topbar">
   <div class="ticker">
-    <span>SCFI&nbsp;<strong class="up">▲ 2,847</strong></span>
-    <span>WCI Shanghai-Rotterdam&nbsp;<strong class="dn">▼ $4,285</strong></span>
-    <span>VLSFO Singapore&nbsp;<strong class="up">▲ $968/MT</strong></span>
-    <span>Brent Crude&nbsp;<strong class="up">▲ $88.4/bbl</strong></span>
-    <span>USD/TWD&nbsp;<strong class="ne">32.18</strong></span>
-    <span>Strait of Hormuz&nbsp;<strong class="dn">BLOCKED Day 35</strong></span>
-    <span>Red Sea Diversion&nbsp;<strong class="dn">ACTIVE — Cape of Good Hope</strong></span>
-    <span>SCFI&nbsp;<strong class="up">▲ 2,847</strong></span>
-    <span>WCI Shanghai-Rotterdam&nbsp;<strong class="dn">▼ $4,285</strong></span>
-    <span>VLSFO Singapore&nbsp;<strong class="up">▲ $968/MT</strong></span>
-    <span>Brent Crude&nbsp;<strong class="up">▲ $88.4/bbl</strong></span>
-    <span>USD/TWD&nbsp;<strong class="ne">32.18</strong></span>
-    <span>Strait of Hormuz&nbsp;<strong class="dn">BLOCKED Day 35</strong></span>
-    <span>Red Sea Diversion&nbsp;<strong class="dn">ACTIVE — Cape of Good Hope</strong></span>
+    <span class="up">SCFI: 2,847 +2.1%</span>
+    <span class="up">CCFI: 1,634 +1.8%</span>
+    <span class="ne">BDI: 1,205 --</span>
+    <span class="up">Brent: $88.4 +1.6%</span>
+    <span class="up">VLSFO SGP: $968 +0.4%</span>
+    <span class="up">MGO SGP: $1,524 +0.3%</span>
+    <span class="ne">USD/TWD: 32.18 --</span>
+    <span class="ne">USD/CNY: 7.24 --</span>
+    <span class="dn">Hormuz Day 35: BLOCKED</span>
+    <span class="dn">Red Sea: DIVERSION ACTIVE</span>
+    <span class="up">SCFI: 2,847 +2.1%</span>
+    <span class="up">CCFI: 1,634 +1.8%</span>
+    <span class="ne">BDI: 1,205 --</span>
+    <span class="up">Brent: $88.4 +1.6%</span>
+    <span class="up">VLSFO SGP: $968 +0.4%</span>
+    <span class="up">MGO SGP: $1,524 +0.3%</span>
+    <span class="ne">USD/TWD: 32.18 --</span>
+    <span class="ne">USD/CNY: 7.24 --</span>
+    <span class="dn">Hormuz Day 35: BLOCKED</span>
+    <span class="dn">Red Sea: DIVERSION ACTIVE</span>
   </div>
 </div>
 
@@ -144,241 +176,251 @@ body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Ar
 <div class="header">
   <div class="header-row">
     <div class="brand">
-      <div class="brand-icon">🚢</div>
+      <div class="brand-icon">C</div>
       <div>
-        <h1>CLAW DAILY INTELLIGENCE BRIEF</h1>
-        <p>Internal Report — Confidential · For Authorized Distribution Only</p>
+        <h1>CLAW DAILY BRIEF</h1>
+        <p>Internal Intelligence Report</p>
       </div>
     </div>
     <div class="date-block">
       <div class="d">2026-03-31</div>
-      <div class="s">Tuesday · Issue #87</div>
+      <div class="s">Tuesday &nbsp;|&nbsp; 09:00 CST</div>
     </div>
   </div>
   <div class="alert-bar">
-    🚨 <strong>CRITICAL:</strong> Strait of Hormuz blockade enters Day 35. Khor Fakkan remains UAE's only operational container port. All Middle East calls via Fujairah subject to space squeeze. Red Sea diversions continue via Cape of Good Hope — +14 days transit time.
+    <strong>[CRITICAL]</strong>&nbsp; Hormuz Strait blockade Day 35 — all Middle East routes via Cape of Good Hope. Red Sea HMG advisory active. Review all Gulf vessel schedules immediately.
   </div>
 </div>
 
 <!-- KPI ROW -->
 <div class="kpi-row">
-  <div class="kpi">
-    <div class="lbl">SCFI</div>
-    <div class="val up">2,847</div>
-    <div class="chg up">▲ +4.8% WoW</div>
+  <div class="kpi"><div class="lbl">SCFI</div><div class="val up">2,847</div><div class="chg up">+2.1% WoW</div></div>
+  <div class="kpi"><div class="lbl">CCFI</div><div class="val up">1,634</div><div class="chg up">+1.8% WoW</div></div>
+  <div class="kpi"><div class="lbl">Brent</div><div class="val up">$88.4</div><div class="chg up">+1.6% DoD</div></div>
+  <div class="kpi"><div class="lbl">VLSFO SGP</div><div class="val up">$968</div><div class="chg up">+0.4%</div></div>
+  <div class="kpi"><div class="lbl">USD/TWD</div><div class="val ne">32.18</div><div class="chg ne">Stable</div></div>
+  <div class="kpi"><div class="lbl">USD/CNY</div><div class="val ne">7.24</div><div class="chg ne">Stable</div></div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('mgmt',this)">
+    <span class="tab-icon">&#9733;</span> Management <span class="tab-badge tb-red">3 Risks</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('sales',this)">
+    <span class="tab-icon">&#8593;</span> Sales &amp; Commercial <span class="tab-badge tb-amber">GRI Alert</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('ops',this)">
+    <span class="tab-icon">&#9875;</span> Operations &amp; Fleet <span class="tab-badge tb-red">2 Warnings</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('bunker',this)">
+    <span class="tab-icon">&#9981;</span> Procurement / Bunker <span class="tab-badge tb-amber">Supply Alert</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('finance',this)">
+    <span class="tab-icon">&#36;</span> Finance <span class="tab-badge tb-amber">BAF Rising</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('equip',this)">
+    <span class="tab-icon">&#9632;</span> Container Equipment <span class="tab-badge tb-red">Shortage</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('legal',this)">
+    <span class="tab-icon">&#9878;</span> Legal &amp; Compliance <span class="tab-badge tb-red">High Alert</span>
+  </button>
+</div>
+
+<!-- ===== TAB 1: MANAGEMENT ===== -->
+<div id="tab-mgmt" class="tab-panel active">
+  <div class="sect-title">30-Second Market Overview</div>
+  <div class="cards">
+    <div class="card"><div class="cl">SCFI Index</div><div class="cv up">2,847</div><div class="cc up">+2.1% WoW — Rising</div></div>
+    <div class="card"><div class="cl">Middle East Risk</div><div class="cv dn" style="color:#ef4444">CRITICAL</div><div class="cc dn">Hormuz Day 35</div></div>
+    <div class="card"><div class="cl">Key Decision</div><div class="cv" style="font-size:15px;margin-top:4px">Cape Reroute</div><div class="cc ne">+14 days ETA</div></div>
   </div>
-  <div class="kpi">
-    <div class="lbl">WCI (SHA→RTM)</div>
-    <div class="val dn">$4,285</div>
-    <div class="chg dn">▼ -2.1% WoW</div>
+
+  <div class="sect-title">Top 3 Competitor Moves</div>
+  <table class="tbl">
+    <thead><tr><th>Carrier</th><th>Action</th><th>Impact on Us</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MSC</strong></td><td>Filing $500/TEU GRI on Middle East lanes (Apr 7)</td><td class="dn">Pressure to match or lose cargo</td></tr>
+      <tr><td><strong>Maersk</strong></td><td>Suspending all Hormuz-bound sailings until Apr 15</td><td class="ne">Opportunity to capture diverted cargo</td></tr>
+      <tr><td><strong>CMA CGM</strong></td><td>Activating full Cape rerouting — ETA +14 days</td><td class="ne">Same diversion as us — level playing field</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sect-title">Top 3 Risks This Week</div>
+  <ul class="risk-list">
+    <li><span class="dot dot-red"></span><div><strong>[HIGH] Hormuz Blockade (Day 35):</strong> No diplomatic resolution in sight. Cape routing adds ~$380k cost per voyage and 14 days transit. All Middle East vessel ETAs must be recommunicated to customers immediately.</div></li>
+    <li><span class="dot dot-red"></span><div><strong>[HIGH] MSC GRI Filing:</strong> $500/TEU effective Apr 7 on Middle East lanes. Management decision required — match the GRI or risk cargo loss to competitors.</div></li>
+    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Middle East Box Shortage:</strong> Empty container repositioning blocked by Hormuz closure. Gulf customers face allocation cuts by end of April if no alternative is found.</div></li>
+  </ul>
+</div>
+
+<!-- ===== TAB 2: SALES & COMMERCIAL ===== -->
+<div id="tab-sales" class="tab-panel">
+  <div class="sect-title">Freight Rates by Trade Lane</div>
+  <table class="tbl">
+    <thead><tr><th>Trade Lane</th><th>Rate (USD)</th><th>Unit</th><th>WoW Change</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Taiwan &rarr; Southeast Asia</td><td>$420</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
+      <tr><td>S. China / E. China / Thai-Viet</td><td>$465</td><td>/TEU</td><td class="up">+4.5%</td><td><span class="pill pill-amber">Rising</span></td></tr>
+      <tr><td>Taiwan &rarr; Middle East</td><td>$1,840</td><td>/TEU</td><td class="up">+12.2%</td><td><span class="pill pill-red">Surge</span></td></tr>
+      <tr><td>Asia &rarr; Red Sea (Aqaba)</td><td>$3,728</td><td>/TEU</td><td class="up">+12.2%</td><td><span class="pill pill-red">Diversion Premium</span></td></tr>
+      <tr><td>Intra-Asia Near-Sea</td><td>$310</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="notice notice-red">
+    <strong>[GRI NOTICE]</strong> MSC filing $500/TEU GRI on Middle East lanes effective Apr 7. Review all customer contracts — check surge clause applicability before responding to clients.
   </div>
-  <div class="kpi">
-    <div class="lbl">Brent Crude</div>
-    <div class="val up">$88.4</div>
-    <div class="chg up">▲ +1.6% DoD</div>
+
+  <div class="sect-title">Action Items for Sales Team</div>
+  <ul class="risk-list">
+    <li><span class="dot dot-red"></span><div><strong>Middle East Customers:</strong> Notify all Gulf/Red Sea shippers of +14 day ETA extension due to Cape rerouting. Issue revised booking confirmations.</div></li>
+    <li><span class="dot dot-amber"></span><div><strong>GRI Response:</strong> Pending management decision on MSC GRI matching — hold off quoting Middle East spot rates until confirmed. Target deadline: Apr 4.</div></li>
+    <li><span class="dot dot-green"></span><div><strong>Intra-Asia Opportunity:</strong> Rates stable and demand healthy. Push capacity utilization on Taiwan / SEA lanes where available.</div></li>
+  </ul>
+</div>
+
+<!-- ===== TAB 3: OPERATIONS & FLEET ===== -->
+<div id="tab-ops" class="tab-panel">
+  <div class="sect-title">Port Status</div>
+  <table class="tbl">
+    <thead><tr><th>Port</th><th>Status</th><th>Congestion</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Khor Fakkan (UAE)</td><td><span class="pill pill-amber">Strained</span></td><td>High</td><td>Only UAE container port open — divert here</td></tr>
+      <tr><td>Fujairah (UAE)</td><td><span class="pill pill-amber">Restricted</span></td><td>Medium</td><td>Bunker only, no container terminal</td></tr>
+      <tr><td>Shanghai</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>No disruptions</td></tr>
+      <tr><td>Singapore</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Bunker hub stable</td></tr>
+      <tr><td>Kaohsiung / Keelung</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Taiwan ports clear</td></tr>
+      <tr><td>Rotterdam</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Arrivals up due to Cape rerouting</td></tr>
+    </tbody>
+  </table>
+
+  <div class="notice notice-red">
+    <strong>[DIVERSION ACTIVE]</strong> All Middle East voyages routing via Cape of Good Hope. ETA extension +14 days. Check schedule reliability with clients and update all port call sequences.
   </div>
-  <div class="kpi">
-    <div class="lbl">VLSFO SIN</div>
-    <div class="val up">$968</div>
-    <div class="chg up">▲ +3.2% MoM</div>
+
+  <div class="sect-title">Schedule Warnings</div>
+  <ul class="risk-list">
+    <li><span class="dot dot-red"></span><div><strong>All Gulf-bound Vessels:</strong> Must divert via Cape of Good Hope. Hormuz Strait closed to commercial shipping. Confirm updated ETAs with all affected parties.</div></li>
+    <li><span class="dot dot-red"></span><div><strong>Khor Fakkan Congestion:</strong> 48-hour pre-arrival notice now mandatory (effective Apr 1). Late arrivals face slot cancellation. File NOAs early.</div></li>
+    <li><span class="dot dot-green"></span><div><strong>Taiwan / SEA Routes:</strong> All normal. No disruptions reported. Standard schedule reliability.</div></li>
+  </ul>
+</div>
+
+<!-- ===== TAB 4: PROCUREMENT / BUNKER ===== -->
+<div id="tab-bunker" class="tab-panel">
+  <div class="sect-title">Global Fuel Price Overview</div>
+  <div class="mini-kpi">
+    <div class="mk"><div class="ml">VLSFO Global Avg</div><div class="mv up">$951</div><div class="ms up">+3.2% MoM</div></div>
+    <div class="mk"><div class="ml">MGO Global Avg</div><div class="mv up">$1,507</div><div class="ms up">+1.8% MoM</div></div>
+    <div class="mk"><div class="ml">Cape Extra Fuel Cost</div><div class="mv dn">+28%</div><div class="ms dn">per voyage vs Suez</div></div>
   </div>
-  <div class="kpi">
-    <div class="lbl">USD / TWD</div>
-    <div class="val ne">32.18</div>
-    <div class="chg ne">— Stable</div>
-  </div>
-  <div class="kpi">
-    <div class="lbl">Hormuz Blockade</div>
-    <div class="val dn">Day 35</div>
-    <div class="chg dn">ONGOING</div>
+
+  <div class="sect-title">Port-by-Port Prices (USD/MT)</div>
+  <table class="tbl">
+    <thead><tr><th>Port</th><th>VLSFO</th><th>MGO</th><th>Supply</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Singapore</td><td class="up">$968</td><td>$1,524</td><td><span class="pill pill-green">Good</span></td><td>Recommend bunker here</td></tr>
+      <tr><td>Fujairah</td><td class="alert-td">$1,043</td><td class="alert-td">$1,651</td><td><span class="pill pill-red">Tight</span></td><td>War premium, avoid if possible</td></tr>
+      <tr><td>Rotterdam</td><td>$938</td><td>$1,492</td><td><span class="pill pill-green">Good</span></td><td>Good value for Cape routing</td></tr>
+      <tr><td>Shanghai</td><td>$921</td><td>$1,478</td><td><span class="pill pill-green">Good</span></td><td>Best price in Asia</td></tr>
+      <tr><td>Los Angeles</td><td>$897</td><td>$1,445</td><td><span class="pill pill-green">Good</span></td><td>Transpacific reference</td></tr>
+      <tr><td>Busan</td><td>$935</td><td>$1,488</td><td><span class="pill pill-green">Good</span></td><td>NE Asia backup option</td></tr>
+    </tbody>
+  </table>
+
+  <div class="notice notice-amber">
+    <strong>[SUPPLY ALERT]</strong> Fujairah bunker availability tight due to Hormuz closure. All vessels on Cape routing should pre-bunker at Singapore or Shanghai. Do NOT rely on Fujairah stem for Gulf-bound voyages.
   </div>
 </div>
 
-<!-- BODY GRID -->
-<div class="body">
-
-  <!-- ① MANAGEMENT -->
-  <div class="dept full">
-    <div class="dh">
-      <div class="dh-icon ic-mgmt">🏛</div>
-      <div><h2>Management</h2><div class="sub">Executive Summary · 30-Second Brief</div></div>
-      <span class="badge bdg-red">3 Critical Risks</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-      <div>
-        <div style="font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Market Snapshot</div>
-        <ul class="risk-list">
-          <li><span class="dot dot-red"></span><div><strong>SCFI +4.8% WoW</strong> — driven by Middle East supply squeeze and Red Sea premium. Asia-Europe and Middle East lanes leading the surge.</div></li>
-          <li><span class="dot dot-amber"></span><div><strong>Carrier alliances reshuffling</strong> — Gemini Cooperation (Maersk+Hapag) skipping all Red Sea port calls. MSC operating independently via Cape.</div></li>
-          <li><span class="dot dot-green"></span><div><strong>Taiwan Strait stable</strong> — no disruptions. Taiwan-Japan and Taiwan-Southeast Asia volumes holding steady.</div></li>
-        </ul>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Top 3 Risks Today</div>
-        <ul class="risk-list">
-          <li><span class="dot dot-red"></span><div><strong>[HIGH] Hormuz Day 35</strong> — Iranian Navy has not signalled withdrawal. Risk of extended blockade through Q2 is now base case.</div></li>
-          <li><span class="dot dot-red"></span><div><strong>[HIGH] Fuel cost spike</strong> — Cape diversion adding 25–30% fuel per voyage. BAF adjustments lag market by 2–4 weeks.</div></li>
-          <li><span class="dot dot-amber"></span><div><strong>[MED] Equipment shortage</strong> — Empty box repositioning from Asia to Middle East being delayed; Gulf clients facing allocation cuts.</div></li>
-        </ul>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Competitor Moves</div>
-        <ul class="risk-list">
-          <li><span class="dot dot-amber"></span><div><strong>MSC</strong> — Filed GRI $500/TEU effective April 7 on Asia-Middle East. Space very tight.</div></li>
-          <li><span class="dot dot-amber"></span><div><strong>Evergreen</strong> — Deploying extra loaders on Taiwan-Southeast Asia. Undercutting on spot.</div></li>
-          <li><span class="dot dot-green"></span><div><strong>COSCO</strong> — Announced partial Red Sea re-entry trial via escorts, monitoring outcome.</div></li>
-        </ul>
-      </div>
-    </div>
+<!-- ===== TAB 5: FINANCE ===== -->
+<div id="tab-finance" class="tab-panel">
+  <div class="sect-title">Key Financial Indicators</div>
+  <div class="mini-kpi">
+    <div class="mk"><div class="ml">Brent Crude</div><div class="mv up">$88.4/bbl</div><div class="ms up">+1.6% DoD</div></div>
+    <div class="mk"><div class="ml">USD / TWD</div><div class="mv ne">32.18</div><div class="ms ne">Stable</div></div>
+    <div class="mk"><div class="ml">USD / CNY</div><div class="mv ne">7.24</div><div class="ms ne">Stable</div></div>
   </div>
 
-  <!-- ② SALES & COMMERCIAL -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-sales">📈</div>
-      <div><h2>Sales &amp; Commercial</h2><div class="sub">Freight Rates by Trade Lane</div></div>
-      <span class="badge bdg-amber">GRI Alert</span>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Trade Lane</th><th>Rate (USD)</th><th>Unit</th><th>WoW</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr><td>Taiwan → Southeast Asia</td><td>$420</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
-        <tr><td>S. China / E. China / Thai-Viet</td><td>$465</td><td>/TEU</td><td class="up">▲ +4.5%</td><td><span class="pill pill-amber">Rising</span></td></tr>
-        <tr><td>Taiwan → Middle East</td><td>$1,840</td><td>/TEU</td><td class="up">▲ +12.2%</td><td><span class="pill pill-red">Surge</span></td></tr>
-        <tr><td>Asia → Red Sea (Aqaba)</td><td>$3,728</td><td>/TEU</td><td class="up">▲ +12.2%</td><td><span class="pill pill-red">Diversion Premium</span></td></tr>
-        <tr><td>Intra-Asia Near-Sea</td><td>$310</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:12px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:7px;font-size:12.5px;color:#fde68a;">
-      ⚠️ <strong>GRI Notice:</strong> MSC filing $500/TEU GRI on Middle East lanes effective Apr 7. Review customer contracts — surge clause applicability.
-    </div>
+  <div class="sect-title">Cost &amp; Surcharge Table</div>
+  <table class="tbl">
+    <thead><tr><th>Item</th><th>Current Value</th><th>Change</th><th>Impact</th></tr></thead>
+    <tbody>
+      <tr><td>BAF — Asia / Middle East</td><td>$412/TEU</td><td class="up">+8% vs Feb</td><td>Increase surcharge billing</td></tr>
+      <tr><td>BAF — Asia / Europe</td><td>$389/TEU</td><td class="up">+6% vs Feb</td><td>Increase surcharge billing</td></tr>
+      <tr><td>Cape Diversion Extra Cost</td><td>~$380k/voyage</td><td class="dn">High pressure</td><td>Absorb vs surcharge — TBD</td></tr>
+      <tr><td>GRI Filing (MSC, Apr 7)</td><td>$500/TEU</td><td class="dn">Cost risk</td><td>Pending mgmt decision</td></tr>
+      <tr><td>War Risk Surcharge (Gulf)</td><td>0.5–0.75% hull</td><td class="dn">Rising</td><td>Add to Gulf cargo pricing</td></tr>
+    </tbody>
+  </table>
+
+  <div class="notice notice-blue">
+    <strong>[FX NOTE]</strong> USD/TWD and USD/CNY both stable this week. No immediate FX hedging action required. Monitor if Brent continues above $90 — will trigger BAF recalculation in May.
+  </div>
+</div>
+
+<!-- ===== TAB 6: CONTAINER EQUIPMENT ===== -->
+<div id="tab-equip" class="tab-panel">
+  <div class="sect-title">Empty Box Inventory Status</div>
+  <table class="tbl">
+    <thead><tr><th>Region</th><th>20' Dry</th><th>40' HC</th><th>Reefer</th><th>Overall</th></tr></thead>
+    <tbody>
+      <tr><td>Taiwan / Kaohsiung</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
+      <tr><td>South China (Shenzhen / Guangzhou)</td><td>Normal</td><td>Normal</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
+      <tr><td>East China (Shanghai)</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
+      <tr><td>Thai / Vietnam</td><td>Normal</td><td>Tight</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
+      <tr><td>Middle East (Gulf)</td><td class="alert-td">Short</td><td class="alert-td">Short</td><td class="alert-td">Critical</td><td><span class="pill pill-red">Shortage</span></td></tr>
+      <tr><td>West US / East US</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="notice notice-red">
+    <strong>[SHORTAGE ALERT]</strong> Middle East empty box repositioning severely delayed due to Hormuz closure. Gulf customers may face equipment allocation cuts by end of April. Action: prioritize emergency repositioning via Khor Fakkan immediately.
   </div>
 
-  <!-- ③ OPERATIONS & FLEET -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-ops">⚓</div>
-      <div><h2>Operations &amp; Fleet</h2><div class="sub">Port Status &amp; Schedule Alerts</div></div>
-      <span class="badge bdg-red">2 Warnings</span>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Port</th><th>Status</th><th>Congestion</th><th>Note</th></tr></thead>
-      <tbody>
-        <tr><td>Khor Fakkan (UAE)</td><td><span class="pill pill-amber">Strained</span></td><td>High</td><td>Only UAE container port open</td></tr>
-        <tr><td>Fujairah (UAE)</td><td><span class="pill pill-amber">Restricted</span></td><td>Medium</td><td>Bunker only, no container terminal</td></tr>
-        <tr><td>Shanghai</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>No disruptions</td></tr>
-        <tr><td>Singapore</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Bunker hub stable</td></tr>
-        <tr><td>Kaohsiung / Keelung</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Taiwan ports clear</td></tr>
-        <tr><td>Rotterdam</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Arrivals up due to Cape rerouting</td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:12px;padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:7px;font-size:12.5px;color:#fca5a5;">
-      🔴 <strong>Diversion Active:</strong> All Middle East voyages routing via Cape of Good Hope. ETA extension +14 days. Check schedule reliability with clients.
-    </div>
-  </div>
+  <div class="sect-title">Action Items</div>
+  <ul class="risk-list">
+    <li><span class="dot dot-red"></span><div><strong>Gulf Emergency Repositioning:</strong> Identify available empties in Singapore and Shanghai for emergency reposition to Khor Fakkan. Target: 500 x 20', 300 x 40'HC by Apr 15.</div></li>
+    <li><span class="dot dot-amber"></span><div><strong>Thai / Vietnam Reefer Watch:</strong> Reefer availability tightening ahead of Apr-May fruit season. Pre-position 100 reefer units by Apr 7 to avoid customer complaints.</div></li>
+    <li><span class="dot dot-green"></span><div><strong>Taiwan / China Inventory:</strong> All normal. No action required this week.</div></li>
+  </ul>
+</div>
 
-  <!-- ④ PROCUREMENT / BUNKER -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-bunker">⛽</div>
-      <div><h2>Procurement / Bunker</h2><div class="sub">Global Fuel Prices — 2026-03-31</div></div>
-      <span class="badge bdg-red">Supply Alert</span>
-    </div>
-    <div class="mini-kpi">
-      <div class="mk"><div class="ml">VLSFO Global Avg</div><div class="mv up">$951</div><div class="ms up">▲ +3.2% MoM</div></div>
-      <div class="mk"><div class="ml">MGO Global Avg</div><div class="mv up">$1,507</div><div class="ms up">▲ +1.8% MoM</div></div>
-      <div class="mk"><div class="ml">Cape Extra Fuel</div><div class="mv dn">+28%</div><div class="ms dn">per voyage vs Suez</div></div>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Port</th><th>VLSFO</th><th>MGO</th><th>Supply</th></tr></thead>
-      <tbody>
-        <tr><td>Singapore</td><td class="up">$968</td><td>$1,524</td><td><span class="pill pill-green">Good</span></td></tr>
-        <tr><td>Fujairah</td><td class="alert-td">$1,043</td><td class="alert-td">$1,651</td><td><span class="pill pill-red">Tight</span></td></tr>
-        <tr><td>Rotterdam</td><td>$938</td><td>$1,492</td><td><span class="pill pill-green">Good</span></td></tr>
-        <tr><td>Shanghai</td><td>$921</td><td>$1,478</td><td><span class="pill pill-green">Good</span></td></tr>
-        <tr><td>Los Angeles</td><td>$897</td><td>$1,445</td><td><span class="pill pill-green">Good</span></td></tr>
-        <tr><td>Busan</td><td>$935</td><td>$1,488</td><td><span class="pill pill-green">Good</span></td></tr>
-      </tbody>
-    </table>
-  </div>
+<!-- ===== TAB 7: LEGAL & COMPLIANCE ===== -->
+<div id="tab-legal" class="tab-panel">
+  <div class="sect-title">Active Alerts &amp; Regulatory Updates</div>
+  <ul class="risk-list">
+    <li><span class="dot dot-red"></span><div><strong>[HIGH] War Risk Premium — Hormuz / Gulf of Oman:</strong> W&amp;SR surcharge now mandatory for all vessels transiting. Current rate: 0.5–0.75% vessel value per call. Confirm with P&amp;I Club before scheduling any Gulf entry. Do NOT allow vessels to transit without confirmed war risk cover.</div></li>
+    <li><span class="dot dot-red"></span><div><strong>[HIGH] Red Sea / Bab-el-Mandeb:</strong> HMG / UKMTO advisory remains fully active. All vessel transits require prior notice to UKMTO. Cape routing remains strongly recommended for crew safety and hull insurance coverage.</div></li>
+    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Iran Sanctions (OFAC):</strong> No new general license for Hormuz transit issued. Vessels calling Iranian ports remain sanctioned. All cargo manifests must be screened — zero tolerance for Iranian-origin goods on any booking.</div></li>
+    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Khor Fakkan New Rules (Effective Apr 1):</strong> UAE Port Authority requires 48-hour pre-arrival notice for all container vessels. Late arrivals subject to slot cancellation without compensation. Ops team must file NOA 48hrs ahead.</div></li>
+    <li><span class="dot dot-green"></span><div><strong>[LOW] Taiwan Strait:</strong> No new legal restrictions. Normal operations. Continue standard P&amp;NI coverage. No additional war risk premium required at this time.</div></li>
+  </ul>
 
-  <!-- ⑤ FINANCE -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-fin">💰</div>
-      <div><h2>Finance</h2><div class="sub">Rates, FX &amp; Cost Indicators</div></div>
-      <span class="badge bdg-amber">BAF Rising</span>
-    </div>
-    <div class="mini-kpi">
-      <div class="mk"><div class="ml">Brent Crude</div><div class="mv up">$88.4</div><div class="ms up">▲ +1.6% DoD</div></div>
-      <div class="mk"><div class="ml">USD / TWD</div><div class="mv ne">32.18</div><div class="ms ne">— Stable</div></div>
-      <div class="mk"><div class="ml">USD / CNY</div><div class="mv ne">7.24</div><div class="ms ne">— Stable</div></div>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Item</th><th>Value</th><th>Change</th></tr></thead>
-      <tbody>
-        <tr><td>BAF (Asia-Middle East)</td><td>$412/TEU</td><td class="up">▲ +8% vs Feb</td></tr>
-        <tr><td>BAF (Asia-Europe)</td><td>$389/TEU</td><td class="up">▲ +6% vs Feb</td></tr>
-        <tr><td>Cape Diversion Extra Cost</td><td>~$380k/voyage</td><td class="dn">▼ Pressure high</td></tr>
-        <tr><td>GRI Filing (MSC, Apr 7)</td><td>$500/TEU</td><td class="dn">▼ Cost risk</td></tr>
-      </tbody>
-    </table>
+  <div class="notice notice-amber" style="margin-top:16px">
+    <strong>[REMINDER]</strong> All Middle East voyage approvals require Legal sign-off on war risk coverage confirmation before departure. Contact legal@culines.com for urgent approvals.
   </div>
-
-  <!-- ⑥ CONTAINER EQUIPMENT -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-box">📦</div>
-      <div><h2>Container Equipment</h2><div class="sub">Empty Box Inventory &amp; Alerts</div></div>
-      <span class="badge bdg-red">Middle East Shortage</span>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Region</th><th>20' Dry</th><th>40' HC</th><th>Reefer</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr><td>Taiwan / Kaohsiung</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
-        <tr><td>South China (Shenzhen/Guangzhou)</td><td>Normal</td><td>Normal</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
-        <tr><td>East China (Shanghai)</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
-        <tr><td>Thai / Vietnam</td><td>Normal</td><td>Tight</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
-        <tr><td>Middle East (Gulf)</td><td class="alert-td">Short</td><td class="alert-td">Short</td><td class="alert-td">Critical</td><td><span class="pill pill-red">Shortage</span></td></tr>
-        <tr><td>West US / East US</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:12px;font-size:12.5px;color:#fca5a5;padding:8px 12px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:7px;">
-      🔴 Middle East empty box repositioning delayed due to Hormuz closure. Customers in Gulf may face equipment allocation cuts. Prioritize reposition via Khor Fakkan immediately.
-    </div>
-  </div>
-
-  <!-- ⑦ LEGAL & COMPLIANCE -->
-  <div class="dept">
-    <div class="dh">
-      <div class="dh-icon ic-legal">⚖</div>
-      <div><h2>Legal &amp; Compliance</h2><div class="sub">Sanctions, War Risk &amp; Regulatory Updates</div></div>
-      <span class="badge bdg-red">High Alert</span>
-    </div>
-    <ul class="risk-list">
-      <li><span class="dot dot-red"></span><div><strong>War Risk Premium — Hormuz / Gulf of Oman:</strong> W&amp;SR surcharge now mandatory for all vessels transiting. Current rate: 0.5–0.75% vessel value per call. Confirm with P&amp;I Club before scheduling any Gulf entry.</div></li>
-      <li><span class="dot dot-red"></span><div><strong>Red Sea / Bab-el-Mandeb:</strong> HMG / UKMTO advisory remains active. All vessel transits require prior notice to UKMTO. Cape routing remains recommended for crew safety.</div></li>
-      <li><span class="dot dot-amber"></span><div><strong>Iran Sanctions:</strong> OFAC has not issued new general license for Hormuz transit. Vessels calling Iranian ports remain sanctioned. All cargo manifests must be clean of Iranian-origin goods.</div></li>
-      <li><span class="dot dot-amber"></span><div><strong>Khor Fakkan New Rules (Effective Apr 1):</strong> UAE Port Authority requires 48-hour pre-arrival notice for all container vessels. Late arrivals subject to slot cancellation without compensation.</div></li>
-      <li><span class="dot dot-green"></span><div><strong>Taiwan Strait:</strong> No new legal restrictions. Normal operations. Continue standard PNI coverage.</div></li>
-    </ul>
-  </div>
-
-</div><!-- /body -->
+</div>
 
 <!-- FOOTER -->
 <div class="footer">
-  <div class="fl">
-    Auto-generated by <strong>Claw Report System</strong> · 2026-03-31 09:00 CST<br>
-    Confidential — Internal use only. Do not forward externally.
-  </div>
+  <div>Auto-generated by <strong>Claw Report System</strong> &nbsp;|&nbsp; 2026-03-31 09:00 CST &nbsp;|&nbsp; Confidential — Internal use only</div>
   <div class="report-links">
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/shipping-news-2026-03-31.html">📰 Shipping News</a>
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/freight-rate-report-2026-03-31.html">📊 Freight Rates</a>
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report-2026-03-31.html">⛽ Bunker Fuel</a>
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report">🗂 Archive</a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/shipping-news-2026-03-31.html">Shipping News</a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/freight-rate-report-2026-03-31.html">Freight Rates</a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report-2026-03-31.html">Bunker Fuel</a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report">Archive</a>
   </div>
 </div>
 
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
 </body>
 </html>
