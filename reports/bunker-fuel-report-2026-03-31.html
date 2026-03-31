@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球航运燃油深度分析报告 · 2026-03-31</title>
+<style>
+  :root {
+    --navy:#0a1628;--navy2:#0d2045;--accent:#1e5bbd;--highlight:#2e7de0;
+    --gold:#f0b429;--white:#ffffff;--gray:#a0aec0;
+    --card-bg:#0f1e3d;--card-border:#1e3a6b;
+    --text-main:#e2e8f0;--text-sub:#94a3b8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--navy);color:var(--text-main);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh;}
+  .ticker-wrap{background:var(--accent);padding:7px 0;overflow:hidden;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--gold);}
+  .ticker{display:flex;white-space:nowrap;animation:scroll 60s linear infinite;}
+  .ticker span{font-size:13px;font-weight:600;padding:0 28px;}
+  .up{color:#4ade80;}.dn{color:#f87171;}.ne{color:#fde68a;}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .header{background:linear-gradient(135deg,#0a1628,#0d2045,#132f5e);border-bottom:3px solid var(--gold);padding:32px 40px 28px;}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-icon{width:52px;height:52px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .brand-text h1{font-size:22px;font-weight:800;color:var(--white);}
+  .brand-text p{font-size:12px;color:var(--gray);margin-top:2px;}
+  .date-badge .date{font-size:28px;font-weight:800;color:var(--gold);}
+  .date-badge .sub{font-size:13px;color:var(--gray);margin-top:4px;text-align:right;}
+  .subtitle{margin-top:14px;font-size:14px;color:var(--gray);display:flex;align-items:center;gap:8px;}
+  .subtitle::before{content:'';width:30px;height:2px;background:var(--gold);display:inline-block;}
+  .status-bar{background:rgba(30,91,189,0.15);border-bottom:1px solid var(--card-border);padding:10px 40px;display:flex;gap:24px;flex-wrap:wrap;}
+  .status-item{font-size:12px;color:var(--text-sub);}
+  .status-item strong{color:var(--text-main);}
+  .main{padding:30px 40px;}
+  .section-title{display:flex;align-items:center;gap:10px;margin:32px 0 18px;}
+  .section-title:first-child{margin-top:0;}
+  .section-title .icon{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .section-title h2{font-size:17px;font-weight:700;color:var(--white);}
+  .section-title .badge{background:rgba(30,91,189,0.3);border:1px solid var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--highlight);}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:10px;}
+  .kpi-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:18px 16px;text-align:center;}
+  .kpi-label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .kpi-val{font-size:26px;font-weight:800;color:var(--white);}
+  .kpi-chg{font-size:13px;font-weight:600;margin-top:5px;}
+  .kpi-sub{font-size:11px;color:var(--gray);margin-top:3px;}
+  .banner{background:linear-gradient(90deg,#7f1d1d,#991b1b);border:1px solid #dc2626;border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:13.5px;color:#fca5a5;display:flex;align-items:center;gap:10px;}
+  .banner-warn{background:linear-gradient(90deg,#78350f,#92400e);border:1px solid #d97706;border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:13.5px;color:#fde68a;display:flex;align-items:center;gap:10px;}
+  .table-wrap{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:24px 28px;margin-bottom:24px;}
+  .table-wrap h3{font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:rgba(30,91,189,0.2);color:var(--highlight);padding:10px 14px;text-align:left;font-weight:600;border-bottom:1px solid var(--card-border);}
+  tbody td{padding:10px 14px;border-bottom:1px solid rgba(30,91,189,0.1);color:var(--text-main);}
+  tbody tr:hover td{background:rgba(30,91,189,0.06);}
+  td.up{color:#4ade80;font-weight:600;}td.dn{color:#f87171;font-weight:600;}td.ne{color:#fde68a;font-weight:600;}td.alert{color:#fb923c;font-weight:700;}
+  .bar-wrap{margin-top:8px;}
+  .bar-item{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .bar-label{width:160px;font-size:12px;color:var(--text-sub);flex-shrink:0;}
+  .bar-track{flex:1;background:rgba(30,91,189,0.15);border-radius:4px;height:20px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:var(--white);}
+  .bf-sg{background:linear-gradient(90deg,#1e5bbd,#2e7de0);}
+  .bf-rot{background:linear-gradient(90deg,#0f766e,#14b8a6);}
+  .bf-hou{background:linear-gradient(90deg,#6d28d9,#7c3aed);}
+  .bf-fuj{background:linear-gradient(90deg,#b45309,#d97706);}
+  .bf-la{background:linear-gradient(90deg,#065f46,#059669);}
+  .bf-hk{background:linear-gradient(90deg,#9d174d,#be185d);}
+  .bf-ny{background:linear-gradient(90deg,#1e40af,#2563eb);}
+  .analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .analysis-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:20px;}
+  .analysis-card h4{font-size:14px;font-weight:700;color:var(--gold);margin-bottom:12px;}
+  .analysis-card p{font-size:13px;color:var(--text-sub);line-height:1.8;}
+  .highlight-box{background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:14px 18px;margin:12px 0;font-size:13px;color:#fde68a;}
+  .risk-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(30,91,189,0.15);}
+  .risk-item:last-child{border:none;}
+  .risk-level{width:64px;flex-shrink:0;text-align:center;padding:3px 0;border-radius:4px;font-size:11px;font-weight:700;}
+  .risk-high{background:rgba(229,62,62,0.2);color:#fc8181;}
+  .risk-med{background:rgba(221,107,32,0.2);color:#f6ad55;}
+  .risk-low{background:rgba(56,161,105,0.2);color:#68d391;}
+  .risk-text h5{font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px;}
+  .risk-text p{font-size:12px;color:var(--text-sub);line-height:1.6;}
+  .outlook-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .outlook-bull{background:rgba(56,161,105,0.08);border:1px solid rgba(56,161,105,0.25);border-radius:12px;padding:18px;}
+  .outlook-bear{background:rgba(229,62,62,0.08);border:1px solid rgba(229,62,62,0.25);border-radius:12px;padding:18px;}
+  .outlook-title{font-size:13px;font-weight:700;margin-bottom:12px;}
+  .outlook-title.bull{color:#68d391;}.outlook-title.bear{color:#fc8181;}
+  .outlook-item{font-size:12.5px;color:var(--text-sub);line-height:1.8;padding-left:14px;position:relative;}
+  .outlook-item::before{content:'›';position:absolute;left:0;color:var(--accent);}
+  footer{text-align:center;padding:28px 40px;background:var(--navy2);border-top:1px solid var(--card-border);font-size:12px;color:var(--gray);}
+  footer .disc{margin-top:6px;font-size:11px;color:var(--text-sub);opacity:.7;}
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>⛽ 航运燃油日报 2026-03-31</span>
+    <span class="ne">│</span>
+    <span class="up">全球VLSFO均价 951 USD/MT ▲+3.2%（月环比）</span>
+    <span class="ne">│</span>
+    <span class="up">新加坡VLSFO 834 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="up">鹿特丹VLSFO 746 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="up">休斯顿VLSFO 868 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="dn">富查伊拉供应紧张 霍尔木兹封锁扰动中东燃补</span>
+    <span class="ne">│</span>
+    <span class="ne">洛杉矶VLSFO 1,060 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="up">全球VLSFO均价 951 USD/MT ▲+3.2%（月环比）</span>
+    <span class="ne">│</span>
+    <span class="up">新加坡VLSFO 834 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="up">鹿特丹VLSFO 746 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="up">休斯顿VLSFO 868 USD/MT</span>
+    <span class="ne">│</span>
+    <span class="dn">富查伊拉供应紧张 霍尔木兹封锁扰动中东燃补</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">⛽</div>
+      <div class="brand-text">
+        <h1>全球航运燃油深度分析报告</h1>
+        <p>Global Bunker Fuel Intelligence · 专业版</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-03-31</div>
+      <div class="sub">数据基准：2026-03-30/31</div>
+    </div>
+  </div>
+  <div class="subtitle">
+    霍尔木兹封锁推高中东燃补成本 | 成本支撑牢固 | VLSFO月环比走强 | 富查伊拉供应趋紧
+  </div>
+</div>
+
+<!-- 状态栏 -->
+<div class="status-bar">
+  <span class="status-item">布伦特原油：<strong>$88.2/桶</strong></span>
+  <span class="status-item">WTI原油：<strong>$83.6/桶</strong></span>
+  <span class="status-item">天然气（TTF）：<strong>€38.4/MWh</strong></span>
+  <span class="status-item">USD/EUR：<strong>1.083</strong></span>
+  <span class="status-item">数据来源：<strong>HandyBulk / OilChem / Shipandbunker</strong></span>
+</div>
+
+<div class="main">
+
+  <!-- 警示 -->
+  <div class="banner">
+    🚨 <strong>【中东燃补供应预警】</strong> 霍尔木兹海峡封锁已延续35天，富查伊拉港燃油补给量大幅下降，中东地区燃油供应趋紧。船司在阿联酋东岸港口加大VLSFO库存备货，拉动局部价格上涨。
+  </div>
+  <div class="banner-warn">
+    ⚠️ <strong>【隆众月评（3月）】</strong> 成本端压力骤增，船燃价格环比大幅上涨。好望角绕航延长航程，航次燃油消耗较直航增加约25-30%，单航次燃料成本压力显著。
+  </div>
+
+  <!-- 核心KPI -->
+  <div class="section-title">
+    <div class="icon">📊</div>
+    <h2>全球燃油价格核心指标</h2>
+    <div class="badge">2026-03-31</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">全球VLSFO均价</div>
+      <div class="kpi-val">951</div>
+      <div class="kpi-chg up">▲ +3.2%（月环比）</div>
+      <div class="kpi-sub">USD/MT</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">全球MGO均价</div>
+      <div class="kpi-val">1,507</div>
+      <div class="kpi-chg up">▲ +1.8%（月环比）</div>
+      <div class="kpi-sub">USD/MT</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">VLSFO/MGO价差</div>
+      <div class="kpi-val">556</div>
+      <div class="kpi-chg ne">→ 基本稳定</div>
+      <div class="kpi-sub">USD/MT（MGO溢价）</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">新加坡VLSFO</div>
+      <div class="kpi-val">834</div>
+      <div class="kpi-chg up">▲ +2.1%（周环比）</div>
+      <div class="kpi-sub">USD/MT（核心指标）</div>
+    </div>
+  </div>
+
+  <!-- 主要港口燃油价格表 -->
+  <div class="section-title">
+    <div class="icon">⚓</div>
+    <h2>全球主要港口燃油价格</h2>
+    <div class="badge">数据：2026-03-30/31</div>
+  </div>
+
+  <div class="table-wrap">
+    <h3>🌍 VLSFO（超低硫燃料油，0.5%S）& MGO（船用轻柴油）国际港口报价</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>VLSFO（USD/MT）</th>
+          <th>MGO（USD/MT）</th>
+          <th>VLSFO月变动</th>
+          <th>供应状态</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>🌏 全球均价</strong></td>
+          <td><strong>951</strong></td>
+          <td><strong>1,507</strong></td>
+          <td class="up">▲ +3.2%</td>
+          <td class="up">正常</td>
+          <td>综合基准参考值</td>
+        </tr>
+        <tr>
+          <td><strong>🇸🇬 新加坡</strong></td>
+          <td><strong>834</strong></td>
+          <td>1,728</td>
+          <td class="up">▲ +2.1%</td>
+          <td class="up">充足</td>
+          <td>亚洲核心枢纽，价格指标性强</td>
+        </tr>
+        <tr>
+          <td><strong>🇳🇱 鹿特丹</strong></td>
+          <td><strong>746</strong></td>
+          <td>1,285</td>
+          <td class="dn">▼ -0.8%</td>
+          <td class="up">充足</td>
+          <td>欧洲最低价港口，竞争充分</td>
+        </tr>
+        <tr>
+          <td><strong>🇺🇸 休斯顿</strong></td>
+          <td><strong>868</strong></td>
+          <td>1,275</td>
+          <td class="up">▲ +1.5%</td>
+          <td class="up">充足</td>
+          <td>美湾基准港，MGO竞争性强</td>
+        </tr>
+        <tr>
+          <td><strong>🇺🇸 洛杉矶</strong></td>
+          <td><strong>1,060</strong></td>
+          <td>1,468</td>
+          <td class="up">▲ +4.3%</td>
+          <td class="ne">正常偏紧</td>
+          <td>美西最贵，环保成本+关税抢运拉升</td>
+        </tr>
+        <tr>
+          <td><strong>🇨🇳 香港</strong></td>
+          <td><strong>928</strong></td>
+          <td>1,497</td>
+          <td class="up">▲ +2.8%</td>
+          <td class="up">充足</td>
+          <td>华南地区参考价</td>
+        </tr>
+        <tr>
+          <td><strong>🇺🇸 纽约</strong></td>
+          <td><strong>825</strong></td>
+          <td>1,431</td>
+          <td class="up">▲ +1.2%</td>
+          <td class="up">充足</td>
+          <td>美东港口参考价</td>
+        </tr>
+        <tr>
+          <td><strong>🇧🇷 桑托斯</strong></td>
+          <td><strong>842</strong></td>
+          <td>1,490</td>
+          <td class="ne">→ +0.3%</td>
+          <td class="up">充足</td>
+          <td>南美东岸参考价</td>
+        </tr>
+        <tr>
+          <td><strong>🇬🇷 比雷埃夫斯</strong></td>
+          <td><strong>878</strong></td>
+          <td>1,493</td>
+          <td class="up">▲ +1.9%</td>
+          <td class="ne">正常</td>
+          <td>地中海东部枢纽</td>
+        </tr>
+        <tr>
+          <td><strong>🇹🇷 伊斯坦布尔</strong></td>
+          <td><strong>981</strong></td>
+          <td>1,462</td>
+          <td class="up">▲ +3.5%</td>
+          <td class="ne">正常</td>
+          <td>博斯普鲁斯通道附近</td>
+        </tr>
+        <tr>
+          <td><strong>🇦🇪 富查伊拉</strong></td>
+          <td class="alert"><strong>约1,050+</strong></td>
+          <td class="alert">约1,650+</td>
+          <td class="alert">▲ 大幅上涨</td>
+          <td class="alert">供应紧张</td>
+          <td>霍尔木兹封锁影响，中东来源油品减少</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 价格条形图 -->
+  <div class="section-title">
+    <div class="icon">📈</div>
+    <h2>各港口VLSFO价格可视化对比</h2>
+  </div>
+
+  <div class="table-wrap">
+    <h3>🔵 VLSFO港口价格对比（USD/MT）</h3>
+    <div class="bar-wrap">
+      <div class="bar-item">
+        <div class="bar-label">洛杉矶（最贵）</div>
+        <div class="bar-track"><div class="bar-fill bf-la" style="width:100%">1,060</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">富查伊拉（估算）</div>
+        <div class="bar-track"><div class="bar-fill bf-fuj" style="width:99%">约1,050+</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">伊斯坦布尔</div>
+        <div class="bar-track"><div class="bar-fill" style="width:92.5%;background:linear-gradient(90deg,#7c2d12,#b45309)">981</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">全球均价</div>
+        <div class="bar-track"><div class="bar-fill" style="width:89.7%;background:linear-gradient(90deg,#1e3a8a,#1d4ed8)">951</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">香港</div>
+        <div class="bar-track"><div class="bar-fill bf-hk" style="width:87.5%">928</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">比雷埃夫斯</div>
+        <div class="bar-track"><div class="bar-fill" style="width:82.8%;background:linear-gradient(90deg,#1e3a6b,#2563eb)">878</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">休斯顿</div>
+        <div class="bar-track"><div class="bar-fill bf-hou" style="width:81.9%">868</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">桑托斯</div>
+        <div class="bar-track"><div class="bar-fill" style="width:79.4%;background:linear-gradient(90deg,#065f46,#047857)">842</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">新加坡</div>
+        <div class="bar-track"><div class="bar-fill bf-sg" style="width:78.7%">834</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">纽约</div>
+        <div class="bar-track"><div class="bar-fill bf-ny" style="width:77.8%">825</div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">鹿特丹（最低）</div>
+        <div class="bar-track"><div class="bar-fill bf-rot" style="width:70.4%">746</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 地缘因素对燃油的影响 -->
+  <div class="section-title">
+    <div class="icon">🌍</div>
+    <h2>地缘局势对燃油市场的深度影响</h2>
+    <div class="badge">深度分析</div>
+  </div>
+
+  <div class="analysis-grid">
+    <div class="analysis-card">
+      <h4>🔴 霍尔木兹封锁影响</h4>
+      <p>霍尔木兹海峡封锁已进入第35天，这条全球约20%原油和大量天然气的必经通道实际处于瘫痪状态。<br><br>
+      直接影响：富查伊拉港口燃油供给减少，中东地区沿岸补给能力大幅下降。好望角绕行方案导致大西洋型VLCC油轮数量上升，鹿特丹等港口供应充足。<br><br>
+      价格影响：中东地区VLSFO溢价扩大至全球均价+10%以上；富查伊拉约为1,050+美元，较正常水平高出约8-12%。</p>
+    </div>
+    <div class="analysis-card">
+      <h4>🟡 好望角绕航燃耗分析</h4>
+      <p>目前亚欧航线船只绕行好望角（替代苏伊士/红海），航程从约11,000海里延长至约15,000海里，增幅约36%。<br><br>
+      单航次额外燃耗：以14,000 TEU型箱船为例，每日燃耗约160吨VLSFO，多航行约8-10天，额外燃油成本约<strong>128,000-160,000美元/航次</strong>。<br><br>
+      对运价影响：此成本最终通过GRI、BAF等形式转嫁给货主，推高欧线运价支撑底部。</p>
+    </div>
+    <div class="analysis-card">
+      <h4>🟠 成本端压力分析（3月月评）</h4>
+      <p>根据隆众资讯3月月评：成本端压力骤增，船燃价格环比大幅上涨。<br><br>
+      主要驱动因素：<br>
+      • 原油价格支撑牢固（布伦特约$88/桶）<br>
+      • 中东局势推高能源溢价<br>
+      • 霍尔木兹+红海双重通道风险<br>
+      • LNG出口受阻，部分船只改烧传统燃油<br><br>
+      短期（4月）价格展望：全球VLSFO均价预计维持在900-1,000美元区间，若原油进一步上涨或中东局势恶化，或突破1,050美元。</p>
+    </div>
+    <div class="analysis-card">
+      <h4>🔵 替代燃料动态</h4>
+      <p>当前替代燃料市场动态：<br><br>
+      <strong>LNG燃料：</strong>受中东LNG出口量骤降40%影响，LNG动力船补给压力加大，部分船只已重新切换回VLSFO运营。<br><br>
+      <strong>甲醇燃料：</strong>马士基甲醇动力船在绕行航线上表现稳定，补给在鹿特丹和新加坡进行，成本相对可控。<br><br>
+      <strong>HSFO（高硫油）：</strong>安装了洗涤塔的船只仍在使用，高硫油价格约620-660 USD/MT，成本优势依然存在。</p>
+    </div>
+  </div>
+
+  <!-- 燃油风险矩阵 -->
+  <div class="section-title" style="margin-top:36px;">
+    <div class="icon">⚠️</div>
+    <h2>燃油供应风险矩阵</h2>
+  </div>
+
+  <div class="table-wrap">
+    <div class="risk-item">
+      <div class="risk-level risk-high">高风险</div>
+      <div class="risk-text">
+        <h5>富查伊拉/中东燃补中断风险</h5>
+        <p>霍尔木兹封锁导致中东地区燃油供给通道受阻，富查伊拉是阿联酋东岸核心补给港，若局势持续恶化，中东至亚洲航线在富查伊拉的燃补能力将进一步受限，船只被迫选择其他高价港口加油。</p>
+      </div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-level risk-high">高风险</div>
+      <div class="risk-text">
+        <h5>好望角绕行成本持续上升</h5>
+        <p>若红海/霍尔木兹通道持续不可用，好望角绕行已成"新常态"。单航次额外燃油成本每艘大型箱船可达12-16万美元，全行业月额外燃耗成本可能高达数亿美元，最终传导至货主端。</p>
+      </div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-level risk-med">中风险</div>
+      <div class="risk-text">
+        <h5>原油价格波动传导至船燃</h5>
+        <p>布伦特原油目前约$88/桶，地缘溢价已充分定价。若美伊谈判出现进展，油价可能快速回落，拖累VLSFO价格；反之，若冲突升级，油价或测试$100+，VLSFO将同步大幅上涨。</p>
+      </div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-level risk-med">中风险</div>
+      <div class="risk-text">
+        <h5>IMO环保合规合规压力</h5>
+        <p>IMO 2030减碳路线图持续推进，部分老旧高油耗船只在高油价环境下面临双重压力：燃油成本高、碳排放强度高。高燃耗老旧船可能加速拆解，影响整体有效运力。</p>
+      </div>
+    </div>
+    <div class="risk-item">
+      <div class="risk-level risk-low">低风险</div>
+      <div class="risk-text">
+        <h5>主要补给枢纽（新加坡/鹿特丹）供应中断</h5>
+        <p>新加坡和鹿特丹两大全球核心补给港目前供应充足，地缘冲突对这两个港口影响有限。短期内供应中断概率较低，价格保持稳定竞争态势。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 燃油成本对运价影响 -->
+  <div class="section-title">
+    <div class="icon">💰</div>
+    <h2>燃油成本对运价成本结构影响</h2>
+  </div>
+
+  <div class="table-wrap">
+    <h3>📊 各类航线燃油成本占运价比例估算（2026-03-31）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>航线</th>
+          <th>船型（参考）</th>
+          <th>当前FAK运价</th>
+          <th>每箱燃油成本估算</th>
+          <th>燃油成本占比</th>
+          <th>绕行额外影响</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>上海→鹿特丹（好望角）</td>
+          <td>14,000 TEU型</td>
+          <td>约1,703 USD/TEU</td>
+          <td>约280-320 USD/TEU</td>
+          <td class="ne">约17-19%</td>
+          <td class="alert">+40-50 USD（多绕8-10天）</td>
+        </tr>
+        <tr>
+          <td>上海→洛杉矶</td>
+          <td>12,000 TEU型</td>
+          <td>约2,352 USD/FEU</td>
+          <td>约180-220 USD/FEU</td>
+          <td class="ne">约8-9%</td>
+          <td class="up">航线正常，无绕行</td>
+        </tr>
+        <tr>
+          <td>上海→纽约</td>
+          <td>10,000 TEU型</td>
+          <td>约3,264 USD/FEU</td>
+          <td>约260-300 USD/FEU</td>
+          <td class="up">约8-9%</td>
+          <td class="up">航线正常，无绕行</td>
+        </tr>
+        <tr>
+          <td>上海→豪尔费坎（多式联运）</td>
+          <td>8,000 TEU型</td>
+          <td>约3,728 USD/TEU</td>
+          <td>约150-180 USD/TEU</td>
+          <td class="up">约4-5%（海运段）</td>
+          <td class="alert">+陆运/转运费额外+200-400 USD</td>
+        </tr>
+        <tr>
+          <td>上海→新加坡（短途）</td>
+          <td>2,000 TEU型</td>
+          <td>约512 USD/TEU</td>
+          <td>约80-100 USD/TEU</td>
+          <td class="ne">约16-20%</td>
+          <td class="up">航线正常</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 展望 -->
+  <div class="section-title">
+    <div class="icon">🔮</div>
+    <h2>燃油价格展望</h2>
+    <div class="badge">2026年4月</div>
+  </div>
+
+  <div class="outlook-grid">
+    <div class="outlook-bull">
+      <div class="outlook-title bull">📈 燃油价格上行风险</div>
+      <div class="outlook-item">中东局势持续，原油地缘溢价维持高位</div>
+      <div class="outlook-item">好望角绕行长期化，增加燃油需求总量</div>
+      <div class="outlook-item">LNG供应受阻，部分船只改回VLSFO</div>
+      <div class="outlook-item">全球炼厂产能偏紧，低硫油生产成本高</div>
+      <div class="outlook-item">旺季备货拉动能源需求，支撑油价</div>
+    </div>
+    <div class="outlook-bear">
+      <div class="outlook-title bear">📉 燃油价格下行风险</div>
+      <div class="outlook-item">若美伊外交突破，中东供应恢复，油价或快速回落</div>
+      <div class="outlook-item">全球经济增长放缓，能源需求预期下修</div>
+      <div class="outlook-item">OPEC+增产压力，供给侧变量存在</div>
+      <div class="outlook-item">美元走强对油价形成压制</div>
+      <div class="outlook-item">春季检修结束后炼厂产能逐步恢复</div>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:18px;">
+    💡 <strong>4月燃油展望：</strong>全球VLSFO均价预计维持在 <strong>900-1,000 USD/MT</strong> 区间，新加坡在 <strong>820-870 USD/MT</strong>，鹿特丹在 <strong>730-780 USD/MT</strong>。富查伊拉受中东局势影响，短期仍处溢价状态（+8-12%）。最大变量依然是霍尔木兹局势的走向——若外交解决，VLSFO或快速回落至800-850 USD/MT均价区间。
+  </div>
+
+</div>
+
+<footer>
+  <p>全球航运燃油深度分析报告 · 2026-03-31</p>
+  <p class="disc">数据来源：HandyBulk（2026-03-30/31）、隆众资讯（oilchem.net）、OilMonster、Shipandbunker。本报告中富查伊拉价格为估算值（因供应中断，实际报价波动较大）。本报告仅供参考，不构成投资建议。</p>
+</footer>
+
+</body>
+</html>
