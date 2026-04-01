@@ -32,6 +32,12 @@ body{background:var(--navy);color:var(--text);font-family:'Segoe UI',Arial,sans-
 .date-block .s{font-size:11px;color:var(--sub);margin-top:3px;text-align:right;}
 .alert-bar{margin-top:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:9px 14px;font-size:12.5px;color:#fca5a5;display:flex;align-items:flex-start;gap:10px;}
 
+/* LANGUAGE SWITCHER */
+.lang-switch{display:flex;gap:8px;margin-left:16px;}
+.lang-btn{padding:6px 14px;font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--sub);cursor:pointer;transition:all .2s;}
+.lang-btn:hover{background:var(--border);color:var(--white);}
+.lang-btn.active{background:var(--gold);color:var(--navy);border-color:var(--gold);}
+
 /* KPI ROW */
 .kpi-row{background:var(--navy2);padding:12px 32px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;}
@@ -70,7 +76,7 @@ body{background:var(--navy);color:var(--text);font-family:'Segoe UI',Arial,sans-
 .tag-yellow{background:rgba(240,180,41,.12);color:#fde68a;border:1px solid rgba(240,180,41,.3);}
 .card h3{font-size:13px;font-weight:700;color:var(--white);line-height:1.5;margin-bottom:5px;}
 .card p{font-size:12px;color:var(--sub);line-height:1.7;}
-.card .meta{font-size:10.5px;color:rgba(148,163,184,.7);margin-top:8px;}
+.card .meta{font-size:10px;color:rgba(240,180,41,.6);margin-top:8px;font-style:italic;}
 
 /* TABLE */
 .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
@@ -108,28 +114,28 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:16px 3
 <div class="topbar">
   <div class="ticker">
     <span>[BRIEF] Claw Daily Intelligence — 2026-04-01</span>
-    <span class="dn">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
+    <span class="dn" data-en="Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)" data-zh="霍尔木兹封锁第36天 — 3月通行: 181艘 (-94%)">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
     <span class="ne">|</span>
-    <span class="up">SCFI 1,826.77 [+7.02% last week]</span>
+    <span class="up" data-en="SCFI 1,826.77 [+7.02% last week]" data-zh="SCFI 1,826.77 [上周+7.02%]">SCFI 1,826.77 [+7.02% last week]</span>
     <span class="ne">|</span>
-    <span class="up">Apr GRI effective today — EBS $300-500/FEU</span>
+    <span class="up" data-en="Apr GRI effective today — EBS $300-500/FEU" data-zh="4月GRI今日生效 — EBS $300-500/FEU">Apr GRI effective today — EBS $300-500/FEU</span>
     <span class="ne">|</span>
-    <span class="up">Singapore VLSFO $877/MT [+71% since conflict]</span>
+    <span class="up" data-en="Singapore VLSFO $877/MT [+71% since conflict]" data-zh="新加坡VLSFO $877/MT [冲突以来+71%]">Singapore VLSFO $877/MT [+71% since conflict]</span>
     <span class="ne">|</span>
-    <span class="up">Brent crude >$100/bbl</span>
+    <span class="up" data-en="Brent crude >$100/bbl" data-zh="布伦特原油 >$100/桶">Brent crude >$100/bbl</span>
     <span class="ne">|</span>
-    <span class="up">Hapag-Lloyd completes ZIM acquisition — 3M TEU fleet</span>
+    <span class="up" data-en="Hapag-Lloyd completes ZIM acquisition — 3M TEU fleet" data-zh="赫伯罗特完成收购以星 — 300万TEU船队">Hapag-Lloyd completes ZIM acquisition — 3M TEU fleet</span>
     <span class="ne">|</span>
-    <span class="dn">Transpacific +4% (W.Coast), Asia-Med -8% this week</span>
+    <span class="dn" data-en="Transpacific +4% (W.Coast), Asia-Med -8% this week" data-zh="跨太平洋+4% (美西), 亚地中海-8% 本周">Transpacific +4% (W.Coast), Asia-Med -8% this week</span>
     <span class="ne">|</span>
     <span class="up">[BRIEF] Claw Daily Intelligence — 2026-04-01</span>
-    <span class="dn">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
+    <span class="dn" data-en="Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)" data-zh="霍尔木兹封锁第36天 — 3月通行: 181艘 (-94%)">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
     <span class="ne">|</span>
-    <span class="up">SCFI 1,826.77 [+7.02% last week]</span>
+    <span class="up" data-en="SCFI 1,826.77 [+7.02% last week]" data-zh="SCFI 1,826.77 [上周+7.02%]">SCFI 1,826.77 [+7.02% last week]</span>
     <span class="ne">|</span>
-    <span class="up">Apr GRI effective today — EBS $300-500/FEU</span>
+    <span class="up" data-en="Apr GRI effective today — EBS $300-500/FEU" data-zh="4月GRI今日生效 — EBS $300-500/FEU">Apr GRI effective today — EBS $300-500/FEU</span>
     <span class="ne">|</span>
-    <span class="up">Singapore VLSFO $877/MT [+71% since conflict]</span>
+    <span class="up" data-en="Singapore VLSFO $877/MT [+71% since conflict]" data-zh="新加坡VLSFO $877/MT [冲突以来+71%]">Singapore VLSFO $877/MT [+71% since conflict]</span>
   </div>
 </div>
 
@@ -139,117 +145,113 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:16px 3
     <div class="brand">
       <div class="brand-icon">C</div>
       <div>
-        <h1>CLAW DAILY BRIEF</h1>
-        <p>Shipping Intelligence for 7 Departments · Wednesday Edition</p>
+        <h1 data-en="CLAW DAILY BRIEF" data-zh="CLAW 每日内参">CLAW DAILY BRIEF</h1>
+        <p data-en="Shipping Intelligence for 7 Departments · Wednesday Edition" data-zh="7部门航运情报 · 周三版">Shipping Intelligence for 7 Departments · Wednesday Edition</p>
       </div>
     </div>
     <div class="header-right">
+      <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" onclick="setLang('zh')">中</button>
+      </div>
       <div class="date-block">
         <div class="d">APR 1, 2026</div>
-        <div class="s">Issue #16 · Wed · 09:00 HKT</div>
+        <div class="s" data-en="Issue #16 · Wed · 09:00 HKT" data-zh="第16期 · 周三 · 09:00 香港时间">Issue #16 · Wed · 09:00 HKT</div>
       </div>
     </div>
   </div>
-  <div class="alert-bar">
-    [ALERT] Hormuz Strait Day 36: Only 181 vessels transited in March (vs ~3,000/month pre-war). ~140 container ships (460-470k TEU) remain stranded in the Persian Gulf. April GRI effective today across all major carriers. Singapore MGO +151% since conflict began.
-  </div>
+  <div class="alert-bar" data-en="[ALERT] Hormuz Strait Day 36: Only 181 vessels transited in March (vs ~3,000/month pre-war). ~140 container ships (460-470k TEU) remain stranded in the Persian Gulf. April GRI effective today across all major carriers. Singapore MGO +151% since conflict began." data-zh="[预警] 霍尔木兹第36天: 3月仅181艘通行 (vs 战前~3,000艘/月)。~140艘集装箱船(46-47万TEU)仍困于波斯湾。4月GRI今日在所有主要船公司生效。新加坡MGO冲突以来+151%。">[ALERT] Hormuz Strait Day 36: Only 181 vessels transited in March (vs ~3,000/month pre-war). ~140 container ships (460-470k TEU) remain stranded in the Persian Gulf. April GRI effective today across all major carriers. Singapore MGO +151% since conflict began.</div>
 </div>
 
 <!-- KPI ROW -->
 <div class="kpi-row">
   <div class="kpi">
-    <div class="lbl">SCFI Composite</div>
+    <div class="lbl" data-en="SCFI Composite" data-zh="SCFI综合指数">SCFI Composite</div>
     <div class="val up">1,826.77</div>
-    <div class="chg up">+7.02% wk</div>
-    <div class="src">As of Mar 28</div>
+    <div class="chg up" data-en="+7.02% wk" data-zh="上周+7.02%">+7.02% wk</div>
+    <div class="src" data-en="As of Mar 28" data-zh="截至3月28日">As of Mar 28</div>
   </div>
   <div class="kpi">
-    <div class="lbl">Asia — N.Europe</div>
+    <div class="lbl" data-en="Asia — N.Europe" data-zh="亚洲 — 北欧">Asia — N.Europe</div>
     <div class="val up">~2,900</div>
-    <div class="chg ne">flat USD/FEU</div>
-    <div class="src">FBX, wk of 3/31</div>
+    <div class="chg ne" data-en="flat USD/FEU" data-zh="持平 USD/FEU">flat USD/FEU</div>
+    <div class="src" data-en="FBX, wk of 3/31" data-zh="FBX, 3月31日周">FBX, wk of 3/31</div>
   </div>
   <div class="kpi">
-    <div class="lbl">Asia — US West</div>
+    <div class="lbl" data-en="Asia — US West" data-zh="亚洲 — 美西">Asia — US West</div>
     <div class="val up">~2,352</div>
-    <div class="chg up">+14.5% wk</div>
-    <div class="src">SCFI</div>
+    <div class="chg up" data-en="+14.5% wk" data-zh="上周+14.5%">+14.5% wk</div>
+    <div class="src" data-en="SCFI" data-zh="上海运价交易所">SCFI</div>
   </div>
   <div class="kpi">
-    <div class="lbl">VLSFO Sing.</div>
+    <div class="lbl" data-en="VLSFO Sing." data-zh="VLSFO 新加坡">VLSFO Sing.</div>
     <div class="val up">877</div>
-    <div class="chg up">+71% vs pre-war</div>
-    <div class="src">USD/MT, Apr 1</div>
+    <div class="chg up" data-en="+71% vs pre-war" data-zh="vs 战前+71%">+71% vs pre-war</div>
+    <div class="src" data-en="USD/MT, Apr 1" data-zh="美元/吨, 4月1日">USD/MT, Apr 1</div>
   </div>
   <div class="kpi">
-    <div class="lbl">Brent Crude</div>
+    <div class="lbl" data-en="Brent Crude" data-zh="布伦特原油">Brent Crude</div>
     <div class="val dn">>$100</div>
-    <div class="chg dn">War premium</div>
-    <div class="src">USD/bbl</div>
+    <div class="chg dn" data-en="War premium" data-zh="战争溢价">War premium</div>
+    <div class="src" data-en="USD/bbl" data-zh="美元/桶">USD/bbl</div>
   </div>
   <div class="kpi">
-    <div class="lbl">Hormuz Transit</div>
+    <div class="lbl" data-en="Hormuz Transit" data-zh="霍尔木兹通行">Hormuz Transit</div>
     <div class="val dn">181</div>
-    <div class="chg dn">-94% vs normal</div>
-    <div class="src">Mar total (Lloyd's)</div>
+    <div class="chg dn" data-en="-94% vs normal" data-zh="vs 正常-94%">-94% vs normal</div>
+    <div class="src" data-en="Mar total (Lloyd's)" data-zh="3月总计 (劳氏)">Mar total (Lloyd's)</div>
   </div>
 </div>
 
 <!-- TAB NAV -->
 <div class="tab-nav" id="tabNav">
-  <button class="tab-btn active" onclick="switchTab('mgmt',this)">Management</button>
-  <button class="tab-btn" onclick="switchTab('sales',this)">Sales &amp; Commercial</button>
-  <button class="tab-btn" onclick="switchTab('ops',this)">Operations &amp; Fleet</button>
-  <button class="tab-btn" onclick="switchTab('bunker',this)">Procurement / Bunker</button>
-  <button class="tab-btn" onclick="switchTab('finance',this)">Finance</button>
-  <button class="tab-btn" onclick="switchTab('eqpt',this)">Container Equipment</button>
-  <button class="tab-btn" onclick="switchTab('legal',this)">Legal &amp; Compliance</button>
+  <button class="tab-btn active" onclick="switchTab('mgmt',this)" data-en="Management" data-zh="管理层">Management</button>
+  <button class="tab-btn" onclick="switchTab('sales',this)" data-en="Sales &amp; Commercial" data-zh="商务/销售">Sales &amp; Commercial</button>
+  <button class="tab-btn" onclick="switchTab('ops',this)" data-en="Operations &amp; Fleet" data-zh="运营/船务">Operations &amp; Fleet</button>
+  <button class="tab-btn" onclick="switchTab('bunker',this)" data-en="Procurement / Bunker" data-zh="采购/燃油">Procurement / Bunker</button>
+  <button class="tab-btn" onclick="switchTab('finance',this)" data-en="Finance" data-zh="财务">Finance</button>
+  <button class="tab-btn" onclick="switchTab('eqpt',this)" data-en="Container Equipment" data-zh="箱管">Container Equipment</button>
+  <button class="tab-btn" onclick="switchTab('legal',this)" data-en="Legal &amp; Compliance" data-zh="法务">Legal &amp; Compliance</button>
 </div>
 
 <!-- ===================== MANAGEMENT ===================== -->
 <div class="panel active" id="tab-mgmt">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[M]</div><h2>30-Second Market Snapshot</h2><span class="badge">Management</span></div>
-    <div class="gold-box">
-      <strong>April 1 Executive Summary:</strong> Hormuz blockade enters Day 36 with no diplomatic breakthrough in sight. March commercial transit volume confirmed at just 181 ships — a 94% collapse from pre-war norms. April GRI is effective today; carriers are attempting $750-800/TEU increases on Asia-Europe, though weak demand in traditional slow season limits actual execution. Bunker fuel (Singapore VLSFO) has surged 71% since the conflict began. Hapag-Lloyd completed acquisition of ZIM Lines, becoming the world's #3 carrier with 3M+ TEU capacity.
-    </div>
+    <div class="sec-hd"><div class="ic">[M]</div><h2 data-en="30-Second Market Snapshot" data-zh="30秒市场快照">30-Second Market Snapshot</h2><span class="badge" data-en="Management" data-zh="管理层">Management</span></div>
+    <div class="gold-box" data-en="<strong>April 1 Executive Summary:</strong> Hormuz blockade enters Day 36 with no diplomatic breakthrough in sight. March commercial transit volume confirmed at just 181 ships — a 94% collapse from pre-war norms. April GRI is effective today; carriers are attempting $750-800/TEU increases on Asia-Europe, though weak demand in traditional slow season limits actual execution. Bunker fuel (Singapore VLSFO) has surged 71% since the conflict began. Hapag-Lloyd completed acquisition of ZIM Lines, becoming the world's #3 carrier with 3M+ TEU capacity.<br><br><strong>来源:</strong> Maritime News, Lloyd's List, CMA CGM Official" data-zh="<strong>4月1日执行摘要:</strong> 霍尔木兹封锁进入第36天,未见外交突破。3月商业通行量确认为仅181艘 — 较战前正常水平暴跌94%。4月GRI今日生效;船公司试图在亚欧航线征收$750-800/TEU涨幅,但传统淡季需求疲软限制了实际执行。燃油(新加坡VLSFO)冲突以来暴涨71%。赫伯罗特完成收购以星航运,成为全球第三大船公司,运力超300万TEU。<br><br><strong>来源:</strong> Maritime News, Lloyd's List, CMA CGM Official"><strong>April 1 Executive Summary:</strong> Hormuz blockade enters Day 36 with no diplomatic breakthrough in sight. March commercial transit volume confirmed at just 181 ships — a 94% collapse from pre-war norms. April GRI is effective today; carriers are attempting $750-800/TEU increases on Asia-Europe, though weak demand in traditional slow season limits actual execution. Bunker fuel (Singapore VLSFO) has surged 71% since the conflict began. Hapag-Lloyd completed acquisition of ZIM Lines, becoming the world's #3 carrier with 3M+ TEU capacity.<br><br><strong>来源:</strong> Maritime News, Lloyd's List, CMA CGM Official</div>
   </div>
 
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[N]</div><h2>Top 3 Business Risks Today</h2></div>
+    <div class="sec-hd"><div class="ic">[N]</div><h2 data-en="Top 3 Business Risks Today" data-zh="今日前三大商业风险">Top 3 Business Risks Today</h2></div>
     <ul class="risk-list">
-      <li><strong>[HIGH] Hormuz Prolonged Closure:</strong> 460-470k TEU stranded. Middle East services depend entirely on multimodal landbridge via Khor Fakkan. Every week adds ~$40-50M cost for carriers like Hapag-Lloyd. Our Middle East routes face capacity scarcity + surcharge stacking.</li>
-      <li><strong>[HIGH] GRI Execution Uncertainty:</strong> April GRI is announced but market actual rates are $2,000-3,000/FEU below carrier targets. Weak demand could mean surcharges don't fully stick — revenue impact for both directions. Monitor actual freight bookings closely.</li>
-      <li><strong>[MED] Bunker Cost Surge:</strong> Singapore MGO +151%, VLSFO +71%. Fuel cost as % of operating cost has jumped. BAF recalculation needed. EBS/PSS surcharges may not fully recover actual fuel expense increases.</li>
+      <li data-en="<strong>[HIGH] Hormuz Prolonged Closure:</strong> 460-470k TEU stranded. Middle East services depend entirely on multimodal landbridge via Khor Fakkan. Every week adds ~$40-50M cost for carriers like Hapag-Lloyd. Our Middle East routes face capacity scarcity + surcharge stacking.<br><br><strong>来源:</strong> Lloyd's List, Hapag-Lloyd Q1 2026" data-zh="<strong>[高] 霍尔木兹长期封锁:</strong> 46-47万TEU滞留。中东服务完全依赖通过科尔法坎的多式联运陆桥。每周为赫伯罗特等船公司增加约$40-50M成本。我们的中东航线面临运力稀缺+附加费叠加。<br><br><strong>来源:</strong> Lloyd's List, Hapag-Lloyd 2026年Q1"><strong>[HIGH] Hormuz Prolonged Closure:</strong> 460-470k TEU stranded. Middle East services depend entirely on multimodal landbridge via Khor Fakkan. Every week adds ~$40-50M cost for carriers like Hapag-Lloyd. Our Middle East routes face capacity scarcity + surcharge stacking.<br><br><strong>来源:</strong> Lloyd's List, Hapag-Lloyd Q1 2026</li>
+      <li data-en="<strong>[HIGH] GRI Execution Uncertainty:</strong> April GRI is announced but market actual rates are $2,000-3,000/FEU below carrier targets. Weak demand could mean surcharges don't fully stick — revenue impact for both directions. Monitor actual freight bookings closely.<br><br><strong>来源:</strong> Freightos, Carrier Official Statements" data-zh="<strong>[高] GRI执行不确定性:</strong> 4月GRI已公布但市场实际运价较船公司目标低$2,000-3,000/FEU。需求疲软可能导致附加费无法完全落地 — 双向收入影响。密切监控实际货运订舱情况。<br><br><strong>来源:</strong> Freightos, 船公司官方声明"><strong>[HIGH] GRI Execution Uncertainty:</strong> April GRI is announced but market actual rates are $2,000-3,000/FEU below carrier targets. Weak demand could mean surcharges don't fully stick — revenue impact for both directions. Monitor actual freight bookings closely.<br><br><strong>来源:</strong> Freightos, Carrier Official Statements</li>
+      <li data-en="<strong>[MED] Bunker Cost Surge:</strong> Singapore MGO +151%, VLSFO +71%. Fuel cost as % of operating cost has jumped. BAF recalculation needed. EBS/PSS surcharges may not fully recover actual fuel expense increases.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Index" data-zh="<strong>[中] 燃油成本激增:</strong> 新加坡MGO +151%, VLSFO +71%。燃油占运营成本比例已大幅上升。需要重新计算BAF。EBS/PSS附加费可能无法完全回收实际燃油成本增加。<br><br><strong>来源:</strong> HandyBulk, 燃油价格指数"><strong>[MED] Bunker Cost Surge:</strong> Singapore MGO +151%, VLSFO +71%. Fuel cost as % of operating cost has jumped. BAF recalculation needed. EBS/PSS surcharges may not fully recover actual fuel expense increases.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Index</li>
     </ul>
   </div>
 
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[C]</div><h2>Competitor Intelligence</h2></div>
+    <div class="sec-hd"><div class="ic">[C]</div><h2 data-en="Competitor Intelligence" data-zh="竞争对手情报">Competitor Intelligence</h2></div>
     <div class="cards">
       <div class="card">
         <span class="tag tag-blue">[UPDATE] Hapag-Lloyd</span>
-        <h3>Completes ZIM acquisition — now 3M TEU, global #3</h3>
-        <p>Integration of ZIM Lines strengthens Hapag-Lloyd's transpacific and Asia intra-regional positions. Some route consolidation expected in 6-12 months. Weekly cost overrun from Hormuz: est. $40-50M USD.</p>
-        <div class="meta">Source: Maritime News | Q1 2026</div>
+        <h3 data-en="Completes ZIM acquisition — now 3M TEU, global #3" data-zh="完成收购以星 — 现300万TEU,全球第三">Completes ZIM acquisition — now 3M TEU, global #3</h3>
+        <p data-en="Integration of ZIM Lines strengthens Hapag-Lloyd's transpacific and Asia intra-regional positions. Some route consolidation expected in 6-12 months. Weekly cost overrun from Hormuz: est. $40-50M USD.<br><br><strong>来源:</strong> Maritime News, Q1 2026" data-zh="整合以星航运加强了赫伯罗特的跨太平洋和亚洲区域内地位。预计6-12个月内会有部分航线整合。霍尔木兹导致的每周成本超支: 约$40-50M美元。<br><br><strong>来源:</strong> Maritime News, 2026年Q1">Integration of ZIM Lines strengthens Hapag-Lloyd's transpacific and Asia intra-regional positions. Some route consolidation expected in 6-12 months. Weekly cost overrun from Hormuz: est. $40-50M USD.<br><br><strong>来源:</strong> Maritime News, Q1 2026</p>
       </div>
       <div class="card">
         <span class="tag tag-orange">[UPDATE] Maersk</span>
-        <h3>ME11 resumed via Suez (limited); FM1 still suspended</h3>
-        <p>Maersk reports Q4 2025 sea freight operating loss of $153M — first quarterly loss since 2016. Persian Gulf direct services halted; coordinating multimodal alternatives. Still operating via Cape of Good Hope primarily.</p>
-        <div class="meta">Source: Maritime News | Mar 28</div>
+        <h3 data-en="ME11 resumed via Suez (limited); FM1 still suspended" data-zh="ME11通过苏伊士恢复(有限); FM1仍暂停">ME11 resumed via Suez (limited); FM1 still suspended</h3>
+        <p data-en="Maersk reports Q4 2025 sea freight operating loss of $153M — first quarterly loss since 2016. Persian Gulf direct services halted; coordinating multimodal alternatives. Still operating via Cape of Good Hope primarily.<br><br><strong>来源:</strong> Maritime News, Mar 28" data-zh="马士基报告2025年Q4海运业务亏损$153M — 自2016年来首次季度亏损。波斯湾直航服务暂停;协调多式联运替代方案。主要仍通过好望角运营。<br><br><strong>来源:</strong> Maritime News, 3月28日">Maersk reports Q4 2025 sea freight operating loss of $153M — first quarterly loss since 2016. Persian Gulf direct services halted; coordinating multimodal alternatives. Still operating via Cape of Good Hope primarily.<br><br><strong>来源:</strong> Maritime News, Mar 28</p>
       </div>
       <div class="card">
         <span class="tag tag-blue">[UPDATE] CMA CGM</span>
-        <h3>Asia-N.Europe FAK rates updated effective April 1</h3>
-        <p>April 1 new FAK rates from Asia to North Europe now in effect. GRI approximately $750/TEU. Middle East direct services suspended; multimodal via Khor Fakkan offered.</p>
-        <div class="meta">Source: CMA CGM Official | Mar 25</div>
+        <h3 data-en="Asia-N.Europe FAK rates updated effective April 1" data-zh="亚北欧FAK运价更新,4月1日生效">Asia-N.Europe FAK rates updated effective April 1</h3>
+        <p data-en="April 1 new FAK rates from Asia to North Europe now in effect. GRI approximately $750/TEU. Middle East direct services suspended; multimodal via Khor Fakkan offered.<br><br><strong>来源:</strong> CMA CGM Official, Mar 25" data-zh="4月1日亚洲至北欧新FAK运价已生效。GRI约$750/TEU。中东直航服务暂停;提供通过科尔法坎的多式联运。<br><br><strong>来源:</strong> CMA CGM Official, 3月25日">April 1 new FAK rates from Asia to North Europe now in effect. GRI approximately $750/TEU. Middle East direct services suspended; multimodal via Khor Fakkan offered.<br><br><strong>来源:</strong> CMA CGM Official, Mar 25</p>
       </div>
       <div class="card">
         <span class="tag tag-green">[UPDATE] COSCO</span>
-        <h3>Resumed Middle East 6-country bookings via Khor Fakkan landbridge</h3>
-        <p>March 25: COSCO officially resumed booking for UAE, Saudi Arabia, Bahrain, Qatar, Kuwait, Iraq, Oman — using bonded landbridge from Khor Fakkan/Fujairah. 20 days after suspension. Volume still constrained by Hormuz situation.</p>
-        <div class="meta">Source: COSCO Official | Mar 25</div>
+        <h3 data-en="Resumed Middle East 6-country bookings via Khor Fakkan landbridge" data-zh="通过科尔法坎陆桥恢复中东6国订舱">Resumed Middle East 6-country bookings via Khor Fakkan landbridge</h3>
+        <p data-en="March 25: COSCO officially resumed booking for UAE, Saudi Arabia, Bahrain, Qatar, Kuwait, Iraq, Oman — using bonded landbridge from Khor Fakkan/Fujairah. 20 days after suspension. Volume still constrained by Hormuz situation.<br><br><strong>来源:</strong> COSCO Official, Mar 25" data-zh="3月25日: 中远海运正式恢复阿联酋、沙特、巴林、卡塔尔、科威特、伊拉克、阿曼的订舱 — 使用从科尔法坎/富查伊拉出发的保税陆桥。暂停20天后恢复。运量仍受霍尔木兹局势限制。<br><br><strong>来源:</strong> COSCO Official, 3月25日">March 25: COSCO officially resumed booking for UAE, Saudi Arabia, Bahrain, Qatar, Kuwait, Iraq, Oman — using bonded landbridge from Khor Fakkan/Fujairah. 20 days after suspension. Volume still constrained by Hormuz situation.<br><br><strong>来源:</strong> COSCO Official, Mar 25</p>
       </div>
     </div>
   </div>
@@ -258,111 +260,110 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:16px 3
 <!-- ===================== SALES & COMMERCIAL ===================== -->
 <div class="panel" id="tab-sales">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[S]</div><h2>Rate Intelligence by Trade Lane</h2><span class="badge">Sales &amp; Commercial</span></div>
-    <div class="alert-box">[ALERT] April GRI effective today. EBS/PSS $300-500/FEU stacked on top of FAK rates. Actual market rates still $2,000-3,000/FEU below carrier targets — monitor booking conversion rates closely.</div>
+    <div class="sec-hd"><div class="ic">[S]</div><h2 data-en="Rate Intelligence by Trade Lane" data-zh="分航线运价情报">Rate Intelligence by Trade Lane</h2><span class="badge" data-en="Sales &amp; Commercial" data-zh="商务/销售">Sales &amp; Commercial</span></div>
+    <div class="alert-box" data-en="[ALERT] April GRI effective today. EBS/PSS $300-500/FEU stacked on top of FAK rates. Actual market rates still $2,000-3,000/FEU below carrier targets — monitor booking conversion rates closely.<br><br><strong>来源:</strong> Freightos, Carrier Announcements" data-zh="[预警] 4月GRI今日生效。EBS/PSS $300-500/FEU叠加在FAK运价上。实际市场运价仍较船公司目标低$2,000-3,000/FEU — 密切监控订舱转化率。<br><br><strong>来源:</strong> Freightos, 船公司公告">[ALERT] April GRI effective today. EBS/PSS $300-500/FEU stacked on top of FAK rates. Actual market rates still $2,000-3,000/FEU below carrier targets — monitor booking conversion rates closely.<br><br><strong>来源:</strong> Freightos, Carrier Announcements</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Current Spot Rates — Key Trade Lanes</h4>
+    <h4 data-en="Current Spot Rates — Key Trade Lanes" data-zh="当前即期运价 — 主要航线">Current Spot Rates — Key Trade Lanes</h4>
     <table>
       <thead>
-        <tr><th>Trade Lane</th><th>Current Rate</th><th>Unit</th><th>Wk Change</th><th>Apr Surcharges</th><th>Market Signal</th></tr>
+        <tr><th data-en="Trade Lane" data-zh="航线">Trade Lane</th><th data-en="Current Rate" data-zh="当前运价">Current Rate</th><th data-en="Unit" data-zh="单位">Unit</th><th data-en="Wk Change" data-zh="周变化">Wk Change</th><th data-en="Apr Surcharges" data-zh="4月附加费">Apr Surcharges</th><th data-en="Market Signal" data-zh="市场信号">Market Signal</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>Asia — N.Europe</strong></td><td class="up">~2,900</td><td>USD/FEU</td><td class="ne">flat</td><td class="alert">GRI +750~800</td><td>Stable, surcharge testing</td></tr>
-        <tr><td><strong>Asia — Mediterranean</strong></td><td class="dn">~3,800</td><td>USD/FEU</td><td class="dn">-8%</td><td>GRI +500~700</td><td>Easing from $4,300 peak</td></tr>
-        <tr><td><strong>Asia — US West Coast</strong></td><td class="up">~2,352</td><td>USD/FEU</td><td class="up">+14.5%</td><td class="alert">HAF +500</td><td>Strong momentum</td></tr>
-        <tr><td><strong>Asia — US East Coast</strong></td><td class="up">~3,264</td><td>USD/FEU</td><td class="up">+11.7%</td><td>HAF +500</td><td>Strong</td></tr>
-        <tr><td><strong>Asia — Persian Gulf</strong></td><td class="alert">~3,728</td><td>USD/TEU</td><td class="up">+12.2%</td><td class="alert">WRS 1,500 + HSS 400-600</td><td>Nominal; very limited capacity</td></tr>
-        <tr><td><strong>Asia — Japan/Korea</strong></td><td>~412</td><td>USD/TEU</td><td class="ne">flat</td><td>Minimal</td><td>Stable</td></tr>
-        <tr><td><strong>Asia — SE Asia</strong></td><td>~480</td><td>USD/TEU</td><td class="ne">minor adj.</td><td>Minimal</td><td>Normal</td></tr>
-        <tr><td><strong>Asia — Australia</strong></td><td class="up">~1,850</td><td>USD/FEU</td><td class="up">+3%</td><td>ANL +700/40' from Apr 16</td><td>Firm</td></tr>
+        <tr><td data-en="Asia — N.Europe" data-zh="亚洲 — 北欧"><strong>Asia — N.Europe</strong></td><td class="up">~2,900</td><td>USD/FEU</td><td class="ne">flat</td><td class="alert">GRI +750~800</td><td data-en="Stable, surcharge testing" data-zh="稳定, 附加费试探">Stable, surcharge testing</td></tr>
+        <tr><td data-en="Asia — Mediterranean" data-zh="亚洲 — 地中海"><strong>Asia — Mediterranean</strong></td><td class="dn">~3,800</td><td>USD/FEU</td><td class="dn">-8%</td><td>GRI +500~700</td><td data-en="Easing from $4,300 peak" data-zh="从$4,300高点回落">Easing from $4,300 peak</td></tr>
+        <tr><td data-en="Asia — US West Coast" data-zh="亚洲 — 美西"><strong>Asia — US West Coast</strong></td><td class="up">~2,352</td><td>USD/FEU</td><td class="up">+14.5%</td><td class="alert">HAF +500</td><td data-en="Strong momentum" data-zh="强劲势头">Strong momentum</td></tr>
+        <tr><td data-en="Asia — US East Coast" data-zh="亚洲 — 美东"><strong>Asia — US East Coast</strong></td><td class="up">~3,264</td><td>USD/FEU</td><td class="up">+11.7%</td><td>HAF +500</td><td data-en="Strong" data-zh="强劲">Strong</td></tr>
+        <tr><td data-en="Asia — Persian Gulf" data-zh="亚洲 — 波斯湾"><strong>Asia — Persian Gulf</strong></td><td class="alert">~3,728</td><td>USD/TEU</td><td class="up">+12.2%</td><td class="alert">WRS 1,500 + HSS 400-600</td><td data-en="Nominal; very limited capacity" data-zh="名义; 运力极其有限">Nominal; very limited capacity</td></tr>
+        <tr><td data-en="Asia — Japan/Korea" data-zh="亚洲 — 日本/韩国"><strong>Asia — Japan/Korea</strong></td><td>~412</td><td>USD/TEU</td><td class="ne">flat</td><td>Minimal</td><td data-en="Stable" data-zh="稳定">Stable</td></tr>
+        <tr><td data-en="Asia — SE Asia" data-zh="亚洲 — 东南亚"><strong>Asia — SE Asia</strong></td><td>~480</td><td>USD/TEU</td><td class="ne">minor adj.</td><td>Minimal</td><td data-en="Normal" data-zh="正常">Normal</td></tr>
+        <tr><td data-en="Asia — Australia" data-zh="亚洲 — 澳洲"><strong>Asia — Australia</strong></td><td class="up">~1,850</td><td>USD/FEU</td><td class="up">+3%</td><td>ANL +700/40' from Apr 16</td><td data-en="Firm" data-zh="坚挺">Firm</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: Freightos, FBX, SCFI, Carrier Official Surcharge Notices" data-zh="来源: Freightos, FBX, SCFI, 船公司官方附加费通知">来源: Freightos, FBX, SCFI, Carrier Official Surcharge Notices</div>
   </div>
 
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[A]</div><h2>Surcharge Summary — April 2026</h2></div>
+    <div class="sec-hd"><div class="ic">[A]</div><h2 data-en="Surcharge Summary — April 2026" data-zh="附加费汇总 — 2026年4月">Surcharge Summary — April 2026</h2></div>
     <div class="tbl-wrap">
       <table>
-        <thead><tr><th>Surcharge</th><th>Amount</th><th>Applies To</th><th>Effective</th></tr></thead>
+        <thead><tr><th data-en="Surcharge" data-zh="附加费">Surcharge</th><th data-en="Amount" data-zh="金额">Amount</th><th data-en="Applies To" data-zh="适用范围">Applies To</th><th data-en="Effective" data-zh="生效时间">Effective</th></tr></thead>
         <tbody>
-          <tr><td>GRI (General Rate Increase)</td><td class="up">$750-800/TEU</td><td>Asia — Europe</td><td class="alert">Apr 1, 2026</td></tr>
-          <tr><td>EBS/PSS (Emergency Bunker)</td><td class="up">$300-500/FEU</td><td>All major trade lanes</td><td class="alert">Apr 1, 2026</td></tr>
-          <tr><td>WRS (War Risk Surcharge)</td><td class="alert">$1,500/TEU</td><td>Middle East / Persian Gulf</td><td>Ongoing</td></tr>
-          <tr><td>HSS (Hormuz Strait Surcharge)</td><td class="alert">$400-600/TEU</td><td>Middle East direct</td><td>Ongoing</td></tr>
-          <tr><td>HAF (Hormuz Action Fuel Fee)</td><td class="up">$500/FEU</td><td>Asia — North America</td><td class="alert">Apr 1, 2026</td></tr>
-          <tr><td>ANL Australia GRI</td><td class="up">$700/40'</td><td>Asia — Australia</td><td>Apr 16, 2026</td></tr>
+          <tr><td data-en="GRI (General Rate Increase)" data-zh="GRI (综合运价上调)">GRI (General Rate Increase)</td><td class="up">$750-800/TEU</td><td data-en="Asia — Europe" data-zh="亚洲 — 欧洲">Asia — Europe</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td data-en="EBS/PSS (Emergency Bunker)" data-zh="EBS/PSS (紧急燃油附加费)">EBS/PSS (Emergency Bunker)</td><td class="up">$300-500/FEU</td><td data-en="All major trade lanes" data-zh="所有主要航线">All major trade lanes</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td data-en="WRS (War Risk Surcharge)" data-zh="WRS (战争险附加费)">WRS (War Risk Surcharge)</td><td class="alert">$1,500/TEU</td><td data-en="Middle East / Persian Gulf" data-zh="中东/波斯湾">Middle East / Persian Gulf</td><td data-en="Ongoing" data-zh="持续">Ongoing</td></tr>
+          <tr><td data-en="HSS (Hormuz Strait Surcharge)" data-zh="HSS (霍尔木兹海峡附加费)">HSS (Hormuz Strait Surcharge)</td><td class="alert">$400-600/TEU</td><td data-en="Middle East direct" data-zh="中东直航">Middle East direct</td><td data-en="Ongoing" data-zh="持续">Ongoing</td></tr>
+          <tr><td data-en="HAF (Hormuz Action Fuel Fee)" data-zh="HAF (霍尔木兹行动燃油费)">HAF (Hormuz Action Fuel Fee)</td><td class="up">$500/FEU</td><td data-en="Asia — North America" data-zh="亚洲 — 北美">Asia — North America</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td data-en="ANL Australia GRI" data-zh="ANL澳洲GRI">ANL Australia GRI</td><td class="up">$700/40'</td><td data-en="Asia — Australia" data-zh="亚洲 — 澳洲">Asia — Australia</td><td>Apr 16, 2026</td></tr>
         </tbody>
       </table>
+      <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: MSC, Maersk, CMA CGM, Hapag-Lloyd, COSCO Official Surcharge Announcements" data-zh="来源: MSC, Maersk, CMA CGM, Hapag-Lloyd, COSCO 官方附加费公告">来源: MSC, Maersk, CMA CGM, Hapag-Lloyd, COSCO Official Surcharge Announcements</div>
     </div>
   </div>
 
-  <div class="info-box">
-    [NOTE] Market actual rates remain significantly below GRI targets. Traditional slow season demand + ample capacity are limiting carrier pricing power. Key test: whether April bookings week-2 onwards show demand recovery that validates surcharge execution.
-  </div>
+  <div class="info-box" data-en="[NOTE] Market actual rates remain significantly below GRI targets. Traditional slow season demand + ample capacity are limiting carrier pricing power. Key test: whether April bookings week-2 onwards show demand recovery that validates surcharge execution.<br><br><strong>来源:</strong> Freightos Market Analysis" data-zh="[备注] 市场实际运价仍显著低于GRI目标。传统淡季需求+充足运力正在限制船公司定价能力。关键测试: 4月第2周及之后的订舱是否显示需求复苏,从而验证附加费执行。<br><br><strong>来源:</strong> Freightos 市场分析">[NOTE] Market actual rates remain significantly below GRI targets. Traditional slow season demand + ample capacity are limiting carrier pricing power. Key test: whether April bookings week-2 onwards show demand recovery that validates surcharge execution.<br><br><strong>来源:</strong> Freightos Market Analysis</div>
 </div>
 
 <!-- ===================== OPERATIONS & FLEET ===================== -->
 <div class="panel" id="tab-ops">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[O]</div><h2>Chokepoint Status</h2><span class="badge">Operations &amp; Fleet</span></div>
-    <div class="alert-box">[CRITICAL] Hormuz Strait Day 36: Commercial shipping near standstill. Bab el-Mandeb: Houthi new transit code requirement (72hr advance filing). Both chokepoints simultaneously disrupted — historic dual-chokepoint stress scenario.</div>
+    <div class="sec-hd"><div class="ic">[O]</div><h2 data-en="Chokepoint Status" data-zh="咽喉要道状态">Chokepoint Status</h2><span class="badge" data-en="Operations &amp; Fleet" data-zh="运营/船务">Operations &amp; Fleet</span></div>
+    <div class="alert-box" data-en="[CRITICAL] Hormuz Strait Day 36: Commercial shipping near standstill. Bab el-Mandeb: Houthi new transit code requirement (72hr advance filing). Both chokepoints simultaneously disrupted — historic dual-chokepoint stress scenario.<br><br><strong>来源:</strong> Lloyd's List, Maritime News" data-zh="[紧急] 霍尔木兹第36天: 商业航运几近停摆。曼德海峡: 胡塞新通行码要求(提前72小时申报)。两个咽喉要道同时中断 — 历史性双重咽喉要道压力场景。<br><br><strong>来源:</strong> Lloyd's List, Maritime News">[CRITICAL] Hormuz Strait Day 36: Commercial shipping near standstill. Bab el-Mandeb: Houthi new transit code requirement (72hr advance filing). Both chokepoints simultaneously disrupted — historic dual-chokepoint stress scenario.<br><br><strong>来源:</strong> Lloyd's List, Maritime News</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Chokepoint &amp; Route Status Matrix</h4>
+    <h4 data-en="Chokepoint &amp; Route Status Matrix" data-zh="咽喉要道及航线状态矩阵">Chokepoint &amp; Route Status Matrix</h4>
     <table>
-      <thead><tr><th>Chokepoint / Route</th><th>Status</th><th>Transit Volume</th><th>Carrier Response</th></tr></thead>
+      <thead><tr><th data-en="Chokepoint / Route" data-zh="咽喉要道/航线">Chokepoint / Route</th><th data-en="Status" data-zh="状态">Status</th><th data-en="Transit Volume" data-zh="通行量">Transit Volume</th><th data-en="Carrier Response" data-zh="船公司应对">Carrier Response</th></tr></thead>
       <tbody>
         <tr>
-          <td><strong>Strait of Hormuz</strong></td>
-          <td class="dn">BLOCKED (Day 36)</td>
-          <td class="dn">181 ships/month (-94%)</td>
-          <td>Multimodal via Khor Fakkan; COSCO resumed landbridge (3/25)</td>
+          <td data-en="Strait of Hormuz" data-zh="霍尔木兹海峡"><strong>Strait of Hormuz</strong></td>
+          <td class="dn" data-en="BLOCKED (Day 36)" data-zh="阻断(第36天)">BLOCKED (Day 36)</td>
+          <td class="dn" data-en="181 ships/month (-94%)" data-zh="181艘/月 (-94%)">181 ships/month (-94%)</td>
+          <td data-en="Multimodal via Khor Fakkan; COSCO resumed landbridge (3/25)" data-zh="通过科尔法坎多式联运; 中远恢复陆桥(3/25)">Multimodal via Khor Fakkan; COSCO resumed landbridge (3/25)</td>
         </tr>
         <tr>
-          <td><strong>Bab el-Mandeb / Red Sea</strong></td>
-          <td class="ne">RESTRICTED (Day 860+)</td>
-          <td class="ne">26 transits as of 3/27; new code filing req.</td>
-          <td>Maersk limited Suez resumption; most via Cape of Good Hope</td>
+          <td data-en="Bab el-Mandeb / Red Sea" data-zh="曼德海峡/红海"><strong>Bab el-Mandeb / Red Sea</strong></td>
+          <td class="ne" data-en="RESTRICTED (Day 860+)" data-zh="受限(第860+天)">RESTRICTED (Day 860+)</td>
+          <td class="ne" data-en="26 transits as of 3/27; new code filing req." data-zh="截至3/27日26次通行; 新代码申报要求">26 transits as of 3/27; new code filing req.</td>
+          <td data-en="Maersk limited Suez resumption; most via Cape of Good Hope" data-zh="马士基有限苏伊士恢复; 大多经好望角">Maersk limited Suez resumption; most via Cape of Good Hope</td>
         </tr>
         <tr>
-          <td><strong>Suez Canal</strong></td>
-          <td class="ne">LIMITED</td>
-          <td class="ne">Partial resumption (Maersk ME11, MECL1)</td>
-          <td>Cautious restart; Red Sea situation dependent</td>
+          <td data-en="Suez Canal" data-zh="苏伊士运河"><strong>Suez Canal</strong></td>
+          <td class="ne" data-en="LIMITED" data-zh="有限">LIMITED</td>
+          <td class="ne" data-en="Partial resumption (Maersk ME11, MECL1)" data-zh="部分恢复(马士基ME11, MECL1)">Partial resumption (Maersk ME11, MECL1)</td>
+          <td data-en="Cautious restart; Red Sea situation dependent" data-zh="谨慎重启; 依赖红海局势">Cautious restart; Red Sea situation dependent</td>
         </tr>
         <tr>
-          <td><strong>Cape of Good Hope</strong></td>
-          <td class="up">NORMAL</td>
-          <td class="up">Main alternative routing</td>
-          <td>+25% sailing distance; 7-10 day extra transit time</td>
+          <td data-en="Cape of Good Hope" data-zh="好望角"><strong>Cape of Good Hope</strong></td>
+          <td class="up" data-en="NORMAL" data-zh="正常">NORMAL</td>
+          <td class="up" data-en="Main alternative routing" data-zh="主要替代路线">Main alternative routing</td>
+          <td data-en="+25% sailing distance; 7-10 day extra transit time" data-zh="+25%航程; 额外7-10天航程">+25% sailing distance; 7-10 day extra transit time</td>
         </tr>
         <tr>
-          <td><strong>Panama Canal</strong></td>
-          <td class="up">NORMAL</td>
-          <td class="up">Operating normally</td>
-          <td>No disruption reported</td>
+          <td data-en="Panama Canal" data-zh="巴拿马运河"><strong>Panama Canal</strong></td>
+          <td class="up" data-en="NORMAL" data-zh="正常">NORMAL</td>
+          <td class="up" data-en="Operating normally" data-zh="正常运营">Operating normally</td>
+          <td data-en="No disruption reported" data-zh="无报告中断">No disruption reported</td>
         </tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: Lloyd's List, Maritime News, SCA Official, Port Authorities" data-zh="来源: Lloyd's List, Maritime News, 苏伊士运河管理局官方, 港务局">来源: Lloyd's List, Maritime News, SCA Official, Port Authorities</div>
   </div>
 
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[P]</div><h2>Port &amp; Schedule Watch</h2></div>
+    <div class="sec-hd"><div class="ic">[P]</div><h2 data-en="Port &amp; Schedule Watch" data-zh="港口与班期监控">Port &amp; Schedule Watch</h2></div>
     <div class="cards">
       <div class="card">
         <span class="tag tag-orange">[DELAY] Khor Fakkan</span>
-        <h3>Becoming key UAE transshipment hub — berth congestion building</h3>
-        <p>With Hormuz closed, Khor Fakkan (east coast UAE) is the primary landbridge origin for Persian Gulf cargo. Vessel calls significantly increased. Expect 1-3 day berth delay. Bonded truck/rail capacity to Gulf ports under pressure.</p>
-        <div class="meta">Source: Maritime News | Apr 1</div>
+        <h3 data-en="Becoming key UAE transshipment hub — berth congestion building" data-zh="成为关键阿联酋中转港 — 泊位拥堵加剧">Becoming key UAE transshipment hub — berth congestion building</h3>
+        <p data-en="With Hormuz closed, Khor Fakkan (east coast UAE) is the primary landbridge origin for Persian Gulf cargo. Vessel calls significantly increased. Expect 1-3 day berth delay. Bonded truck/rail capacity to Gulf ports under pressure.<br><br><strong>来源:</strong> Maritime News, Apr 1" data-zh="随着霍尔木兹关闭,科尔法坎(阿联酋东海岸)成为波斯湾货物的陆桥主要起点。船舶靠泊显著增加。预计1-3天泊位延误。至海湾港口的保税卡车/铁路运力承压。<br><br><strong>来源:</strong> Maritime News, 4月1日">With Hormuz closed, Khor Fakkan (east coast UAE) is the primary landbridge origin for Persian Gulf cargo. Vessel calls significantly increased. Expect 1-3 day berth delay. Bonded truck/rail capacity to Gulf ports under pressure.<br><br><strong>来源:</strong> Maritime News, Apr 1</p>
       </div>
       <div class="card">
         <span class="tag tag-red">[STRANDED] Persian Gulf Ports</span>
-        <h3>~140 ships trapped; feeder solutions limited</h3>
-        <p>Abu Dhabi, Jebel Ali, Dammam, Bandar Abbas ports largely inaccessible for mainline vessels. Cargo destined for Gulf must route via Khor Fakkan landbridge or wait for resolution. Estimated 200k+ TEU cargo impact in next 90 days.</p>
-        <div class="meta">Source: Maritime News | Mar 28</div>
+        <h3 data-en="~140 ships trapped; feeder solutions limited" data-zh="~140艘被困; 支线解决方案有限">~140 ships trapped; feeder solutions limited</h3>
+        <p data-en="Abu Dhabi, Jebel Ali, Dammam, Bandar Abbas ports largely inaccessible for mainline vessels. Cargo destined for Gulf must route via Khor Fakkan landbridge or wait for resolution. Estimated 200k+ TEU cargo impact in next 90 days.<br><br><strong>来源:</strong> Maritime News, Mar 28" data-zh="阿布扎比、杰贝阿里、达曼、阿巴斯港对干线船舶基本不可达。海湾目的地货物必须通过科尔法坎陆桥或等待解决。预计未来90天20万+TEU货物影响。<br><br><strong>来源:</strong> Maritime News, 3月28日">Abu Dhabi, Jebel Ali, Dammam, Bandar Abbas ports largely inaccessible for mainline vessels. Cargo destined for Gulf must route via Khor Fakkan landbridge or wait for resolution. Estimated 200k+ TEU cargo impact in next 90 days.<br><br><strong>来源:</strong> Maritime News, Mar 28</p>
       </div>
     </div>
   </div>
@@ -371,155 +372,152 @@ footer{background:var(--navy2);border-top:1px solid var(--border);padding:16px 3
 <!-- ===================== PROCUREMENT / BUNKER ===================== -->
 <div class="panel" id="tab-bunker">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[B]</div><h2>Bunker Fuel Prices — Apr 1, 2026</h2><span class="badge">Procurement</span></div>
-    <div class="alert-box">[HIGH ALERT] Singapore VLSFO +71%, MGO +151% vs pre-war (Feb 2026). Global average VLSFO now $1,008/MT. Asian supply is tighter than Europe — consider Rotterdam/Houston for vessel bunkering where feasible.</div>
+    <div class="sec-hd"><div class="ic">[B]</div><h2 data-en="Bunker Fuel Prices — Apr 1, 2026" data-zh="燃油价格 — 2026年4月1日">Bunker Fuel Prices — Apr 1, 2026</h2><span class="badge" data-en="Procurement" data-zh="采购">Procurement</span></div>
+    <div class="alert-box" data-en="[HIGH ALERT] Singapore VLSFO +71%, MGO +151% vs pre-war (Feb 2026). Global average VLSFO now $1,008/MT. Asian supply is tighter than Europe — consider Rotterdam/Houston for vessel bunkering where feasible.<br><br><strong>来源:</strong> HandyBulk, Global Bunker Price Index" data-zh="[高预警] 新加坡VLSFO +71%, MGO +151% vs 战前(2026年2月)。全球平均VLSFO现$1,008/MT。亚洲供应比欧洲更紧张 — 在可行情况下考虑鹿特丹/休斯顿作为船舶加油点。<br><br><strong>来源:</strong> HandyBulk, 全球燃油价格指数">[HIGH ALERT] Singapore VLSFO +71%, MGO +151% vs pre-war (Feb 2026). Global average VLSFO now $1,008/MT. Asian supply is tighter than Europe — consider Rotterdam/Houston for vessel bunkering where feasible.<br><br><strong>来源:</strong> HandyBulk, Global Bunker Price Index</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Global Bunker Prices — Major Ports (USD/MT)</h4>
+    <h4 data-en="Global Bunker Prices — Major Ports (USD/MT)" data-zh="全球燃油价格 — 主要港口 (美元/吨)">Global Bunker Prices — Major Ports (USD/MT)</h4>
     <table>
-      <thead><tr><th>Port</th><th>VLSFO</th><th>MGO</th><th>Supply Status</th><th>Notes</th></tr></thead>
+      <thead><tr><th data-en="Port" data-zh="港口">Port</th><th data-en="VLSFO" data-zh="VLSFO">VLSFO</th><th data-en="MGO" data-zh="MGO">MGO</th><th data-en="Supply Status" data-zh="供应状态">Supply Status</th><th data-en="Notes" data-zh="备注">Notes</th></tr></thead>
       <tbody>
-        <tr><td><strong>Singapore</strong></td><td class="up">877</td><td class="alert">1,821</td><td class="ne">Tight</td><td>World's largest bunker hub; stock under pressure</td></tr>
-        <tr><td><strong>Rotterdam</strong></td><td class="ne">760</td><td class="ne">1,388</td><td class="up">Adequate</td><td>Relatively better supply vs Asia</td></tr>
-        <tr><td><strong>Houston</strong></td><td class="ne">882</td><td class="ne">1,342</td><td class="up">Normal</td><td>US Gulf Coast stable</td></tr>
-        <tr><td><strong>Los Angeles</strong></td><td class="up">1,171</td><td class="up">1,604</td><td class="ne">Premium</td><td>US West Coast VLSFO premium</td></tr>
-        <tr><td><strong>Hong Kong</strong></td><td class="up">941</td><td class="up">1,594</td><td class="ne">Tight</td><td>Influenced by Singapore supply</td></tr>
-        <tr><td><strong>Piraeus</strong></td><td class="ne">872</td><td class="ne">1,492</td><td class="up">Normal</td><td>Mediterranean adequate</td></tr>
-        <tr><td><strong>Fujairah</strong></td><td class="alert">N/A</td><td class="alert">N/A</td><td class="dn">Disrupted</td><td>Hormuz crisis impact on supply</td></tr>
-        <tr><td><strong>Istanbul</strong></td><td class="ne">1,024</td><td class="ne">1,570</td><td class="up">Normal</td><td>Bosphorus corridor</td></tr>
-        <tr><td><strong>Santos</strong></td><td class="ne">880</td><td class="ne">1,537</td><td class="up">Normal</td><td>Brazil / South America</td></tr>
+        <tr><td data-en="Singapore" data-zh="新加坡"><strong>Singapore</strong></td><td class="up">877</td><td class="alert">1,821</td><td class="ne" data-en="Tight" data-zh="紧张">Tight</td><td data-en="World's largest bunker hub; stock under pressure" data-zh="全球最大加油枢纽; 库存承压">World's largest bunker hub; stock under pressure</td></tr>
+        <tr><td data-en="Rotterdam" data-zh="鹿特丹"><strong>Rotterdam</strong></td><td class="ne">760</td><td class="ne">1,388</td><td class="up" data-en="Adequate" data-zh="充足">Adequate</td><td data-en="Relatively better supply vs Asia" data-zh="供应相对好于亚洲">Relatively better supply vs Asia</td></tr>
+        <tr><td data-en="Houston" data-zh="休斯顿"><strong>Houston</strong></td><td class="ne">882</td><td class="ne">1,342</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="US Gulf Coast stable" data-zh="美湾稳定">US Gulf Coast stable</td></tr>
+        <tr><td data-en="Los Angeles" data-zh="洛杉矶"><strong>Los Angeles</strong></td><td class="up">1,171</td><td class="up">1,604</td><td class="ne" data-en="Premium" data-zh="溢价">Premium</td><td data-en="US West Coast VLSFO premium" data-zh="美西VLSFO溢价">US West Coast VLSFO premium</td></tr>
+        <tr><td data-en="Hong Kong" data-zh="香港"><strong>Hong Kong</strong></td><td class="up">941</td><td class="up">1,594</td><td class="ne" data-en="Tight" data-zh="紧张">Tight</td><td data-en="Influenced by Singapore supply" data-zh="受新加坡供应影响">Influenced by Singapore supply</td></tr>
+        <tr><td data-en="Piraeus" data-zh="比雷埃夫斯"><strong>Piraeus</strong></td><td class="ne">872</td><td class="ne">1,492</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="Mediterranean adequate" data-zh="地中海充足">Mediterranean adequate</td></tr>
+        <tr><td data-en="Fujairah" data-zh="富查伊拉"><strong>Fujairah</strong></td><td class="alert">N/A</td><td class="alert">N/A</td><td class="dn" data-en="Disrupted" data-zh="中断">Disrupted</td><td data-en="Hormuz crisis impact on supply" data-zh="霍尔木兹危机对供应的影响">Hormuz crisis impact on supply</td></tr>
+        <tr><td data-en="Istanbul" data-zh="伊斯坦布尔"><strong>Istanbul</strong></td><td class="ne">1,024</td><td class="ne">1,570</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="Bosphorus corridor" data-zh="博斯普鲁斯海峡走廊">Bosphorus corridor</td></tr>
+        <tr><td data-en="Santos" data-zh="桑托斯"><strong>Santos</strong></td><td class="ne">880</td><td class="ne">1,537</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="Brazil / South America" data-zh="巴西/南美">Brazil / South America</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: HandyBulk, Ship &amp; Bunker, Port Bunker Price Reports" data-zh="来源: HandyBulk, Ship &amp; Bunker, 港口燃油价格报告">来源: HandyBulk, Ship &amp; Bunker, Port Bunker Price Reports</div>
   </div>
 
-  <div class="gold-box">
-    [PROCUREMENT GUIDANCE] Asian supply (Singapore/HK) is currently tighter than European ports. For vessels with scheduling flexibility, Rotterdam ($760 VLSFO) offers the best VLSFO value vs Singapore ($877). For April-May hedging, consider partial forward contracts at current levels. Fujairah remains unavailable — exclude from bunkering plans until further notice.
-  </div>
+  <div class="gold-box" data-en="[PROCUREMENT GUIDANCE] Asian supply (Singapore/HK) is currently tighter than European ports. For vessels with scheduling flexibility, Rotterdam ($760 VLSFO) offers the best VLSFO value vs Singapore ($877). For April-May hedging, consider partial forward contracts at current levels. Fujairah remains unavailable — exclude from bunkering plans until further notice.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Index" data-zh="[采购指引] 亚洲供应(新加坡/香港)目前比欧洲港口更紧张。对于有调度灵活性的船舶,鹿特丹($760 VLSFO)比新加坡($877)提供最佳VLSFO价值。对于4-5月对冲,考虑按当前水平进行部分远期合约。富查伊拉仍不可用 — 在另行通知前从加油计划中排除。<br><br><strong>来源:</strong> HandyBulk, 燃油价格指数">[PROCUREMENT GUIDANCE] Asian supply (Singapore/HK) is currently tighter than European ports. For vessels with scheduling flexibility, Rotterdam ($760 VLSFO) offers the best VLSFO value vs Singapore ($877). For April-May hedging, consider partial forward contracts at current levels. Fujairah remains unavailable — exclude from bunkering plans until further notice.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Index</div>
 </div>
 
 <!-- ===================== FINANCE ===================== -->
 <div class="panel" id="tab-finance">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[F]</div><h2>Key Financial Indicators</h2><span class="badge">Finance</span></div>
+    <div class="sec-hd"><div class="ic">[F]</div><h2 data-en="Key Financial Indicators" data-zh="关键财务指标">Key Financial Indicators</h2><span class="badge" data-en="Finance" data-zh="财务">Finance</span></div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Energy &amp; FX Snapshot — Apr 1, 2026</h4>
+    <h4 data-en="Energy &amp; FX Snapshot — Apr 1, 2026" data-zh="能源与外汇快照 — 2026年4月1日">Energy &amp; FX Snapshot — Apr 1, 2026</h4>
     <table>
-      <thead><tr><th>Indicator</th><th>Current Level</th><th>Change</th><th>Finance Impact</th></tr></thead>
+      <thead><tr><th data-en="Indicator" data-zh="指标">Indicator</th><th data-en="Current Level" data-zh="当前水平">Current Level</th><th data-en="Change" data-zh="变化">Change</th><th data-en="Finance Impact" data-zh="财务影响">Finance Impact</th></tr></thead>
       <tbody>
-        <tr><td><strong>Brent Crude</strong></td><td class="dn">&gt;$100/bbl</td><td class="dn">War premium (+33%+)</td><td>BAF recalculation required; EBS surcharges partially offset</td></tr>
-        <tr><td><strong>Singapore VLSFO</strong></td><td class="up">$877/MT</td><td class="up">+71% vs pre-war</td><td>Fuel cost % of OpEx significantly elevated</td></tr>
-        <tr><td><strong>MGO (Singapore)</strong></td><td class="alert">$1,821/MT</td><td class="up">+151% vs pre-war</td><td>ECA zone entries extremely costly</td></tr>
-        <tr><td><strong>USD/TWD</strong></td><td>~32.8</td><td class="ne">Stable</td><td>Watch for TWD depreciation risk if war prolongs</td></tr>
-        <tr><td><strong>USD/CNY</strong></td><td>~7.23</td><td class="ne">Stable</td><td>China export cost base relatively unchanged</td></tr>
-        <tr><td><strong>VLCC Tanker Rate (BDTI)</strong></td><td class="up">3,507</td><td class="up">+23% wk</td><td>Oil rerouting premium — indirect cost increase</td></tr>
+        <tr><td data-en="Brent Crude" data-zh="布伦特原油"><strong>Brent Crude</strong></td><td class="dn">&gt;$100/bbl</td><td class="dn" data-en="War premium (+33%+)" data-zh="战争溢价(+33%+)">War premium (+33%+)</td><td data-en="BAF recalculation required; EBS surcharges partially offset" data-zh="需重新计算BAF; EBS附加费部分抵消">BAF recalculation required; EBS surcharges partially offset</td></tr>
+        <tr><td data-en="Singapore VLSFO" data-zh="新加坡VLSFO"><strong>Singapore VLSFO</strong></td><td class="up">$877/MT</td><td class="up" data-en="+71% vs pre-war" data-zh="vs 战前+71%">+71% vs pre-war</td><td data-en="Fuel cost % of OpEx significantly elevated" data-zh="燃油占运营成本比例显著上升">Fuel cost % of OpEx significantly elevated</td></tr>
+        <tr><td data-en="MGO (Singapore)" data-zh="MGO(新加坡)"><strong>MGO (Singapore)</strong></td><td class="alert">$1,821/MT</td><td class="up" data-en="+151% vs pre-war" data-zh="vs 战前+151%">+151% vs pre-war</td><td data-en="ECA zone entries extremely costly" data-zh="ECA区进入成本极高">ECA zone entries extremely costly</td></tr>
+        <tr><td data-en="USD/TWD" data-zh="美元/新台币"><strong>USD/TWD</strong></td><td>~32.8</td><td class="ne" data-en="Stable" data-zh="稳定">Stable</td><td data-en="Watch for TWD depreciation risk if war prolongs" data-zh="若战争延长需关注新台币贬值风险">Watch for TWD depreciation risk if war prolongs</td></tr>
+        <tr><td data-en="USD/CNY" data-zh="美元/人民币"><strong>USD/CNY</strong></td><td>~7.23</td><td class="ne" data-en="Stable" data-zh="稳定">Stable</td><td data-en="China export cost base relatively unchanged" data-zh="中国出口成本基础相对未变">China export cost base relatively unchanged</td></tr>
+        <tr><td data-en="VLCC Tanker Rate (BDTI)" data-zh="VLCC油轮费率(BDTI)"><strong>VLCC Tanker Rate (BDTI)</strong></td><td class="up">3,507</td><td class="up" data-en="+23% wk" data-zh="上周+23%">+23% wk</td><td data-en="Oil rerouting premium — indirect cost increase" data-zh="石油改道溢价 — 间接成本增加">Oil rerouting premium — indirect cost increase</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: HandyBulk, Bloomberg FX, BDTI, Oil Price Reports" data-zh="来源: HandyBulk, Bloomberg FX, BDTI, 原油价格报告">来源: HandyBulk, Bloomberg FX, BDTI, Oil Price Reports</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Diversion Cost Impact Estimate (Cape of Good Hope vs. Suez)</h4>
+    <h4 data-en="Diversion Cost Impact Estimate (Cape of Good Hope vs. Suez)" data-zh="绕航成本影响估算(好望角 vs 苏伊士)">Diversion Cost Impact Estimate (Cape of Good Hope vs. Suez)</h4>
     <table>
-      <thead><tr><th>Cost Item</th><th>Per Voyage Estimate</th><th>Notes</th></tr></thead>
+      <thead><tr><th data-en="Cost Item" data-zh="成本项">Cost Item</th><th data-en="Per Voyage Estimate" data-zh="每航次估算">Per Voyage Estimate</th><th data-en="Notes" data-zh="备注">Notes</th></tr></thead>
       <tbody>
-        <tr><td>Extra distance (Asia-Europe)</td><td>+~11,000 nautical miles</td><td>~25% longer via Cape</td></tr>
-        <tr><td>Additional transit days</td><td>7-10 days</td><td>Extends vessel rotation</td></tr>
-        <tr><td>Extra bunker consumption</td><td>+$400,000-600,000/voyage</td><td>At current VLSFO prices</td></tr>
-        <tr><td>Hapag-Lloyd weekly cost overrun</td><td>$40-50M USD/week</td><td>Carrier disclosed estimate</td></tr>
-        <tr><td>EBS recovery (carrier)</td><td>$300-500/FEU</td><td>Partially offsets; gap remains</td></tr>
+        <tr><td data-en="Extra distance (Asia-Europe)" data-zh="额外距离(亚欧)">Extra distance (Asia-Europe)</td><td data-en="+~11,000 nautical miles" data-zh="+~11,000海里">+~11,000 nautical miles</td><td data-en="~25% longer via Cape" data-zh="经好望角约长25%">~25% longer via Cape</td></tr>
+        <tr><td data-en="Additional transit days" data-zh="额外航程天数">Additional transit days</td><td data-en="7-10 days" data-zh="7-10天">7-10 days</td><td data-en="Extends vessel rotation" data-zh="延长船舶周转">Extends vessel rotation</td></tr>
+        <tr><td data-en="Extra bunker consumption" data-zh="额外燃油消耗">Extra bunker consumption</td><td data-en="+$400,000-600,000/voyage" data-zh="+$400,000-600,000/航次">+$400,000-600,000/voyage</td><td data-en="At current VLSFO prices" data-zh="按当前VLSFO价格">At current VLSFO prices</td></tr>
+        <tr><td data-en="Hapag-Lloyd weekly cost overrun" data-zh="赫伯罗特每周成本超支">Hapag-Lloyd weekly cost overrun</td><td data-en="$40-50M USD/week" data-zh="$40-50M美元/周">$40-50M USD/week</td><td data-en="Carrier disclosed estimate" data-zh="船公司披露估算">Carrier disclosed estimate</td></tr>
+        <tr><td data-en="EBS recovery (carrier)" data-zh="EBS回收(船公司)">EBS recovery (carrier)</td><td data-en="$300-500/FEU" data-zh="$300-500/FEU">$300-500/FEU</td><td data-en="Partially offsets; gap remains" data-zh="部分抵消; 仍有缺口">Partially offsets; gap remains</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: Hapag-Lloyd Q1 2026 Earnings Call, Carrier Disclosures, HandyBulk" data-zh="来源: 赫伯罗特2026年Q1财报电话会议, 船公司披露, HandyBulk">来源: Hapag-Lloyd Q1 2026 Earnings Call, Carrier Disclosures, HandyBulk</div>
   </div>
 
-  <div class="warn-box">
-    [FINANCE ALERT] Fuel costs currently represent ~30% of ship operating expenses at current VLSFO levels. BAF (Bunker Adjustment Factor) should be recalculated immediately to reflect current market conditions. ECA surcharges (MGO-dependent) are particularly burdensome — review ECA route exposure.
-  </div>
+  <div class="warn-box" data-en="[FINANCE ALERT] Fuel costs currently represent ~30% of ship operating expenses at current VLSFO levels. BAF (Bunker Adjustment Factor) should be recalculated immediately to reflect current market conditions. ECA surcharges (MGO-dependent) are particularly burdensome — review ECA route exposure.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Analysis" data-zh="[财务预警] 在当前VLSFO水平下,燃油成本目前约占船舶运营成本的30%。BAF(燃油调整因素)应立即重新计算以反映当前市场状况。ECA附加费(MGO依赖)尤其沉重 — 审查ECA航线敞口。<br><br><strong>来源:</strong> HandyBulk, 燃油价格分析">[FINANCE ALERT] Fuel costs currently represent ~30% of ship operating expenses at current VLSFO levels. BAF (Bunker Adjustment Factor) should be recalculated immediately to reflect current market conditions. ECA surcharges (MGO-dependent) are particularly burdensome — review ECA route exposure.<br><br><strong>来源:</strong> HandyBulk, Fuel Price Analysis</div>
 </div>
 
 <!-- ===================== CONTAINER EQUIPMENT ===================== -->
 <div class="panel" id="tab-eqpt">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[E]</div><h2>Equipment &amp; Container Status</h2><span class="badge">Container Equipment</span></div>
-    <div class="warn-box">[WARNING] Persian Gulf stranded containers: ~460-470k TEU locked in the Gulf. Imbalance developing between Asia export (long boxes) and Middle East / Europe import (short boxes). Reefer rotation disrupted for Gulf destinations.</div>
+    <div class="sec-hd"><div class="ic">[E]</div><h2 data-en="Equipment &amp; Container Status" data-zh="设备与集装箱状态">Equipment &amp; Container Status</h2><span class="badge" data-en="Container Equipment" data-zh="箱管">Container Equipment</span></div>
+    <div class="warn-box" data-en="[WARNING] Persian Gulf stranded containers: ~460-470k TEU locked in the Gulf. Imbalance developing between Asia export (long boxes) and Middle East / Europe import (short boxes). Reefer rotation disrupted for Gulf destinations.<br><br><strong>来源:</strong> Lloyd's List, Container Equipment Reports" data-zh="[警告] 波斯湾滞留集装箱: ~46-47万TEU困于海湾。亚洲出口(长箱)与中东/欧洲进口(短箱)之间正在失衡。海湾目的地的冷藏箱周转中断。<br><br><strong>来源:</strong> Lloyd's List, 集装箱设备报告">[WARNING] Persian Gulf stranded containers: ~460-470k TEU locked in the Gulf. Imbalance developing between Asia export (long boxes) and Middle East / Europe import (short boxes). Reefer rotation disrupted for Gulf destinations.<br><br><strong>来源:</strong> Lloyd's List, Container Equipment Reports</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Regional Equipment Availability — Estimated Apr 1, 2026</h4>
+    <h4 data-en="Regional Equipment Availability — Estimated Apr 1, 2026" data-zh="区域设备可用性 — 估算2026年4月1日">Regional Equipment Availability — Estimated Apr 1, 2026</h4>
     <table>
-      <thead><tr><th>Region</th><th>Dry 20'</th><th>Dry 40'</th><th>Reefer 40'</th><th>Status Summary</th></tr></thead>
+      <thead><tr><th data-en="Region" data-zh="地区">Region</th><th data-en="Dry 20'" data-zh="干箱20'">Dry 20'</th><th data-en="Dry 40'" data-zh="干箱40'">Dry 40'</th><th data-en="Reefer 40'" data-zh="冷藏箱40'">Reefer 40'</th><th data-en="Status Summary" data-zh="状态摘要">Status Summary</th></tr></thead>
       <tbody>
-        <tr><td><strong>China (Export Ports)</strong></td><td class="up">Adequate</td><td class="up">Adequate</td><td class="ne">Monitor</td><td>Normal pre-Golden Week buildup expected</td></tr>
-        <tr><td><strong>SE Asia</strong></td><td class="up">Normal</td><td class="up">Normal</td><td class="up">Normal</td><td>No significant disruption</td></tr>
-        <tr><td><strong>Persian Gulf (Trapped)</strong></td><td class="dn">Acute shortage</td><td class="dn">Acute shortage</td><td class="dn">Disrupted</td><td>~460k TEU stranded; critical shortage building</td></tr>
-        <tr><td><strong>UAE East Coast (Khor Fakkan)</strong></td><td class="alert">Rapidly depleting</td><td class="alert">Stress</td><td class="alert">Very tight</td><td>Hub for landbridge cargo; all capacity under pressure</td></tr>
-        <tr><td><strong>Europe (N.Europe/Med)</strong></td><td class="up">Normal</td><td class="up">Normal</td><td class="ne">Slight tight</td><td>Cape rerouting extends equipment rotation</td></tr>
-        <tr><td><strong>US West Coast</strong></td><td class="up">Normal</td><td class="up">Adequate</td><td class="up">Normal</td><td>Transpacific supply maintained</td></tr>
+        <tr><td data-en="China (Export Ports)" data-zh="中国(出口港)"><strong>China (Export Ports)</strong></td><td class="up" data-en="Adequate" data-zh="充足">Adequate</td><td class="up" data-en="Adequate" data-zh="充足">Adequate</td><td class="ne" data-en="Monitor" data-zh="监控">Monitor</td><td data-en="Normal pre-Golden Week buildup expected" data-zh="预期正常黄金周前积压">Normal pre-Golden Week buildup expected</td></tr>
+        <tr><td data-en="SE Asia" data-zh="东南亚"><strong>SE Asia</strong></td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="No significant disruption" data-zh="无重大中断">No significant disruption</td></tr>
+        <tr><td data-en="Persian Gulf (Trapped)" data-zh="波斯湾(被困)"><strong>Persian Gulf (Trapped)</strong></td><td class="dn" data-en="Acute shortage" data-zh="严重短缺">Acute shortage</td><td class="dn" data-en="Acute shortage" data-zh="严重短缺">Acute shortage</td><td class="dn" data-en="Disrupted" data-zh="中断">Disrupted</td><td data-en="~460k TEU stranded; critical shortage building" data-zh="~46万TEU滞留; 严重短缺加剧">~460k TEU stranded; critical shortage building</td></tr>
+        <tr><td data-en="UAE East Coast (Khor Fakkan)" data-zh="阿联酋东海岸(科尔法坎)"><strong>UAE East Coast (Khor Fakkan)</strong></td><td class="alert" data-en="Rapidly depleting" data-zh="快速耗尽">Rapidly depleting</td><td class="alert" data-en="Stress" data-zh="承压">Stress</td><td class="alert" data-en="Very tight" data-zh="非常紧张">Very tight</td><td data-en="Hub for landbridge cargo; all capacity under pressure" data-zh="陆桥货物枢纽; 所有运力承压">Hub for landbridge cargo; all capacity under pressure</td></tr>
+        <tr><td data-en="Europe (N.Europe/Med)" data-zh="欧洲(北欧/地中海)"><strong>Europe (N.Europe/Med)</strong></td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td class="ne" data-en="Slight tight" data-zh="略紧">Slight tight</td><td data-en="Cape rerouting extends equipment rotation" data-zh="好望角改道延长设备周转">Cape rerouting extends equipment rotation</td></tr>
+        <tr><td data-en="US West Coast" data-zh="美西"><strong>US West Coast</strong></td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td class="up" data-en="Adequate" data-zh="充足">Adequate</td><td class="up" data-en="Normal" data-zh="正常">Normal</td><td data-en="Transpacific supply maintained" data-zh="跨太平洋供应维持">Transpacific supply maintained</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: Container Equipment Reports, Regional Port Surveys, Industry Intelligence" data-zh="来源: 集装箱设备报告, 区域港口调研, 行业情报">来源: Container Equipment Reports, Regional Port Surveys, Industry Intelligence</div>
   </div>
 
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[R]</div><h2>Reefer &amp; Special Equipment</h2></div>
-    <div class="info-box">[INFO] Reefer equipment to/from Persian Gulf destinations is severely disrupted. Middle East frozen/chilled cargo flows redirected via Khor Fakkan with significant transit time increase (+7-10 days). Customers with temperature-sensitive cargo to Gulf may face transit delays or cargo quality risk. Consider air freight alternative for critical reefer shipments.</div>
+    <div class="sec-hd"><div class="ic">[R]</div><h2 data-en="Reefer &amp; Special Equipment" data-zh="冷藏箱与特殊设备">Reefer &amp; Special Equipment</h2></div>
+    <div class="info-box" data-en="[INFO] Reefer equipment to/from Persian Gulf destinations is severely disrupted. Middle East frozen/chilled cargo flows redirected via Khor Fakkan with significant transit time increase (+7-10 days). Customers with temperature-sensitive cargo to Gulf may face transit delays or cargo quality risk. Consider air freight alternative for critical reefer shipments.<br><br><strong>来源:</strong> Container Equipment Reports, Regional Port Operations" data-zh="[信息] 往返波斯湾目的地的冷藏箱设备严重中断。中东冷冻/冷藏货物流向通过科尔法坎重新定向,航程时间显著增加(+7-10天)。对海湾有温控货物的客户可能面临航程延误或货物质量风险。考虑对关键冷藏货物采用空运替代方案。<br><br><strong>来源:</strong> 集装箱设备报告, 区域港口运营">[INFO] Reefer equipment to/from Persian Gulf destinations is severely disrupted. Middle East frozen/chilled cargo flows redirected via Khor Fakkan with significant transit time increase (+7-10 days). Customers with temperature-sensitive cargo to Gulf may face transit delays or cargo quality risk. Consider air freight alternative for critical reefer shipments.<br><br><strong>来源:</strong> Container Equipment Reports, Regional Port Operations</div>
   </div>
 </div>
 
 <!-- ===================== LEGAL & COMPLIANCE ===================== -->
 <div class="panel" id="tab-legal">
   <div class="sec">
-    <div class="sec-hd"><div class="ic">[L]</div><h2>Sanctions, Compliance &amp; War Risk</h2><span class="badge">Legal &amp; Compliance</span></div>
-    <div class="alert-box">[COMPLIANCE ALERT] Iranian-linked vessels now represent ~70% of Hormuz transits (125 of 181 ships in March). Vessels calling at Iranian ports or transporting Iranian cargo face heightened OFAC sanctions scrutiny. Ensure all counterparty due diligence is current.</div>
+    <div class="sec-hd"><div class="ic">[L]</div><h2 data-en="Sanctions, Compliance &amp; War Risk" data-zh="制裁、合规与战争风险">Sanctions, Compliance &amp; War Risk</h2><span class="badge" data-en="Legal &amp; Compliance" data-zh="法务">Legal &amp; Compliance</span></div>
+    <div class="alert-box" data-en="[COMPLIANCE ALERT] Iranian-linked vessels now represent ~70% of Hormuz transits (125 of 181 ships in March). Vessels calling at Iranian ports or transporting Iranian cargo face heightened OFAC sanctions scrutiny. Ensure all counterparty due diligence is current.<br><br><strong>来源:</strong> OFAC Official Guidance, Lloyd's List, Sanctions Intelligence" data-zh="[合规预警] 与伊朗有关的船舶现在约占霍尔木兹通行的70%(3月181艘中的125艘)。停靠伊朗港口或运输伊朗货物的船舶面临OFAC制裁审查加强。确保所有交易对手尽职调查是最新的。<br><br><strong>来源:</strong> OFAC官方指引, Lloyd's List, 制裁情报">[COMPLIANCE ALERT] Iranian-linked vessels now represent ~70% of Hormuz transits (125 of 181 ships in March). Vessels calling at Iranian ports or transporting Iranian cargo face heightened OFAC sanctions scrutiny. Ensure all counterparty due diligence is current.<br><br><strong>来源:</strong> OFAC Official Guidance, Lloyd's List, Sanctions Intelligence</div>
   </div>
 
   <div class="tbl-wrap">
-    <h4>Current Compliance Risk Areas — Apr 1, 2026</h4>
+    <h4 data-en="Current Compliance Risk Areas — Apr 1, 2026" data-zh="当前合规风险领域 — 2026年4月1日">Current Compliance Risk Areas — Apr 1, 2026</h4>
     <table>
-      <thead><tr><th>Issue</th><th>Risk Level</th><th>Action Required</th></tr></thead>
+      <thead><tr><th data-en="Issue" data-zh="问题">Issue</th><th data-en="Risk Level" data-zh="风险级别">Risk Level</th><th data-en="Action Required" data-zh="所需行动">Action Required</th></tr></thead>
       <tbody>
         <tr>
-          <td><strong>Iran Sanctions (OFAC)</strong></td>
-          <td class="dn">HIGH</td>
-          <td>Avoid all Iranian-flagged vessels; screen all Middle East counterparties; update SDN list</td>
+          <td data-en="Iran Sanctions (OFAC)" data-zh="伊朗制裁(OFAC)"><strong>Iran Sanctions (OFAC)</strong></td>
+          <td class="dn" data-en="HIGH" data-zh="高">HIGH</td>
+          <td data-en="Avoid all Iranian-flagged vessels; screen all Middle East counterparties; update SDN list" data-zh="避免所有伊朗旗船舶; 审查所有中东交易对手; 更新SDN名单">Avoid all Iranian-flagged vessels; screen all Middle East counterparties; update SDN list</td>
         </tr>
         <tr>
-          <td><strong>War Risk Insurance — Persian Gulf</strong></td>
-          <td class="alert">CRITICAL</td>
-          <td>War risk premium: 5-8% of hull value. Verify coverage for vessels in/near Hormuz. Confirm P&amp;I club status.</td>
+          <td data-en="War Risk Insurance — Persian Gulf" data-zh="战争险保险 — 波斯湾"><strong>War Risk Insurance — Persian Gulf</strong></td>
+          <td class="alert" data-en="CRITICAL" data-zh="紧急">CRITICAL</td>
+          <td data-en="War risk premium: 5-8% of hull value. Verify coverage for vessels in/near Hormuz. Confirm P&amp;I club status." data-zh="战争险溢价: 船值的5-8%。核实霍尔木兹内/附近船舶的保险覆盖。确认保赔俱乐部状态。">War risk premium: 5-8% of hull value. Verify coverage for vessels in/near Hormuz. Confirm P&amp;I club status.</td>
         </tr>
         <tr>
-          <td><strong>War Risk Insurance — Red Sea / Bab el-Mandeb</strong></td>
-          <td class="dn">HIGH</td>
-          <td>Ongoing elevated premiums. All Suez transits require pre-approval from insurance club.</td>
+          <td data-en="War Risk Insurance — Red Sea / Bab el-Mandeb" data-zh="战争险保险 — 红海/曼德海峡"><strong>War Risk Insurance — Red Sea / Bab el-Mandeb</strong></td>
+          <td class="dn" data-en="HIGH" data-zh="高">HIGH</td>
+          <td data-en="Ongoing elevated premiums. All Suez transits require pre-approval from insurance club." data-zh="持续高额保费。所有苏伊士通行需保险俱乐部预先批准。">Ongoing elevated premiums. All Suez transits require pre-approval from insurance club.</td>
         </tr>
         <tr>
-          <td><strong>Houthi Transit Code Requirement</strong></td>
-          <td class="ne">MEDIUM</td>
-          <td>New filing requirement: 72hr advance notice + unique transit code from Houthi authority. Ops team must comply for any Red Sea routing.</td>
+          <td data-en="Houthi Transit Code Requirement" data-zh="胡塞通行码要求"><strong>Houthi Transit Code Requirement</strong></td>
+          <td class="ne" data-en="MEDIUM" data-zh="中">MEDIUM</td>
+          <td data-en="New filing requirement: 72hr advance notice + unique transit code from Houthi authority. Ops team must comply for any Red Sea routing." data-zh="新申报要求: 提前72小时通知+胡塞当局的独特通行码。运营团队必须对任何红海航线遵守。">New filing requirement: 72hr advance notice + unique transit code from Houthi authority. Ops team must comply for any Red Sea routing.</td>
         </tr>
         <tr>
-          <td><strong>Russia Sanctions (Ongoing)</strong></td>
-          <td class="ne">MEDIUM</td>
-          <td>Continue to monitor EU/US/UK Russia sanctions. No changes this week. Maintain existing screening protocols.</td>
+          <td data-en="Russia Sanctions (Ongoing)" data-zh="俄罗斯制裁(持续中)"><strong>Russia Sanctions (Ongoing)</strong></td>
+          <td class="ne" data-en="MEDIUM" data-zh="中">MEDIUM</td>
+          <td data-en="Continue to monitor EU/US/UK Russia sanctions. No changes this week. Maintain existing screening protocols." data-zh="继续监控欧盟/美国/英国俄罗斯制裁。本周无变化。维持现有审查协议。">Continue to monitor EU/US/UK Russia sanctions. No changes this week. Maintain existing screening protocols.</td>
         </tr>
         <tr>
-          <td><strong>Port State Control (ECA Compliance)</strong></td>
-          <td class="ne">LOW-MED</td>
-          <td>With MGO at $1,821/MT, ensure ECA zone entries are strictly necessary and documented. Fuel switch logs maintained.</td>
+          <td data-en="Port State Control (ECA Compliance)" data-zh="港口国控制(ECA合规)"><strong>Port State Control (ECA Compliance)</strong></td>
+          <td class="ne" data-en="LOW-MED" data-zh="低-中">LOW-MED</td>
+          <td data-en="With MGO at $1,821/MT, ensure ECA zone entries are strictly necessary and documented. Fuel switch logs maintained." data-zh="在MGO为$1,821/MT的情况下,确保ECA区进入严格必要并已记录。维持燃油切换日志。">With MGO at $1,821/MT, ensure ECA zone entries are strictly necessary and documented. Fuel switch logs maintained.</td>
         </tr>
       </tbody>
     </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--gold);font-style:italic;" data-en="来源: OFAC Sanctions Lists, P&amp;I Club Bulletins, Maritime Compliance Reports" data-zh="来源: OFAC制裁名单, 保赔俱乐部公告, 海事合规报告">来源: OFAC Sanctions Lists, P&amp;I Club Bulletins, Maritime Compliance Reports</div>
   </div>
 
-  <div class="gold-box">
-    [LEGAL GUIDANCE] ADNOC CEO publicly termed Hormuz blockade as "economic terrorism" (Mar 31). Legal teams should monitor for any UN Security Council resolutions or bilateral diplomatic frameworks that could create new compliance obligations or exceptions. Review force majeure clauses in any contracts with Middle East counterparties for ongoing applicability.
-  </div>
+  <div class="gold-box" data-en="[LEGAL GUIDANCE] ADNOC CEO publicly termed Hormuz blockade as &quot;economic terrorism&quot; (Mar 31). Legal teams should monitor for any UN Security Council resolutions or bilateral diplomatic frameworks that could create new compliance obligations or exceptions. Review force majeure clauses in any contracts with Middle East counterparties for ongoing applicability.<br><br><strong>来源:</strong> ADNOC Official Statement, UN Security Council Monitoring" data-zh="[法律指引] ADNOC CEO公开称霍尔木兹封锁为&quot;经济恐怖主义&quot;(3月31日)。法务团队应监控任何可能创造新合规义务或例外的联合国安理会决议或双边外交框架。审查与中东交易对手的任何合同中的不可抗力条款的持续适用性。<br><br><strong>来源:</strong> ADNOC官方声明, 联合国安理会监控">[LEGAL GUIDANCE] ADNOC CEO publicly termed Hormuz blockade as &quot;economic terrorism&quot; (Mar 31). Legal teams should monitor for any UN Security Council resolutions or bilateral diplomatic frameworks that could create new compliance obligations or exceptions. Review force majeure clauses in any contracts with Middle East counterparties for ongoing applicability.<br><br><strong>来源:</strong> ADNOC Official Statement, UN Security Council Monitoring</div>
 </div>
 
-<footer>
-  CLAW DAILY BRIEF — Issue #16 — April 1, 2026 (Wednesday) | Data: Freightos / Lloyd's List / Maritime News / HandyBulk / CMA CGM / COSCO Official | For internal use only.
-</footer>
+<footer data-en="CLAW DAILY BRIEF — Issue #16 — April 1, 2026 (Wednesday) | Data Sources: Freightos / Lloyd's List / Maritime News / HandyBulk / CMA CGM / COSCO Official / BDI / FBX / SCFI / Port Authorities / OFAC / P&amp;I Clubs / Container Equipment Reports | For internal use only." data-zh="CLAW 每日内参 — 第16期 — 2026年4月1日(周三) | 数据来源: Freightos / Lloyd's List / Maritime News / HandyBulk / CMA CGM / COSCO Official / BDI / FBX / SCFI / 港务局 / OFAC / 保赔俱乐部 / 集装箱设备报告 | 仅供内部使用。">CLAW DAILY BRIEF — Issue #16 — April 1, 2026 (Wednesday) | Data Sources: Freightos / Lloyd's List / Maritime News / HandyBulk / CMA CGM / COSCO Official / BDI / FBX / SCFI / Port Authorities / OFAC / P&amp;I Clubs / Container Equipment Reports | For internal use only.</footer>
 
 <script>
 function switchTab(id, btn) {
@@ -527,6 +525,35 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+}
+
+function setLang(lang) {
+  // Update language buttons
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick="setLang('${lang}')"]`).classList.add('active');
+  
+  // Update all elements with data-en and data-zh attributes
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const text = el.getAttribute(`data-${lang}`);
+    if (text) {
+      // Check if element has HTML content
+      if (el.innerHTML.includes('<')) {
+        el.innerHTML = text;
+      } else {
+        el.textContent = text;
+      }
+    }
+  });
+  
+  // Update page title
+  const titles = {
+    'en': 'Claw Daily Brief — 2026-04-01',
+    'zh': 'CLAW 每日内参 — 2026-04-01'
+  };
+  document.title = titles[lang];
+  
+  // Update HTML lang attribute
+  document.documentElement.lang = lang;
 }
 </script>
 </body>
