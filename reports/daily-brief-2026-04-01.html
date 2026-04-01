@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claw Daily Brief — 2026-04-01</title>
+<style>
+:root {
+  --navy:#05111f; --navy2:#0a1e35; --card:#0d2340; --border:#1a3a60;
+  --accent:#1a5cdb; --gold:#f0b429; --red:#ef4444; --green:#22c55e;
+  --orange:#f97316; --white:#f1f5f9; --sub:#94a3b8; --text:#e2e8f0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--navy);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.6;}
+
+/* TICKER */
+.topbar{background:var(--accent);padding:5px 0;overflow:hidden;border-bottom:2px solid var(--gold);}
+.ticker{display:flex;white-space:nowrap;animation:ticker 60s linear infinite;}
+.ticker span{padding:0 22px;font-size:12px;font-weight:600;}
+.up{color:#4ade80;}.dn{color:#f87171;}.ne{color:#fde68a;}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#05111f 0%,#0a1e35 60%,#0f2d52 100%);border-bottom:3px solid var(--gold);padding:22px 32px 16px;}
+.header-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-icon{width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;box-shadow:0 0 16px rgba(26,92,219,.5);}
+.brand h1{font-size:18px;font-weight:800;letter-spacing:1px;}
+.brand p{font-size:11px;color:var(--sub);margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:16px;}
+.date-block .d{font-size:26px;font-weight:800;color:var(--gold);line-height:1;text-align:right;}
+.date-block .s{font-size:11px;color:var(--sub);margin-top:3px;text-align:right;}
+.alert-bar{margin-top:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:9px 14px;font-size:12.5px;color:#fca5a5;display:flex;align-items:flex-start;gap:10px;}
+
+/* KPI ROW */
+.kpi-row{background:var(--navy2);padding:12px 32px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;}
+.kpi .lbl{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.kpi .val{font-size:17px;font-weight:800;}
+.kpi .chg{font-size:10.5px;font-weight:600;margin-top:2px;}
+.kpi .src{font-size:9px;color:rgba(148,163,184,.6);margin-top:2px;}
+
+/* TAB NAV */
+.tab-nav{background:var(--navy2);border-bottom:2px solid var(--border);padding:0 32px;display:flex;gap:0;overflow-x:auto;position:sticky;top:0;z-index:100;}
+.tab-nav::-webkit-scrollbar{height:3px;}
+.tab-nav::-webkit-scrollbar-thumb{background:var(--border);}
+.tab-btn{padding:11px 18px;font-size:12px;font-weight:700;color:var(--sub);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.3px;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* PANEL */
+.panel{display:none;padding:24px 32px;}
+.panel.active{display:block;}
+
+/* SECTION */
+.sec{margin-bottom:22px;}
+.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sec-hd .ic{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.sec-hd h2{font-size:15px;font-weight:700;color:var(--white);}
+.sec-hd .badge{background:rgba(26,92,219,.25);border:1px solid rgba(26,92,219,.5);border-radius:12px;padding:1px 9px;font-size:10px;color:#90cdf4;font-weight:600;}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.card .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-bottom:7px;}
+.tag-red{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+.tag-orange{background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.3);}
+.tag-blue{background:rgba(26,92,219,.2);color:#93c5fd;border:1px solid rgba(26,92,219,.3);}
+.tag-green{background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.25);}
+.tag-yellow{background:rgba(240,180,41,.12);color:#fde68a;border:1px solid rgba(240,180,41,.3);}
+.card h3{font-size:13px;font-weight:700;color:var(--white);line-height:1.5;margin-bottom:5px;}
+.card p{font-size:12px;color:var(--sub);line-height:1.7;}
+.card .meta{font-size:10.5px;color:rgba(148,163,184,.7);margin-top:8px;}
+
+/* TABLE */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.tbl-wrap h4{font-size:13px;font-weight:700;color:var(--white);margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:rgba(26,92,219,.15);color:#93c5fd;padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);}
+tbody td{padding:8px 10px;border-bottom:1px solid rgba(26,92,219,.08);color:var(--text);}
+tbody tr:hover td{background:rgba(26,92,219,.05);}
+td.up{color:#4ade80;font-weight:600;} td.dn{color:#f87171;font-weight:600;} td.ne{color:#fde68a;font-weight:600;}
+td.alert{color:#fb923c;font-weight:700;}
+
+/* ALERT */
+.alert-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#fca5a5;}
+.warn-box{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#fdba74;}
+.info-box{background:rgba(26,92,219,.08);border:1px solid rgba(26,92,219,.3);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#93c5fd;}
+.gold-box{background:rgba(240,180,41,.07);border:1px solid rgba(240,180,41,.25);border-radius:8px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#fde68a;}
+
+/* RISK LIST */
+.risk-list{list-style:none;padding:0;}
+.risk-list li{padding:7px 0 7px 22px;border-bottom:1px solid rgba(26,92,219,.1);position:relative;font-size:12.5px;color:var(--sub);}
+.risk-list li:last-child{border:0;}
+.risk-list li::before{content:'▶';position:absolute;left:0;font-size:9px;color:var(--accent);}
+.risk-list li strong{color:var(--text);}
+
+/* SINGLE COL */
+.single{grid-template-columns:1fr;}
+.full{grid-column:1/-1;}
+
+footer{background:var(--navy2);border-top:1px solid var(--border);padding:16px 32px;text-align:center;font-size:11px;color:rgba(148,163,184,.6);}
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="topbar">
+  <div class="ticker">
+    <span>[BRIEF] Claw Daily Intelligence — 2026-04-01</span>
+    <span class="dn">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
+    <span class="ne">|</span>
+    <span class="up">SCFI 1,826.77 [+7.02% last week]</span>
+    <span class="ne">|</span>
+    <span class="up">Apr GRI effective today — EBS $300-500/FEU</span>
+    <span class="ne">|</span>
+    <span class="up">Singapore VLSFO $877/MT [+71% since conflict]</span>
+    <span class="ne">|</span>
+    <span class="up">Brent crude >$100/bbl</span>
+    <span class="ne">|</span>
+    <span class="up">Hapag-Lloyd completes ZIM acquisition — 3M TEU fleet</span>
+    <span class="ne">|</span>
+    <span class="dn">Transpacific +4% (W.Coast), Asia-Med -8% this week</span>
+    <span class="ne">|</span>
+    <span class="up">[BRIEF] Claw Daily Intelligence — 2026-04-01</span>
+    <span class="dn">Hormuz Blockade Day 36 — Mar traffic: 181 ships (-94%)</span>
+    <span class="ne">|</span>
+    <span class="up">SCFI 1,826.77 [+7.02% last week]</span>
+    <span class="ne">|</span>
+    <span class="up">Apr GRI effective today — EBS $300-500/FEU</span>
+    <span class="ne">|</span>
+    <span class="up">Singapore VLSFO $877/MT [+71% since conflict]</span>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-row">
+    <div class="brand">
+      <div class="brand-icon">C</div>
+      <div>
+        <h1>CLAW DAILY BRIEF</h1>
+        <p>Shipping Intelligence for 7 Departments · Wednesday Edition</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="date-block">
+        <div class="d">APR 1, 2026</div>
+        <div class="s">Issue #16 · Wed · 09:00 HKT</div>
+      </div>
+    </div>
+  </div>
+  <div class="alert-bar">
+    [ALERT] Hormuz Strait Day 36: Only 181 vessels transited in March (vs ~3,000/month pre-war). ~140 container ships (460-470k TEU) remain stranded in the Persian Gulf. April GRI effective today across all major carriers. Singapore MGO +151% since conflict began.
+  </div>
+</div>
+
+<!-- KPI ROW -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="lbl">SCFI Composite</div>
+    <div class="val up">1,826.77</div>
+    <div class="chg up">+7.02% wk</div>
+    <div class="src">As of Mar 28</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Asia — N.Europe</div>
+    <div class="val up">~2,900</div>
+    <div class="chg ne">flat USD/FEU</div>
+    <div class="src">FBX, wk of 3/31</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Asia — US West</div>
+    <div class="val up">~2,352</div>
+    <div class="chg up">+14.5% wk</div>
+    <div class="src">SCFI</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">VLSFO Sing.</div>
+    <div class="val up">877</div>
+    <div class="chg up">+71% vs pre-war</div>
+    <div class="src">USD/MT, Apr 1</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Brent Crude</div>
+    <div class="val dn">>$100</div>
+    <div class="chg dn">War premium</div>
+    <div class="src">USD/bbl</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Hormuz Transit</div>
+    <div class="val dn">181</div>
+    <div class="chg dn">-94% vs normal</div>
+    <div class="src">Mar total (Lloyd's)</div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" onclick="switchTab('mgmt',this)">Management</button>
+  <button class="tab-btn" onclick="switchTab('sales',this)">Sales &amp; Commercial</button>
+  <button class="tab-btn" onclick="switchTab('ops',this)">Operations &amp; Fleet</button>
+  <button class="tab-btn" onclick="switchTab('bunker',this)">Procurement / Bunker</button>
+  <button class="tab-btn" onclick="switchTab('finance',this)">Finance</button>
+  <button class="tab-btn" onclick="switchTab('eqpt',this)">Container Equipment</button>
+  <button class="tab-btn" onclick="switchTab('legal',this)">Legal &amp; Compliance</button>
+</div>
+
+<!-- ===================== MANAGEMENT ===================== -->
+<div class="panel active" id="tab-mgmt">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[M]</div><h2>30-Second Market Snapshot</h2><span class="badge">Management</span></div>
+    <div class="gold-box">
+      <strong>April 1 Executive Summary:</strong> Hormuz blockade enters Day 36 with no diplomatic breakthrough in sight. March commercial transit volume confirmed at just 181 ships — a 94% collapse from pre-war norms. April GRI is effective today; carriers are attempting $750-800/TEU increases on Asia-Europe, though weak demand in traditional slow season limits actual execution. Bunker fuel (Singapore VLSFO) has surged 71% since the conflict began. Hapag-Lloyd completed acquisition of ZIM Lines, becoming the world's #3 carrier with 3M+ TEU capacity.
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[N]</div><h2>Top 3 Business Risks Today</h2></div>
+    <ul class="risk-list">
+      <li><strong>[HIGH] Hormuz Prolonged Closure:</strong> 460-470k TEU stranded. Middle East services depend entirely on multimodal landbridge via Khor Fakkan. Every week adds ~$40-50M cost for carriers like Hapag-Lloyd. Our Middle East routes face capacity scarcity + surcharge stacking.</li>
+      <li><strong>[HIGH] GRI Execution Uncertainty:</strong> April GRI is announced but market actual rates are $2,000-3,000/FEU below carrier targets. Weak demand could mean surcharges don't fully stick — revenue impact for both directions. Monitor actual freight bookings closely.</li>
+      <li><strong>[MED] Bunker Cost Surge:</strong> Singapore MGO +151%, VLSFO +71%. Fuel cost as % of operating cost has jumped. BAF recalculation needed. EBS/PSS surcharges may not fully recover actual fuel expense increases.</li>
+    </ul>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[C]</div><h2>Competitor Intelligence</h2></div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag tag-blue">[UPDATE] Hapag-Lloyd</span>
+        <h3>Completes ZIM acquisition — now 3M TEU, global #3</h3>
+        <p>Integration of ZIM Lines strengthens Hapag-Lloyd's transpacific and Asia intra-regional positions. Some route consolidation expected in 6-12 months. Weekly cost overrun from Hormuz: est. $40-50M USD.</p>
+        <div class="meta">Source: Maritime News | Q1 2026</div>
+      </div>
+      <div class="card">
+        <span class="tag tag-orange">[UPDATE] Maersk</span>
+        <h3>ME11 resumed via Suez (limited); FM1 still suspended</h3>
+        <p>Maersk reports Q4 2025 sea freight operating loss of $153M — first quarterly loss since 2016. Persian Gulf direct services halted; coordinating multimodal alternatives. Still operating via Cape of Good Hope primarily.</p>
+        <div class="meta">Source: Maritime News | Mar 28</div>
+      </div>
+      <div class="card">
+        <span class="tag tag-blue">[UPDATE] CMA CGM</span>
+        <h3>Asia-N.Europe FAK rates updated effective April 1</h3>
+        <p>April 1 new FAK rates from Asia to North Europe now in effect. GRI approximately $750/TEU. Middle East direct services suspended; multimodal via Khor Fakkan offered.</p>
+        <div class="meta">Source: CMA CGM Official | Mar 25</div>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">[UPDATE] COSCO</span>
+        <h3>Resumed Middle East 6-country bookings via Khor Fakkan landbridge</h3>
+        <p>March 25: COSCO officially resumed booking for UAE, Saudi Arabia, Bahrain, Qatar, Kuwait, Iraq, Oman — using bonded landbridge from Khor Fakkan/Fujairah. 20 days after suspension. Volume still constrained by Hormuz situation.</p>
+        <div class="meta">Source: COSCO Official | Mar 25</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SALES & COMMERCIAL ===================== -->
+<div class="panel" id="tab-sales">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[S]</div><h2>Rate Intelligence by Trade Lane</h2><span class="badge">Sales &amp; Commercial</span></div>
+    <div class="alert-box">[ALERT] April GRI effective today. EBS/PSS $300-500/FEU stacked on top of FAK rates. Actual market rates still $2,000-3,000/FEU below carrier targets — monitor booking conversion rates closely.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Current Spot Rates — Key Trade Lanes</h4>
+    <table>
+      <thead>
+        <tr><th>Trade Lane</th><th>Current Rate</th><th>Unit</th><th>Wk Change</th><th>Apr Surcharges</th><th>Market Signal</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Asia — N.Europe</strong></td><td class="up">~2,900</td><td>USD/FEU</td><td class="ne">flat</td><td class="alert">GRI +750~800</td><td>Stable, surcharge testing</td></tr>
+        <tr><td><strong>Asia — Mediterranean</strong></td><td class="dn">~3,800</td><td>USD/FEU</td><td class="dn">-8%</td><td>GRI +500~700</td><td>Easing from $4,300 peak</td></tr>
+        <tr><td><strong>Asia — US West Coast</strong></td><td class="up">~2,352</td><td>USD/FEU</td><td class="up">+14.5%</td><td class="alert">HAF +500</td><td>Strong momentum</td></tr>
+        <tr><td><strong>Asia — US East Coast</strong></td><td class="up">~3,264</td><td>USD/FEU</td><td class="up">+11.7%</td><td>HAF +500</td><td>Strong</td></tr>
+        <tr><td><strong>Asia — Persian Gulf</strong></td><td class="alert">~3,728</td><td>USD/TEU</td><td class="up">+12.2%</td><td class="alert">WRS 1,500 + HSS 400-600</td><td>Nominal; very limited capacity</td></tr>
+        <tr><td><strong>Asia — Japan/Korea</strong></td><td>~412</td><td>USD/TEU</td><td class="ne">flat</td><td>Minimal</td><td>Stable</td></tr>
+        <tr><td><strong>Asia — SE Asia</strong></td><td>~480</td><td>USD/TEU</td><td class="ne">minor adj.</td><td>Minimal</td><td>Normal</td></tr>
+        <tr><td><strong>Asia — Australia</strong></td><td class="up">~1,850</td><td>USD/FEU</td><td class="up">+3%</td><td>ANL +700/40' from Apr 16</td><td>Firm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[A]</div><h2>Surcharge Summary — April 2026</h2></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Surcharge</th><th>Amount</th><th>Applies To</th><th>Effective</th></tr></thead>
+        <tbody>
+          <tr><td>GRI (General Rate Increase)</td><td class="up">$750-800/TEU</td><td>Asia — Europe</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td>EBS/PSS (Emergency Bunker)</td><td class="up">$300-500/FEU</td><td>All major trade lanes</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td>WRS (War Risk Surcharge)</td><td class="alert">$1,500/TEU</td><td>Middle East / Persian Gulf</td><td>Ongoing</td></tr>
+          <tr><td>HSS (Hormuz Strait Surcharge)</td><td class="alert">$400-600/TEU</td><td>Middle East direct</td><td>Ongoing</td></tr>
+          <tr><td>HAF (Hormuz Action Fuel Fee)</td><td class="up">$500/FEU</td><td>Asia — North America</td><td class="alert">Apr 1, 2026</td></tr>
+          <tr><td>ANL Australia GRI</td><td class="up">$700/40'</td><td>Asia — Australia</td><td>Apr 16, 2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="info-box">
+    [NOTE] Market actual rates remain significantly below GRI targets. Traditional slow season demand + ample capacity are limiting carrier pricing power. Key test: whether April bookings week-2 onwards show demand recovery that validates surcharge execution.
+  </div>
+</div>
+
+<!-- ===================== OPERATIONS & FLEET ===================== -->
+<div class="panel" id="tab-ops">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[O]</div><h2>Chokepoint Status</h2><span class="badge">Operations &amp; Fleet</span></div>
+    <div class="alert-box">[CRITICAL] Hormuz Strait Day 36: Commercial shipping near standstill. Bab el-Mandeb: Houthi new transit code requirement (72hr advance filing). Both chokepoints simultaneously disrupted — historic dual-chokepoint stress scenario.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Chokepoint &amp; Route Status Matrix</h4>
+    <table>
+      <thead><tr><th>Chokepoint / Route</th><th>Status</th><th>Transit Volume</th><th>Carrier Response</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Strait of Hormuz</strong></td>
+          <td class="dn">BLOCKED (Day 36)</td>
+          <td class="dn">181 ships/month (-94%)</td>
+          <td>Multimodal via Khor Fakkan; COSCO resumed landbridge (3/25)</td>
+        </tr>
+        <tr>
+          <td><strong>Bab el-Mandeb / Red Sea</strong></td>
+          <td class="ne">RESTRICTED (Day 860+)</td>
+          <td class="ne">26 transits as of 3/27; new code filing req.</td>
+          <td>Maersk limited Suez resumption; most via Cape of Good Hope</td>
+        </tr>
+        <tr>
+          <td><strong>Suez Canal</strong></td>
+          <td class="ne">LIMITED</td>
+          <td class="ne">Partial resumption (Maersk ME11, MECL1)</td>
+          <td>Cautious restart; Red Sea situation dependent</td>
+        </tr>
+        <tr>
+          <td><strong>Cape of Good Hope</strong></td>
+          <td class="up">NORMAL</td>
+          <td class="up">Main alternative routing</td>
+          <td>+25% sailing distance; 7-10 day extra transit time</td>
+        </tr>
+        <tr>
+          <td><strong>Panama Canal</strong></td>
+          <td class="up">NORMAL</td>
+          <td class="up">Operating normally</td>
+          <td>No disruption reported</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[P]</div><h2>Port &amp; Schedule Watch</h2></div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag tag-orange">[DELAY] Khor Fakkan</span>
+        <h3>Becoming key UAE transshipment hub — berth congestion building</h3>
+        <p>With Hormuz closed, Khor Fakkan (east coast UAE) is the primary landbridge origin for Persian Gulf cargo. Vessel calls significantly increased. Expect 1-3 day berth delay. Bonded truck/rail capacity to Gulf ports under pressure.</p>
+        <div class="meta">Source: Maritime News | Apr 1</div>
+      </div>
+      <div class="card">
+        <span class="tag tag-red">[STRANDED] Persian Gulf Ports</span>
+        <h3>~140 ships trapped; feeder solutions limited</h3>
+        <p>Abu Dhabi, Jebel Ali, Dammam, Bandar Abbas ports largely inaccessible for mainline vessels. Cargo destined for Gulf must route via Khor Fakkan landbridge or wait for resolution. Estimated 200k+ TEU cargo impact in next 90 days.</p>
+        <div class="meta">Source: Maritime News | Mar 28</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PROCUREMENT / BUNKER ===================== -->
+<div class="panel" id="tab-bunker">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[B]</div><h2>Bunker Fuel Prices — Apr 1, 2026</h2><span class="badge">Procurement</span></div>
+    <div class="alert-box">[HIGH ALERT] Singapore VLSFO +71%, MGO +151% vs pre-war (Feb 2026). Global average VLSFO now $1,008/MT. Asian supply is tighter than Europe — consider Rotterdam/Houston for vessel bunkering where feasible.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Global Bunker Prices — Major Ports (USD/MT)</h4>
+    <table>
+      <thead><tr><th>Port</th><th>VLSFO</th><th>MGO</th><th>Supply Status</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Singapore</strong></td><td class="up">877</td><td class="alert">1,821</td><td class="ne">Tight</td><td>World's largest bunker hub; stock under pressure</td></tr>
+        <tr><td><strong>Rotterdam</strong></td><td class="ne">760</td><td class="ne">1,388</td><td class="up">Adequate</td><td>Relatively better supply vs Asia</td></tr>
+        <tr><td><strong>Houston</strong></td><td class="ne">882</td><td class="ne">1,342</td><td class="up">Normal</td><td>US Gulf Coast stable</td></tr>
+        <tr><td><strong>Los Angeles</strong></td><td class="up">1,171</td><td class="up">1,604</td><td class="ne">Premium</td><td>US West Coast VLSFO premium</td></tr>
+        <tr><td><strong>Hong Kong</strong></td><td class="up">941</td><td class="up">1,594</td><td class="ne">Tight</td><td>Influenced by Singapore supply</td></tr>
+        <tr><td><strong>Piraeus</strong></td><td class="ne">872</td><td class="ne">1,492</td><td class="up">Normal</td><td>Mediterranean adequate</td></tr>
+        <tr><td><strong>Fujairah</strong></td><td class="alert">N/A</td><td class="alert">N/A</td><td class="dn">Disrupted</td><td>Hormuz crisis impact on supply</td></tr>
+        <tr><td><strong>Istanbul</strong></td><td class="ne">1,024</td><td class="ne">1,570</td><td class="up">Normal</td><td>Bosphorus corridor</td></tr>
+        <tr><td><strong>Santos</strong></td><td class="ne">880</td><td class="ne">1,537</td><td class="up">Normal</td><td>Brazil / South America</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="gold-box">
+    [PROCUREMENT GUIDANCE] Asian supply (Singapore/HK) is currently tighter than European ports. For vessels with scheduling flexibility, Rotterdam ($760 VLSFO) offers the best VLSFO value vs Singapore ($877). For April-May hedging, consider partial forward contracts at current levels. Fujairah remains unavailable — exclude from bunkering plans until further notice.
+  </div>
+</div>
+
+<!-- ===================== FINANCE ===================== -->
+<div class="panel" id="tab-finance">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[F]</div><h2>Key Financial Indicators</h2><span class="badge">Finance</span></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Energy &amp; FX Snapshot — Apr 1, 2026</h4>
+    <table>
+      <thead><tr><th>Indicator</th><th>Current Level</th><th>Change</th><th>Finance Impact</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Brent Crude</strong></td><td class="dn">&gt;$100/bbl</td><td class="dn">War premium (+33%+)</td><td>BAF recalculation required; EBS surcharges partially offset</td></tr>
+        <tr><td><strong>Singapore VLSFO</strong></td><td class="up">$877/MT</td><td class="up">+71% vs pre-war</td><td>Fuel cost % of OpEx significantly elevated</td></tr>
+        <tr><td><strong>MGO (Singapore)</strong></td><td class="alert">$1,821/MT</td><td class="up">+151% vs pre-war</td><td>ECA zone entries extremely costly</td></tr>
+        <tr><td><strong>USD/TWD</strong></td><td>~32.8</td><td class="ne">Stable</td><td>Watch for TWD depreciation risk if war prolongs</td></tr>
+        <tr><td><strong>USD/CNY</strong></td><td>~7.23</td><td class="ne">Stable</td><td>China export cost base relatively unchanged</td></tr>
+        <tr><td><strong>VLCC Tanker Rate (BDTI)</strong></td><td class="up">3,507</td><td class="up">+23% wk</td><td>Oil rerouting premium — indirect cost increase</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Diversion Cost Impact Estimate (Cape of Good Hope vs. Suez)</h4>
+    <table>
+      <thead><tr><th>Cost Item</th><th>Per Voyage Estimate</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Extra distance (Asia-Europe)</td><td>+~11,000 nautical miles</td><td>~25% longer via Cape</td></tr>
+        <tr><td>Additional transit days</td><td>7-10 days</td><td>Extends vessel rotation</td></tr>
+        <tr><td>Extra bunker consumption</td><td>+$400,000-600,000/voyage</td><td>At current VLSFO prices</td></tr>
+        <tr><td>Hapag-Lloyd weekly cost overrun</td><td>$40-50M USD/week</td><td>Carrier disclosed estimate</td></tr>
+        <tr><td>EBS recovery (carrier)</td><td>$300-500/FEU</td><td>Partially offsets; gap remains</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn-box">
+    [FINANCE ALERT] Fuel costs currently represent ~30% of ship operating expenses at current VLSFO levels. BAF (Bunker Adjustment Factor) should be recalculated immediately to reflect current market conditions. ECA surcharges (MGO-dependent) are particularly burdensome — review ECA route exposure.
+  </div>
+</div>
+
+<!-- ===================== CONTAINER EQUIPMENT ===================== -->
+<div class="panel" id="tab-eqpt">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[E]</div><h2>Equipment &amp; Container Status</h2><span class="badge">Container Equipment</span></div>
+    <div class="warn-box">[WARNING] Persian Gulf stranded containers: ~460-470k TEU locked in the Gulf. Imbalance developing between Asia export (long boxes) and Middle East / Europe import (short boxes). Reefer rotation disrupted for Gulf destinations.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Regional Equipment Availability — Estimated Apr 1, 2026</h4>
+    <table>
+      <thead><tr><th>Region</th><th>Dry 20'</th><th>Dry 40'</th><th>Reefer 40'</th><th>Status Summary</th></tr></thead>
+      <tbody>
+        <tr><td><strong>China (Export Ports)</strong></td><td class="up">Adequate</td><td class="up">Adequate</td><td class="ne">Monitor</td><td>Normal pre-Golden Week buildup expected</td></tr>
+        <tr><td><strong>SE Asia</strong></td><td class="up">Normal</td><td class="up">Normal</td><td class="up">Normal</td><td>No significant disruption</td></tr>
+        <tr><td><strong>Persian Gulf (Trapped)</strong></td><td class="dn">Acute shortage</td><td class="dn">Acute shortage</td><td class="dn">Disrupted</td><td>~460k TEU stranded; critical shortage building</td></tr>
+        <tr><td><strong>UAE East Coast (Khor Fakkan)</strong></td><td class="alert">Rapidly depleting</td><td class="alert">Stress</td><td class="alert">Very tight</td><td>Hub for landbridge cargo; all capacity under pressure</td></tr>
+        <tr><td><strong>Europe (N.Europe/Med)</strong></td><td class="up">Normal</td><td class="up">Normal</td><td class="ne">Slight tight</td><td>Cape rerouting extends equipment rotation</td></tr>
+        <tr><td><strong>US West Coast</strong></td><td class="up">Normal</td><td class="up">Adequate</td><td class="up">Normal</td><td>Transpacific supply maintained</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[R]</div><h2>Reefer &amp; Special Equipment</h2></div>
+    <div class="info-box">[INFO] Reefer equipment to/from Persian Gulf destinations is severely disrupted. Middle East frozen/chilled cargo flows redirected via Khor Fakkan with significant transit time increase (+7-10 days). Customers with temperature-sensitive cargo to Gulf may face transit delays or cargo quality risk. Consider air freight alternative for critical reefer shipments.</div>
+  </div>
+</div>
+
+<!-- ===================== LEGAL & COMPLIANCE ===================== -->
+<div class="panel" id="tab-legal">
+  <div class="sec">
+    <div class="sec-hd"><div class="ic">[L]</div><h2>Sanctions, Compliance &amp; War Risk</h2><span class="badge">Legal &amp; Compliance</span></div>
+    <div class="alert-box">[COMPLIANCE ALERT] Iranian-linked vessels now represent ~70% of Hormuz transits (125 of 181 ships in March). Vessels calling at Iranian ports or transporting Iranian cargo face heightened OFAC sanctions scrutiny. Ensure all counterparty due diligence is current.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <h4>Current Compliance Risk Areas — Apr 1, 2026</h4>
+    <table>
+      <thead><tr><th>Issue</th><th>Risk Level</th><th>Action Required</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Iran Sanctions (OFAC)</strong></td>
+          <td class="dn">HIGH</td>
+          <td>Avoid all Iranian-flagged vessels; screen all Middle East counterparties; update SDN list</td>
+        </tr>
+        <tr>
+          <td><strong>War Risk Insurance — Persian Gulf</strong></td>
+          <td class="alert">CRITICAL</td>
+          <td>War risk premium: 5-8% of hull value. Verify coverage for vessels in/near Hormuz. Confirm P&amp;I club status.</td>
+        </tr>
+        <tr>
+          <td><strong>War Risk Insurance — Red Sea / Bab el-Mandeb</strong></td>
+          <td class="dn">HIGH</td>
+          <td>Ongoing elevated premiums. All Suez transits require pre-approval from insurance club.</td>
+        </tr>
+        <tr>
+          <td><strong>Houthi Transit Code Requirement</strong></td>
+          <td class="ne">MEDIUM</td>
+          <td>New filing requirement: 72hr advance notice + unique transit code from Houthi authority. Ops team must comply for any Red Sea routing.</td>
+        </tr>
+        <tr>
+          <td><strong>Russia Sanctions (Ongoing)</strong></td>
+          <td class="ne">MEDIUM</td>
+          <td>Continue to monitor EU/US/UK Russia sanctions. No changes this week. Maintain existing screening protocols.</td>
+        </tr>
+        <tr>
+          <td><strong>Port State Control (ECA Compliance)</strong></td>
+          <td class="ne">LOW-MED</td>
+          <td>With MGO at $1,821/MT, ensure ECA zone entries are strictly necessary and documented. Fuel switch logs maintained.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="gold-box">
+    [LEGAL GUIDANCE] ADNOC CEO publicly termed Hormuz blockade as "economic terrorism" (Mar 31). Legal teams should monitor for any UN Security Council resolutions or bilateral diplomatic frameworks that could create new compliance obligations or exceptions. Review force majeure clauses in any contracts with Middle East counterparties for ongoing applicability.
+  </div>
+</div>
+
+<footer>
+  CLAW DAILY BRIEF — Issue #16 — April 1, 2026 (Wednesday) | Data: Freightos / Lloyd's List / Maritime News / HandyBulk / CMA CGM / COSCO Official | For internal use only.
+</footer>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

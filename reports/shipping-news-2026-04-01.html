@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-04-01 · 第16期</title>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0d2045;
+    --blue: #1a3a6b;
+    --accent: #1e5bbd;
+    --highlight: #2e7de0;
+    --gold: #f0b429;
+    --red: #e53e3e;
+    --green: #38a169;
+    --orange: #dd6b20;
+    --light: #e8f0fe;
+    --white: #ffffff;
+    --gray: #a0aec0;
+    --card-bg: #0f1e3d;
+    --card-border: #1e3a6b;
+    --text-main: #e2e8f0;
+    --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--text-main); font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; min-height: 100vh; }
+  .ticker-wrap { background: var(--accent); padding: 7px 0; overflow: hidden; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+  .ticker { display: flex; white-space: nowrap; animation: scroll 60s linear infinite; }
+  .ticker span { font-size: 13px; font-weight: 600; padding: 0 28px; letter-spacing: .4px; }
+  .ticker .up { color: #4ade80; }
+  .ticker .dn { color: #f87171; }
+  .ticker .ne { color: #fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .header { background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%); border-bottom: 3px solid var(--gold); padding: 32px 40px 28px; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%); }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon { width: 52px; height: 52px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 0 18px rgba(30,91,189,0.5); }
+  .brand-text h1 { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: 1px; }
+  .brand-text p { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .date-badge { text-align: right; }
+  .date-badge .date { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; }
+  .date-badge .issue { font-size: 13px; color: var(--gray); margin-top: 4px; }
+  .header-subtitle { margin-top: 16px; font-size: 14px; color: var(--gray); position: relative; display: flex; align-items: center; gap: 8px; }
+  .header-subtitle::before { content: ''; width: 30px; height: 2px; background: var(--gold); display: inline-block; flex-shrink: 0; }
+  .index-section { padding: 24px 40px 8px; background: var(--navy2); }
+  .index-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .idx-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 12px; text-align: center; }
+  .idx-card .idx-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .idx-card .idx-val { font-size: 20px; font-weight: 800; color: var(--white); }
+  .idx-card .idx-chg { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .idx-card .idx-chg.up { color: #4ade80; }
+  .idx-card .idx-chg.dn { color: #f87171; }
+  .idx-card .idx-chg.ne { color: #fde68a; }
+  .main { padding: 30px 40px 20px; }
+  .sec-title { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; margin-top: 32px; }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title .icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .sec-title h2 { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: .5px; }
+  .sec-title .badge { background: rgba(30,91,189,0.3); border: 1px solid var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--highlight); }
+  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .news-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; cursor: pointer; transition: border-color .2s; }
+  .news-card:hover { border-color: var(--accent); }
+  .news-card .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+  .tag-red { background: rgba(229,62,62,0.15); color: #fc8181; border: 1px solid rgba(229,62,62,0.3); }
+  .tag-blue { background: rgba(30,91,189,0.2); color: #90cdf4; border: 1px solid rgba(30,91,189,0.3); }
+  .tag-green { background: rgba(56,161,105,0.15); color: #68d391; border: 1px solid rgba(56,161,105,0.3); }
+  .tag-orange { background: rgba(221,107,32,0.15); color: #f6ad55; border: 1px solid rgba(221,107,32,0.3); }
+  .tag-purple { background: rgba(128,90,213,0.15); color: #b794f4; border: 1px solid rgba(128,90,213,0.3); }
+  .news-card h3 { font-size: 14.5px; font-weight: 700; color: var(--white); line-height: 1.5; margin-bottom: 8px; }
+  .news-card .summary { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+  .news-card .meta { font-size: 11px; color: var(--gray); margin-top: 12px; display: flex; gap: 14px; }
+  .news-card .meta span { display: flex; align-items: center; gap: 4px; }
+  .banner-alert { background: linear-gradient(90deg, #7f1d1d, #991b1b); border: 1px solid #dc2626; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+  .banner-warn { background: linear-gradient(90deg, #78350f, #92400e); border: 1px solid #d97706; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fde68a; display: flex; align-items: center; gap: 10px; }
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--accent), transparent); }
+  .tl-item { position: relative; margin-bottom: 22px; }
+  .tl-item::before { content: ''; position: absolute; left: -24px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--navy); }
+  .tl-item .tl-date { font-size: 11px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  .tl-item .tl-title { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 5px; }
+  .tl-item .tl-body { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: rgba(30,91,189,0.2); color: var(--highlight); padding: 10px 14px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--card-border); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(30,91,189,0.1); color: var(--text-main); }
+  tbody tr:hover td { background: rgba(30,91,189,0.06); }
+  td.up { color: #4ade80; font-weight: 600; }
+  td.dn { color: #f87171; font-weight: 600; }
+  td.ne { color: #fde68a; font-weight: 600; }
+  td.alert { color: #fb923c; font-weight: 700; }
+  .table-wrap { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 24px 28px; margin-bottom: 24px; }
+  .table-wrap h3 { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 14px; }
+  .outlook-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+  .outlook-bull { background: rgba(56,161,105,0.08); border: 1px solid rgba(56,161,105,0.25); border-radius: 12px; padding: 18px; }
+  .outlook-bear { background: rgba(229,62,62,0.08); border: 1px solid rgba(229,62,62,0.25); border-radius: 12px; padding: 18px; }
+  .outlook-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .outlook-title.bull { color: #68d391; }
+  .outlook-title.bear { color: #fc8181; }
+  .outlook-item { font-size: 12.5px; color: var(--text-sub); line-height: 1.8; padding-left: 14px; position: relative; }
+  .outlook-item::before { content: '›'; position: absolute; left: 0; color: var(--accent); }
+  footer { text-align: center; padding: 28px 40px; background: var(--navy2); border-top: 1px solid var(--card-border); font-size: 12px; color: var(--gray); }
+  footer .disc { margin-top: 6px; font-size: 11px; color: var(--text-sub); opacity: .7; }
+  .full-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .highlight-box { background: rgba(240,180,41,0.08); border: 1px solid rgba(240,180,41,0.25); border-radius: 10px; padding: 14px 18px; margin: 12px 0; font-size: 13px; color: #fde68a; }
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>🚢 集装箱航运日报</span>
+    <span class="up">SCFI综合 1,826.77 ▲+7.02%（3/28）</span>
+    <span class="ne">│</span>
+    <span class="up">欧线 约1,703 USD/TEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美西 约2,352 USD/FEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美东 约3,264 USD/FEU ▲</span>
+    <span class="ne">│</span>
+    <span class="dn">霍尔木兹封锁第36天 3月通行仅181艘</span>
+    <span class="ne">│</span>
+    <span class="up">4月GRI今日正式生效 CMA CGM亚欧线上调</span>
+    <span class="ne">│</span>
+    <span class="ne">红海绕航持续 好望角航线运营稳定</span>
+    <span class="ne">│</span>
+    <span class="up">赫伯罗特完成收购以星 总运力突破300万TEU</span>
+    <span class="ne">│</span>
+    <span class="up">SCFI综合 1,826.77 ▲+7.02%（3/28）</span>
+    <span class="ne">│</span>
+    <span class="up">欧线 约1,703 USD/TEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美西 约2,352 USD/FEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美东 约3,264 USD/FEU ▲</span>
+    <span class="ne">│</span>
+    <span class="dn">霍尔木兹封锁第36天 3月通行仅181艘</span>
+    <span class="ne">│</span>
+    <span class="ne">红海绕航持续 好望角航线运营稳定</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">🚢</div>
+      <div class="brand-text">
+        <h1>集装箱航运日报</h1>
+        <p>Container Shipping Intelligence · 专业版</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-04-01</div>
+      <div class="issue">第16期 · 周三</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    霍尔木兹封锁第36天 | 4月GRI全面生效 | 红海航线谨慎恢复 | 赫伯罗特完成以星并购
+  </div>
+</div>
+
+<!-- 核心指数 -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI综合</div>
+      <div class="idx-val">1,826.77</div>
+      <div class="idx-chg up">▲ +7.02%（上周）</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">欧洲基本港</div>
+      <div class="idx-val">~1,703</div>
+      <div class="idx-chg up">▲ +4.1%</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">美西基本港</div>
+      <div class="idx-val">~2,352</div>
+      <div class="idx-chg up">▲ +14.5%</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">美东基本港</div>
+      <div class="idx-val">~3,264</div>
+      <div class="idx-chg up">▲ +11.7%</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">波斯湾（迪拜）</div>
+      <div class="idx-val">~3,728</div>
+      <div class="idx-chg ne">≈ 有价少量</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">综合运价指数</div>
+      <div class="idx-val">1,826.77</div>
+      <div class="idx-chg up">▲ 月涨+37%</div>
+    </div>
+  </div>
+</div>
+
+<!-- 主体 -->
+<div class="main">
+
+  <!-- 重大警示 -->
+  <div class="banner-alert">
+    🚨 <strong>【霍尔木兹封锁第36天】</strong> 2026年3月整月通行量仅181艘，较战前每月约3,000艘骤降94%。70%为伊朗关联船舶，无关联商业船仅56艘。日均通行量不足10艘，波斯湾内约140艘集装箱船（46-47万TEU）仍受困，全球供应链持续承压。
+  </div>
+  <div class="banner-warn">
+    ⚠️ <strong>【4月GRI今日正式生效】</strong> CMA CGM亚洲至北欧FAK运价4月1日起执行新费率；MSC/马士基/赫伯罗特等主要船司GRI同步落地，亚欧美线普遍上调30%-35%。EBS/PSS燃油附加费300-500 USD/FEU另行叠加。
+  </div>
+
+  <!-- 今日头条新闻 -->
+  <div class="sec-title">
+    <div class="icon">📰</div>
+    <h2>今日头条新闻</h2>
+    <div class="badge">2026-04-01</div>
+  </div>
+
+  <div class="news-grid">
+    <div class="news-card">
+      <span class="tag tag-red">🔴 地缘局势</span>
+      <h3>霍尔木兹3月通行量崩至181艘，日均不足10艘，商业航运近乎停滞</h3>
+      <p class="summary">
+        据《劳氏日报》数据，2026年3月1日至30日，仅181艘船通过霍尔木兹海峡，较战前约3,000艘/月的正常水平骤降94%。其中约70%（125艘）为伊朗关联船舶，无关联商业船只56艘。中东局势专家警告：霍尔木兹（第36天）与红海（第860天以上）双重瓶颈并存，将长期推高全球贸易成本与保险费用。布伦特原油已突破100美元/桶。
+      </p>
+      <div class="meta">
+        <span>📅 2026-03-31</span>
+        <span>🏷️ 霍尔木兹/地缘</span>
+        <span>🔴 高优先级</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-orange">🟠 政策/费率</span>
+      <h3>4月GRI今日生效：CMA CGM亚欧FAK调整，市场仍待检验承运商涨价能力</h3>
+      <p class="summary">
+        CMA CGM已宣布2026年4月1日起执行亚洲至北欧的新FAK费率。同期MSC、马士基、赫伯罗特等船司GRI一并生效。然而Freightos最新周报（3月31日）指出，虽然EBS/PSS附加费在300-500 USD/FEU，但实际即期运价较承运人涨价目标仍低2,000-3,000 USD/FEU，市场处于淡季，需求疲软使涨价能力受限。4月将是关键验证期。
+      </p>
+      <div class="meta">
+        <span>📅 2026-04-01</span>
+        <span>🏷️ GRI/附加费</span>
+        <span>🟠 重要</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-blue">🔵 船司整合</span>
+      <h3>赫伯罗特完成收购以星航运，总运力突破300万TEU跻身全球前三</h3>
+      <p class="summary">
+        赫伯罗特（Hapag-Lloyd）宣布完成对以星航运（ZIM Lines）的收购，总运力超过300万TEU，成为全球第三大集装箱班轮公司。此次整合被视为应对市场运力过剩和地缘政治冲击的战略举措，赫伯罗特将获得以星在跨太平洋航线和亚洲内贸航线的强大市场地位。行业分析师预计未来6-12个月内，两家公司的航线网络将逐步整合，部分重叠航线可能缩减舱位。
+      </p>
+      <div class="meta">
+        <span>📅 2026年Q1末</span>
+        <span>🏷️ 船司动态/行业整合</span>
+        <span>🔵 重要</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-green">🟢 红海动态</span>
+      <h3>马士基、中远部分班轮通过红海苏伊士运河，绕道好望角仍是主流</h3>
+      <p class="summary">
+        据Maritime News最新报告，马士基在2025年底成功完成测试航行后，于2026年2月中旬恢复ME11服务双向苏伊士通行，MECL1服务也已完成全程。但多数船司仍坚持绕行好望角，且通行是有限且谨慎的，持续性取决于也门局势稳定。曼德海峡胡塞武装要求提前72小时提交通行申请并获取专属代码，增加通行难度。
+      </p>
+      <div class="meta">
+        <span>📅 2026-03-28</span>
+        <span>🏷️ 红海/苏伊士</span>
+        <span>🟢 参考</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-orange">🟠 运价分析</span>
+      <h3>跨太平洋美西+4%、美东+3%，亚欧地中海线下跌8%；运价分化加剧</h3>
+      <p class="summary">
+        Freightos波罗的海指数（FBX）3月31日当周：亚洲至美西上涨4%，亚洲至美东上涨3%；亚洲至北欧保持平稳约2,900 USD/FEU（战前约2,400）；亚洲至地中海下跌8%至约3,800 USD/FEU（3月高点约4,300）。整体运价较战前上涨幅度有限，市场需求仍偏弱，运力充足是主要制约因素。
+      </p>
+      <div class="meta">
+        <span>📅 2026-03-31</span>
+        <span>🏷️ 运价指数/FBX</span>
+        <span>🟠 重要</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-purple">🟣 能源市场</span>
+      <h3>油运VLCC运价上周大涨23%，BDTI创两年新高；能源通道中断影响扩散</h3>
+      <p class="summary">
+        霍尔木兹封锁持续导致中东原油绕行量急增，VLCC超大型油轮运价上周周涨23.07%，BDTI（油运运价指数）报3,507点创近两年新高；成品油轮BCTI同涨22%。中东LNG离港量较战前下降40%（Vortexa数据）。UN报告指出：霍尔木兹危机已波及全球化肥供应链，可能在12-18个月内引发粮食安全风险，UN警告各国紧急备货。
+      </p>
+      <div class="meta">
+        <span>📅 2026-03-30</span>
+        <span>🏷️ 油运/能源</span>
+        <span>🔴 高优先级</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 霍尔木兹事件时间线 -->
+  <div class="sec-title" style="margin-top:36px;">
+    <div class="icon">⏱️</div>
+    <h2>霍尔木兹危机时间线</h2>
+    <div class="badge">第36天</div>
+  </div>
+  <div class="full-card">
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">2026-02-25</div>
+        <div class="tl-title">危机爆发 — 美以军事打击伊朗，霍尔木兹封锁启动</div>
+        <div class="tl-body">美国与以色列对伊朗核设施实施军事打击，伊朗随即宣布封锁霍尔木兹海峡。主要船司立即暂停相关航线，约140艘集装箱船被困波斯湾。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-01</div>
+        <div class="tl-title">波斯湾滞留危机 — 运力46-47万TEU受困</div>
+        <div class="tl-body">被困集装箱船运力约46-47万TEU，各船司宣布暂停波斯湾订舱并启动多式联运替代方案。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-12~14</div>
+        <div class="tl-title">多次尝试通行失败，高峰期保险费飙升</div>
+        <div class="tl-body">霍尔木兹海峡12-14日紧张局势加剧，多艘商业船只尝试通行被驱离，战争险保费一度飙升至船价的5-8%。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-25</div>
+        <div class="tl-title">中远宣布通过豪尔费坎多式联运恢复中东订舱</div>
+        <div class="tl-body">中远海运集装箱正式恢复远东至中东6国订舱，采用豪尔费坎/富查伊拉保税陆桥转运方案替代直航。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-31</div>
+        <div class="tl-title">3月全月商业通行统计公布 — 仅181艘，远低预期</div>
+        <div class="tl-body">《劳氏日报》公布数据：3月整月181艘通行，70%为伊朗关联船舶，无关联商业船仅56艘。ADNOC CEO公开将封锁行为称为"经济恐怖主义"。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-04-01（今日）</div>
+        <div class="tl-title">封锁第36天 — 局势无明显缓和迹象，4月运价调整落地</div>
+        <div class="tl-body">霍尔木兹仍近乎封闭。各船司4月GRI今日正式生效，燃油附加费叠加。市场关注4月实际运价能否支撑承运人成本覆盖目标。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主要船司动态 -->
+  <div class="sec-title">
+    <div class="icon">🏢</div>
+    <h2>主要船司动态</h2>
+    <div class="badge">本周更新</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>船司</th>
+          <th>中东策略</th>
+          <th>红海/苏伊士</th>
+          <th>运价动态</th>
+          <th>备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>马士基</strong></td>
+          <td class="dn">FM1/ME11暂停直航</td>
+          <td class="up">ME11已恢复苏伊士（有限）</td>
+          <td class="up">4月GRI落地</td>
+          <td>绕行好望角+多式联运并行</td>
+        </tr>
+        <tr>
+          <td><strong>MSC</strong></td>
+          <td class="dn">波斯湾直航暂停</td>
+          <td class="ne">部分绕行苏伊士</td>
+          <td class="up">GRI 800 USD/TEU亚欧</td>
+          <td>仍以好望角为主</td>
+        </tr>
+        <tr>
+          <td><strong>CMA CGM</strong></td>
+          <td class="dn">中东直航受阻</td>
+          <td class="ne">谨慎评估苏伊士</td>
+          <td class="up">4月FAK亚欧新费率今日生效</td>
+          <td>+750 USD/TEU亚欧线</td>
+        </tr>
+        <tr>
+          <td><strong>中远海运</strong></td>
+          <td class="up">豪尔费坎多式联运恢复</td>
+          <td class="ne">部分航线测试</td>
+          <td class="up">GRI+附加费</td>
+          <td>3/25起恢复中东6国订舱</td>
+        </tr>
+        <tr>
+          <td><strong>赫伯罗特</strong></td>
+          <td class="dn">中东直航暂停</td>
+          <td class="ne">谨慎</td>
+          <td class="up">完成并购以星，运力>300万TEU</td>
+          <td>每周额外成本+4,000-5,000万USD</td>
+        </tr>
+        <tr>
+          <td><strong>阳明海运</strong></td>
+          <td class="ne">印度洋待命</td>
+          <td class="ne">待观察</td>
+          <td class="ne">随市场跟进GRI</td>
+          <td>多艘船仍处待命状态</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 后市展望 -->
+  <div class="sec-title">
+    <div class="icon">🔭</div>
+    <h2>后市展望（4月上旬）</h2>
+  </div>
+  <div class="outlook-grid">
+    <div class="outlook-bull">
+      <div class="outlook-title bull">📈 利多因素（支撑运价）</div>
+      <div class="outlook-item">霍尔木兹持续封锁→运力被动收紧</div>
+      <div class="outlook-item">4月GRI正式执行，燃油附加费叠加</div>
+      <div class="outlook-item">好望角绕行额外运输时间+航距增加约25%</div>
+      <div class="outlook-item">布伦特原油突破100美元推高BAF</div>
+      <div class="outlook-item">赫伯罗特并购后可能削减部分重叠航线</div>
+    </div>
+    <div class="outlook-bear">
+      <div class="outlook-title bear">📉 利空因素（压制运价）</div>
+      <div class="outlook-item">传统淡季，货量需求偏弱</div>
+      <div class="outlook-item">新造船大量入市，运力充足</div>
+      <div class="outlook-item">实际即期运价远低于船司GRI目标</div>
+      <div class="outlook-item">部分货主转移至空运，海运货量受蚕食</div>
+      <div class="outlook-item">红海谨慎恢复若扩大，将释放绕行运力</div>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:20px;">
+    💡 <strong>分析师综合判断：</strong>4月运价区间预计维持在现有水平波动为主，涨价能否兑现取决于需求端恢复与霍尔木兹局势走向。建议关注4月7日前后各船司实际执行运价反馈，以及霍尔木兹外交谈判进展。
+  </div>
+
+</div>
+
+<footer>
+  <div>集装箱航运日报 · 第16期 · 2026年4月1日（周三）</div>
+  <div class="disc">数据来源：Freightos / Lloyd's List / Maritime News / Metro Shipping / HandyBulk · 本报告仅供内部参考，不构成投资或经营决策依据</div>
+</footer>
+
+</body>
+</html>

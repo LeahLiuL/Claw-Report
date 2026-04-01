@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱运价分析报告 · 2026-04-01</title>
+<style>
+  :root {
+    --navy:#0a1628; --navy2:#0d2045; --card:#0f1e3d; --border:#1e3a6b;
+    --accent:#1e5bbd; --gold:#f0b429; --red:#e53e3e; --green:#38a169;
+    --orange:#dd6b20; --white:#ffffff; --gray:#a0aec0;
+    --text:#e2e8f0; --sub:#94a3b8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--navy);color:var(--text);font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh;}
+  .ticker-wrap{background:var(--accent);padding:7px 0;overflow:hidden;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--gold);}
+  .ticker{display:flex;white-space:nowrap;animation:scroll 60s linear infinite;}
+  .ticker span{font-size:13px;font-weight:600;padding:0 24px;letter-spacing:.4px;}
+  .up{color:#4ade80;} .dn{color:#f87171;} .ne{color:#fde68a;}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .header{background:linear-gradient(135deg,#0a1628 0%,#0d2045 45%,#132f5e 100%);border-bottom:3px solid var(--gold);padding:28px 40px 24px;}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-icon{width:52px;height:52px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 18px rgba(30,91,189,0.5);}
+  .brand-text h1{font-size:22px;font-weight:800;color:var(--white);letter-spacing:1px;}
+  .brand-text p{font-size:12px;color:var(--gray);margin-top:2px;}
+  .date-badge{text-align:right;}
+  .date-badge .date{font-size:28px;font-weight:800;color:var(--gold);line-height:1;}
+  .date-badge .sub{font-size:12px;color:var(--gray);margin-top:4px;}
+  .subtitle{margin-top:14px;font-size:13.5px;color:var(--gray);display:flex;align-items:center;gap:8px;}
+  .subtitle::before{content:'';width:30px;height:2px;background:var(--gold);display:inline-block;flex-shrink:0;}
+  .main{padding:30px 40px 20px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 16px;text-align:center;}
+  .kpi-label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .kpi-val{font-size:26px;font-weight:800;color:var(--white);}
+  .kpi-chg{font-size:12px;margin-top:4px;font-weight:600;}
+  .kpi-chg.up{color:#4ade80;} .kpi-chg.dn{color:#f87171;} .kpi-chg.ne{color:#fde68a;}
+  .kpi-sub{font-size:11px;color:var(--sub);margin-top:4px;}
+  .banner{background:linear-gradient(90deg,#7f1d1d,#991b1b);border:1px solid #dc2626;border-radius:10px;padding:14px 20px;margin-bottom:28px;font-size:13.5px;color:#fca5a5;display:flex;align-items:flex-start;gap:10px;}
+  .banner-warn{background:linear-gradient(90deg,#78350f,#92400e);border:1px solid #d97706;border-radius:10px;padding:14px 20px;margin-bottom:28px;font-size:13.5px;color:#fde68a;display:flex;align-items:flex-start;gap:10px;}
+  .section-title{display:flex;align-items:center;gap:10px;margin:32px 0 18px;}
+  .section-title:first-child{margin-top:0;}
+  .section-title .icon{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .section-title h2{font-size:17px;font-weight:700;color:var(--white);letter-spacing:.5px;}
+  .section-title .badge{background:rgba(30,91,189,0.3);border:1px solid var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;color:#90cdf4;}
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:24px;}
+  .table-wrap h3{font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:rgba(30,91,189,0.2);color:#90cdf4;padding:10px 14px;text-align:left;font-weight:600;border-bottom:1px solid var(--border);}
+  tbody td{padding:10px 14px;border-bottom:1px solid rgba(30,91,189,0.1);color:var(--text);}
+  tbody tr:hover td{background:rgba(30,91,189,0.06);}
+  td.up{color:#4ade80;font-weight:600;} td.dn{color:#f87171;font-weight:600;} td.ne{color:#fde68a;font-weight:600;}
+  td.alert{color:#fb923c;font-weight:700;}
+  .surcharge-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .sc-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+  .sc-card h4{font-size:14px;font-weight:700;color:var(--white);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .sc-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(30,91,189,0.08);font-size:12.5px;}
+  .sc-item:last-child{border:0;}
+  .sc-item .name{color:var(--sub);}
+  .sc-item .val{font-weight:700;color:var(--white);}
+  .sc-item .val.alert{color:#fb923c;}
+  .highlight-box{background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:13px;color:#fde68a;}
+  footer{text-align:center;padding:28px 40px;background:var(--navy2);border-top:1px solid var(--border);font-size:12px;color:var(--gray);}
+  footer .disc{margin-top:6px;font-size:11px;color:var(--sub);opacity:.7;}
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>📦 集装箱运价报告</span>
+    <span class="up">SCFI综合 1,826.77 ▲+7.02%（3/28周度）</span>
+    <span class="ne">│</span>
+    <span class="up">欧线 ~1,703 USD/TEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美西 ~2,352 USD/FEU ▲+14.5%</span>
+    <span class="ne">│</span>
+    <span class="up">美东 ~3,264 USD/FEU ▲+11.7%</span>
+    <span class="ne">│</span>
+    <span class="dn">波斯湾 3,728 USD/TEU 有价少量</span>
+    <span class="ne">│</span>
+    <span class="up">4月GRI今日生效 EBS+300-500 USD/FEU</span>
+    <span class="ne">│</span>
+    <span class="up">SCFI综合 1,826.77 ▲+7.02%（3/28周度）</span>
+    <span class="ne">│</span>
+    <span class="up">欧线 ~1,703 USD/TEU ▲</span>
+    <span class="ne">│</span>
+    <span class="up">美西 ~2,352 USD/FEU ▲+14.5%</span>
+    <span class="ne">│</span>
+    <span class="up">美东 ~3,264 USD/FEU ▲+11.7%</span>
+    <span class="ne">│</span>
+    <span class="dn">波斯湾 3,728 USD/TEU 有价少量</span>
+    <span class="ne">│</span>
+    <span class="up">4月GRI今日生效 EBS+300-500 USD/FEU</span>
+  </div>
+</div>
+
+<!-- 头部 -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">📦</div>
+      <div class="brand-text">
+        <h1>集装箱运价分析报告</h1>
+        <p>Container Freight Rate Intelligence | 数据来源：SCFI · FBX · WCI · 各船司官方公告</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-04-01</div>
+      <div class="sub">周三 · 第14周运价参考 · 09:00 发布</div>
+    </div>
+  </div>
+  <div class="subtitle">本期重点：4月GRI今日全面生效 | 跨太平洋+3~4% | 地中海-8% | 霍尔木兹第36天 | 淡季需求抑制涨价兑现</div>
+</div>
+
+<div class="main">
+
+  <!-- 核心KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">SCFI 综合指数</div>
+      <div class="kpi-val">1,826.77</div>
+      <div class="kpi-chg up">▲ +7.02% 上周</div>
+      <div class="kpi-sub">数据日期：2026-03-28</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">亚洲→北欧 FBX</div>
+      <div class="kpi-val">~2,900</div>
+      <div class="kpi-chg ne">≈ 平稳 USD/FEU</div>
+      <div class="kpi-sub">战前约2,400，当前+500</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">亚洲→美西 FBX</div>
+      <div class="kpi-val">~2,352</div>
+      <div class="kpi-chg up">▲ +4% 本周</div>
+      <div class="kpi-sub">战争以来累计+200 USD/FEU</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">亚洲→地中海 FBX</div>
+      <div class="kpi-val">~3,800</div>
+      <div class="kpi-chg dn">▼ -8% 本周</div>
+      <div class="kpi-sub">月内高点约4,300 USD/FEU</div>
+    </div>
+  </div>
+
+  <!-- 警示横幅 -->
+  <div class="banner">
+    🚨 <strong>霍尔木兹封锁第36天：</strong>3月全月仅181艘船通过，波斯湾直航运价"有价无量"（3,728 USD/TEU）。约46-47万TEU仍困于波斯湾，多式联运是当前唯一可行中东方案。
+  </div>
+  <div class="banner-warn">
+    ⚠️ <strong>4月GRI今日生效：</strong>CMA CGM/MSC/马士基亚欧线GRI落地。EBS/PSS附加费300-500 USD/FEU。但Freightos周报指出实际即期运价较GRI目标低2,000-3,000 USD/FEU，淡季需求疲软制约实际涨价效果。
+  </div>
+
+  <!-- 主要航线运价 -->
+  <div class="section-title">
+    <div class="icon">📊</div>
+    <h2>主要航线运价一览</h2>
+    <span class="badge">2026-04-01参考</span>
+  </div>
+  <div class="table-wrap">
+    <h3>📋 各航线运价详情（Freightos FBX / SCFI / 船司报价综合）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>航线</th>
+          <th>当前运价</th>
+          <th>单位</th>
+          <th>周变化</th>
+          <th>月变化</th>
+          <th>市场状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>上海→欧洲基本港</strong></td>
+          <td class="up">~1,703</td>
+          <td>USD/TEU</td>
+          <td class="up">▲ +4.1%</td>
+          <td class="up">▲ +28%</td>
+          <td>活跃，好望角绕行推高</td>
+        </tr>
+        <tr>
+          <td><strong>上海→地中海</strong></td>
+          <td class="dn">~3,800</td>
+          <td>USD/FEU</td>
+          <td class="dn">▼ -8%</td>
+          <td class="up">▲ +15%</td>
+          <td>月内回调，仍高于战前</td>
+        </tr>
+        <tr>
+          <td><strong>上海→美西基本港</strong></td>
+          <td class="up">~2,352</td>
+          <td>USD/FEU</td>
+          <td class="up">▲ +14.5%</td>
+          <td class="up">▲ +18%</td>
+          <td>强势，本周涨幅最大</td>
+        </tr>
+        <tr>
+          <td><strong>上海→美东基本港</strong></td>
+          <td class="up">~3,264</td>
+          <td>USD/FEU</td>
+          <td class="up">▲ +11.7%</td>
+          <td class="up">▲ +16%</td>
+          <td>强势上行</td>
+        </tr>
+        <tr>
+          <td><strong>上海→波斯湾（迪拜）</strong></td>
+          <td class="alert">~3,728</td>
+          <td>USD/TEU</td>
+          <td class="up">▲ +12.2%</td>
+          <td class="alert">▲ +68%</td>
+          <td class="alert">有价少量，多式联运为主</td>
+        </tr>
+        <tr>
+          <td><strong>上海→日本</strong></td>
+          <td>~412</td>
+          <td>USD/TEU</td>
+          <td class="ne">≈ 持平</td>
+          <td class="ne">≈ +3%</td>
+          <td>基本稳定</td>
+        </tr>
+        <tr>
+          <td><strong>上海→东南亚</strong></td>
+          <td>~480</td>
+          <td>USD/TEU</td>
+          <td class="ne">≈ 小幅调整</td>
+          <td class="ne">≈ +5%</td>
+          <td>正常波动</td>
+        </tr>
+        <tr>
+          <td><strong>上海→澳大利亚</strong></td>
+          <td class="up">~1,850</td>
+          <td>USD/FEU</td>
+          <td class="up">▲ +3%</td>
+          <td class="up">▲ +22%</td>
+          <td>4/16 ANL涨700 USD/40尺</td>
+        </tr>
+        <tr>
+          <td><strong>上海→南美东岸</strong></td>
+          <td>~2,600</td>
+          <td>USD/FEU</td>
+          <td class="ne">≈ 平稳</td>
+          <td class="up">▲ +8%</td>
+          <td>一般</td>
+        </tr>
+        <tr>
+          <td><strong>上海→西非</strong></td>
+          <td>~4,200</td>
+          <td>USD/FEU</td>
+          <td class="ne">≈ 微调</td>
+          <td class="up">▲ +10%</td>
+          <td>好望角绕行受益</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4月附加费 -->
+  <div class="section-title">
+    <div class="icon">💰</div>
+    <h2>4月附加费一览（今日生效）</h2>
+    <span class="badge">2026-04-01</span>
+  </div>
+  <div class="surcharge-grid">
+    <div class="sc-card">
+      <h4>🌍 亚洲 → 欧洲/地中海</h4>
+      <div class="sc-item"><span class="name">GRI（综合运价上调）</span><span class="val alert">+750~800 USD/TEU</span></div>
+      <div class="sc-item"><span class="name">EBS（紧急燃油附加费）</span><span class="val alert">+300~500 USD/TEU</span></div>
+      <div class="sc-item"><span class="name">CMA CGM FAK 新运价</span><span class="val">今日执行</span></div>
+      <div class="sc-item"><span class="name">MSC GRI</span><span class="val alert">+800 USD/TEU</span></div>
+      <div class="sc-item"><span class="name">马士基 FAK体系更新</span><span class="val">亚欧美线全面上调</span></div>
+    </div>
+    <div class="sc-card">
+      <h4>🌊 亚洲 → 中东/波斯湾</h4>
+      <div class="sc-item"><span class="name">WRS（战争风险附加费）</span><span class="val alert">1,500 USD/TEU</span></div>
+      <div class="sc-item"><span class="name">HSS（霍尔木兹险情附加费）</span><span class="val alert">400~600 USD/TEU</span></div>
+      <div class="sc-item"><span class="name">多式联运附加（豪尔费坎转运）</span><span class="val">视距离另计</span></div>
+      <div class="sc-item"><span class="name">中远海运中东多式联运</span><span class="val">恢复中（3/25起）</span></div>
+    </div>
+    <div class="sc-card">
+      <h4>🇺🇸 亚洲 → 北美</h4>
+      <div class="sc-item"><span class="name">HAF（霍尔木兹行动燃油费）</span><span class="val alert">500 USD/FEU</span></div>
+      <div class="sc-item"><span class="name">美西 GRI</span><span class="val">+200~400 USD/FEU</span></div>
+      <div class="sc-item"><span class="name">美东 GRI</span><span class="val">+200~400 USD/FEU</span></div>
+      <div class="sc-item"><span class="name">跨太平洋本周即期+4%(美西)</span><span class="val up">+3~4%</span></div>
+    </div>
+    <div class="sc-card">
+      <h4>🦘 亚洲 → 大洋洲</h4>
+      <div class="sc-item"><span class="name">ANL 4月16日GRI</span><span class="val alert">+700 USD/40尺</span></div>
+      <div class="sc-item"><span class="name">EBS燃油附加费</span><span class="val">+200~300 USD/FEU</span></div>
+      <div class="sc-item"><span class="name">当前即期运价</span><span class="val">~1,850 USD/FEU</span></div>
+    </div>
+  </div>
+
+  <!-- 市场分析 -->
+  <div class="section-title">
+    <div class="icon">🔍</div>
+    <h2>运价市场深度分析</h2>
+  </div>
+  <div class="table-wrap">
+    <h3>💡 4月运价展望与关键变量</h3>
+    <p style="font-size:13px;color:var(--sub);line-height:1.8;margin-bottom:16px;">
+      综合Freightos最新周报（3月31日）：市场当前处于传统淡季，需求偏弱+运力充足制约实际运价上行空间。
+      承运人GRI目标与市场实际执行价之间存在显著差距（2,000-3,000 USD/FEU），4月实际落地情况将是观察重点。
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>变量</th>
+          <th>当前状态</th>
+          <th>对运价影响</th>
+          <th>展望</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>霍尔木兹封锁</strong></td>
+          <td class="alert">持续（第36天）</td>
+          <td class="up">正面（运力收紧）</td>
+          <td>短期难以缓解</td>
+        </tr>
+        <tr>
+          <td><strong>红海恢复</strong></td>
+          <td class="ne">有限恢复（部分船司）</td>
+          <td class="dn">负面（绕行运力回归）</td>
+          <td>谨慎扩大</td>
+        </tr>
+        <tr>
+          <td><strong>市场需求</strong></td>
+          <td class="dn">淡季偏弱</td>
+          <td class="dn">负面</td>
+          <td>4月下旬有望回暖</td>
+        </tr>
+        <tr>
+          <td><strong>新船运力</strong></td>
+          <td class="dn">大量入市</td>
+          <td class="dn">负面（供给增加）</td>
+          <td>全年持续压力</td>
+        </tr>
+        <tr>
+          <td><strong>4月GRI执行</strong></td>
+          <td class="ne">今日生效，观察中</td>
+          <td class="up">潜在正面</td>
+          <td>能否兑现待验证</td>
+        </tr>
+        <tr>
+          <td><strong>燃油成本</strong></td>
+          <td class="alert">大幅上升（+50-70%）</td>
+          <td class="up">正面（推高附加费）</td>
+          <td>居高不下</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight-box">
+    📊 <strong>综合研判：</strong>4月上旬即期运价预计维持现有水平小幅震荡。GRI是否真正落地取决于货量反弹，目前市场信号混合。建议出货客户关注4月7日前后各主要船司实际报价，并提前锁定舱位以规避附加费叠加风险。
+  </div>
+
+</div>
+
+<footer>
+  <div>集装箱运价分析报告 · 2026年4月1日（周三）</div>
+  <div class="disc">数据来源：Freightos FBX / SCFI / WCI / 各船司官方公告 · 本报告仅供内部参考</div>
+</footer>
+
+</body>
+</html>
