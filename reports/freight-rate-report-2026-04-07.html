@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱运价分析报告 2026-04-07</title>
+<style>
+  :root {
+    --navy: #0a1628; --navy2: #0d2045; --accent: #1e5bbd;
+    --highlight: #2e7de0; --gold: #f0b429; --white: #ffffff;
+    --gray: #a0aec0; --card-bg: #0f1e3d; --card-border: #1e3a6b;
+    --text-main: #e2e8f0; --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--text-main); font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; min-height:100vh; }
+  .ticker-wrap { background: var(--accent); padding: 7px 0; overflow: hidden; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+  .ticker { display:flex; white-space:nowrap; animation: scroll 60s linear infinite; }
+  .ticker span { font-size:13px; font-weight:600; padding:0 28px; }
+  .up { color:#4ade80; } .dn { color:#f87171; } .ne { color:#fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .header { background: linear-gradient(135deg,#0a1628,#0d2045,#132f5e); border-bottom:3px solid var(--gold); padding:32px 40px 28px; }
+  .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .brand-icon { width:52px;height:52px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px; }
+  .brand-text h1 { font-size:22px;font-weight:800;color:var(--white); }
+  .brand-text p { font-size:12px;color:var(--gray);margin-top:2px; }
+  .date-badge .date { font-size:28px;font-weight:800;color:var(--gold); }
+  .date-badge .sub { font-size:13px;color:var(--gray);margin-top:4px;text-align:right; }
+  .subtitle { margin-top:14px;font-size:14px;color:var(--gray);display:flex;align-items:center;gap:8px; }
+  .subtitle::before { content:'';width:30px;height:2px;background:var(--gold);display:inline-block; }
+  .main { padding:30px 40px; }
+  .section-title { display:flex;align-items:center;gap:10px;margin:32px 0 18px; }
+  .section-title:first-child { margin-top:0; }
+  .section-title .icon { width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px; }
+  .section-title h2 { font-size:17px;font-weight:700;color:var(--white); }
+  .section-title .badge { background:rgba(30,91,189,0.3);border:1px solid var(--accent);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--highlight); }
+  .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:10px; }
+  .kpi-card { background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:18px 16px;text-align:center; }
+  .kpi-label { font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px; }
+  .kpi-val { font-size:26px;font-weight:800;color:var(--white); }
+  .kpi-chg { font-size:13px;font-weight:600;margin-top:5px; }
+  .kpi-sub { font-size:11px;color:var(--gray);margin-top:3px; }
+  .banner { background:linear-gradient(90deg,#7f1d1d,#991b1b);border:1px solid #dc2626;border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:13.5px;color:#fca5a5;display:flex;align-items:center;gap:10px; }
+  .banner-warn { background:linear-gradient(90deg,#78350f,#92400e);border:1px solid #d97706;border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:13.5px;color:#fde68a;display:flex;align-items:center;gap:10px; }
+  table { width:100%;border-collapse:collapse;font-size:13px; }
+  thead th { background:rgba(30,91,189,0.2);color:var(--highlight);padding:10px 14px;text-align:left;font-weight:600;border-bottom:1px solid var(--card-border); }
+  tbody td { padding:10px 14px;border-bottom:1px solid rgba(30,91,189,0.1);color:var(--text-main); }
+  tbody tr:hover td { background:rgba(30,91,189,0.06); }
+  td.up{color:#4ade80;font-weight:600;} td.dn{color:#f87171;font-weight:600;} td.ne{color:#fde68a;font-weight:600;} td.alert{color:#fb923c;font-weight:700;}
+  .table-wrap { background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:24px 28px;margin-bottom:24px; }
+  .table-wrap h3 { font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px;display:flex;align-items:center;gap:8px; }
+  .chart-bar-wrap { margin-top:8px; }
+  .bar-item { display:flex;align-items:center;gap:12px;margin-bottom:10px; }
+  .bar-label { width:200px;font-size:12px;color:var(--text-sub);flex-shrink:0; }
+  .bar-track { flex:1;background:rgba(30,91,189,0.15);border-radius:4px;height:22px;overflow:hidden; }
+  .bar-fill { height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:var(--white); }
+  .bar-fill.eu { background:linear-gradient(90deg,#1e5bbd,#2e7de0); }
+  .bar-fill.us { background:linear-gradient(90deg,#0f766e,#14b8a6); }
+  .bar-fill.me { background:linear-gradient(90deg,#92400e,#f59e0b); }
+  .bar-fill.as { background:linear-gradient(90deg,#4c1d95,#7c3aed); }
+  .bar-fill.au { background:linear-gradient(90deg,#065f46,#10b981); }
+  .bar-val { width:90px;text-align:right;font-size:13px;font-weight:700;color:var(--white);flex-shrink:0; }
+  .analysis-grid { display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px; }
+  .analysis-card { background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:20px; }
+  .analysis-card.bull { border-top:3px solid #4ade80; }
+  .analysis-card.bear { border-top:3px solid #f87171; }
+  .analysis-card h4 { font-size:14px;font-weight:700;margin-bottom:12px; }
+  .analysis-card.bull h4 { color:#4ade80; }
+  .analysis-card.bear h4 { color:#f87171; }
+  .analysis-card ul { list-style:none; }
+  .analysis-card ul li { font-size:13px;color:var(--text-sub);padding:5px 0;border-bottom:1px solid rgba(30,91,189,0.1);line-height:1.6; }
+  .analysis-card ul li:last-child { border-bottom:none; }
+  .outlook-box { background:linear-gradient(135deg,#0d2045,#0a1628);border:1px solid var(--card-border);border-radius:14px;padding:26px 28px;margin-top:24px; }
+  .outlook-box h3 { font-size:16px;font-weight:700;color:var(--white);margin-bottom:14px; }
+  .outlook-box p { font-size:13.5px;color:#cbd5e1;line-height:1.8; }
+  .outlook-box strong { color:var(--white); }
+  footer { background:var(--navy2);border-top:1px solid var(--card-border);padding:20px 40px;text-align:center;font-size:12px;color:var(--gray);margin-top:40px; }
+  footer a { color:var(--highlight);text-decoration:none; }
+  @media(max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .analysis-grid{grid-template-columns:1fr;} .main,.header{padding-left:18px;padding-right:18px;} }
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span>SCFI综合 <span class="up">1,854.96 +24.6%月环比</span></span>
+    <span>远东→北欧 <span class="up">$2,904/FEU +31%</span></span>
+    <span>远东→地中海 <span class="up">$4,333/FEU +30%</span></span>
+    <span>远东→美西 <span class="up">$2,430/FEU +29%</span></span>
+    <span>远东→美东 <span class="up">$3,382/FEU +28%</span></span>
+    <span>远东→澳大利亚 <span class="up">约$2,300/FEU +35%</span></span>
+    <span>Drewry WCI <span class="up">$2,172/FEU +14.4%</span></span>
+    <span class="ne">MSC GRI $300/TEU 亚澳线已生效</span>
+    <span class="ne">达飞EFS 4月18日生效</span>
+    <span>霍尔木兹第42天 波斯湾服务中断</span>
+    <span>SCFI综合 <span class="up">1,854.96 +24.6%月环比</span></span>
+    <span>远东→北欧 <span class="up">$2,904/FEU +31%</span></span>
+    <span>远东→地中海 <span class="up">$4,333/FEU +30%</span></span>
+    <span>远东→美西 <span class="up">$2,430/FEU +29%</span></span>
+    <span>远东→美东 <span class="up">$3,382/FEU +28%</span></span>
+    <span>远东→澳大利亚 <span class="up">约$2,300/FEU +35%</span></span>
+    <span>Drewry WCI <span class="up">$2,172/FEU +14.4%</span></span>
+    <span class="ne">MSC GRI $300/TEU 亚澳线已生效</span>
+    <span class="ne">达飞EFS 4月18日生效</span>
+    <span>霍尔木兹第42天 波斯湾服务中断</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">&#x1F4CA;</div>
+      <div class="brand-text">
+        <h1>集装箱运价分析报告</h1>
+        <p>Claw Intelligence · 全球主要航线运价每日追踪</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-04-07</div>
+      <div class="sub">星期二 · 霍尔木兹第42天</div>
+    </div>
+  </div>
+  <div class="subtitle">数据来源：Xeneta · TradingEconomics · Drewry · Magellan Logistics · Shanghai Shipping Exchange</div>
+</div>
+
+<div class="main">
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">SCFI 综合指数</div>
+      <div class="kpi-val">1,855</div>
+      <div class="kpi-chg up">+24.6% 月环比</div>
+      <div class="kpi-sub">+33.2% 年同比</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Drewry WCI</div>
+      <div class="kpi-val">$2,172</div>
+      <div class="kpi-chg up">+14.4% 危机以来</div>
+      <div class="kpi-sub">$/40尺集装箱</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">远东→地中海</div>
+      <div class="kpi-val">$4,333</div>
+      <div class="kpi-chg up">+30% 月环比</div>
+      <div class="kpi-sub">各大洋线涨幅之首</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">波斯湾航线</div>
+      <div class="kpi-val">停摆</div>
+      <div class="kpi-chg dn">霍尔木兹封锁</div>
+      <div class="kpi-sub">第42天，无正常报价</div>
+    </div>
+  </div>
+
+  <!-- 警告 -->
+  <div class="banner" style="margin-top:20px;">
+    <span>&#x26A0;&#xFE0F;</span>
+    <span><strong>伊朗拒绝停火，危机升级：</strong> 布伦特原油今日升至$111.11/桶，所有绕行好望角方案维持执行。4月GRI密集落地，建议尽早锁定旺季仓位。</span>
+  </div>
+
+  <!-- 主要航线运价 -->
+  <div class="section-title">
+    <div class="icon">&#x1F30F;</div>
+    <h2>主要航线集装箱运价总览</h2>
+    <span class="badge">Xeneta · 2026-04-01</span>
+  </div>
+
+  <div class="table-wrap">
+    <h3>&#x1F4B9; 东西向主干航线（$/FEU）</h3>
+    <table>
+      <thead>
+        <tr><th>航线</th><th>现货价（$/FEU）</th><th>月环比</th><th>年同比</th><th>主要驱动因素</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>远东 → 北欧</td><td class="up">$2,904</td><td class="up">+31%</td><td class="up">+120%</td><td>霍尔木兹绕行 + 港口拥堵</td></tr>
+        <tr><td>远东 → 地中海</td><td class="up">$4,333</td><td class="up">+30%</td><td class="up">+115%</td><td>苏伊士/霍尔木兹双重影响</td></tr>
+        <tr><td>远东 → 北美西岸</td><td class="up">$2,430</td><td class="up">+29%</td><td class="up">+85%</td><td>亚太转运枢纽拥堵溢出</td></tr>
+        <tr><td>远东 → 北美东岸</td><td class="up">$3,382</td><td class="up">+28%</td><td class="up">+92%</td><td>好望角绕行增加运输时间</td></tr>
+        <tr><td>北欧 → 北美东岸</td><td class="up">$1,775</td><td class="up">+22%</td><td class="up">+68%</td><td>运力紧张 + 需求提前释放</td></tr>
+        <tr><td>远东 → 澳大利亚</td><td class="up">~$2,300</td><td class="up">+35%</td><td class="up">+105%</td><td>GRI叠加EFS 成本激增</td></tr>
+        <tr><td>远东 → 波斯湾</td><td class="dn">服务中断</td><td class="dn">—</td><td class="dn">—</td><td>霍尔木兹完全封锁</td></tr>
+        <tr><td>远东 → 印度次大陆</td><td class="ne">~$800</td><td class="ne">+15%</td><td class="up">+45%</td><td>科伦坡/蒙德拉转运压力</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 图形：运价对比 -->
+  <div class="section-title">
+    <div class="icon">&#x1F4CA;</div>
+    <h2>主要航线运价可视化对比</h2>
+  </div>
+
+  <div class="table-wrap">
+    <h3>各航线现货价格对比（$/FEU）</h3>
+    <div class="chart-bar-wrap">
+      <div class="bar-item">
+        <div class="bar-label">远东 → 地中海</div>
+        <div class="bar-track"><div class="bar-fill me" style="width:94%">$4,333</div></div>
+        <div class="bar-val up">$4,333</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">远东 → 北美东岸</div>
+        <div class="bar-track"><div class="bar-fill us" style="width:73%">$3,382</div></div>
+        <div class="bar-val up">$3,382</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">远东 → 北欧</div>
+        <div class="bar-track"><div class="bar-fill eu" style="width:63%">$2,904</div></div>
+        <div class="bar-val up">$2,904</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">远东 → 澳大利亚</div>
+        <div class="bar-track"><div class="bar-fill au" style="width:50%">~$2,300</div></div>
+        <div class="bar-val up">~$2,300</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">远东 → 北美西岸</div>
+        <div class="bar-track"><div class="bar-fill us" style="width:52%">$2,430</div></div>
+        <div class="bar-val up">$2,430</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">北欧 → 北美东岸</div>
+        <div class="bar-track"><div class="bar-fill eu" style="width:38%">$1,775</div></div>
+        <div class="bar-val up">$1,775</div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-label">远东 → 印度次大陆</div>
+        <div class="bar-track"><div class="bar-fill as" style="width:18%">~$800</div></div>
+        <div class="bar-val ne">~$800</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 附加费一览 -->
+  <div class="section-title">
+    <div class="icon">&#x1F4B0;</div>
+    <h2>4月附加费一览</h2>
+    <span class="badge">2026-04月</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>船公司</th><th>附加费类型</th><th>金额</th><th>航线</th><th>生效日期</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>MSC</td><td>GRI（运价恢复费）</td><td class="up">$300/TEU</td><td>北亚/东南亚→澳大利亚/新西兰</td><td class="ne">2026-04-01</td></tr>
+        <tr><td>ANL（达飞）</td><td>GRI</td><td class="up">$300/TEU | $600/FEU</td><td>亚洲/印度/中东→澳新</td><td class="ne">2026-04-01</td></tr>
+        <tr><td>ANL（达飞）</td><td>GRI（巴布新）</td><td class="up">$350/TEU | $700/FEU</td><td>→巴布亚新几内亚等</td><td class="ne">2026-04-16</td></tr>
+        <tr><td>CMA CGM</td><td>FAK涨价</td><td class="up">$500/TEU | $1,000/FEU</td><td>土耳其/埃及/叙利亚→澳新</td><td class="ne">2026-04-01</td></tr>
+        <tr><td>达飞</td><td>EFS（紧急燃油附加费）</td><td class="ne">待公布</td><td>多条亚洲线</td><td class="ne">2026-04-18</td></tr>
+        <tr><td>马士基</td><td>内陆燃油附加费（澳大利亚）</td><td class="up">+16-17%</td><td>澳大利亚陆侧运输</td><td class="ne">2026-04-01</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 近洋航线 -->
+  <div class="section-title">
+    <div class="icon">&#x1F1E8;&#x1F1F3;</div>
+    <h2>中国近洋线及台湾线运价</h2>
+    <span class="badge">估算参考</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>航线</th><th>TEU运价（约）</th><th>环比</th><th>运输时间</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>台湾 → 日本</td><td class="ne">$300-500</td><td class="ne">基本稳定</td><td>2-3天</td><td>近洋线受影响较小</td></tr>
+        <tr><td>台湾 → 东南亚</td><td class="ne">$400-700</td><td class="up">+10-15%</td><td>3-7天</td><td>部分港口拥堵</td></tr>
+        <tr><td>华南 → 东南亚</td><td class="ne">$350-600</td><td class="up">+8-12%</td><td>3-6天</td><td>新加坡转运压力</td></tr>
+        <tr><td>华南 → 中东（绕行）</td><td class="up">+$1,500以上</td><td class="up">大幅上涨</td><td>延长7-10天</td><td>霍尔木兹影响，绕好望角</td></tr>
+        <tr><td>华东 → 欧洲</td><td class="up">约$2,904/FEU</td><td class="up">+31%</td><td>延长8-12天</td><td>好望角绕行</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 分析 -->
+  <div class="analysis-grid">
+    <div class="analysis-card bull">
+      <h4>&#x1F4C8; 支撑运价上行的因素</h4>
+      <ul>
+        <li>霍尔木兹封锁持续，有效运力被绕行吸收</li>
+        <li>夏季旺季需求（6-8月）即将到来，托运人提前锁仓</li>
+        <li>主要船公司通过空白航行维持供需平衡</li>
+        <li>布伦特原油$111/桶，推高BAF和EFS</li>
+        <li>多枢纽港口拥堵加剧，船舶周转效率下降</li>
+        <li>空运替代效果有限，中东枢纽容量大幅下降</li>
+      </ul>
+    </div>
+    <div class="analysis-card bear">
+      <h4>&#x1F4C9; 可能压制运价的因素</h4>
+      <ul>
+        <li>若伊美谈判突破，霍尔木兹解封将导致运价骤跌</li>
+        <li>2026年大量新造船运力入市，供给面承压</li>
+        <li>贸易保护主义抬头，全球贸易量增速预期仅1.7%</li>
+        <li>部分托运人延迟发货，等待局势明朗</li>
+        <li>高运价压缩需求端，部分货主转向空运或暂缓</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="outlook-box">
+    <h3>&#x1F4C8; 运价展望与操作建议</h3>
+    <p>
+      <strong>本周运价判断：</strong> 维持高位震荡，伊朗拒绝停火后上行风险加大。远东→地中海（$4,333/FEU）、远东→欧洲（$2,904/FEU）预计短期内无明显回落。旺季需求预计6月起发力，运价有望进一步上行。<br><br>
+      <strong>风险情景：</strong> ①最坏情景（军事冲突升级）：运价可能突破2024年历史高点，远东→欧洲或超$5,000/FEU；②基准情景（封锁持续至6月底）：运价维持当前区间，旺季叠加推高；③最优情景（霍尔木兹解封）：运价短期快速回落20-30%，回归正常水平。<br><br>
+      <strong>操作建议：</strong> ①旺季仓位尽早锁定，避免6-8月高峰期支付超额溢价；②关注空白航行公告，调整发货节奏；③评估附加费清单，在4月18日达飞EFS生效前完成相关合同谈判；④密切跟踪伊美外交动向，做好最优情景下快速降价的应对预案。
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <p>数据来源：Xeneta周度更新（2026-04-01）· TradingEconomics（2026-04-07）· Drewry WCI · Magellan Logistics · Shanghai Shipping Exchange</p>
+  <p style="margin-top:6px;">集装箱运价分析报告 · 2026-04-07 &nbsp;|&nbsp; Claw Intelligence System &nbsp;|&nbsp; 仅供内部参考</p>
+</footer>
+</body>
+</html>

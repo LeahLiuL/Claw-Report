@@ -6,169 +6,202 @@
 <title>Claw Daily Brief — 2026-03-31</title>
 <style>
 :root {
-  --navy: #05111f;
-  --navy2: #0a1e35;
-  --card: #0d2340;
-  --border: #1a3a60;
-  --accent: #1a5cdb;
-  --gold: #f0b429;
-  --red: #ef4444;
-  --green: #22c55e;
-  --orange: #f97316;
-  --white: #f1f5f9;
-  --sub: #94a3b8;
+  --navy:#05111f; --navy2:#0a1e35; --card:#0d2340; --border:#1a3a60;
+  --accent:#1a5cdb; --gold:#f0b429; --red:#ef4444; --green:#22c55e;
+  --orange:#f97316; --white:#f1f5f9; --sub:#94a3b8; --text:#e2e8f0;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--navy);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.6;}
 
 /* TICKER */
-.topbar { background: var(--accent); padding: 5px 0; overflow: hidden; border-bottom: 2px solid var(--gold); }
-.ticker { display: flex; white-space: nowrap; animation: ticker 55s linear infinite; }
-.ticker span { padding: 0 24px; font-size: 12px; font-weight: 600; }
-.up { color: #4ade80; } .dn { color: #f87171; } .ne { color: #fde68a; }
-@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.topbar{background:var(--accent);padding:5px 0;overflow:hidden;border-bottom:2px solid var(--gold);}
+.ticker{display:flex;white-space:nowrap;animation:ticker 60s linear infinite;}
+.ticker span{padding:0 22px;font-size:12px;font-weight:600;}
+.up{color:#4ade80;}.dn{color:#f87171;}.ne{color:#fde68a;}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
 /* HEADER */
-.header { background: linear-gradient(135deg,#05111f 0%,#0a1e35 60%,#0f2d52 100%); border-bottom: 3px solid var(--gold); padding: 24px 32px 18px; }
-.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon { width: 46px; height: 46px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #fff; box-shadow: 0 0 18px rgba(26,92,219,.5); }
-.brand h1 { font-size: 19px; font-weight: 800; letter-spacing: 1px; }
-.brand p { font-size: 12px; color: var(--sub); margin-top: 2px; }
-.date-block .d { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; text-align: right; }
-.date-block .s { font-size: 11px; color: var(--sub); margin-top: 3px; text-align: right; }
-.alert-bar { margin-top: 14px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.4); border-radius: 7px; padding: 9px 14px; font-size: 13px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+.header{background:linear-gradient(135deg,#05111f 0%,#0a1e35 60%,#0f2d52 100%);border-bottom:3px solid var(--gold);padding:22px 32px 16px;}
+.header-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-icon{width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;box-shadow:0 0 16px rgba(26,92,219,.5);}
+.brand h1{font-size:18px;font-weight:800;letter-spacing:1px;}
+.brand p{font-size:11px;color:var(--sub);margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:16px;}
+.date-block .d{font-size:26px;font-weight:800;color:var(--gold);line-height:1;text-align:right;}
+.date-block .s{font-size:11px;color:var(--sub);margin-top:3px;text-align:right;}
+.alert-bar{margin-top:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:7px;padding:9px 14px;font-size:12.5px;color:#fca5a5;display:flex;align-items:flex-start;gap:10px;}
 
-/* KPI */
-.kpi-row { background: var(--navy2); padding: 14px 32px; display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
-.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; }
-.kpi .lbl { font-size: 10px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.kpi .val { font-size: 18px; font-weight: 800; }
-.kpi .chg { font-size: 11px; font-weight: 600; margin-top: 2px; }
+/* LANG SWITCH */
+.lang-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.5px;white-space:nowrap;transition:all .2s;}
+.lang-btn:hover{background:var(--gold);border-color:var(--gold);color:#05111f;}
+
+/* KPI ROW */
+.kpi-row{background:var(--navy2);padding:12px 32px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;}
+.kpi .lbl{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.kpi .val{font-size:17px;font-weight:800;}
+.kpi .chg{font-size:10.5px;font-weight:600;margin-top:2px;}
+.kpi .src{font-size:9px;color:rgba(148,163,184,.6);margin-top:2px;}
 
 /* TAB NAV */
-.tab-nav { background: var(--navy2); border-bottom: 2px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; position: sticky; top: 0; z-index: 100; }
-.tab-nav::-webkit-scrollbar { height: 4px; }
-.tab-nav::-webkit-scrollbar-thumb { background: var(--border); }
-.tab-btn {
-  padding: 13px 18px 11px;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  color: var(--sub);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  border-bottom: 3px solid transparent;
-  transition: all .2s;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  position: relative;
-  top: 2px;
-}
-.tab-btn:hover { color: var(--white); background: rgba(255,255,255,.04); }
-.tab-btn.active { color: #fff; border-bottom-color: var(--gold); }
-.tab-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
-.tb-red { background: rgba(239,68,68,.25); color: #fca5a5; }
-.tb-amber { background: rgba(245,158,11,.25); color: #fde68a; }
-.tb-green { background: rgba(34,197,94,.25); color: #86efac; }
-.tab-icon { font-size: 15px; }
+.tab-nav{background:var(--navy2);border-bottom:2px solid var(--border);padding:0 32px;display:flex;gap:0;overflow-x:auto;position:sticky;top:0;z-index:100;}
+.tab-nav::-webkit-scrollbar{height:3px;}
+.tab-nav::-webkit-scrollbar-thumb{background:var(--border);}
+.tab-btn{padding:12px 16px 10px;cursor:pointer;border:none;background:transparent;color:var(--sub);font-size:12.5px;font-weight:600;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;position:relative;top:2px;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:#fff;border-bottom-color:var(--gold);}
+.tab-badge{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;}
+.tb-red{background:rgba(239,68,68,.25);color:#fca5a5;}
+.tb-amber{background:rgba(245,158,11,.25);color:#fde68a;}
+.tb-green{background:rgba(34,197,94,.25);color:#86efac;}
 
-/* TAB PANELS */
-.tab-panel { display: none; padding: 28px 32px 40px; }
-.tab-panel.active { display: block; }
+/* PANELS */
+.tab-panel{display:none;padding:24px 32px 40px;max-width:1200px;}
+.tab-panel.active{display:block;}
+
+/* SOURCE TAG */
+.src-tag{display:inline-block;font-size:10px;color:rgba(148,163,184,.7);background:rgba(26,58,96,.4);border:1px solid rgba(26,58,96,.8);border-radius:4px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+.src-block{font-size:10.5px;color:rgba(148,163,184,.65);margin-top:6px;padding:6px 10px;background:rgba(10,30,53,.5);border-radius:5px;border-left:2px solid rgba(26,92,219,.4);}
 
 /* SECTION TITLE */
-.sect-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--sub); margin: 24px 0 10px; }
-.sect-title:first-child { margin-top: 0; }
+.sect{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--sub);margin:22px 0 10px;display:flex;align-items:center;gap:8px;}
+.sect:first-child{margin-top:0;}
+.sect::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* CARDS GRID */
-.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-.card .cl { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
-.card .cv { font-size: 22px; font-weight: 800; }
-.card .cc { font-size: 12px; font-weight: 600; margin-top: 3px; }
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:13px 14px;}
+.card .cl{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.card .cv{font-size:21px;font-weight:800;}
+.card .cc{font-size:11px;font-weight:600;margin-top:2px;}
+.card .cs{font-size:9.5px;color:rgba(148,163,184,.6);margin-top:4px;}
 
 /* TABLE */
-.tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px; }
-.tbl th { background: var(--card); color: var(--sub); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-.tbl td { padding: 9px 12px; border-bottom: 1px solid rgba(26,58,96,.5); }
-.tbl tr:last-child td { border-bottom: none; }
-.tbl tr:hover td { background: rgba(26,92,219,.07); }
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:12px;}
+.tbl th{background:var(--card);color:var(--sub);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.tbl td{padding:8px 12px;border-bottom:1px solid rgba(26,58,96,.4);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(26,92,219,.06);}
+.alert-td{color:#fca5a5;font-weight:700;}
 
 /* PILLS */
-.pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
-.pill-green { background: rgba(34,197,94,.18); color: #86efac; }
-.pill-amber { background: rgba(245,158,11,.18); color: #fde68a; }
-.pill-red { background: rgba(239,68,68,.18); color: #fca5a5; }
-.alert-td { color: #fca5a5; font-weight: 700; }
+.pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.pill-green{background:rgba(34,197,94,.18);color:#86efac;}
+.pill-amber{background:rgba(245,158,11,.18);color:#fde68a;}
+.pill-red{background:rgba(239,68,68,.18);color:#fca5a5;}
 
-/* NOTICE BOX */
-.notice { padding: 11px 14px; border-radius: 7px; font-size: 12.5px; margin: 10px 0; }
-.notice-red { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); color: #fca5a5; }
-.notice-amber { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); color: #fde68a; }
-.notice-green { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); color: #86efac; }
-.notice-blue { background: rgba(26,92,219,.08); border: 1px solid rgba(26,92,219,.35); color: #93c5fd; }
+/* NOTICE */
+.notice{padding:10px 14px;border-radius:7px;font-size:12.5px;margin:10px 0;line-height:1.6;}
+.notice-red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#fca5a5;}
+.notice-amber{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);color:#fde68a;}
+.notice-green{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:#86efac;}
+.notice-blue{background:rgba(26,92,219,.08);border:1px solid rgba(26,92,219,.35);color:#93c5fd;}
 
 /* RISK LIST */
-.risk-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
-.risk-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-.dot-red { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,.5); }
-.dot-amber { background: var(--orange); box-shadow: 0 0 6px rgba(249,115,22,.5); }
-.dot-green { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.risk-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.risk-list li{display:flex;gap:12px;align-items:flex-start;padding:11px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.6;}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.dot-red{background:var(--red);box-shadow:0 0 5px rgba(239,68,68,.5);}
+.dot-amber{background:var(--orange);box-shadow:0 0 5px rgba(249,115,22,.5);}
+.dot-green{background:var(--green);box-shadow:0 0 5px rgba(34,197,94,.5);}
 
 /* MINI KPI */
-.mini-kpi { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
-.mk { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
-.ml { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.mv { font-size: 20px; font-weight: 800; }
-.ms { font-size: 11px; font-weight: 600; margin-top: 2px; }
+.mkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+.mk{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px 12px;}
+.ml{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.mv{font-size:18px;font-weight:800;}
+.ms{font-size:10.5px;font-weight:600;margin-top:2px;}
+.msrc{font-size:9px;color:rgba(148,163,184,.55);margin-top:3px;}
+
+/* NEWS CARDS */
+.news-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.nc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.nc-tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10.5px;font-weight:600;margin-bottom:8px;}
+.nc-red{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+.nc-blue{background:rgba(26,92,219,.2);color:#93c5fd;border:1px solid rgba(26,92,219,.3);}
+.nc-amber{background:rgba(245,158,11,.15);color:#fde68a;border:1px solid rgba(245,158,11,.3);}
+.nc-green{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+.nc h3{font-size:13.5px;font-weight:700;color:#fff;line-height:1.5;margin-bottom:7px;}
+.nc p{font-size:12px;color:var(--sub);line-height:1.7;}
+.nc-meta{font-size:10.5px;color:rgba(148,163,184,.65);margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;}
+
+/* TIMELINE */
+.tl{position:relative;padding-left:24px;}
+.tl::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--accent),transparent);}
+.tl-item{position:relative;margin-bottom:18px;}
+.tl-item::before{content:'';position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--navy);}
+.tl-date{font-size:10.5px;color:var(--gold);font-weight:700;margin-bottom:3px;}
+.tl-title{font-size:13.5px;font-weight:700;color:#fff;margin-bottom:4px;}
+.tl-body{font-size:12px;color:var(--sub);line-height:1.7;}
 
 /* FOOTER */
-.footer { background: var(--navy2); border-top: 1px solid var(--border); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--sub); }
-.rlink { color: var(--sub); text-decoration: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 20px; font-size: 11.5px; transition: all .2s; }
-.rlink:hover { color: #fff; border-color: var(--accent); }
-.report-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.footer{background:var(--navy2);border-top:1px solid var(--border);padding:14px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--sub);}
+.rlink{color:var(--sub);text-decoration:none;padding:3px 10px;border:1px solid var(--border);border-radius:20px;font-size:11px;transition:all .2s;}
+.rlink:hover{color:#fff;border-color:var(--accent);}
+.report-links{display:flex;gap:7px;flex-wrap:wrap;}
 
-@media (max-width: 680px) {
-  .kpi-row { grid-template-columns: repeat(3,1fr); }
-  .cards { grid-template-columns: repeat(2,1fr); }
-  .mini-kpi { grid-template-columns: repeat(2,1fr); }
-  .tab-btn { padding: 10px 12px 9px; font-size: 12px; }
-  .header { padding: 18px 16px 14px; }
-  .tab-nav { padding: 0 10px; }
-  .tab-panel { padding: 20px 16px 30px; }
-  .kpi-row { padding: 12px 16px; }
+/* LANG HIDDEN */
+.zh{display:none;}.en{display:block;}
+body.lang-zh .zh{display:block;}.body.lang-zh .en{display:none;}
+body.lang-zh .en{display:none;}
+
+@media(max-width:700px){
+  .kpi-row{grid-template-columns:repeat(3,1fr);}.cards{grid-template-columns:1fr 1fr;}
+  .mkpi{grid-template-columns:1fr 1fr;}.news-grid{grid-template-columns:1fr;}
+  .header,.tab-panel{padding-left:16px;padding-right:16px;}
+  .tab-nav{padding:0 8px;}.kpi-row{padding:10px 16px;}
 }
 </style>
 </head>
-<body>
+<body id="body">
 
 <!-- TICKER -->
 <div class="topbar">
   <div class="ticker">
-    <span class="up">SCFI: 2,847 +2.1%</span>
-    <span class="up">CCFI: 1,634 +1.8%</span>
-    <span class="ne">BDI: 1,205 --</span>
-    <span class="up">Brent: $88.4 +1.6%</span>
-    <span class="up">VLSFO SGP: $968 +0.4%</span>
-    <span class="up">MGO SGP: $1,524 +0.3%</span>
-    <span class="ne">USD/TWD: 32.18 --</span>
-    <span class="ne">USD/CNY: 7.24 --</span>
-    <span class="dn">Hormuz Day 35: BLOCKED</span>
-    <span class="dn">Red Sea: DIVERSION ACTIVE</span>
-    <span class="up">SCFI: 2,847 +2.1%</span>
-    <span class="up">CCFI: 1,634 +1.8%</span>
-    <span class="ne">BDI: 1,205 --</span>
-    <span class="up">Brent: $88.4 +1.6%</span>
-    <span class="up">VLSFO SGP: $968 +0.4%</span>
-    <span class="up">MGO SGP: $1,524 +0.3%</span>
-    <span class="ne">USD/TWD: 32.18 --</span>
-    <span class="ne">USD/CNY: 7.24 --</span>
-    <span class="dn">Hormuz Day 35: BLOCKED</span>
-    <span class="dn">Red Sea: DIVERSION ACTIVE</span>
+    <span class="up">SCFI 1,826.77 +7.02%</span>
+    <span class="ne">|</span>
+    <span class="up">CCFI 1,139.04 +1.6%</span>
+    <span class="ne">|</span>
+    <span class="up">WCI 2,279 USD/FEU +5%</span>
+    <span class="ne">|</span>
+    <span class="up">EU Line 1,703 USD/TEU +4.1%</span>
+    <span class="ne">|</span>
+    <span class="up">USWC 2,352 USD/FEU +14.5%</span>
+    <span class="ne">|</span>
+    <span class="up">USEC 3,264 USD/FEU +11.7%</span>
+    <span class="ne">|</span>
+    <span class="up">Gulf (Dubai) 3,728 USD/TEU +12.2%</span>
+    <span class="ne">|</span>
+    <span class="dn">Hormuz Day 35 — Traffic -95%</span>
+    <span class="ne">|</span>
+    <span class="dn">Red Sea Diversion Active</span>
+    <span class="ne">|</span>
+    <span class="up">Brent $88.2/bbl</span>
+    <span class="ne">|</span>
+    <span class="up">VLSFO SGP $834/MT</span>
+    <span class="ne">|</span>
+    <span class="ne">USD/TWD 32.18</span>
+    <span class="ne">|</span>
+    <span class="ne">USD/CNY 7.24</span>
+    <span class="ne">|</span>
+    <span class="up">SCFI 1,826.77 +7.02%</span>
+    <span class="ne">|</span>
+    <span class="up">CCFI 1,139.04 +1.6%</span>
+    <span class="ne">|</span>
+    <span class="up">WCI 2,279 USD/FEU +5%</span>
+    <span class="ne">|</span>
+    <span class="up">EU Line 1,703 USD/TEU +4.1%</span>
+    <span class="ne">|</span>
+    <span class="up">USWC 2,352 USD/FEU +14.5%</span>
+    <span class="ne">|</span>
+    <span class="up">USEC 3,264 USD/FEU +11.7%</span>
+    <span class="ne">|</span>
+    <span class="up">Gulf (Dubai) 3,728 USD/TEU +12.2%</span>
+    <span class="ne">|</span>
+    <span class="dn">Hormuz Day 35 — Traffic -95%</span>
+    <span class="ne">|</span>
+    <span class="dn">Red Sea Diversion Active</span>
   </div>
 </div>
 
@@ -179,247 +212,726 @@ body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', Ar
       <div class="brand-icon">C</div>
       <div>
         <h1>CLAW DAILY BRIEF</h1>
-        <p>Internal Intelligence Report</p>
+        <p class="en">Internal Intelligence Report — 7 Departments</p>
+        <p class="zh" style="display:none">内部情报简报 — 7部门版</p>
       </div>
     </div>
-    <div class="date-block">
-      <div class="d">2026-03-31</div>
-      <div class="s">Tuesday &nbsp;|&nbsp; 09:00 CST</div>
+    <div class="header-right">
+      <button class="lang-btn" id="langBtn" onclick="toggleLang()">切换中文</button>
+      <div class="date-block">
+        <div class="d">2026-03-31</div>
+        <div class="s">Tuesday &nbsp;|&nbsp; 09:00 CST</div>
+      </div>
     </div>
   </div>
   <div class="alert-bar">
-    <strong>[CRITICAL]</strong>&nbsp; Hormuz Strait blockade Day 35 — all Middle East routes via Cape of Good Hope. Red Sea HMG advisory active. Review all Gulf vessel schedules immediately.
+    <span><strong class="en">[CRITICAL]</strong><strong class="zh" style="display:none">【紧急】</strong></span>
+    <span class="en">Hormuz Strait blockade Day 35 — all Middle East routes via Cape of Good Hope. Bab-el-Mandeb new transit code requirement blocking vessels (3 ships delayed Mar 30). MSC files $500/TEU GRI on Middle East lanes eff. Apr 7. Review all Gulf vessel schedules immediately.</span>
+    <span class="zh" style="display:none">霍尔木兹海峡封锁第35天——所有中东航线绕行好望角。曼德海峡新通行代码要求致3艘船受阻（3月30日）。MSC宣布4月7日起中东线GRI $500/TEU。请立即核查所有海湾区船舶班期。</span>
   </div>
 </div>
 
 <!-- KPI ROW -->
 <div class="kpi-row">
-  <div class="kpi"><div class="lbl">SCFI</div><div class="val up">2,847</div><div class="chg up">+2.1% WoW</div></div>
-  <div class="kpi"><div class="lbl">CCFI</div><div class="val up">1,634</div><div class="chg up">+1.8% WoW</div></div>
-  <div class="kpi"><div class="lbl">Brent</div><div class="val up">$88.4</div><div class="chg up">+1.6% DoD</div></div>
-  <div class="kpi"><div class="lbl">VLSFO SGP</div><div class="val up">$968</div><div class="chg up">+0.4%</div></div>
-  <div class="kpi"><div class="lbl">USD/TWD</div><div class="val ne">32.18</div><div class="chg ne">Stable</div></div>
-  <div class="kpi"><div class="lbl">USD/CNY</div><div class="val ne">7.24</div><div class="chg ne">Stable</div></div>
+  <div class="kpi">
+    <div class="lbl">SCFI</div>
+    <div class="val up">1,826.77</div>
+    <div class="chg up">+7.02% WoW</div>
+    <div class="src en">Source: SSE/SCFI</div>
+    <div class="src zh" style="display:none">来源：上交所/SCFI</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">CCFI</div>
+    <div class="val up">1,139.04</div>
+    <div class="chg up">+1.6% WoW</div>
+    <div class="src en">Source: SSEFC</div>
+    <div class="src zh" style="display:none">来源：上航交所</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl en">WCI (Drewry)</div>
+    <div class="lbl zh" style="display:none">WCI德鲁里</div>
+    <div class="val up">2,279</div>
+    <div class="chg up">+5.0% WoW</div>
+    <div class="src">Source: Drewry</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">Brent</div>
+    <div class="val up">$88.2</div>
+    <div class="chg up">+1.6% DoD</div>
+    <div class="src">Source: ICE</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">VLSFO SGP</div>
+    <div class="val up">$834</div>
+    <div class="chg up">+2.1% WoW</div>
+    <div class="src">Source: Ship&amp;Bunker</div>
+  </div>
+  <div class="kpi">
+    <div class="lbl">USD/TWD</div>
+    <div class="val ne">32.18</div>
+    <div class="chg ne">Stable</div>
+    <div class="src">Source: Bloomberg</div>
+  </div>
 </div>
 
 <!-- TAB NAV -->
 <div class="tab-nav">
   <button class="tab-btn active" onclick="switchTab('mgmt',this)">
-    <span class="tab-icon">&#9733;</span> Management <span class="tab-badge tb-red">3 Risks</span>
+    &#9733; <span class="en">Management</span><span class="zh" style="display:none">管理层</span>
+    <span class="tab-badge tb-red">3</span>
   </button>
   <button class="tab-btn" onclick="switchTab('sales',this)">
-    <span class="tab-icon">&#8593;</span> Sales &amp; Commercial <span class="tab-badge tb-amber">GRI Alert</span>
+    &#8593; <span class="en">Sales &amp; Commercial</span><span class="zh" style="display:none">商务/销售</span>
+    <span class="tab-badge tb-amber">GRI</span>
   </button>
   <button class="tab-btn" onclick="switchTab('ops',this)">
-    <span class="tab-icon">&#9875;</span> Operations &amp; Fleet <span class="tab-badge tb-red">2 Warnings</span>
+    &#9875; <span class="en">Operations &amp; Fleet</span><span class="zh" style="display:none">运营/船务</span>
+    <span class="tab-badge tb-red">2</span>
   </button>
   <button class="tab-btn" onclick="switchTab('bunker',this)">
-    <span class="tab-icon">&#9981;</span> Procurement / Bunker <span class="tab-badge tb-amber">Supply Alert</span>
+    &#9981; <span class="en">Procurement / Bunker</span><span class="zh" style="display:none">采购/燃油</span>
+    <span class="tab-badge tb-amber">!</span>
   </button>
   <button class="tab-btn" onclick="switchTab('finance',this)">
-    <span class="tab-icon">&#36;</span> Finance <span class="tab-badge tb-amber">BAF Rising</span>
+    &#36; <span class="en">Finance</span><span class="zh" style="display:none">财务</span>
+    <span class="tab-badge tb-amber">BAF</span>
   </button>
   <button class="tab-btn" onclick="switchTab('equip',this)">
-    <span class="tab-icon">&#9632;</span> Container Equipment <span class="tab-badge tb-red">Shortage</span>
+    &#9632; <span class="en">Container Equipment</span><span class="zh" style="display:none">箱管</span>
+    <span class="tab-badge tb-red">!</span>
   </button>
   <button class="tab-btn" onclick="switchTab('legal',this)">
-    <span class="tab-icon">&#9878;</span> Legal &amp; Compliance <span class="tab-badge tb-red">High Alert</span>
+    &#9878; <span class="en">Legal &amp; Compliance</span><span class="zh" style="display:none">法务</span>
+    <span class="tab-badge tb-red">High</span>
   </button>
 </div>
 
 <!-- ===== TAB 1: MANAGEMENT ===== -->
 <div id="tab-mgmt" class="tab-panel active">
-  <div class="sect-title">30-Second Market Overview</div>
+
+  <div class="sect"><span class="en">30-Second Market Snapshot</span><span class="zh" style="display:none">30秒市场概览</span></div>
   <div class="cards">
-    <div class="card"><div class="cl">SCFI Index</div><div class="cv up">2,847</div><div class="cc up">+2.1% WoW — Rising</div></div>
-    <div class="card"><div class="cl">Middle East Risk</div><div class="cv dn" style="color:#ef4444">CRITICAL</div><div class="cc dn">Hormuz Day 35</div></div>
-    <div class="card"><div class="cl">Key Decision</div><div class="cv" style="font-size:15px;margin-top:4px">Cape Reroute</div><div class="cc ne">+14 days ETA</div></div>
+    <div class="card">
+      <div class="cl en">SCFI Composite</div><div class="cl zh" style="display:none">SCFI综合指数</div>
+      <div class="cv up">1,826.77</div>
+      <div class="cc up en">+7.02% WoW — 2026 High</div>
+      <div class="cc up zh" style="display:none">+7.02% 周环比 — 年内新高</div>
+      <div class="cs">Source: SSE/SCFI (2026-03-28)</div>
+    </div>
+    <div class="card">
+      <div class="cl en">Gulf (Dubai) Spot Rate</div><div class="cl zh" style="display:none">波斯湾（迪拜）即期运价</div>
+      <div class="cv dn" style="color:#ef4444">$3,728</div>
+      <div class="cc dn en">+12.2% — Paper only</div>
+      <div class="cc dn zh" style="display:none">+12.2% — 有价无量</div>
+      <div class="cs">Source: SCFI (2026-03-28)</div>
+    </div>
+    <div class="card">
+      <div class="cl en">Cape Extra Cost/Voyage</div><div class="cl zh" style="display:none">绕好望角单航次额外成本</div>
+      <div class="cv ne">~$380k</div>
+      <div class="cc ne en">+28% fuel vs Suez route</div>
+      <div class="cc ne zh" style="display:none">燃油较苏伊士多+28%</div>
+      <div class="cs">Source: Drewry / OilChem estimate</div>
+    </div>
   </div>
 
-  <div class="sect-title">Top 3 Competitor Moves</div>
+  <div class="sect"><span class="en">Competitor Moves — This Week</span><span class="zh" style="display:none">竞争对手本周动态</span></div>
   <table class="tbl">
-    <thead><tr><th>Carrier</th><th>Action</th><th>Impact on Us</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Carrier</span><span class="zh" style="display:none">船公司</span></th>
+      <th><span class="en">Action</span><span class="zh" style="display:none">行动</span></th>
+      <th><span class="en">Our Impact</span><span class="zh" style="display:none">对我司影响</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td><strong>MSC</strong></td><td>Filing $500/TEU GRI on Middle East lanes (Apr 7)</td><td class="dn">Pressure to match or lose cargo</td></tr>
-      <tr><td><strong>Maersk</strong></td><td>Suspending all Hormuz-bound sailings until Apr 15</td><td class="ne">Opportunity to capture diverted cargo</td></tr>
-      <tr><td><strong>CMA CGM</strong></td><td>Activating full Cape rerouting — ETA +14 days</td><td class="ne">Same diversion as us — level playing field</td></tr>
+      <tr>
+        <td><strong>MSC</strong></td>
+        <td class="en">Filing $500/TEU GRI on Middle East lanes (eff. Apr 7)</td>
+        <td class="en" class="dn">Decide: match or risk cargo loss</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="zh" style="display:none">4月7日起中东线GRI $500/TEU</td>
+        <td class="zh dn" style="display:none">需决策：跟涨还是保货量</td>
+      </tr>
+      <tr>
+        <td><strong>Maersk</strong></td>
+        <td class="en">Suspending all Hormuz-bound direct sailings until Apr 15</td>
+        <td class="en ne">Opportunity: capture diverted cargo demand</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="zh" style="display:none">暂停所有霍尔木兹直挂班期至4月15日</td>
+        <td class="zh ne" style="display:none">机会：承接被迫改船货量</td>
+      </tr>
+      <tr>
+        <td><strong>COSCO</strong></td>
+        <td class="en">Resumed ME bookings via Khor Fakkan multimodal (Mar 25)</td>
+        <td class="en ne">Level playing field — same landbridge workaround</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="zh" style="display:none">3月25日恢复中东订舱，经豪尔费坎多式联运</td>
+        <td class="zh ne" style="display:none">同用陆桥方案，竞争层面相当</td>
+      </tr>
+      <tr>
+        <td><strong>CMA CGM</strong></td>
+        <td class="en">Full Cape rerouting active; GRI 750 USD/TEU EU eff. Apr 1</td>
+        <td class="en dn">Pressure to raise EU line rates accordingly</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="zh" style="display:none">全面好望角绕行；4月1日起欧线GRI 750 USD/TEU</td>
+        <td class="zh dn" style="display:none">欧线运价需同步跟进</td>
+      </tr>
+      <tr>
+        <td><strong>Evergreen</strong></td>
+        <td class="en">Vessels on standby in Indian Ocean near Hormuz — no entry</td>
+        <td class="en ne">Same posture as us</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td class="zh" style="display:none">旗下船只印度洋待命，未进入霍尔木兹</td>
+        <td class="zh ne" style="display:none">与我司策略相同</td>
+      </tr>
     </tbody>
   </table>
+  <div class="src-block en">Sources: Alphaliner Weekly, TradeWinds, Drewry Supply Chain Advisors (2026-03-28/31)</div>
+  <div class="src-block zh" style="display:none">数据来源：Alphaliner周报、TradeWinds、德鲁里供应链顾问（2026-03-28/31）</div>
 
-  <div class="sect-title">Top 3 Risks This Week</div>
+  <div class="sect" style="margin-top:18px;"><span class="en">Top Risks This Week</span><span class="zh" style="display:none">本周主要风险</span></div>
   <ul class="risk-list">
-    <li><span class="dot dot-red"></span><div><strong>[HIGH] Hormuz Blockade (Day 35):</strong> No diplomatic resolution in sight. Cape routing adds ~$380k cost per voyage and 14 days transit. All Middle East vessel ETAs must be recommunicated to customers immediately.</div></li>
-    <li><span class="dot dot-red"></span><div><strong>[HIGH] MSC GRI Filing:</strong> $500/TEU effective Apr 7 on Middle East lanes. Management decision required — match the GRI or risk cargo loss to competitors.</div></li>
-    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Middle East Box Shortage:</strong> Empty container repositioning blocked by Hormuz closure. Gulf customers face allocation cuts by end of April if no alternative is found.</div></li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] Hormuz Blockade — Day 35:</strong> No diplomatic breakthrough. All Gulf cargo routed via Khor Fakkan landbridge (+14 days, +$380k/voyage). Recommunicate ETAs to all Gulf customers immediately. Confirm booking status for Apr sailings.</div>
+        <div class="zh" style="display:none"><strong>【高风险】霍尔木兹封锁——第35天：</strong>外交谈判无突破。全部海湾货物经豪尔费坎陆桥转运（+14天，每航次+$380k）。需立即向所有海湾客户重新告知ETA，确认4月航次订舱状态。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: UKMTO Advisories, Intertanko, Vortexa vessel tracking (2026-03-31)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：UKMTO公告、Intertanko、Vortexa船舶追踪（2026-03-31）</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] MSC GRI Filing — $500/TEU ME (Apr 7):</strong> Management decision required by Apr 4. Match: risk margin compression. Not match: risk losing Middle East spot cargo to MSC. Also assess war risk surcharge (WRS $1,500/TEU) pass-through to customers.</div>
+        <div class="zh" style="display:none"><strong>【高风险】MSC中东GRI $500/TEU（4月7日生效）：</strong>需在4月4日前完成管理层决策。跟涨：利润率承压；不跟涨：中东即期货量流失风险。同时评估战争风险附加费（WRS $1,500/TEU）向客户转移可行性。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: MSC Tariff Circular (2026-03-25), industry confirmed by TradeWinds</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：MSC运价通函（2026-03-25），TradeWinds行业确认</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] Bab-el-Mandeb New Transit Code (Mar 30):</strong> Houthi forces now require pre-submission of vessel transit codes. 3 container vessels blocked Mar 30. All Red Sea transits require 72-hr advance application. Cape routing remains strongly recommended.</div>
+        <div class="zh" style="display:none"><strong>【高风险】曼德海峡新通行代码要求（3月30日）：</strong>胡塞武装要求提前提交通行申请码，3艘集装箱船于3月30日受阻。所有红海通行需提前72小时申请。强烈建议继续绕行好望角。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: UKMTO Advisory No. 026-2026, Lloyd's List (2026-03-30)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：UKMTO第026-2026号公告、Lloyd's List（2026-03-30）</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[MEDIUM] Middle East Empty Box Shortage:</strong> Empty repositioning via Hormuz blocked. Gulf customers face equipment cuts by late April if no alternative sourced. Urgent: reposition via Khor Fakkan (target: 500x20', 300x40'HC by Apr 15).</div>
+        <div class="zh" style="display:none"><strong>【中风险】中东空箱短缺：</strong>经霍尔木兹回运空箱受阻，若无替代方案，海湾客户4月底将面临设备配额削减。紧急行动：经豪尔费坎调箱（目标：4月15日前500个20尺、300个40尺）。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: Container xChange Equipment Tracker (2026-03-29)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：Container xChange设备追踪（2026-03-29）</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[MEDIUM] VLCC Freight Surge +23%:</strong> BDTI at 3,507 pts — 2-year high. Oil tanker demand reflects oil buyers circumventing Hormuz via alternate routes. May signal future cargo diversion patterns in container trade too. Monitor Vortexa weekly.</div>
+        <div class="zh" style="display:none"><strong>【中风险】VLCC运价暴涨23%：</strong>BDTI升至3,507点，创两年新高。油轮需求激增反映买家绕过霍尔木兹的替代路线趋势，或预示集装箱货流也将发生类似迁移。建议持续跟踪Vortexa周报。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: Baltic Exchange BDTI, Vortexa (2026-03-28)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：波罗的海交易所BDTI、Vortexa（2026-03-28）</div>
+      </div>
+    </li>
   </ul>
 </div>
 
 <!-- ===== TAB 2: SALES & COMMERCIAL ===== -->
 <div id="tab-sales" class="tab-panel">
-  <div class="sect-title">Freight Rates by Trade Lane</div>
+
+  <div class="sect"><span class="en">SCFI — Freight Rates by Trade Lane</span><span class="zh" style="display:none">SCFI各航线运价</span></div>
   <table class="tbl">
-    <thead><tr><th>Trade Lane</th><th>Rate (USD)</th><th>Unit</th><th>WoW Change</th><th>Status</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Trade Lane</span><span class="zh" style="display:none">航线</span></th>
+      <th><span class="en">Rate (USD)</span><span class="zh" style="display:none">运价（美元）</span></th>
+      <th><span class="en">Unit</span><span class="zh" style="display:none">单位</span></th>
+      <th><span class="en">WoW</span><span class="zh" style="display:none">周变动</span></th>
+      <th><span class="en">Status</span><span class="zh" style="display:none">状态</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>Taiwan &rarr; Southeast Asia</td><td>$420</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
-      <tr><td>S. China / E. China / Thai-Viet</td><td>$465</td><td>/TEU</td><td class="up">+4.5%</td><td><span class="pill pill-amber">Rising</span></td></tr>
-      <tr><td>Taiwan &rarr; Middle East</td><td>$1,840</td><td>/TEU</td><td class="up">+12.2%</td><td><span class="pill pill-red">Surge</span></td></tr>
-      <tr><td>Asia &rarr; Red Sea (Aqaba)</td><td>$3,728</td><td>/TEU</td><td class="up">+12.2%</td><td><span class="pill pill-red">Diversion Premium</span></td></tr>
-      <tr><td>Intra-Asia Near-Sea</td><td>$310</td><td>/TEU</td><td class="ne">— Stable</td><td><span class="pill pill-green">Normal</span></td></tr>
+      <tr><td><span class="en">Europe Base Port</span><span class="zh" style="display:none">欧洲基本港</span></td><td><strong>1,703</strong></td><td>USD/TEU</td><td class="up">+4.1%</td><td><span class="pill pill-amber"><span class="en">Rising</span><span class="zh" style="display:none">上涨</span></span></td></tr>
+      <tr><td><span class="en">Mediterranean Base Port</span><span class="zh" style="display:none">地中海基本港</span></td><td><strong>2,764</strong></td><td>USD/TEU</td><td class="dn">-0.7%</td><td><span class="pill pill-green"><span class="en">Stable</span><span class="zh" style="display:none">稳定</span></span></td></tr>
+      <tr><td><span class="en">US West Coast</span><span class="zh" style="display:none">美西基本港</span></td><td><strong>2,352</strong></td><td>USD/FEU</td><td class="up">+14.5%</td><td><span class="pill pill-red"><span class="en">Surge</span><span class="zh" style="display:none">急涨</span></span></td></tr>
+      <tr><td><span class="en">US East Coast</span><span class="zh" style="display:none">美东基本港</span></td><td><strong>3,264</strong></td><td>USD/FEU</td><td class="up">+11.7%</td><td><span class="pill pill-red"><span class="en">Surge</span><span class="zh" style="display:none">急涨</span></span></td></tr>
+      <tr><td><span class="en">Persian Gulf (Dubai)</span><span class="zh" style="display:none">波斯湾（迪拜）</span></td><td class="alert-td"><strong>3,728</strong></td><td>USD/TEU</td><td class="up">+12.2%</td><td><span class="pill pill-red"><span class="en">Paper only</span><span class="zh" style="display:none">有价无量</span></span></td></tr>
+      <tr><td><span class="en">SE Asia (Singapore)</span><span class="zh" style="display:none">东南亚（新加坡）</span></td><td><strong>312</strong></td><td>USD/TEU</td><td class="up">+1.3%</td><td><span class="pill pill-green"><span class="en">Normal</span><span class="zh" style="display:none">正常</span></span></td></tr>
+      <tr><td><span class="en">Japan (Kansai)</span><span class="zh" style="display:none">日本关西</span></td><td><strong>395</strong></td><td>USD/TEU</td><td class="ne">—</td><td><span class="pill pill-green"><span class="en">Stable</span><span class="zh" style="display:none">稳定</span></span></td></tr>
+      <tr><td><span class="en">Australia / NZ (Melbourne)</span><span class="zh" style="display:none">澳新（墨尔本）</span></td><td><strong>580</strong></td><td>USD/TEU</td><td class="dn">-2.1%</td><td><span class="pill pill-green"><span class="en">Slight decline</span><span class="zh" style="display:none">小幅回调</span></span></td></tr>
+      <tr><td><span class="en">S. America (Santos)</span><span class="zh" style="display:none">南美（桑托斯）</span></td><td><strong>1,420</strong></td><td>USD/TEU</td><td class="up">+3.6%</td><td><span class="pill pill-amber"><span class="en">Rising</span><span class="zh" style="display:none">上涨</span></span></td></tr>
+      <tr><td><span class="en">S. Africa</span><span class="zh" style="display:none">南非</span></td><td><strong>998</strong></td><td>USD/TEU</td><td class="up">+3.2%</td><td><span class="pill pill-amber"><span class="en">Rising</span><span class="zh" style="display:none">上涨</span></span></td></tr>
     </tbody>
   </table>
+  <div class="src-block en">Source: SSE/SCFI Index (data date: 2026-03-28, published weekly on Fridays) | CCFI: SSEFC (2026-03-28)</div>
+  <div class="src-block zh" style="display:none">数据来源：上交所/SCFI指数（数据日：2026-03-28，每周五发布）| CCFI：上航交所（2026-03-28）</div>
 
-  <div class="notice notice-red">
-    <strong>[GRI NOTICE]</strong> MSC filing $500/TEU GRI on Middle East lanes effective Apr 7. Review all customer contracts — check surge clause applicability before responding to clients.
+  <div class="sect" style="margin-top:18px;"><span class="en">WCI Drewry — Key Route Rates (USD/FEU)</span><span class="zh" style="display:none">WCI德鲁里——主要航线运价（美元/FEU）</span></div>
+  <table class="tbl">
+    <thead><tr>
+      <th><span class="en">Route</span><span class="zh" style="display:none">航线</span></th>
+      <th><span class="en">Rate USD/FEU</span><span class="zh" style="display:none">运价</span></th>
+      <th><span class="en">WoW Change</span><span class="zh" style="display:none">周变动</span></th>
+      <th><span class="en">YoY</span><span class="zh" style="display:none">同比</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td><span class="en">Shanghai → Rotterdam</span><span class="zh" style="display:none">上海→鹿特丹</span></td><td><strong>2,552</strong></td><td class="up">+$74 / +3%</td><td class="up">+18%</td></tr>
+      <tr><td><span class="en">Rotterdam → Shanghai</span><span class="zh" style="display:none">鹿特丹→上海</span></td><td><strong>595</strong></td><td class="up">+$56 / +10%</td><td class="up">+5%</td></tr>
+      <tr><td><span class="en">Shanghai → Genoa</span><span class="zh" style="display:none">上海→热那亚</span></td><td><strong>3,474</strong></td><td class="up">+$366 / +12%</td><td class="up">+22%</td></tr>
+      <tr><td><span class="en">Shanghai → Los Angeles</span><span class="zh" style="display:none">上海→洛杉矶</span></td><td><strong>2,686</strong></td><td class="up">+$95 / +4%</td><td class="up">+31%</td></tr>
+      <tr><td><span class="en">Shanghai → New York</span><span class="zh" style="display:none">上海→纽约</span></td><td><strong>3,393</strong></td><td class="up">+$83 / +3%</td><td class="up">+27%</td></tr>
+      <tr><td><span class="en">Los Angeles → Shanghai</span><span class="zh" style="display:none">洛杉矶→上海</span></td><td><strong>729</strong></td><td class="ne">Flat</td><td class="ne">—</td></tr>
+    </tbody>
+  </table>
+  <div class="src-block en">Source: Drewry WCI Week 13 (2026-03-27) — published weekly every Thursday</div>
+  <div class="src-block zh" style="display:none">数据来源：德鲁里WCI第13周（2026-03-27）——每周四发布</div>
+
+  <div class="sect" style="margin-top:18px;"><span class="en">Active GRI / Surcharge Schedule</span><span class="zh" style="display:none">现行GRI/附加费清单</span></div>
+  <table class="tbl">
+    <thead><tr>
+      <th><span class="en">Carrier</span><span class="zh" style="display:none">船司</span></th>
+      <th><span class="en">Trade</span><span class="zh" style="display:none">航线</span></th>
+      <th><span class="en">Amount</span><span class="zh" style="display:none">金额</span></th>
+      <th><span class="en">Effective</span><span class="zh" style="display:none">生效日</span></th>
+      <th><span class="en">Type</span><span class="zh" style="display:none">类型</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td>MSC</td><td><span class="en">Asia → Middle East</span><span class="zh" style="display:none">亚洲→中东</span></td><td class="up">$500/TEU</td><td>Apr 7</td><td>GRI</td></tr>
+      <tr><td>CMA CGM</td><td><span class="en">Asia → Europe</span><span class="zh" style="display:none">亚洲→欧洲</span></td><td class="up">$750/TEU</td><td>Apr 1</td><td>GRI</td></tr>
+      <tr><td>MSC</td><td><span class="en">Asia → Europe</span><span class="zh" style="display:none">亚洲→欧洲</span></td><td class="up">$800/TEU</td><td>Apr 1</td><td>GRI</td></tr>
+      <tr><td>Hapag-Lloyd</td><td><span class="en">Asia → US</span><span class="zh" style="display:none">亚洲→美国</span></td><td class="up">$500/FEU</td><td>Apr 1</td><td>HAF</td></tr>
+      <tr><td><span class="en">Major carriers</span><span class="zh" style="display:none">主要船司</span></td><td><span class="en">Middle East all lines</span><span class="zh" style="display:none">中东全线</span></td><td class="alert-td">$1,500/TEU</td><td>Active</td><td>WRS</td></tr>
+      <tr><td><span class="en">Major carriers</span><span class="zh" style="display:none">主要船司</span></td><td><span class="en">Hormuz risk</span><span class="zh" style="display:none">霍尔木兹险情</span></td><td class="alert-td">$400-600/TEU</td><td>Active</td><td>HSS</td></tr>
+      <tr><td>ANL</td><td><span class="en">Asia → Oceania</span><span class="zh" style="display:none">亚洲→大洋洲</span></td><td class="up">$700/40'</td><td>Apr 16</td><td>GRI</td></tr>
+    </tbody>
+  </table>
+  <div class="src-block en">Sources: Carrier tariff circulars (MSC 2026-03-25, CMA CGM 2026-03-22, Hapag-Lloyd 2026-03-24) | Confirmed via Freightos / Xeneta rate monitoring</div>
+  <div class="src-block zh" style="display:none">来源：各船司运价通函（MSC 2026-03-25, CMA CGM 2026-03-22, Hapag-Lloyd 2026-03-24）| 经Freightos/Xeneta运价监控系统核实</div>
+
+  <div class="notice notice-amber" style="margin-top:14px;">
+    <strong class="en">[ACTION REQUIRED]</strong><strong class="zh" style="display:none">【需行动】</strong>
+    <span class="en"> Management decision on Middle East GRI matching needed by Apr 4. Current exposure: ~40 TEU/week Gulf spot cargo at risk. Recommend: match WRS pass-through first, GRI decision in parallel. Also review all open quotations valid past Apr 7.</span>
+    <span class="zh" style="display:none"> 中东GRI跟涨决策需在4月4日前完成。当前敞口：每周约40 TEU海湾即期货量面临流失风险。建议：先确认WRS附加费转嫁方案，同步进行GRI决策。同时审查所有4月7日后有效的在途报价。</span>
   </div>
-
-  <div class="sect-title">Action Items for Sales Team</div>
-  <ul class="risk-list">
-    <li><span class="dot dot-red"></span><div><strong>Middle East Customers:</strong> Notify all Gulf/Red Sea shippers of +14 day ETA extension due to Cape rerouting. Issue revised booking confirmations.</div></li>
-    <li><span class="dot dot-amber"></span><div><strong>GRI Response:</strong> Pending management decision on MSC GRI matching — hold off quoting Middle East spot rates until confirmed. Target deadline: Apr 4.</div></li>
-    <li><span class="dot dot-green"></span><div><strong>Intra-Asia Opportunity:</strong> Rates stable and demand healthy. Push capacity utilization on Taiwan / SEA lanes where available.</div></li>
-  </ul>
 </div>
 
 <!-- ===== TAB 3: OPERATIONS & FLEET ===== -->
 <div id="tab-ops" class="tab-panel">
-  <div class="sect-title">Port Status</div>
+
+  <div class="sect"><span class="en">Port Status Overview</span><span class="zh" style="display:none">港口状态总览</span></div>
   <table class="tbl">
-    <thead><tr><th>Port</th><th>Status</th><th>Congestion</th><th>Note</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Port</span><span class="zh" style="display:none">港口</span></th>
+      <th><span class="en">Status</span><span class="zh" style="display:none">状态</span></th>
+      <th><span class="en">Congestion</span><span class="zh" style="display:none">拥堵</span></th>
+      <th><span class="en">Dwell (avg)</span><span class="zh" style="display:none">平均停留</span></th>
+      <th><span class="en">Note</span><span class="zh" style="display:none">备注</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>Khor Fakkan (UAE)</td><td><span class="pill pill-amber">Strained</span></td><td>High</td><td>Only UAE container port open — divert here</td></tr>
-      <tr><td>Fujairah (UAE)</td><td><span class="pill pill-amber">Restricted</span></td><td>Medium</td><td>Bunker only, no container terminal</td></tr>
-      <tr><td>Shanghai</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>No disruptions</td></tr>
-      <tr><td>Singapore</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Bunker hub stable</td></tr>
-      <tr><td>Kaohsiung / Keelung</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Taiwan ports clear</td></tr>
-      <tr><td>Rotterdam</td><td><span class="pill pill-green">Normal</span></td><td>Low</td><td>Arrivals up due to Cape rerouting</td></tr>
+      <tr><td><strong>Khor Fakkan (UAE)</strong></td><td><span class="pill pill-red"><span class="en">Strained</span><span class="zh" style="display:none">超负荷</span></span></td><td><span class="en">Very High</span><span class="zh" style="display:none">极高</span></td><td>5–7 days</td><td><span class="en">Only UAE container port open; divert here for Gulf cargo</span><span class="zh" style="display:none">阿联酋唯一开放集装箱港；海湾货物改挂此港</span></td></tr>
+      <tr><td><strong>Fujairah (UAE)</strong></td><td><span class="pill pill-amber"><span class="en">Restricted</span><span class="zh" style="display:none">受限</span></span></td><td><span class="en">Medium</span><span class="zh" style="display:none">中</span></td><td>2–3 days</td><td><span class="en">Bunker only; no container terminal; VLSFO supply tight</span><span class="zh" style="display:none">仅加油；无集装箱码头；VLSFO供应紧张</span></td></tr>
+      <tr><td><strong>Shanghai</strong></td><td><span class="pill pill-green"><span class="en">Normal</span><span class="zh" style="display:none">正常</span></span></td><td><span class="en">Low</span><span class="zh" style="display:none">低</span></td><td>1–2 days</td><td><span class="en">No disruptions; throughput up 3% YoY</span><span class="zh" style="display:none">无异常；吞吐量同比+3%</span></td></tr>
+      <tr><td><strong>Singapore</strong></td><td><span class="pill pill-green"><span class="en">Normal</span><span class="zh" style="display:none">正常</span></span></td><td><span class="en">Low</span><span class="zh" style="display:none">低</span></td><td>1–2 days</td><td><span class="en">Bunker hub stable; increased Cape transshipment</span><span class="zh" style="display:none">燃油枢纽稳定；好望角转运量增加</span></td></tr>
+      <tr><td><strong>Kaohsiung / Keelung</strong></td><td><span class="pill pill-green"><span class="en">Normal</span><span class="zh" style="display:none">正常</span></span></td><td><span class="en">Low</span><span class="zh" style="display:none">低</span></td><td>1 day</td><td><span class="en">Taiwan ports clear; no issues</span><span class="zh" style="display:none">台湾港口畅通</span></td></tr>
+      <tr><td><strong>Rotterdam</strong></td><td><span class="pill pill-amber"><span class="en">Busy</span><span class="zh" style="display:none">繁忙</span></span></td><td><span class="en">Medium</span><span class="zh" style="display:none">中</span></td><td>2–3 days</td><td><span class="en">Arrivals +15% from Cape rerouting; berth wait increasing</span><span class="zh" style="display:none">好望角绕行致进港量+15%；泊位等待时间增加</span></td></tr>
+      <tr><td><strong>Port Klang</strong></td><td><span class="pill pill-green"><span class="en">Normal</span><span class="zh" style="display:none">正常</span></span></td><td><span class="en">Low</span><span class="zh" style="display:none">低</span></td><td>1–2 days</td><td><span class="en">Transshipment hub active; Malaysia lanes unaffected</span><span class="zh" style="display:none">转运枢纽正常运转；马来西亚航线未受影响</span></td></tr>
+      <tr><td><strong>Colombo</strong></td><td><span class="pill pill-amber"><span class="en">Watch</span><span class="zh" style="display:none">关注</span></span></td><td><span class="en">Medium</span><span class="zh" style="display:none">中</span></td><td>2–3 days</td><td><span class="en">Cape rerouting increasing transshipment volume; monitor</span><span class="zh" style="display:none">好望角绕行增加转运量；持续关注</span></td></tr>
     </tbody>
   </table>
+  <div class="src-block en">Sources: MarineTraffic port congestion index, Portwatch (IMF), Bloomberg Shipping tracker (2026-03-31)</div>
+  <div class="src-block zh" style="display:none">来源：MarineTraffic港口拥堵指数、Portwatch（IMF）、Bloomberg航运追踪（2026-03-31）</div>
 
-  <div class="notice notice-red">
-    <strong>[DIVERSION ACTIVE]</strong> All Middle East voyages routing via Cape of Good Hope. ETA extension +14 days. Check schedule reliability with clients and update all port call sequences.
+  <div class="sect" style="margin-top:18px;"><span class="en">Hormuz / Red Sea — Blockade Timeline</span><span class="zh" style="display:none">霍尔木兹/红海——封锁时间线</span></div>
+  <div class="tl">
+    <div class="tl-item">
+      <div class="tl-date">2026-02-25</div>
+      <div class="tl-title en">Hormuz Strait Blockade Begins (Day 0)</div>
+      <div class="tl-title zh" style="display:none">霍尔木兹海峡封锁开始（第0天）</div>
+      <div class="tl-body en">Iran closes Hormuz to all non-Iranian commercial shipping following escalation of military tensions. Initial traffic disruption >80%. Global container lines begin Cape rerouting within 48 hours.</div>
+      <div class="tl-body zh" style="display:none">伊朗因军事紧张局势升级关闭霍尔木兹海峡。初期交通中断>80%。全球集装箱船司在48小时内开始好望角绕行。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">2026-03-01 — 03-10</div>
+      <div class="tl-title en">Carriers Suspend ME Direct Bookings</div>
+      <div class="tl-title zh" style="display:none">船司暂停中东直航订舱</div>
+      <div class="tl-body en">MSC, Maersk, CMA CGM, Evergreen, Yang Ming all suspend new Gulf bookings within 2 weeks. Hormuz transit traffic falls 95% (153 vessels passing Mar 1–25 vs ~3,000/month pre-blockade).</div>
+      <div class="tl-body zh" style="display:none">MSC、马士基、CMA CGM、长荣、阳明在2周内相继暂停海湾新订舱。霍尔木兹通行量降至-95%（3月1-25日仅153艘次，封锁前约3,000艘/月）。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">2026-03-20</div>
+      <div class="tl-title en">Red Sea — Houthi Bab-el-Mandeb Escalation</div>
+      <div class="tl-title zh" style="display:none">红海——胡塞武装曼德海峡升级管控</div>
+      <div class="tl-body en">Houthi forces announce new escort protocol for Bab-el-Mandeb transit. UKMTO Advisory No.023-2026 issued. Cape routing now recommended for both chokepoints simultaneously — unprecedented double pressure.</div>
+      <div class="tl-body zh" style="display:none">胡塞武装宣布曼德海峡新护送协议。UKMTO发布第023-2026号公告。两大战略水道同时绕行——史无前例的双重通道压力。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">2026-03-25</div>
+      <div class="tl-title en">COSCO Resumes ME Bookings via Khor Fakkan Multimodal</div>
+      <div class="tl-title zh" style="display:none">中远恢复中东订舱——豪尔费坎多式联运方案</div>
+      <div class="tl-body en">COSCO Shipping Lines resumes bookings to UAE, Saudi, Bahrain, Qatar, Kuwait, Iraq, Oman via landbridge at Khor Fakkan/Fujairah. First carrier to establish commercial workaround. Others expected to follow.</div>
+      <div class="tl-body zh" style="display:none">中远海运恢复阿联酋、沙特、巴林、卡塔尔、科威特、伊拉克、阿曼订舱，经豪尔费坎/富查伊拉陆桥转运。首家建立商业解决方案的船司，其他船司预计跟进。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">2026-03-30</div>
+      <div class="tl-title en">Bab-el-Mandeb New Transit Code Requirement — 3 Ships Blocked</div>
+      <div class="tl-title zh" style="display:none">曼德海峡新通行代码要求——3艘船受阻</div>
+      <div class="tl-body en">Houthi forces implement transit code pre-application requirement. 3 container vessels blocked at Bab-el-Mandeb on Mar 30 awaiting approval. 72-hour advance filing now mandatory.</div>
+      <div class="tl-body zh" style="display:none">胡塞武装实施通行代码预申请制度。3艘集装箱船于3月30日被拦截等待审批。现强制要求提前72小时申报。</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">2026-03-31 — Today</div>
+      <div class="tl-title en">Day 35 — No Diplomatic Resolution in Sight</div>
+      <div class="tl-title zh" style="display:none">第35天——外交谈判无突破</div>
+      <div class="tl-body en">All major carriers operating Cape of Good Hope rerouting. Multimodal landbridge via Khor Fakkan becoming industry standard for Gulf cargo. No timeline for Hormuz reopening. Next UN mediation session: Apr 8.</div>
+      <div class="tl-body zh" style="display:none">所有主要船司采用好望角绕行方案。经豪尔费坎的陆桥多式联运正成为海湾货物行业标准。霍尔木兹重开无时间表。下次联合国调解会议：4月8日。</div>
+    </div>
   </div>
+  <div class="src-block en">Sources: UKMTO Advisories (No.022–026-2026), Lloyd's List, TradeWinds, Intertanko, IMO Circular</div>
+  <div class="src-block zh" style="display:none">来源：UKMTO公告（022-026号）、Lloyd's List、TradeWinds、Intertanko、IMO通函</div>
 
-  <div class="sect-title">Schedule Warnings</div>
-  <ul class="risk-list">
-    <li><span class="dot dot-red"></span><div><strong>All Gulf-bound Vessels:</strong> Must divert via Cape of Good Hope. Hormuz Strait closed to commercial shipping. Confirm updated ETAs with all affected parties.</div></li>
-    <li><span class="dot dot-red"></span><div><strong>Khor Fakkan Congestion:</strong> 48-hour pre-arrival notice now mandatory (effective Apr 1). Late arrivals face slot cancellation. File NOAs early.</div></li>
-    <li><span class="dot dot-green"></span><div><strong>Taiwan / SEA Routes:</strong> All normal. No disruptions reported. Standard schedule reliability.</div></li>
-  </ul>
+  <div class="notice notice-red" style="margin-top:14px;">
+    <strong class="en">[OPS ACTION]</strong><strong class="zh" style="display:none">【运营行动】</strong>
+    <span class="en"> All Gulf-bound vessels: confirm Cape rerouting and updated ETAs. File Khor Fakkan NOA 48hrs in advance (new UAE rule eff. Apr 1 — late arrivals subject to slot cancellation). All Red Sea transits: apply for Bab-el-Mandeb transit code 72hrs ahead.</span>
+    <span class="zh" style="display:none"> 所有前往海湾的船只：确认好望角绕行及更新后的ETA。提前48小时提交豪尔费坎NOA（新UAE规定4月1日起生效——迟到将取消泊位）。所有红海通行：提前72小时申请曼德海峡通行代码。</span>
+  </div>
 </div>
 
 <!-- ===== TAB 4: PROCUREMENT / BUNKER ===== -->
 <div id="tab-bunker" class="tab-panel">
-  <div class="sect-title">Global Fuel Price Overview</div>
-  <div class="mini-kpi">
-    <div class="mk"><div class="ml">VLSFO Global Avg</div><div class="mv up">$951</div><div class="ms up">+3.2% MoM</div></div>
-    <div class="mk"><div class="ml">MGO Global Avg</div><div class="mv up">$1,507</div><div class="ms up">+1.8% MoM</div></div>
-    <div class="mk"><div class="ml">Cape Extra Fuel Cost</div><div class="mv dn">+28%</div><div class="ms dn">per voyage vs Suez</div></div>
+
+  <div class="sect"><span class="en">Global Fuel Price Overview</span><span class="zh" style="display:none">全球燃油价格总览</span></div>
+  <div class="mkpi">
+    <div class="mk">
+      <div class="ml en">VLSFO Global Avg</div><div class="ml zh" style="display:none">全球VLSFO均价</div>
+      <div class="mv up">$951</div>
+      <div class="ms up">+3.2% MoM</div>
+      <div class="msrc">Source: Ship&amp;Bunker (2026-03-31)</div>
+    </div>
+    <div class="mk">
+      <div class="ml en">MGO Global Avg</div><div class="ml zh" style="display:none">全球MGO均价</div>
+      <div class="mv up">$1,507</div>
+      <div class="ms up">+1.8% MoM</div>
+      <div class="msrc">Source: Ship&amp;Bunker (2026-03-31)</div>
+    </div>
+    <div class="mk">
+      <div class="ml en">Singapore VLSFO</div><div class="ml zh" style="display:none">新加坡VLSFO</div>
+      <div class="mv up">$834</div>
+      <div class="ms up">+2.1% WoW</div>
+      <div class="msrc">Source: MPA Singapore</div>
+    </div>
+    <div class="mk">
+      <div class="ml en">Cape Voyage Extra Fuel</div><div class="ml zh" style="display:none">好望角航次额外燃油</div>
+      <div class="mv dn">+28%</div>
+      <div class="ms dn en">vs Suez route</div>
+      <div class="ms dn zh" style="display:none">较苏伊士路线</div>
+      <div class="msrc">Source: OilChem / Drewry estimate</div>
+    </div>
   </div>
 
-  <div class="sect-title">Port-by-Port Prices (USD/MT)</div>
+  <div class="sect"><span class="en">Port-by-Port Bunker Prices (USD/MT)</span><span class="zh" style="display:none">各港口燃油价格（美元/公吨）</span></div>
   <table class="tbl">
-    <thead><tr><th>Port</th><th>VLSFO</th><th>MGO</th><th>Supply</th><th>Note</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Port</span><span class="zh" style="display:none">港口</span></th>
+      <th>VLSFO</th><th>MGO</th>
+      <th><span class="en">MoM Change</span><span class="zh" style="display:none">月变动</span></th>
+      <th><span class="en">Supply</span><span class="zh" style="display:none">供应</span></th>
+      <th><span class="en">Recommendation</span><span class="zh" style="display:none">建议</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>Singapore</td><td class="up">$968</td><td>$1,524</td><td><span class="pill pill-green">Good</span></td><td>Recommend bunker here</td></tr>
-      <tr><td>Fujairah</td><td class="alert-td">$1,043</td><td class="alert-td">$1,651</td><td><span class="pill pill-red">Tight</span></td><td>War premium, avoid if possible</td></tr>
-      <tr><td>Rotterdam</td><td>$938</td><td>$1,492</td><td><span class="pill pill-green">Good</span></td><td>Good value for Cape routing</td></tr>
-      <tr><td>Shanghai</td><td>$921</td><td>$1,478</td><td><span class="pill pill-green">Good</span></td><td>Best price in Asia</td></tr>
-      <tr><td>Los Angeles</td><td>$897</td><td>$1,445</td><td><span class="pill pill-green">Good</span></td><td>Transpacific reference</td></tr>
-      <tr><td>Busan</td><td>$935</td><td>$1,488</td><td><span class="pill pill-green">Good</span></td><td>NE Asia backup option</td></tr>
+      <tr><td><strong>Singapore</strong></td><td class="up">$834</td><td>$1,728</td><td class="up">+2.1%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">Preferred stem port — Asia</span><span class="zh" style="display:none">亚洲首选加油港</span></td></tr>
+      <tr><td><strong>Shanghai</strong></td><td>$921</td><td>$1,478</td><td class="up">+2.8%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">Best value in N. Asia</span><span class="zh" style="display:none">北亚最优价格</span></td></tr>
+      <tr><td><strong>Hong Kong</strong></td><td>$928</td><td>$1,497</td><td class="up">+2.8%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">S. China reference</span><span class="zh" style="display:none">华南参考价</span></td></tr>
+      <tr><td><strong>Busan</strong></td><td>$935</td><td>$1,488</td><td class="up">+1.9%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">NE Asia backup option</span><span class="zh" style="display:none">东北亚备选</span></td></tr>
+      <tr><td><strong>Rotterdam</strong></td><td>$746</td><td>$1,285</td><td class="dn">-0.8%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">Best value — Cape routing rebunker</span><span class="zh" style="display:none">好望角路线最优补油港</span></td></tr>
+      <tr><td><strong>Piraeus</strong></td><td>$878</td><td>$1,493</td><td class="up">+1.9%</td><td><span class="pill pill-green">Normal</span></td><td><span class="en">E. Med hub</span><span class="zh" style="display:none">地中海东部枢纽</span></td></tr>
+      <tr><td><strong>New York</strong></td><td>$825</td><td>$1,431</td><td class="up">+1.2%</td><td><span class="pill pill-green">Good</span></td><td><span class="en">USEC reference</span><span class="zh" style="display:none">美东参考价</span></td></tr>
+      <tr><td><strong>Los Angeles</strong></td><td class="alert-td">$1,060</td><td class="alert-td">$1,468</td><td class="dn">+4.3%</td><td><span class="pill pill-amber">Tightening</span></td><td><span class="en">Most expensive — USWC; pre-stem elsewhere</span><span class="zh" style="display:none">美西最贵——建议在他港预先加油</span></td></tr>
+      <tr><td><strong>Fujairah (UAE)</strong></td><td class="alert-td">~$1,050+</td><td class="alert-td">~$1,650+</td><td class="alert-td">+大涨</td><td><span class="pill pill-red">Tight</span></td><td><span class="en">AVOID — Hormuz war premium; supply unreliable</span><span class="zh" style="display:none">避免——霍尔木兹战争溢价；供应不稳定</span></td></tr>
     </tbody>
   </table>
+  <div class="src-block en">Sources: Ship&amp;Bunker (2026-03-31), MPA Singapore MFO price index, OilChem bunker price monitor, HandyBulk report (2026-03-30/31)</div>
+  <div class="src-block zh" style="display:none">来源：Ship&amp;Bunker（2026-03-31）、新加坡MPA燃油价格指数、OilChem船燃价格监测、HandyBulk报告（2026-03-30/31）</div>
 
-  <div class="notice notice-amber">
-    <strong>[SUPPLY ALERT]</strong> Fujairah bunker availability tight due to Hormuz closure. All vessels on Cape routing should pre-bunker at Singapore or Shanghai. Do NOT rely on Fujairah stem for Gulf-bound voyages.
+  <div class="notice notice-red" style="margin-top:14px;">
+    <strong class="en">[SUPPLY ALERT]</strong><strong class="zh" style="display:none">【供应预警】</strong>
+    <span class="en"> Fujairah VLSFO availability severely restricted due to Hormuz closure. Do NOT rely on Fujairah for any Gulf-bound vessel stem. Pre-stem at Singapore (for outbound) or Rotterdam (for Cape return legs). Ensure minimum 30-day fuel reserve on all active vessels.</span>
+    <span class="zh" style="display:none"> 霍尔木兹封锁导致富查伊拉VLSFO供应严重受限。勿将富查伊拉列为任何海湾方向船只的加油港。出发航次在新加坡预先加油，好望角回程在鹿特丹加油。确保所有在航船只至少持有30天燃油储备。</span>
   </div>
+
+  <div class="sect" style="margin-top:18px;"><span class="en">Crude Oil &amp; Energy Market Context</span><span class="zh" style="display:none">原油及能源市场背景</span></div>
+  <table class="tbl">
+    <thead><tr>
+      <th><span class="en">Indicator</span><span class="zh" style="display:none">指标</span></th>
+      <th><span class="en">Value</span><span class="zh" style="display:none">数值</span></th>
+      <th><span class="en">Change</span><span class="zh" style="display:none">变动</span></th>
+      <th><span class="en">Note</span><span class="zh" style="display:none">备注</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td><span class="en">Brent Crude</span><span class="zh" style="display:none">布伦特原油</span></td><td>$88.2/bbl</td><td class="up">+1.6% DoD</td><td><span class="en">Hormuz premium sustained</span><span class="zh" style="display:none">霍尔木兹溢价持续</span></td></tr>
+      <tr><td><span class="en">WTI Crude</span><span class="zh" style="display:none">WTI原油</span></td><td>$83.6/bbl</td><td class="up">+1.2% DoD</td><td><span class="en">US strategic reserve release under discussion</span><span class="zh" style="display:none">美国战略储备释放在讨论中</span></td></tr>
+      <tr><td><span class="en">TTF Natural Gas</span><span class="zh" style="display:none">TTF天然气</span></td><td>€38.4/MWh</td><td class="up">+3.1%</td><td><span class="en">ME LNG supply -40% (Vortexa)</span><span class="zh" style="display:none">中东LNG供应-40%（Vortexa）</span></td></tr>
+      <tr><td>VLCC BDTI</td><td>3,507 pts</td><td class="up">+23% WoW</td><td><span class="en">2-year high; oil rerouting demand spike</span><span class="zh" style="display:none">两年新高；石油改道需求激增</span></td></tr>
+    </tbody>
+  </table>
+  <div class="src-block en">Sources: ICE Brent, NYMEX WTI, TTF gas (Bloomberg, 2026-03-31), Baltic Exchange BDTI (2026-03-28), Vortexa energy analytics</div>
+  <div class="src-block zh" style="display:none">来源：ICE布伦特、NYMEX WTI、TTF天然气（Bloomberg, 2026-03-31）、波罗的海交易所BDTI（2026-03-28）、Vortexa能源分析</div>
 </div>
 
 <!-- ===== TAB 5: FINANCE ===== -->
 <div id="tab-finance" class="tab-panel">
-  <div class="sect-title">Key Financial Indicators</div>
-  <div class="mini-kpi">
-    <div class="mk"><div class="ml">Brent Crude</div><div class="mv up">$88.4/bbl</div><div class="ms up">+1.6% DoD</div></div>
-    <div class="mk"><div class="ml">USD / TWD</div><div class="mv ne">32.18</div><div class="ms ne">Stable</div></div>
-    <div class="mk"><div class="ml">USD / CNY</div><div class="mv ne">7.24</div><div class="ms ne">Stable</div></div>
+
+  <div class="sect"><span class="en">Key Financial Indicators</span><span class="zh" style="display:none">核心财务指标</span></div>
+  <div class="mkpi">
+    <div class="mk">
+      <div class="ml en">Brent Crude</div><div class="ml zh" style="display:none">布伦特原油</div>
+      <div class="mv up">$88.2</div>
+      <div class="ms up">+1.6% DoD</div>
+      <div class="msrc">ICE (2026-03-31)</div>
+    </div>
+    <div class="mk">
+      <div class="ml">USD / TWD</div>
+      <div class="mv ne">32.18</div>
+      <div class="ms ne en">Stable ±0.1%</div>
+      <div class="ms ne zh" style="display:none">稳定 ±0.1%</div>
+      <div class="msrc">Bloomberg FX (2026-03-31)</div>
+    </div>
+    <div class="mk">
+      <div class="ml">USD / CNY</div>
+      <div class="mv ne">7.24</div>
+      <div class="ms ne en">Stable</div>
+      <div class="ms ne zh" style="display:none">稳定</div>
+      <div class="msrc">PBoC fixing (2026-03-31)</div>
+    </div>
+    <div class="mk">
+      <div class="ml">USD / EUR</div>
+      <div class="mv ne">1.083</div>
+      <div class="ms ne en">+0.2% DoD</div>
+      <div class="ms ne zh" style="display:none">日环比+0.2%</div>
+      <div class="msrc">ECB (2026-03-31)</div>
+    </div>
   </div>
 
-  <div class="sect-title">Cost &amp; Surcharge Table</div>
+  <div class="sect"><span class="en">Bunker Adjustment Factor (BAF) &amp; Surcharge Schedule</span><span class="zh" style="display:none">燃油附加费（BAF）及费率清单</span></div>
   <table class="tbl">
-    <thead><tr><th>Item</th><th>Current Value</th><th>Change</th><th>Impact</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Item</span><span class="zh" style="display:none">项目</span></th>
+      <th><span class="en">Current Value</span><span class="zh" style="display:none">当前金额</span></th>
+      <th><span class="en">vs Prior Period</span><span class="zh" style="display:none">较上期</span></th>
+      <th><span class="en">Next Review</span><span class="zh" style="display:none">下次审议</span></th>
+      <th><span class="en">Impact</span><span class="zh" style="display:none">影响</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>BAF — Asia / Middle East</td><td>$412/TEU</td><td class="up">+8% vs Feb</td><td>Increase surcharge billing</td></tr>
-      <tr><td>BAF — Asia / Europe</td><td>$389/TEU</td><td class="up">+6% vs Feb</td><td>Increase surcharge billing</td></tr>
-      <tr><td>Cape Diversion Extra Cost</td><td>~$380k/voyage</td><td class="dn">High pressure</td><td>Absorb vs surcharge — TBD</td></tr>
-      <tr><td>GRI Filing (MSC, Apr 7)</td><td>$500/TEU</td><td class="dn">Cost risk</td><td>Pending mgmt decision</td></tr>
-      <tr><td>War Risk Surcharge (Gulf)</td><td>0.5–0.75% hull</td><td class="dn">Rising</td><td>Add to Gulf cargo pricing</td></tr>
+      <tr><td><span class="en">BAF — Asia / Middle East</span><span class="zh" style="display:none">BAF — 亚洲/中东</span></td><td>$412/TEU</td><td class="up">+8% vs Feb</td><td>May 1</td><td><span class="en">Pass-through to customers</span><span class="zh" style="display:none">向客户转嫁</span></td></tr>
+      <tr><td><span class="en">BAF — Asia / Europe</span><span class="zh" style="display:none">BAF — 亚洲/欧洲</span></td><td>$389/TEU</td><td class="up">+6% vs Feb</td><td>May 1</td><td><span class="en">Pass-through to customers</span><span class="zh" style="display:none">向客户转嫁</span></td></tr>
+      <tr><td><span class="en">BAF — Intra-Asia</span><span class="zh" style="display:none">BAF — 亚洲区内</span></td><td>$145/TEU</td><td class="up">+4% vs Feb</td><td>May 1</td><td><span class="en">Pass-through to customers</span><span class="zh" style="display:none">向客户转嫁</span></td></tr>
+      <tr><td><span class="en">Cape Diversion Extra Cost</span><span class="zh" style="display:none">好望角绕行额外成本</span></td><td>~$380k/voyage</td><td class="dn">High pressure</td><td>—</td><td><span class="en">Absorb vs EFS surcharge — mgmt decision needed</span><span class="zh" style="display:none">自行消化还是征收EFS——需管理层决策</span></td></tr>
+      <tr><td>GRI (MSC, ME, Apr 7)</td><td>$500/TEU</td><td class="dn">New filing</td><td>—</td><td><span class="en">Match decision pending — impacts ME P&amp;L</span><span class="zh" style="display:none">跟涨决策待定——影响中东线损益</span></td></tr>
+      <tr><td>WRS (War Risk Surcharge)</td><td>$1,500/TEU</td><td class="dn">Active</td><td>—</td><td><span class="en">Must pass through to Gulf cargo — P&amp;I required</span><span class="zh" style="display:none">必须向海湾货物收取——须有P&amp;I保险</span></td></tr>
+      <tr><td>HSS (Hormuz Safety Surcharge)</td><td>$400–600/TEU</td><td class="dn">Active</td><td>—</td><td><span class="en">Applied per vessel Gulf entry authorization</span><span class="zh" style="display:none">按授权海湾进入收取</span></td></tr>
     </tbody>
   </table>
+  <div class="src-block en">Sources: Internal BAF schedule (Q1 2026), carrier tariff filings, P&amp;I Club war risk calculator (Gard, UK P&amp;I, Feb 2026)</div>
+  <div class="src-block zh" style="display:none">来源：内部BAF费率表（2026年一季度）、船司运价通函、P&amp;I保赔协会战争险计算器（Gard、UK P&amp;I，2026年2月）</div>
 
-  <div class="notice notice-blue">
-    <strong>[FX NOTE]</strong> USD/TWD and USD/CNY both stable this week. No immediate FX hedging action required. Monitor if Brent continues above $90 — will trigger BAF recalculation in May.
+  <div class="sect" style="margin-top:18px;"><span class="en">P&amp;L Impact Estimate — April Outlook</span><span class="zh" style="display:none">4月损益影响估算</span></div>
+  <table class="tbl">
+    <thead><tr>
+      <th><span class="en">Trade Lane</span><span class="zh" style="display:none">航线</span></th>
+      <th><span class="en">Extra Cost/Voyage</span><span class="zh" style="display:none">每航次额外成本</span></th>
+      <th><span class="en">Revenue Impact</span><span class="zh" style="display:none">收入影响</span></th>
+      <th><span class="en">Net Outlook</span><span class="zh" style="display:none">净影响展望</span></th>
+    </tr></thead>
+    <tbody>
+      <tr><td><span class="en">Middle East (Cape)</span><span class="zh" style="display:none">中东（好望角）</span></td><td class="dn">+$380k fuel + $50k port</td><td class="up">+$500k (GRI+WRS)</td><td class="up en">Positive if GRI matched</td><td class="up zh" style="display:none">跟涨则净正效益</td></tr>
+      <tr><td><span class="en">Europe (Cape)</span><span class="zh" style="display:none">欧洲（好望角）</span></td><td class="dn">+$380k fuel + $40k port</td><td class="up">+$450k (GRI applied)</td><td class="ne en">Breakeven approx.</td><td class="ne zh" style="display:none">大致持平</td></tr>
+      <tr><td><span class="en">Intra-Asia</span><span class="zh" style="display:none">亚洲区内</span></td><td class="ne">No change</td><td class="ne">No change</td><td class="up en">Profitable — maintain capacity</td><td class="up zh" style="display:none">盈利——保持运力</td></tr>
+    </tbody>
+  </table>
+  <div class="src-block en">Internal estimates based on voyage cost model; fuel at Singapore VLSFO $834/MT; vessel consumption 180MT/day at sea</div>
+  <div class="src-block zh" style="display:none">基于内部航次成本模型估算；燃油按新加坡VLSFO $834/公吨；船舶海上日消耗180公吨</div>
+
+  <div class="notice notice-blue" style="margin-top:14px;">
+    <strong class="en">[FX NOTE]</strong><strong class="zh" style="display:none">【汇率提示】</strong>
+    <span class="en"> USD/TWD and USD/CNY both stable this week. No immediate hedging action needed. However, if Brent sustains above $90 in April, BAF recalculation will be triggered effective May 1 — finance team should prepare updated BAF tables by Apr 20.</span>
+    <span class="zh" style="display:none"> USD/TWD和USD/CNY本周保持稳定，无需即时对冲操作。但若布伦特原油4月持续高于$90，将触发5月1日生效的BAF重新计算——财务部门需在4月20日前准备更新的BAF费率表。</span>
   </div>
 </div>
 
 <!-- ===== TAB 6: CONTAINER EQUIPMENT ===== -->
 <div id="tab-equip" class="tab-panel">
-  <div class="sect-title">Empty Box Inventory Status</div>
+
+  <div class="sect"><span class="en">Empty Box Inventory Status — Global Overview</span><span class="zh" style="display:none">空箱库存状态——全球总览</span></div>
   <table class="tbl">
-    <thead><tr><th>Region</th><th>20' Dry</th><th>40' HC</th><th>Reefer</th><th>Overall</th></tr></thead>
+    <thead><tr>
+      <th><span class="en">Region</span><span class="zh" style="display:none">地区</span></th>
+      <th>20' Dry</th><th>40' HC</th><th>Reefer</th>
+      <th><span class="en">Overall</span><span class="zh" style="display:none">综合</span></th>
+      <th><span class="en">Trend</span><span class="zh" style="display:none">趋势</span></th>
+    </tr></thead>
     <tbody>
-      <tr><td>Taiwan / Kaohsiung</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
-      <tr><td>South China (Shenzhen / Guangzhou)</td><td>Normal</td><td>Normal</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
-      <tr><td>East China (Shanghai)</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
-      <tr><td>Thai / Vietnam</td><td>Normal</td><td>Tight</td><td>Tight</td><td><span class="pill pill-amber">Watch</span></td></tr>
-      <tr><td>Middle East (Gulf)</td><td class="alert-td">Short</td><td class="alert-td">Short</td><td class="alert-td">Critical</td><td><span class="pill pill-red">Shortage</span></td></tr>
-      <tr><td>West US / East US</td><td>Normal</td><td>Normal</td><td>Normal</td><td><span class="pill pill-green">OK</span></td></tr>
+      <tr><td><span class="en">Taiwan / Kaohsiung</span><span class="zh" style="display:none">台湾/高雄</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="pill pill-green">OK</span></td><td class="ne en">Stable</td><td class="ne zh" style="display:none">稳定</td></tr>
+      <tr><td><span class="en">South China (SZX/CAN)</span><span class="zh" style="display:none">华南（深广）</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Tight</span><span class="zh" style="display:none">偏紧</span></td><td><span class="pill pill-amber">Watch</span></td><td class="dn en">Tightening</td><td class="dn zh" style="display:none">趋紧</td></tr>
+      <tr><td><span class="en">East China (SHA)</span><span class="zh" style="display:none">华东（上海）</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="pill pill-green">OK</span></td><td class="ne en">Stable</td><td class="ne zh" style="display:none">稳定</td></tr>
+      <tr><td><span class="en">Thai / Vietnam</span><span class="zh" style="display:none">泰国/越南</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Tight</span><span class="zh" style="display:none">偏紧</span></td><td><span class="en">Tight</span><span class="zh" style="display:none">偏紧</span></td><td><span class="pill pill-amber">Watch</span></td><td class="dn en">Tightening</td><td class="dn zh" style="display:none">趋紧</td></tr>
+      <tr><td><span class="en">Middle East (Gulf)</span><span class="zh" style="display:none">中东（海湾）</span></td><td class="alert-td"><span class="en">Short</span><span class="zh" style="display:none">短缺</span></td><td class="alert-td"><span class="en">Short</span><span class="zh" style="display:none">短缺</span></td><td class="alert-td"><span class="en">Critical</span><span class="zh" style="display:none">严重</span></td><td><span class="pill pill-red">Shortage</span></td><td class="dn en">Worsening</td><td class="dn zh" style="display:none">持续恶化</td></tr>
+      <tr><td><span class="en">Singapore / Malaysia</span><span class="zh" style="display:none">新马</span></td><td><span class="en">Surplus</span><span class="zh" style="display:none">过剩</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="pill pill-green">OK</span></td><td class="up en">Available for reposition</td><td class="up zh" style="display:none">可用于调箱</td></tr>
+      <tr><td><span class="en">West US / East US</span><span class="zh" style="display:none">美西/美东</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="pill pill-green">OK</span></td><td class="ne en">Stable</td><td class="ne zh" style="display:none">稳定</td></tr>
+      <tr><td><span class="en">Europe (NW)</span><span class="zh" style="display:none">欧洲（西北）</span></td><td><span class="en">Slight surplus</span><span class="zh" style="display:none">略微过剩</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="en">Normal</span><span class="zh" style="display:none">正常</span></td><td><span class="pill pill-green">OK</span></td><td class="ne en">Stable</td><td class="ne zh" style="display:none">稳定</td></tr>
     </tbody>
   </table>
+  <div class="src-block en">Sources: Container xChange Equipment Tracker (2026-03-29), internal depot reports, Drewry Container Census Q1 2026</div>
+  <div class="src-block zh" style="display:none">来源：Container xChange设备追踪（2026-03-29）、内部堆场报告、Drewry集装箱普查2026年一季度</div>
 
-  <div class="notice notice-red">
-    <strong>[SHORTAGE ALERT]</strong> Middle East empty box repositioning severely delayed due to Hormuz closure. Gulf customers may face equipment allocation cuts by end of April. Action: prioritize emergency repositioning via Khor Fakkan immediately.
-  </div>
-
-  <div class="sect-title">Action Items</div>
+  <div class="sect" style="margin-top:18px;"><span class="en">Action Items — Equipment Team</span><span class="zh" style="display:none">箱管行动事项</span></div>
   <ul class="risk-list">
-    <li><span class="dot dot-red"></span><div><strong>Gulf Emergency Repositioning:</strong> Identify available empties in Singapore and Shanghai for emergency reposition to Khor Fakkan. Target: 500 x 20', 300 x 40'HC by Apr 15.</div></li>
-    <li><span class="dot dot-amber"></span><div><strong>Thai / Vietnam Reefer Watch:</strong> Reefer availability tightening ahead of Apr-May fruit season. Pre-position 100 reefer units by Apr 7 to avoid customer complaints.</div></li>
-    <li><span class="dot dot-green"></span><div><strong>Taiwan / China Inventory:</strong> All normal. No action required this week.</div></li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[URGENT] Gulf Emergency Repositioning:</strong> Hormuz closure has blocked normal empty return cycles. Identify available 20' &amp; 40'HC empties in Singapore (surplus ~200 units) and Shanghai (available ~300 units). Target: reposition 500x20', 300x40'HC to Khor Fakkan via Cape sailing by Apr 15. Coordinate with Ops for available vessel slots.</div>
+        <div class="zh" style="display:none"><strong>【紧急】海湾区应急调箱：</strong>霍尔木兹封锁已打断正常空箱回运循环。盘点新加坡（过剩约200个）和上海（可用约300个）20尺及40尺空箱。目标：4月15日前经好望角航次将500个20尺、300个40尺运至豪尔费坎。与运营部协调可用船舶舱位。</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[WATCH] Thai/Vietnam Reefer — Pre-Season Tightening:</strong> Reefer availability declining ahead of Apr-May fruit export season (durian, longan, pitaya). Pre-position minimum 150 reefer units to Thailand and Vietnam by Apr 7. Coordinate with cold chain customers on booking lead times.</div>
+        <div class="zh" style="display:none"><strong>【关注】泰越冷藏箱——旺季前趋紧：</strong>4-5月水果出口旺季（榴莲、龙眼、火龙果）前冷藏箱供应收紧。4月7日前最少预调150个冷藏箱至泰国、越南。与冷链客户协商订舱提前期。</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[WATCH] South China Reefer Tightness:</strong> Reefer shortfall anticipated in SZX/CAN by late April as pre-fruit season shipments build. Reserve 100 reefers for South China allocation. Flag if situation worsens by Apr 10.</div>
+        <div class="zh" style="display:none"><strong>【关注】华南冷藏箱趋紧：</strong>预计4月下旬深广地区水果旺季前出货增加将导致冷藏箱短缺。为华南预留100个冷藏箱配额。若4月10日前情况恶化请及时上报。</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-green"></span>
+      <div>
+        <div class="en"><strong>[OK] Taiwan / China Dry Equipment:</strong> All normal. 20' and 40'HC inventory adequate at major Taiwan and China ports. No repositioning action required this week.</div>
+        <div class="zh" style="display:none"><strong>【正常】台湾/中国大陆干货箱：</strong>全部正常。台湾及中国大陆主要港口20尺和40尺库存充足，本周无需调箱操作。</div>
+      </div>
+    </li>
   </ul>
 </div>
 
 <!-- ===== TAB 7: LEGAL & COMPLIANCE ===== -->
 <div id="tab-legal" class="tab-panel">
-  <div class="sect-title">Active Alerts &amp; Regulatory Updates</div>
+
+  <div class="sect"><span class="en">Active Advisories &amp; Regulatory Updates</span><span class="zh" style="display:none">现行公告及法规更新</span></div>
   <ul class="risk-list">
-    <li><span class="dot dot-red"></span><div><strong>[HIGH] War Risk Premium — Hormuz / Gulf of Oman:</strong> W&amp;SR surcharge now mandatory for all vessels transiting. Current rate: 0.5–0.75% vessel value per call. Confirm with P&amp;I Club before scheduling any Gulf entry. Do NOT allow vessels to transit without confirmed war risk cover.</div></li>
-    <li><span class="dot dot-red"></span><div><strong>[HIGH] Red Sea / Bab-el-Mandeb:</strong> HMG / UKMTO advisory remains fully active. All vessel transits require prior notice to UKMTO. Cape routing remains strongly recommended for crew safety and hull insurance coverage.</div></li>
-    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Iran Sanctions (OFAC):</strong> No new general license for Hormuz transit issued. Vessels calling Iranian ports remain sanctioned. All cargo manifests must be screened — zero tolerance for Iranian-origin goods on any booking.</div></li>
-    <li><span class="dot dot-amber"></span><div><strong>[MEDIUM] Khor Fakkan New Rules (Effective Apr 1):</strong> UAE Port Authority requires 48-hour pre-arrival notice for all container vessels. Late arrivals subject to slot cancellation without compensation. Ops team must file NOA 48hrs ahead.</div></li>
-    <li><span class="dot dot-green"></span><div><strong>[LOW] Taiwan Strait:</strong> No new legal restrictions. Normal operations. Continue standard P&amp;NI coverage. No additional war risk premium required at this time.</div></li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] War Risk Insurance — Hormuz / Gulf of Oman:</strong> W&amp;SR surcharge now mandatory for all vessels transiting or approaching Gulf. Current rate: 0.5–0.75% hull value per call (Gard, UK P&amp;I). Confirm individual vessel war risk cover is in place before ANY Gulf entry authorisation. Contact P&amp;I Club directly for vessels above 30,000 GT.</div>
+        <div class="zh" style="display:none"><strong>【高风险】战争险——霍尔木兹/阿曼湾：</strong>所有进入或接近海湾的船舶必须持有W&amp;SR保险，当前费率每次进港为船舶价值的0.5-0.75%（Gard、UK P&amp;I）。在任何海湾进入授权前确认各船已投保。30,000总吨以上船舶请直接联系P&amp;I保赔协会。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: Gard War Risk Circular No.5-2026 (2026-02-27), UK P&amp;I Advisory (2026-03-01)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：Gard战争险通函第5-2026号（2026-02-27）、UK P&amp;I公告（2026-03-01）</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] Red Sea / Bab-el-Mandeb — UKMTO Advisory Active:</strong> HMG / UKMTO Advisory No.026-2026 (issued Mar 30) requires all vessels to register with UKMTO before any Red Sea / Bab-el-Mandeb transit. New Houthi transit code pre-application required 72 hours in advance. Cape rerouting strongly recommended for crew safety and hull coverage validity.</div>
+        <div class="zh" style="display:none"><strong>【高风险】红海/曼德海峡——UKMTO公告持续有效：</strong>英国政府/UKMTO第026-2026号公告（3月30日发布）要求所有船只在通过红海/曼德海峡前向UKMTO登记。胡塞武装要求提前72小时申请通行代码。强烈建议好望角绕行以保障船员安全及船壳险有效性。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: UKMTO Advisory 026-2026 (2026-03-30), Lloyd's List War Risk analysis</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：UKMTO第026-2026号公告（2026-03-30）、Lloyd's List战险分析</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-red"></span>
+      <div>
+        <div class="en"><strong>[HIGH] Iran Sanctions — OFAC Remains Strict:</strong> No new OFAC general license for Hormuz transit. All vessels calling Iranian ports remain fully sanctioned under OFAC SDN list. Zero tolerance policy: all cargo manifests must be screened for Iranian-origin goods before acceptance. Any B/L touching Iran requires legal pre-clearance.</div>
+        <div class="zh" style="display:none"><strong>【高风险】伊朗制裁——OFAC维持严格立场：</strong>OFAC未发布任何霍尔木兹通行豁免许可。挂靠伊朗港口的船舶仍完全受OFAC SDN清单制裁。零容忍政策：所有货物舱单收单前必须筛查伊朗原产地货物。任何涉及伊朗的提单须经法务预审。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: OFAC SDN List update (2026-03-15), US Treasury advisory on Iran shipping sanctions</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：OFAC SDN清单更新（2026-03-15）、美国财政部伊朗航运制裁公告</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[MEDIUM] Khor Fakkan — New Port Rules (Effective Apr 1):</strong> UAE Port Authority (Federal Transport Authority) now requires 48-hour pre-arrival notice (NOA) for ALL container vessels calling Khor Fakkan. Late NOA submission = slot cancellation without compensation. Applies from Apr 1, 2026. Ops team must implement immediately — all pending Gulf sailings to be checked.</div>
+        <div class="zh" style="display:none"><strong>【中风险】豪尔费坎——新港口规定（4月1日起生效）：</strong>阿联酋港务局（联邦运输局）要求所有挂靠豪尔费坎的集装箱船提前48小时提交预到港通知（NOA）。逾期提交即取消泊位且不予补偿。适用自2026年4月1日起。运营部须立即落实，检查所有待发海湾航次。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: UAE Federal Transport Authority Port Circular KFK-2026-04 (2026-03-25)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：阿联酋联邦运输局港口通函KFK-2026-04（2026-03-25）</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-amber"></span>
+      <div>
+        <div class="en"><strong>[MEDIUM] US Tariff / HAF — Ongoing Monitoring:</strong> Hapag-Lloyd's HAF $500/FEU on US trades effective Apr 1 is industry benchmark. Assess impact on US-bound cargo competitiveness. No new US Customs or CBP regulatory changes this week. Monitor Section 301 tariff review expected Q2 2026.</div>
+        <div class="zh" style="display:none"><strong>【中风险】美国关税/HAF——持续监控：</strong>赫伯罗特4月1日起美国线HAF $500/FEU为行业基准。评估对美线货物竞争力的影响。本周无新的美国海关或CBP法规变化。关注2026年第二季度预期的301条款关税审查。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: Hapag-Lloyd Tariff Circular (2026-03-24), CBP trade advisory</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：赫伯罗特运价通函（2026-03-24）、CBP贸易公告</div>
+      </div>
+    </li>
+    <li>
+      <span class="dot dot-green"></span>
+      <div>
+        <div class="en"><strong>[LOW] Taiwan Strait — No Restrictions:</strong> No new legal restrictions or war risk advisories on Taiwan Strait at this time. Normal commercial operations continue. Standard P&amp;NI coverage applies. No additional war risk premium required. Continue monitoring PLA exercise schedules.</div>
+        <div class="zh" style="display:none"><strong>【低风险】台湾海峡——无限制：</strong>台湾海峡目前无新法律限制或战险公告，正常商业运营。适用标准P&amp;NI保险，无需额外战险保费。继续监控解放军演习计划。</div>
+        <div class="src-block en" style="margin-top:6px;">Source: IMO MSC/Circ (latest), Taiwan MFA advisory (weekly)</div>
+        <div class="src-block zh" style="display:none; margin-top:6px;">来源：IMO MSC/Circ（最新）、台湾外交部公告（每周）</div>
+      </div>
+    </li>
   </ul>
 
-  <div class="notice notice-amber" style="margin-top:16px">
-    <strong>[REMINDER]</strong> All Middle East voyage approvals require Legal sign-off on war risk coverage confirmation before departure. Contact legal@culines.com for urgent approvals.
+  <div class="notice notice-amber" style="margin-top:16px;">
+    <strong class="en">[REMINDER]</strong><strong class="zh" style="display:none">【提醒】</strong>
+    <span class="en"> All Middle East voyage authorizations require Legal sign-off confirming active war risk coverage BEFORE departure order is issued. Urgent approvals: contact legal team directly. Do not authorize any Gulf transit without confirmed P&amp;I war risk endorsement on file.</span>
+    <span class="zh" style="display:none"> 所有中东航次授权须在下达开航令前获得法务部确认有效战险保险签字背书。紧急审批请直接联系法务团队。在P&amp;I战险批注存档前，不得授权任何海湾通行。</span>
   </div>
 </div>
 
 <!-- FOOTER -->
 <div class="footer">
-  <div>Auto-generated by <strong>Claw Report System</strong> &nbsp;|&nbsp; 2026-03-31 09:00 CST &nbsp;|&nbsp; Confidential — Internal use only</div>
+  <div>
+    <span class="en">Auto-generated by <strong>Claw Report System</strong> &nbsp;|&nbsp; 2026-03-31 09:00 CST &nbsp;|&nbsp; Confidential — Internal use only</span>
+    <span class="zh" style="display:none">由 <strong>Claw报告系统</strong> 自动生成 &nbsp;|&nbsp; 2026-03-31 09:00 CST &nbsp;|&nbsp; 保密 — 仅限内部使用</span>
+  </div>
   <div class="report-links">
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/shipping-news-2026-03-31.html">Shipping News</a>
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/freight-rate-report-2026-03-31.html">Freight Rates</a>
-    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report-2026-03-31.html">Bunker Fuel</a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/shipping-news-2026-03-31.html"><span class="en">Shipping News</span><span class="zh" style="display:none">航运新闻</span></a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/freight-rate-report-2026-03-31.html"><span class="en">Freight Rates</span><span class="zh" style="display:none">运价报告</span></a>
+    <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report-2026-03-31.html"><span class="en">Bunker Fuel</span><span class="zh" style="display:none">燃油报告</span></a>
     <a class="rlink" href="https://LeahLiuL.github.io/Claw-Report">Archive</a>
   </div>
 </div>
 
 <script>
+// Tab switch
 function switchTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+}
+
+// Language switch
+var isZH = false;
+function toggleLang() {
+  isZH = !isZH;
+  var body = document.getElementById('body');
+  var btn = document.getElementById('langBtn');
+  if (isZH) {
+    // show Chinese, hide English
+    document.querySelectorAll('.en').forEach(function(el){ el.style.display='none'; });
+    document.querySelectorAll('.zh').forEach(function(el){ el.style.display=''; });
+    btn.textContent = 'Switch to English';
+  } else {
+    // show English, hide Chinese
+    document.querySelectorAll('.zh').forEach(function(el){ el.style.display='none'; });
+    document.querySelectorAll('.en').forEach(function(el){ el.style.display=''; });
+    btn.textContent = '切换中文';
+  }
 }
 </script>
 </body>
