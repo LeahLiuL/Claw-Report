@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-04-08 · 第20期</title>
+<style>
+  :root {
+    --navy: #0a1628; --navy2: #0d2045; --blue: #1a3a6b;
+    --accent: #1e5bbd; --highlight: #2e7de0; --gold: #f0b429;
+    --red: #e53e3e; --green: #38a169; --orange: #dd6b20;
+    --white: #ffffff; --gray: #a0aec0;
+    --card-bg: #0f1e3d; --card-border: #1e3a6b;
+    --text-main: #e2e8f0; --text-sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--text-main); font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; min-height: 100vh; }
+  .ticker-wrap { background: var(--accent); padding: 7px 0; overflow: hidden; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+  .ticker { display: flex; white-space: nowrap; animation: scroll 60s linear infinite; }
+  .ticker span { font-size: 13px; font-weight: 600; padding: 0 28px; letter-spacing: .4px; }
+  .ticker .up { color: #4ade80; } .ticker .dn { color: #f87171; } .ticker .ne { color: #fde68a; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .header { background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%); border-bottom: 3px solid var(--gold); padding: 32px 40px 28px; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%); }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon { width: 52px; height: 52px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 0 18px rgba(30,91,189,0.5); }
+  .brand-text h1 { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: 1px; }
+  .brand-text p { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .date-badge { text-align: right; }
+  .date-badge .date { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; }
+  .date-badge .issue { font-size: 13px; color: var(--gray); margin-top: 4px; }
+  .header-subtitle { margin-top: 16px; font-size: 14px; color: var(--gray); position: relative; display: flex; align-items: center; gap: 8px; }
+  .header-subtitle::before { content: ''; width: 30px; height: 2px; background: var(--gold); display: inline-block; flex-shrink: 0; }
+  .index-section { padding: 24px 40px 8px; background: var(--navy2); }
+  .index-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .idx-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 12px; text-align: center; }
+  .idx-card .idx-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .idx-card .idx-val { font-size: 20px; font-weight: 800; color: var(--white); }
+  .idx-card .idx-chg { font-size: 12px; margin-top: 4px; font-weight: 600; }
+  .idx-card .idx-chg.up { color: #4ade80; } .idx-card .idx-chg.dn { color: #f87171; } .idx-card .idx-chg.ne { color: #fde68a; }
+  .main { padding: 30px 40px 20px; }
+  .sec-title { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; margin-top: 32px; }
+  .sec-title:first-child { margin-top: 0; }
+  .sec-title .icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .sec-title h2 { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: .5px; }
+  .sec-title .badge { background: rgba(30,91,189,0.3); border: 1px solid var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--highlight); }
+  .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .news-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; transition: border-color .2s; }
+  .news-card:hover { border-color: var(--accent); }
+  .news-card .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+  .tag-red { background: rgba(229,62,62,0.15); color: #fc8181; border: 1px solid rgba(229,62,62,0.3); }
+  .tag-blue { background: rgba(30,91,189,0.2); color: #90cdf4; border: 1px solid rgba(30,91,189,0.3); }
+  .tag-green { background: rgba(56,161,105,0.15); color: #68d391; border: 1px solid rgba(56,161,105,0.3); }
+  .tag-orange { background: rgba(221,107,32,0.15); color: #f6ad55; border: 1px solid rgba(221,107,32,0.3); }
+  .tag-purple { background: rgba(128,90,213,0.15); color: #b794f4; border: 1px solid rgba(128,90,213,0.3); }
+  .news-card h3 { font-size: 14.5px; font-weight: 700; color: var(--white); line-height: 1.5; margin-bottom: 8px; }
+  .news-card .summary { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+  .news-card .meta { font-size: 11px; color: var(--gray); margin-top: 12px; display: flex; gap: 14px; }
+  .banner-alert { background: linear-gradient(90deg, #7f1d1d, #991b1b); border: 1px solid #dc2626; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+  .banner-warn { background: linear-gradient(90deg, #78350f, #92400e); border: 1px solid #d97706; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fde68a; display: flex; align-items: center; gap: 10px; }
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--accent), transparent); }
+  .tl-item { position: relative; margin-bottom: 22px; }
+  .tl-item::before { content: ''; position: absolute; left: -24px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--navy); }
+  .tl-item .tl-date { font-size: 11px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  .tl-item .tl-title { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 5px; }
+  .tl-item .tl-body { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+  .carrier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .carrier-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; }
+  .carrier-card .carrier-name { font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .carrier-card .carrier-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .status-diverted { background: rgba(229,62,62,0.2); color: #fc8181; }
+  .status-partial { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .status-normal { background: rgba(56,161,105,0.2); color: #68d391; }
+  .carrier-card p { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: rgba(30,91,189,0.2); color: var(--highlight); padding: 10px 14px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--card-border); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(30,91,189,0.1); color: var(--text-main); }
+  tbody tr:hover td { background: rgba(30,91,189,0.06); }
+  td.up { color: #4ade80; font-weight: 600; } td.dn { color: #f87171; font-weight: 600; } td.ne { color: #fde68a; font-weight: 600; } td.alert { color: #fb923c; font-weight: 700; }
+  .table-wrap { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 24px 28px; margin-bottom: 24px; }
+  .table-wrap h3 { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .outlook-box { background: linear-gradient(135deg,#0d2045,#0a1628); border: 1px solid var(--card-border); border-radius: 14px; padding: 26px 28px; margin-top: 24px; }
+  .outlook-box h3 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 14px; }
+  .outlook-box p { font-size: 13.5px; color: #cbd5e1; line-height: 1.8; }
+  .outlook-box strong { color: var(--white); }
+  footer { background: var(--navy2); border-top: 1px solid var(--card-border); padding: 20px 40px; text-align: center; font-size: 12px; color: var(--gray); margin-top: 40px; }
+  footer a { color: var(--highlight); text-decoration: none; }
+  @media(max-width:900px){ .index-grid{grid-template-columns:repeat(3,1fr);} .news-grid{grid-template-columns:1fr;} .carrier-grid{grid-template-columns:1fr 1fr;} .main,.header{padding-left:18px;padding-right:18px;} }
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="dn">布伦特原油 $95.13/桶 -12.94% 暴跌</span>
+    <span>SCFI综合 <span class="up">1,854.96</span> 月涨24.6%</span>
+    <span>新加坡VLSFO <span class="up">$888/MT +9.00</span></span>
+    <span>富查伊拉VLSFO <span class="dn">$854.50/MT -13.00</span></span>
+    <span>休斯顿MGO <span class="up">$1,035/MT +154.50</span></span>
+    <span>USD/TWD <span class="dn">31.889</span></span>
+    <span>USD/CNY <span class="ne">6.86</span></span>
+    <span>霍尔木兹封锁 <span class="dn">第40天</span></span>
+    <span>马士基 绕好望角继续执行</span>
+    <span>MSC 暂停霍尔木兹过境</span>
+    <span class="ne">以色列袭击伊朗南帕斯天然气田</span>
+    <span class="dn">布伦特原油 $95.13/桶 -12.94% 暴跌</span>
+    <span>SCFI综合 <span class="up">1,854.96</span> 月涨24.6%</span>
+    <span>新加坡VLSFO <span class="up">$888/MT +9.00</span></span>
+    <span>富查伊拉VLSFO <span class="dn">$854.50/MT -13.00</span></span>
+    <span>休斯顿MGO <span class="up">$1,035/MT +154.50</span></span>
+    <span>USD/TWD <span class="dn">31.889</span></span>
+    <span>USD/CNY <span class="ne">6.86</span></span>
+    <span>霍尔木兹封锁 <span class="dn">第40天</span></span>
+    <span>马士基 绕好望角继续执行</span>
+    <span>MSC 暂停霍尔木兹过境</span>
+    <span class="ne">以色列袭击伊朗南帕斯天然气田</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">&#x1F6A2;</div>
+      <div class="brand-text">
+        <h1>集装箱航运日报</h1>
+        <p>Claw Intelligence · 全球航运市场每日追踪</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-04-08</div>
+      <div class="issue">第20期 · 星期三</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    霍尔木兹封锁第43天 — 布伦特暴跌至$95创危机以来新低，以色列突袭南帕斯天然气田
+  </div>
+</div>
+
+<!-- Index Cards -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI综合</div>
+      <div class="idx-val">1,855</div>
+      <div class="idx-chg up">+33.2% 年同比</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">远东→北欧</div>
+      <div class="idx-val">$2,904</div>
+      <div class="idx-chg up">+31% 月环比</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">远东→美西</div>
+      <div class="idx-val">$2,430</div>
+      <div class="idx-chg up">+29% 月环比</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">远东→美东</div>
+      <div class="idx-val">$3,382</div>
+      <div class="idx-chg up">+28% 月环比</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">布伦特原油</div>
+      <div class="idx-val">$95</div>
+      <div class="idx-chg dn">-12.94% 今日</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">USD/TWD</div>
+      <div class="idx-val">31.889</div>
+      <div class="idx-chg dn">-0.06% 今日</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 警报横幅 -->
+  <div class="banner-alert">
+    <span>&#x26A0;&#xFE0F;</span>
+    <span><strong>【重大变动】</strong> 布伦特原油4月8日暴跌12.94%至$95.13/桶，创霍尔木兹危机以来最低水平。以色列对伊朗南帕斯天然气田发动新一轮打击，特朗普提议美国对霍尔木兹海峡收取"通行费"。霍尔木兹封锁进入第43天，45艘以上船舶仍被困波斯湾。</span>
+  </div>
+
+  <div class="banner-warn">
+    <span>&#x1F4CA;</span>
+    <span><strong>市场关注：</strong> Container News报道乌克兰无人机袭击俄罗斯黑海新罗西斯克港石油出口设施，全球石油供应链风险进一步扩散。Seatrade报道又有一艘集装箱船在伊朗南部遭袭击船体破损。汉班托塔港因航线转移扩大容量。</span>
+  </div>
+
+  <!-- 头条新闻 -->
+  <div class="sec-title">
+    <div class="icon">&#x1F4F0;</div>
+    <h2>今日头条要闻</h2>
+    <span class="badge">2026-04-08</span>
+  </div>
+
+  <div class="news-grid">
+    <div class="news-card">
+      <span class="tag tag-red">能源暴跌</span>
+      <h3>布伦特原油暴跌12.94%至$95 创危机以来新低</h3>
+      <div class="summary">
+        TradingEconomics数据显示，布伦特原油期货4月8日暴跌至$95.13/桶，单日跌幅达12.94%，从昨日$111.11高位大幅回落。此前特朗普提议美国对霍尔木兹海峡收取通行费，市场解读为外交缓和信号。尽管如此，HormuzTracker数据显示布伦特较危机前基准仍上涨51.7%。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-08</span>
+        <span>&#x1F4CD; 能源市场</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-red">军事冲突</span>
+      <h3>以色列突袭伊朗南帕斯天然气田 危级冲突升级</h3>
+      <div class="summary">
+        以色列对伊朗南帕斯（South Pars）天然气田发动新一轮军事打击，这是全球最大的天然气田之一。此前伊朗已拒绝美方45天停火提议。Seatrade Maritime报道，又有集装箱船在伊朗南部海域遭袭击船体破损，阿拉伯湾安全风险持续攀升。HormuzTracker数据显示45艘以上船舶仍被困波斯湾。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-07 晚间</span>
+        <span>&#x1F4CD; 地缘政治</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-orange">美国政策</span>
+      <h3>特朗普提议美国收取霍尔木兹"通行费"</h3>
+      <div class="summary">
+        美国前总统特朗普建议对通过霍尔木兹海峡的船只收取通行费，该水域目前形成伊朗和阿曼双重管辖体系。市场解读此举可能暗示美国愿意通过非军事手段介入海峡治理，但实际操作性存疑。赫伯罗特CEO此前表示战争每周给公司增加数千万美元成本。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-07</span>
+        <span>&#x1F4CD; 政策动态</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-blue">港口动态</span>
+      <h3>汉班托塔港扩大容量 航线转移催生替代枢纽</h3>
+      <div class="summary">
+        随着航线从中东地区转移，斯里兰卡汉班托塔港宣布扩大处理容量，承接因绕行好望角而增加的转运货流。与此同时，科伦坡、塞拉莱、豪尔法坎等替代枢纽港仍面临严重拥堵，船舶等待泊位时间长达7-10天。MightyShipping报告显示，塞拉莱港3月28日曾遭无人机袭击停工3天。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-07</span>
+        <span>&#x1F4CD; 港口运营</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-green">船厂动态</span>
+      <h3>青山船厂重返造船业 黄埔文冲获8艘集装箱船订单</h3>
+      <div class="summary">
+        青山船厂宣布重返造船业并获集装箱船订单，黄埔文冲亦斩获最多8艘集装箱船新造船合同。德国船东Peter Döhle在澄西船厂订购2艘支线集装箱新船。印度Swan Defence签署4艘92,500载重吨氨双燃料散货船合同。行业新造船订单持续活跃，反映市场对中长期运力需求的信心。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-06-07</span>
+        <span>&#x1F4CD; 船厂动态</span>
+      </div>
+    </div>
+
+    <div class="news-card">
+      <span class="tag tag-purple">黑海局势</span>
+      <h3>乌克兰无人机袭击俄黑海石油枢纽 全球油供再承压</h3>
+      <div class="summary">
+        乌克兰加大对俄罗斯能源基础设施打击力度，袭击黑海新罗西斯克港关键出口设施。Container News报道，持续的无人机袭击已降解俄罗斯40%的西部石油出口能力。此次袭击进一步压缩全球石油供应链弹性，但布伦特暴跌显示市场定价已部分消化风险溢价。
+      </div>
+      <div class="meta">
+        <span>&#x23F0; 2026-04-07</span>
+        <span>&#x1F4CD; 黑海局势</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 船公司状态 -->
+  <div class="sec-title" style="margin-top:36px;">
+    <div class="icon">&#x1F6A2;</div>
+    <h2>主要船公司应对状态</h2>
+    <span class="badge">截至4月8日</span>
+  </div>
+
+  <div class="carrier-grid">
+    <div class="carrier-card">
+      <div class="carrier-name">马士基 <span class="carrier-status status-diverted">绕行好望角</span></div>
+      <p>4月1日和3日更新确认仍未恢复霍尔木兹正常通行，仅极少数船成功通过。使用塞拉莱、苏哈尔、霍尔费坎、吉达等替代枢纽配合陆桥运输。强调安全评估100%通过后才返回。</p>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-name">MSC <span class="carrier-status status-diverted">绕行好望角</span></div>
+      <p>对多条中东航线维持预订暂停，15艘船（109K TEU）被困波斯湾。宣布整合美西航线和亚洲挂靠港以提高跨太平洋可靠性，取消奥克兰挂靠。亚澳线GRI $300/TEU已生效。</p>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-name">达飞(CMA CGM) <span class="carrier-status status-partial">部分恢复</span></div>
+      <p>3月11日率先部分恢复中东进出口订舱，建立保税陆桥多式联运网络。重组印度-欧洲/地中海航线网络。蒙特利尔港开通新南北航线。4月18日EFS正式生效。</p>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-name">赫伯罗特 <span class="carrier-status status-diverted">绕行好望角</span></div>
+      <p>6艘船（25K TEU）被困。维持阿联酋、伊拉克、科威特、卡塔尔、巴林、苏哈尔、达曼等目的地订舱暂停。征收战争风险附加费$1,500/TEU。宣布印度海事领域投资10亿美元。</p>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-name">中远海运(COSCO) <span class="carrier-status status-partial">有限恢复</span></div>
+      <p>5艘船被困，但有两艘船于3月30日通过拉拉克岛走廊成功离开海湾。波斯湾挂靠改至苏哈尔、科伦坡转运。国内航线维持原有服务。</p>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-name">长荣(Evergreen) <span class="carrier-status status-diverted">绕行好望角</span></div>
+      <p>全舰队绕行好望角。亚欧线航次延长7-10天，航次成本增加约$800,000-1,100,000。亚洲近洋航线维持基本服务。配合旺季前适当增加运力部署。</p>
+    </div>
+  </div>
+
+  <!-- 危机时间轴 -->
+  <div class="sec-title" style="margin-top:36px;">
+    <div class="icon">&#x1F5D3;</div>
+    <h2>霍尔木兹危机关键时间轴</h2>
+  </div>
+
+  <div class="table-wrap">
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">2026-02-25（第1天）</div>
+        <div class="tl-title">伊朗宣布关闭霍尔木兹海峡</div>
+        <div class="tl-body">伊朗军方宣布对商业航运实施过境限制，引发全球航运市场恐慌。布伦特原油单日暴涨$12至$84/桶。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-01（第5天）</div>
+        <div class="tl-title">三大船公司相继宣布暂停过境</div>
+        <div class="tl-body">MSC、赫伯罗特、达飞同日宣布暂停霍尔木兹过境，绕行好望角。马士基随后跟进。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-25（第29天）</div>
+        <div class="tl-title">伊朗宣布允许"非敌对船只"有限通行</div>
+        <div class="tl-body">伊朗宣布允许"非敌对船只"通过海峡，但具体标准模糊。实际通行依然困难，保险公司未恢复覆盖。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-04-02（第37天）</div>
+        <div class="tl-title">CMA CGM Kribi轮过境测试</div>
+        <div class="tl-body">达飞5,500TEU货轮完成霍尔木兹试探性过境。布伦特当日暴涨$6.84至$109.24/桶。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-04-07（第42天）</div>
+        <div class="tl-title">伊朗拒绝停火 以色列袭击南帕斯</div>
+        <div class="tl-body">伊朗拒绝45天停火提议，布伦特触及$111。以色列对伊朗南帕斯天然气田发动打击。又有一艘集装箱船在伊朗南部海域遭袭。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-04-08（第43天，今日）</div>
+        <div class="tl-title">布伦特暴跌至$95 特朗普提议海峡"通行费"</div>
+        <div class="tl-body">布伦特单日暴跌12.94%至$95.13/桶，创危机以来最大单日跌幅。特朗普提议美国对霍尔木兹海峡收取通行费。市场博弈加剧。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 保险与附加费 -->
+  <div class="sec-title">
+    <div class="icon">&#x1F4B0;</div>
+    <h2>战争险与紧急附加费</h2>
+    <span class="badge">HormuzTracker · 4月7日更新</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>项目</th><th>当前水平</th><th>危机前</th><th>变化</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>战争风险保费</td><td class="dn">0.8%-1.5%</td><td>0.125%</td><td class="dn">+约8倍</td></tr>
+        <tr><td>VLCC过境成本</td><td class="dn">$200-300万/次</td><td>~$12.5万/次</td><td class="dn">+约20倍</td></tr>
+        <tr><td>赫伯罗特战争险附加费</td><td class="dn">$1,500/TEU</td><td>-</td><td class="dn">新增</td></tr>
+        <tr><td>每箱额外成本预估</td><td class="dn">$2,000-4,000</td><td>-</td><td class="dn">新增</td></tr>
+        <tr><td>P&I保险覆盖</td><td class="dn">已撤销</td><td>正常覆盖</td><td class="dn">恶化</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 市场展望 -->
+  <div class="outlook-box">
+    <h3>&#x1F4C8; 市场展望与操作建议</h3>
+    <p>
+      <strong>短期（本周）：</strong>布伦特单日暴跌近13%是重大信号。尽管以色列对南帕斯的打击意味着军事冲突未缓解，但特朗普"通行费"提议被市场解读为潜在外交窗口。油价剧烈波动将传导至燃油附加费和BAF计算，建议本周密切监控船公司附加费调整。<br><br>
+      <strong>中期（未来1个月）：</strong>夏季旺季需求叠加运力被绕行好望角"吸收"，有效舱位供给仍趋紧。布伦特若持续在$90-100区间波动，将较$110+水平显著降低燃油成本压力。但战争险附加费和航线绕行成本短期内难以回落。<br><br>
+      <strong>操作建议：</strong>①布伦特暴跌利好燃油成本，但战争险/绕行附加费仍是主要成本项，不可盲目乐观；②关注特朗普"通行费"提议后续发展，若美国介入海峡治理可能带来转机；③建议利用油价回落窗口锁定长期合约运价；④科伦坡/塞拉莱拥堵持续，中东方向货物需预留10-14天额外运输时间。
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <p>数据来源：Splash247 · Seatrade Maritime · HormuzTracker · MightyShipping · TradingEconomics · Ship & Bunker · Container News · JOC</p>
+  <p style="margin-top:6px;">集装箱航运日报 · 2026-04-08 · 第20期 &nbsp;|&nbsp; Claw Intelligence System &nbsp;|&nbsp; 仅供内部参考</p>
+</footer>
+</body>
+</html>
