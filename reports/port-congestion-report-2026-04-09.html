@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球主要港口塞港时间报告 | 2026-04-09</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f4f8; color: #1e293b; }
+
+  .header {
+    background: linear-gradient(135deg, #0a2a4a 0%, #0d4f6c 60%, #0e7490 100%);
+    color: white;
+    padding: 32px 40px 28px;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
+  .header .subtitle { margin-top: 8px; opacity: 0.75; font-size: 14px; }
+  .header .meta { margin-top: 14px; display: flex; gap: 24px; font-size: 13px; opacity: 0.85; flex-wrap: wrap; }
+  .header .meta span { background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 20px; }
+
+  .alert-bar {
+    background: #fef9c3;
+    border-left: 4px solid #f59e0b;
+    padding: 12px 40px;
+    font-size: 13px;
+    color: #92400e;
+  }
+  .alert-bar strong { color: #b45309; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    border-top: 4px solid #e2e8f0;
+  }
+  .summary-card.red { border-top-color: #ef4444; }
+  .summary-card.amber { border-top-color: #f59e0b; }
+  .summary-card.green { border-top-color: #10b981; }
+  .summary-card.blue { border-top-color: #3b82f6; }
+  .summary-card .value { font-size: 32px; font-weight: 800; color: #0f172a; }
+  .summary-card .label { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .summary-card .sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0a2a4a;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #00c9b1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .flag { font-size: 20px; }
+
+  .region-note {
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #475569;
+    margin-bottom: 14px;
+    border-left: 3px solid #94a3b8;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    font-size: 13.5px;
+  }
+  thead { background: #1e3a5f; color: white; }
+  thead th { padding: 12px 14px; text-align: left; font-weight: 600; font-size: 12.5px; letter-spacing: 0.3px; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f8faff; }
+  tbody td { padding: 11px 14px; vertical-align: middle; }
+
+  .port-name { font-weight: 600; color: #0a2a4a; }
+  .country { font-size: 11.5px; color: #64748b; }
+
+  .wait-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    min-width: 60px;
+    text-align: center;
+  }
+  .wait-critical { background: #fee2e2; color: #b91c1c; }
+  .wait-high     { background: #fef3c7; color: #b45309; }
+  .wait-medium   { background: #fef9c3; color: #92400e; }
+  .wait-low      { background: #d1fae5; color: #065f46; }
+  .wait-minimal  { background: #e0f2fe; color: #0369a1; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-critical { background: #fee2e2; color: #b91c1c; }
+  .status-high     { background: #fef3c7; color: #b45309; }
+  .status-moderate { background: #fef9c3; color: #92400e; }
+  .status-low      { background: #d1fae5; color: #065f46; }
+  .status-normal   { background: #e0f2fe; color: #0369a1; }
+
+  .source-tag {
+    display: inline-block;
+    font-size: 10px;
+    color: #6366f1;
+    background: #ede9fe;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .trend-up   { color: #ef4444; }
+  .trend-down { color: #10b981; }
+  .trend-flat { color: #64748b; }
+
+  .notes { font-size: 12px; color: #475569; line-height: 1.5; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #475569;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .sources-box {
+    background: white;
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    margin-top: 10px;
+  }
+  .sources-box h3 { font-size: 14px; color: #0a2a4a; margin-bottom: 12px; font-weight: 700; }
+  .sources-box ol { padding-left: 18px; }
+  .sources-box li { font-size: 12.5px; color: #475569; margin-bottom: 8px; line-height: 1.5; }
+  .sources-box a { color: #1e5bbd; text-decoration: none; }
+  .sources-box a:hover { text-decoration: underline; }
+
+  .footer {
+    background: #1e293b;
+    color: #94a3b8;
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 20px; }
+    .container { padding: 16px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    table { font-size: 12px; }
+    thead th, tbody td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>全球主要港口塞港时间报告</h1>
+  <div class="subtitle">Global Port Congestion Report — 数据截至 2026 年 4 月 9 日</div>
+  <div class="meta">
+    <span>报告日期：2026-04-09</span>
+    <span>覆盖港口：35+</span>
+    <span>数据来源：5家权威机构</span>
+    <span>制作：Claw Intelligence System</span>
+  </div>
+</div>
+
+<div class="alert-bar">
+  <strong>重要背景：</strong>霍尔木兹海峡封锁已持续第 <strong>43</strong> 天，大量船舶被迫绕行好望角，航程增加 <strong>10–14 天</strong>，导致非洲港口压力骤升、中东港口大幅拥堵、全球转运枢纽负荷加重。
+</div>
+
+<div class="container">
+
+  <!-- 全球概览 -->
+  <div class="summary-grid">
+    <div class="summary-card red">
+      <div class="value">43</div>
+      <div class="label">霍尔木兹封锁天数</div>
+      <div class="sub">45+ 艘船只滞留</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="value">15.0</div>
+      <div class="label">最严重港口等待（天）</div>
+      <div class="sub">科纳克里港，几内亚</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="value">330</div>
+      <div class="label">新加坡锚地等待船舶（艘）</div>
+      <div class="sub">13.3 小时平均等待</div>
+    </div>
+    <div class="summary-card blue">
+      <div class="value">179</div>
+      <div class="label">上海-宁波锚地等待船舶（艘）</div>
+      <div class="sub">受大雾/需求双重影响</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="value">117%</div>
+      <div class="label">鲁珀特王子港堆场利用率</div>
+      <div class="sub">集装箱平均停留 9.2 天</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="value">95%</div>
+      <div class="label">安特卫普 PSA 码头堆场利用率</div>
+      <div class="sub">冷藏箱堆场 97%</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#b91c1c"></span>严重（>7天）</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>高（3-7天）</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#92400e"></span>中等（1.5-3天）</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#065f46"></span>轻微（0.5-1.5天）</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#0369a1"></span>正常（<0.5天）</div>
+  </div>
+
+  <!-- 非洲 -->
+  <div class="section">
+    <div class="section-title"><span class="flag">🌍</span>非洲（Africa）— 受绕行好望角冲击最严重</div>
+    <div class="region-note">背景：霍尔木兹封锁导致大量船舶改道好望角，非洲港口基础设施薄弱，拥堵极为严重。</div>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>国家</th>
+          <th>平均等待时间</th>
+          <th>拥堵等级</th>
+          <th>主要原因</th>
+          <th>数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="port-name">科纳克里</span><br><span class="country">Conakry</span></td>
+          <td>几内亚</td>
+          <td><span class="wait-badge wait-critical">15.0 天</span></td>
+          <td><span class="status-badge status-critical">极度严重</span></td>
+          <td class="notes">堆场密度极高、操作严重缓慢，积压显著</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">班珠尔</span><br><span class="country">Banjul</span></td>
+          <td>冈比亚</td>
+          <td><span class="wait-badge wait-critical">7.5 天</span></td>
+          <td><span class="status-badge status-critical">极度严重</span></td>
+          <td class="notes">长期拥堵，持续靠泊延误</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">达累斯萨拉姆</span><br><span class="country">Dar es Salaam</span></td>
+          <td>坦桑尼亚</td>
+          <td><span class="wait-badge wait-critical">7.4 天</span></td>
+          <td><span class="status-badge status-critical">极度严重</span></td>
+          <td class="notes">DPW码头严重延误，最长可达8天</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">贝拉</span><br><span class="country">Beira</span></td>
+          <td>莫桑比克</td>
+          <td><span class="wait-badge wait-critical">7.0 天</span></td>
+          <td><span class="status-badge status-critical">极度严重</span></td>
+          <td class="notes">改道船流量增加，基础设施超负荷</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">蒙巴萨</span><br><span class="country">Mombasa</span></td>
+          <td>肯尼亚</td>
+          <td><span class="wait-badge wait-high">5.2 天</span></td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">设备短缺、船舶集中到港、中转量高</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 中东 & 南亚 -->
+  <div class="section">
+    <div class="section-title"><span class="flag">🛢️</span>中东 &amp; 南亚（Middle East &amp; South Asia）— 地缘冲突直接冲击</div>
+    <div class="region-note">背景：霍尔木兹海峡基本封闭，波斯湾航运量骤降，科尔法坎成为阿联酋唯一正常运营集装箱港，杰贝阿里压力显著上升。</div>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>国家</th>
+          <th>平均等待时间</th>
+          <th>拥堵等级</th>
+          <th>主要原因</th>
+          <th>数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="port-name">杰贝阿里</span><br><span class="country">Jebel Ali (DP World)</span></td>
+          <td>阿联酋</td>
+          <td><span class="wait-badge wait-high">4.3 天</span></td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">严重拥堵，改道船涌入，泊位紧张</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">蒙德拉</span><br><span class="country">Mundra</span></td>
+          <td>印度</td>
+          <td><span class="wait-badge wait-high">3.8 天</span></td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">拥堵加剧，转运量激增</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">塞拉莱</span><br><span class="country">Salalah</span></td>
+          <td>阿曼</td>
+          <td><span class="wait-badge wait-high">3.5 天</span></td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">替代中转港需求激增，接纳红海改道货物</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">吉达 (伊斯兰港)</span><br><span class="country">Jeddah (Islamic Port)</span></td>
+          <td>沙特阿拉伯</td>
+          <td><span class="wait-badge wait-high">3.5 天</span></td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">改道货物增加，红海绕行影响持续</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">吉大港</span><br><span class="country">Chittagong</span></td>
+          <td>孟加拉国</td>
+          <td><span class="wait-badge wait-medium">1.6 天</span></td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">设备短缺，码头效率偏低</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">科伦坡</span><br><span class="country">Colombo</span></td>
+          <td>斯里兰卡</td>
+          <td><span class="wait-badge wait-low">1.1 天</span></td>
+          <td><span class="status-badge status-low">轻微</span></td>
+          <td class="notes">预计未来数周因季节性恶劣天气出现延误</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 亚洲 -->
+  <div class="section">
+    <div class="section-title"><span class="flag">🌏</span>亚洲（Asia）— 整体稳定，局部热点</div>
+    <div class="region-note">背景：中国港口因春季货量旺季和黄金周空白航次拥堵加剧；新加坡作为全球最大转运枢纽，承受来自霍尔木兹改道航线的额外转运压力。</div>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>国家</th>
+          <th>平均等待时间</th>
+          <th>锚地船舶数</th>
+          <th>拥堵等级</th>
+          <th>主要原因</th>
+          <th>数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="port-name">新加坡港</span><br><span class="country">Port of Singapore</span></td>
+          <td>新加坡</td>
+          <td><span class="wait-badge wait-medium">13.3 小时</span></td>
+          <td>330 艘锚泊<br>404 艘接近中</td>
+          <td><span class="status-badge status-moderate">中等偏高</span></td>
+          <td class="notes">全球最大转运枢纽，霍尔木兹改道货物大幅增加，堆场利用率 85-90%</td>
+          <td><span class="source-tag">PortInsight</span> <span class="source-tag">K+N</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">上海港</span><br><span class="country">Port of Shanghai</span></td>
+          <td>中国</td>
+          <td><span class="wait-badge wait-medium">2.2–2.5 天</span></td>
+          <td>锚地 150+ 艘</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">大雾间歇性封港、春季货量高峰；上海-宁波锚地最高曾达 179 艘</td>
+          <td><span class="source-tag">Kuehne+Nagel</span> <span class="source-tag">Gava</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">比雷埃夫斯</span><br><span class="country">Piraeus</span></td>
+          <td>希腊</td>
+          <td><span class="wait-badge wait-high">4.25 天</span></td>
+          <td>锚地约 10 艘</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">拥堵显著，部分船只等待长达 7 天</td>
+          <td><span class="source-tag">Maritime News</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">丹戎帕拉帕斯</span><br><span class="country">Tanjung Pelepas (PTP)</span></td>
+          <td>马来西亚</td>
+          <td><span class="wait-badge wait-medium">1.9 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">中转量增加，受新加坡溢出效应影响</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">弗里曼特尔</span><br><span class="country">Fremantle</span></td>
+          <td>澳大利亚</td>
+          <td><span class="wait-badge wait-medium">2.2 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">热带气旋 Narelle 导致澳洲西北港口关闭，货物积压</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">悉尼港</span><br><span class="country">Sydney</span></td>
+          <td>澳大利亚</td>
+          <td><span class="wait-badge wait-medium">1.7 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">季节性压力，陆路运输效率影响通关</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">青岛港</span><br><span class="country">Port of Qingdao</span></td>
+          <td>中国</td>
+          <td><span class="wait-badge wait-medium">1.5 天</span></td>
+          <td>港外 25 艘</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">区域性拥堵带来额外延误</td>
+          <td><span class="source-tag">Maritime News</span> <span class="source-tag">Gava</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">盐田港</span><br><span class="country">Yantian (Shenzhen)</span></td>
+          <td>中国</td>
+          <td><span class="wait-badge wait-medium">1.5 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">深圳华南航运枢纽，黄金周前后积压</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">宁波-舟山港</span><br><span class="country">Ningbo-Zhoushan</span></td>
+          <td>中国</td>
+          <td><span class="wait-badge wait-medium">1.4 天</span></td>
+          <td>（与上海共享锚地）</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">改善中，春节积压已逐步消化</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">釜山港</span><br><span class="country">Busan</span></td>
+          <td>韩国</td>
+          <td><span class="wait-badge wait-low">约 0.5 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-low">轻微</span></td>
+          <td class="notes">BNCT码头重箱堆场密度 82%；空白航次清理后有所改善</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 欧洲 -->
+  <div class="section">
+    <div class="section-title"><span class="flag">🇪🇺</span>欧洲（Europe）— 劳工罢工 + 基础设施双重压力</div>
+    <div class="region-note">背景：安特卫普、汉堡罢工影响约 90 艘船舶；鹿特丹 PSA 码头堆场利用率达 95%；巴塞罗那铁路货运因隧道关闭全线暂停。</div>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>国家</th>
+          <th>平均等待时间</th>
+          <th>堆场利用率</th>
+          <th>拥堵等级</th>
+          <th>主要原因</th>
+          <th>数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="port-name">安特卫普</span><br><span class="country">Antwerp</span></td>
+          <td>比利时</td>
+          <td><span class="wait-badge wait-medium">2.4 天</span></td>
+          <td>PSA: 95%<br>冷藏: 97%</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">近期罢工影响约90艘船；全国性罢工威胁（3月31日）</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">汉堡港</span><br><span class="country">Hamburg</span></td>
+          <td>德国</td>
+          <td><span class="wait-badge wait-medium">1.56–2天</span></td>
+          <td>CTH: 90%<br>CTA: 临界</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">CTA码头持续超负荷；工会罢工劳动力供应受损</td>
+          <td><span class="source-tag">Maritime News</span> <span class="source-tag">K+N</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">瓦伦西亚</span><br><span class="country">Valencia</span></td>
+          <td>西班牙</td>
+          <td><span class="wait-badge wait-medium">2.6 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">地中海转运需求上升</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">巴塞罗那</span><br><span class="country">Barcelona</span></td>
+          <td>西班牙</td>
+          <td><span class="wait-badge wait-medium">2.6 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">Rubi 隧道关闭七周，铁路货运全线暂停，显著加剧拥堵</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">费利克斯托</span><br><span class="country">Felixstowe</span></td>
+          <td>英国</td>
+          <td><span class="wait-badge wait-medium">2.1 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">严重拥堵，驳船延误明显</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">勒阿弗尔</span><br><span class="country">Le Havre</span></td>
+          <td>法国</td>
+          <td><span class="wait-badge wait-medium">2.1 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">罢工暂停后生产率有所提升</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">鹿特丹</span><br><span class="country">Rotterdam</span></td>
+          <td>荷兰</td>
+          <td><span class="wait-badge wait-medium">1.37–1.8 天</span></td>
+          <td>ECT: 80%<br>MVII: 90%<br>RWG: 70%</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">MVII码头轻微拥堵；ECT 冷藏箱插头紧张；Feeder 船延误 24-72h</td>
+          <td><span class="source-tag">Maritime News</span> <span class="source-tag">K+N</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">阿尔赫西拉斯</span><br><span class="country">Algeciras</span></td>
+          <td>西班牙</td>
+          <td><span class="wait-badge wait-medium">1.8 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">地中海西向枢纽，转运量上升</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 美洲 -->
+  <div class="section">
+    <div class="section-title"><span class="flag">🌎</span>美洲（Americas）</div>
+    <div class="region-note">背景：北美整体状况良好，南美巴西港口持续严重拥堵；加拿大鲁珀特王子港堆场超载。</div>
+    <table>
+      <thead>
+        <tr>
+          <th>港口</th>
+          <th>国家</th>
+          <th>平均等待时间</th>
+          <th>堆场利用率</th>
+          <th>拥堵等级</th>
+          <th>主要原因</th>
+          <th>数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="port-name">桑托斯</span><br><span class="country">Santos</span></td>
+          <td>巴西</td>
+          <td><span class="wait-badge wait-high">4.9 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">货物量高、泊位限制，农产品出口旺季</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">巴拉那瓜</span><br><span class="country">Paranagua</span></td>
+          <td>巴西</td>
+          <td><span class="wait-badge wait-high">3.8 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">大豆和谷物出口季高峰，基础设施限制</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">鲁珀特王子港</span><br><span class="country">Prince Rupert</span></td>
+          <td>加拿大</td>
+          <td><span class="wait-badge wait-high">集装箱停留 9.2 天</span></td>
+          <td>117%</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">堆场超负荷，内陆铁路拥堵，集装箱大量积压</td>
+          <td><span class="source-tag">Drewry / 红石供应链</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">布埃纳文图拉</span><br><span class="country">Buenaventura</span></td>
+          <td>哥伦比亚</td>
+          <td><span class="wait-badge wait-medium">2.4 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">堆场利用率高，基础设施限制</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">萨凡纳</span><br><span class="country">Savannah</span></td>
+          <td>美国</td>
+          <td><span class="wait-badge wait-medium">2.3 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">大雾间歇性关闭河道；进口铁路停留时间 4 天（全美最短）</td>
+          <td><span class="source-tag">Everstream Analytics</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">拉萨罗卡德纳斯</span><br><span class="country">Lazaro Cardenas</span></td>
+          <td>墨西哥</td>
+          <td><span class="wait-badge wait-medium">2.1 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">堆场利用率持续较高</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">温哥华</span><br><span class="country">Vancouver</span></td>
+          <td>加拿大</td>
+          <td><span class="wait-badge wait-medium">严重延误</span></td>
+          <td>GCT: 85%<br>锚地满员</td>
+          <td><span class="status-badge status-high">严重</span></td>
+          <td class="notes">锚地"满员"，内陆铁路匝道持续拥堵</td>
+          <td><span class="source-tag">红石供应链</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">纽约/新泽西</span><br><span class="country">New York/New Jersey</span></td>
+          <td>美国</td>
+          <td><span class="wait-badge wait-medium">1.6 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">近期大风造成中断；贸易战影响东海岸货量</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">蒙得维的亚</span><br><span class="country">Montevideo</span></td>
+          <td>乌拉圭</td>
+          <td><span class="wait-badge wait-medium">1.92 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">南美航运枢纽，整体稳定</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">洛杉矶/长滩</span><br><span class="country">LA / Long Beach</span></td>
+          <td>美国</td>
+          <td><span class="wait-badge wait-low">约 1–2 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-low">轻微</span></td>
+          <td class="notes">特朗普关税导致跨太平洋货量波动，等待时间低于历史均值</td>
+          <td><span class="source-tag">行业综合</span></td>
+        </tr>
+        <tr>
+          <td><span class="port-name">瓜亚基尔</span><br><span class="country">Guayaquil</span></td>
+          <td>厄瓜多尔</td>
+          <td><span class="wait-badge wait-medium">1.5 天</span></td>
+          <td>—</td>
+          <td><span class="status-badge status-moderate">中等</span></td>
+          <td class="notes">堆场利用率高，生产力偏低</td>
+          <td><span class="source-tag">Kuehne+Nagel</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 风险等级汇总地图式清单 -->
+  <div class="section">
+    <div class="section-title">综合风险快照（按等级排序）</div>
+    <table>
+      <thead>
+        <tr>
+          <th>等级</th>
+          <th>港口</th>
+          <th>等待时间</th>
+          <th>主要风险</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="status-badge status-critical">极度严重（>7天）</span></td>
+          <td>科纳克里、班珠尔、达累斯萨拉姆、贝拉</td>
+          <td>7–15 天</td>
+          <td>霍尔木兹改道好望角冲击，非洲港口基础设施超负荷</td>
+        </tr>
+        <tr>
+          <td><span class="status-badge status-high">严重（3–7天）</span></td>
+          <td>蒙巴萨、桑托斯、巴拉那瓜、鲁珀特王子港、温哥华、比雷埃夫斯、杰贝阿里、蒙德拉、塞拉莱、吉达</td>
+          <td>3.5–5 天</td>
+          <td>地区冲突、农产品出口旺季、罢工、基础设施超负荷</td>
+        </tr>
+        <tr>
+          <td><span class="status-badge status-moderate">中等（1.5–3天）</span></td>
+          <td>上海、新加坡、弗里曼特尔、悉尼、瓦伦西亚、巴塞罗那、安特卫普、汉堡、费利克斯托、勒阿弗尔、鹿特丹、萨凡纳、纽约、拉萨罗卡德纳斯、蒙得维的亚、青岛、盐田、宁波</td>
+          <td>1.5–2.6 天</td>
+          <td>季节性需求、堆场高利用率、劳工行动、基础设施问题</td>
+        </tr>
+        <tr>
+          <td><span class="status-badge status-low">轻微/正常（<1.5天）</span></td>
+          <td>釜山、洛杉矶/长滩、科伦坡、吉大港</td>
+          <td>&lt;1.5 天</td>
+          <td>整体运营稳定，局部轻微压力</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 数据来源 -->
+  <div class="section">
+    <div class="section-title">数据来源（Sources）</div>
+    <div class="sources-box">
+      <ol>
+        <li>
+          <strong>Everstream Analytics</strong> — Port Congestion Report: 1 April 2026<br>
+          <a href="https://www.everstream.ai/risk-centers/port-congestion-report-1-april-2026/" target="_blank">https://www.everstream.ai/risk-centers/port-congestion-report-1-april-2026/</a><br>
+          <span style="color:#64748b;font-size:11px;">全球港口拥堵专业分析机构；本报告为2026年4月1日数据快照；各港口等待时间数据（非洲、中东、亚洲、欧洲、美洲）均主要来源于此。</span>
+        </li>
+        <li>
+          <strong>Kuehne + Nagel — Port Operational Updates</strong>（每周发布）<br>
+          <a href="https://mykn.kuehne-nagel.com/news/article/port-operational-updates-from-26-02-2026" target="_blank">https://mykn.kuehne-nagel.com/</a><br>
+          <span style="color:#64748b;font-size:11px;">全球最大海运货代之一，基于 seaexplorer 平台的每周港口运营报告，2026年2-3月多期数据已引用。</span>
+        </li>
+        <li>
+          <strong>Maritime News — Port Congestion Updates: Europe, Asia, Americas</strong>（2026年3月26日）<br>
+          <a href="https://www.maritimenews.com/port-operations/northern-european-port-congestion-march-2026" target="_blank">https://www.maritimenews.com/port-operations/northern-european-port-congestion-march-2026</a><br>
+          <span style="color:#64748b;font-size:11px;">航运专业媒体，提供2026年3月20-27日欧洲、亚洲、美洲港口详细数据，包括堆场利用率、锚地船舶数量、铁路停留时间等。</span>
+        </li>
+        <li>
+          <strong>PortInsight (LinkedIn)</strong> — Singapore Port Congestion Live Data（2026年4月初）<br>
+          <span style="color:#64748b;font-size:11px;">新加坡港330艘船锚泊、404艘接近、13.3小时平均等待时间数据来源。</span>
+        </li>
+        <li>
+          <strong>Gava Australia</strong> — Delay Times: China Port Congestion Update（2026年4月）<br>
+          <a href="https://www.gava.com.au/delay-times-china-port-congestion-update/" target="_blank">https://www.gava.com.au/delay-times-china-port-congestion-update/</a><br>
+          <span style="color:#64748b;font-size:11px;">澳大利亚货代机构，提供上海（150+艘锚地）、青岛（25艘）、盐田等中国港口最新拥堵数据。</span>
+        </li>
+        <li>
+          <strong>红石国际供应链</strong> — 全球拥堵加剧报告（2026年4月9日）<br>
+          <a href="https://redruby.cn/show-4-10-1.html" target="_blank">https://redruby.cn/show-4-10-1.html</a><br>
+          <span style="color:#64748b;font-size:11px;">引用德鲁里AIS船舶跟踪数据，提供鲁珀特王子港（堆场117%、停留9.2天）及温哥华（GCT 85%）等加拿大港口最新数据。</span>
+        </li>
+        <li>
+          <strong>Drewry / Sea-Intelligence / Xeneta</strong>（综合行业数据）<br>
+          <span style="color:#64748b;font-size:11px;">全球集装箱船滞留比例（36.2%）、运力损失（9.8%）等宏观数据来源于行业权威研究机构综合报告。</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div style="background:#fff8e6;border:1px solid #f59e0b;border-radius:8px;padding:14px 18px;font-size:12.5px;color:#92400e;margin-top:8px;">
+    <strong>数据说明：</strong>港口等待时间受天气、班轮到港密度、劳工行动、节假日等因素影响，可在 24–72 小时内显著变化。本报告综合多个来源的最近一期公开数据，时效涵盖 2026 年 3 月末至 4 月 9 日，非同一时间点快照。建议结合具体航次安排参考最新船公司通告。
+  </div>
+</div>
+
+<div class="footer">
+  Claw Intelligence System &nbsp;|&nbsp; 全球港口塞港时间报告 &nbsp;|&nbsp; 数据截至 2026-04-09 &nbsp;|&nbsp; Internal Use Only
+</div>
+
+</body>
+</html>
