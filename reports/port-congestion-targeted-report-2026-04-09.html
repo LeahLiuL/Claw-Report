@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球指定港口塞港时间报告 - 2026年4月9日</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+        header { text-align: center; padding: 40px 0; border-bottom: 1px solid #30363d; margin-bottom: 30px; }
+        h1 { font-size: 2rem; color: #58a6ff; margin-bottom: 10px; }
+        .subtitle { color: #8b949e; }
+        .date { color: #7ee787; font-size: 0.9rem; margin-top: 10px; }
+        .summary { background: rgba(88,166,255,0.1); border: 1px solid #58a6ff; border-radius: 12px; padding: 25px; margin-bottom: 30px; }
+        .summary h2 { color: #58a6ff; margin-bottom: 15px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .summary-item { background: rgba(13,17,23,0.6); padding: 15px; border-radius: 8px; text-align: center; }
+        .summary-item .number { font-size: 1.8rem; font-weight: bold; }
+        .region-section { margin-bottom: 35px; background: #161b22; border-radius: 12px; overflow: hidden; border: 1px solid #30363d; }
+        .region-header { padding: 18px 25px; font-size: 1.2rem; font-weight: 600; }
+        .china { background: linear-gradient(90deg, #da3633, #b62318); }
+        .southeast-asia { background: linear-gradient(90deg, #238636, #1a7f37); }
+        .west-asia { background: linear-gradient(90deg, #8957e5, #6e40c9); }
+        .red-sea { background: linear-gradient(90deg, #d29922, #9e6a03); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { background: #21262d; padding: 14px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #30363d; }
+        td { padding: 12px; border-bottom: 1px solid #21262d; }
+        tr:hover { background: rgba(88,166,255,0.05); }
+        .port-code { font-family: monospace; color: #7ee787; }
+        .terminal { font-size: 0.8rem; color: #8b949e; }
+        .wait-time { font-weight: bold; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; }
+        .critical { background: #da3633; color: white; }
+        .high { background: #d29922; color: #1a1f2e; }
+        .medium { background: #8957e5; color: white; }
+        .low { background: #238636; color: white; }
+        .normal { background: #6e7681; color: white; }
+        .sources { background: #161b22; border-radius: 12px; padding: 25px; margin-top: 30px; border: 1px solid #30363d; }
+        .sources h3 { color: #58a6ff; margin-bottom: 15px; }
+        .alert { background: rgba(218,54,51,0.1); border-left: 4px solid #da3633; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .alert h4 { color: #f85149; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>全球指定港口塞港时间报告</h1>
+            <p class="subtitle">CULINES 重点关注港口实时拥堵状况</p>
+            <p class="date">数据更新时间：2026年4月9日 13:45</p>
+        </header>
+
+        <div class="summary">
+            <h2>关键指标概览</h2>
+            <div class="summary-grid">
+                <div class="summary-item"><div class="number" style="color:#da3633">4</div><div>高危港口 (>5天)</div></div>
+                <div class="summary-item"><div class="number" style="color:#d29922">5</div><div>中度拥堵 (3-5天)</div></div>
+                <div class="summary-item"><div class="number" style="color:#238636">26</div><div>轻度拥堵 (<3天)</div></div>
+                <div class="summary-item"><div class="number" style="color:#58a6ff">35</div><div>覆盖港口/码头</div></div>
+            </div>
+        </div>
+
+        <div class="alert">
+            <h4>重点关注</h4>
+            <p><strong>达曼港 (SADMM)</strong> 等待时间高达 <strong>20天</strong>，为当前所有监控港口中最严重。霍尔木兹海峡封锁持续影响中东及红海区域港口运营。</p>
+        </div>
+
+        <!-- 中国区域 -->
+        <div class="region-section">
+            <div class="region-header china">🇨🇳 中国区域 (China)</div>
+            <table>
+                <tr><th>港口代码</th><th>港口名称</th><th>码头/区域</th><th>等待时间</th><th>状态</th><th>数据来源</th></tr>
+                <tr><td class="port-code">CNSHA</td><td>上海</td><td>洋山/外高桥</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNNGB</td><td>宁波舟山</td><td>穿山/梅山</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNSHK</td><td>深圳蛇口</td><td>蛇口港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNYTN</td><td>深圳盐田</td><td>盐田港区</td><td><span class="wait-time low">0.5-1天</span></td><td>轻度拥堵</td><td>Hapag-Lloyd</td></tr>
+                <tr><td class="port-code">CNTAO</td><td>青岛</td><td>前湾港区</td><td><span class="wait-time low">2天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNNAS</td><td>南沙</td><td>南沙港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNGCT</td><td>广州</td><td>广州港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">CNSWA</td><td>汕头</td><td>汕头港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TWKEL</td><td>基隆</td><td>基隆港区</td><td><span class="wait-time critical">9天</span></td><td>严重拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TWKHH</td><td>高雄</td><td>高雄港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TWTPE</td><td>台北</td><td>台北港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TWTXG</td><td>台中</td><td>台中港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+            </table>
+        </div>
+
+        <!-- 东南亚区域 -->
+        <div class="region-section">
+            <div class="region-header southeast-asia">🌏 东南亚区域 (Southeast Asia)</div>
+            <table>
+                <tr><th>港口代码</th><th>港口名称</th><th>码头/区域</th><th>等待时间</th><th>状态</th><th>数据来源</th></tr>
+                <tr><td class="port-code">SGSIN</td><td>新加坡</td><td>PSA港区</td><td><span class="wait-time low">0.08天 (2小时)</span></td><td>运营正常</td><td>Portcast</td></tr>
+                <tr><td class="port-code">VNSGN</td><td>胡志明</td><td>卡莱港</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">VNVUT</td><td>头顿</td><td>盖梅-氏威</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">VNHPH</td><td>海防</td><td>海防港区</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">MYPKN</td><td>巴生北</td><td>Northport</td><td><span class="wait-time low">1.5天</span></td><td>轻度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">MYPKW</td><td>巴生西</td><td>Westport</td><td><span class="wait-time low">1.5天</span></td><td>轻度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">PHMNS</td><td>马尼拉南</td><td>MICT</td><td><span class="wait-time medium">2.25天</span></td><td>中度拥堵</td><td>Portcast</td></tr>
+                <tr><td class="port-code">PHMNN</td><td>马尼拉北</td><td>North Harbor</td><td><span class="wait-time medium">2-3天</span></td><td>中度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">THBKK</td><td>曼谷</td><td>曼谷港区</td><td><span class="wait-time low">0.5天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">THLCH</td><td>林查班</td><td>林查班港区</td><td><span class="wait-time low">0.24天 (6小时)</span></td><td>运营正常</td><td>Portcast</td></tr>
+                <tr><td class="port-code">THSCS</td><td>梭桃邑</td><td>Sattahip</td><td><span class="wait-time low">0.5天</span></td><td>轻度拥堵</td><td>估算</td></tr>
+                <tr><td class="port-code">THSSW</td><td>西萨查那莱</td><td>SSW</td><td><span class="wait-time low">0.5天</span></td><td>轻度拥堵</td><td>估算</td></tr>
+            </table>
+        </div>
+
+        <!-- 西亚/中东区域 -->
+        <div class="region-section">
+            <div class="region-header west-asia">🕌 西亚/中东区域 (West Asia/Middle East)</div>
+            <table>
+                <tr><th>港口代码</th><th>港口名称</th><th>码头/区域</th><th>等待时间</th><th>状态</th><th>数据来源</th></tr>
+                <tr><td class="port-code">AEJEA T1</td><td>杰贝阿里</td><td>DP World T1</td><td><span class="wait-time medium">1.78天</span></td><td>中度拥堵</td><td>Portcast</td></tr>
+                <tr><td class="port-code">AEJEA T3</td><td>杰贝阿里</td><td>DP World T3</td><td><span class="wait-time medium">1.78天</span></td><td>中度拥堵</td><td>Portcast</td></tr>
+                <tr><td class="port-code">INMUN T01</td><td>蒙德拉</td><td>AMCT-CT2</td><td><span class="wait-time medium">3.8天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">INMUN T02</td><td>蒙德拉</td><td>AMCT-T2</td><td><span class="wait-time medium">3.8天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">INMUN T04</td><td>蒙德拉</td><td>AICTPL CT3</td><td><span class="wait-time medium">3.8天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">INMUN T05</td><td>蒙德拉</td><td>AICTPL CT4</td><td><span class="wait-time medium">3.8天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">INMUN T06</td><td>蒙德拉</td><td>MICT</td><td><span class="wait-time medium">3.8天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">INNSA</td><td>那瓦舍瓦</td><td>NSICT/BMCT/GTI</td><td><span class="wait-time medium">3天</span></td><td>中度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">PKKHI</td><td>卡拉奇</td><td>KICT/PICT</td><td><span class="wait-time medium">4天</span></td><td>中度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">DJJIB</td><td>吉布提</td><td>DMP</td><td><span class="wait-time medium">3天</span></td><td>中度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">DJJIB SGTD</td><td>吉布提</td><td>SGTD</td><td><span class="wait-time medium">3天</span></td><td>中度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">SADMM</td><td>达曼</td><td>King Abdulaziz</td><td><span class="wait-time critical">20天</span></td><td>严重拥堵</td><td>GoComet</td></tr>
+            </table>
+        </div>
+
+        <!-- 红海/地中海区域 -->
+        <div class="region-section">
+            <div class="region-header red-sea">🔴 红海/地中海区域 (Red Sea/Mediterranean)</div>
+            <table>
+                <tr><th>港口代码</th><th>港口名称</th><th>码头/区域</th><th>等待时间</th><th>状态</th><th>数据来源</th></tr>
+                <tr><td class="port-code">YEADE</td><td>亚丁</td><td>ACT</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">SAJED RSGT</td><td>吉达</td><td>RSGT</td><td><span class="wait-time low">3.5天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">SAJED DPW</td><td>吉达</td><td>DP World</td><td><span class="wait-time low">3.5天</span></td><td>中度拥堵</td><td>Kuehne+Nagel</td></tr>
+                <tr><td class="port-code">EGALY</td><td>亚历山大</td><td>ACCH</td><td><span class="wait-time low">1-2天</span></td><td>轻度拥堵</td><td>估算</td></tr>
+                <tr><td class="port-code">EGSOK</td><td>苏伊士</td><td>Sokhna</td><td><span class="wait-time low">1-2天</span></td><td>轻度拥堵</td><td>估算</td></tr>
+                <tr><td class="port-code">SDPZU</td><td>苏丹港</td><td>Port Sudan</td><td><span class="wait-time high">5-7天</span></td><td>高度拥堵</td><td>估算</td></tr>
+                <tr><td class="port-code">TRIST</td><td>伊斯坦布尔</td><td>Ambarli</td><td><span class="wait-time low">2天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TRMER</td><td>梅尔辛</td><td>Mersin</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TRALI</td><td>阿里亚加</td><td>Aliaga</td><td><span class="wait-time low">1天</span></td><td>轻度拥堵</td><td>GoComet</td></tr>
+                <tr><td class="port-code">TRIZT</td><td>伊斯肯德伦</td><td>Iskenderun</td><td><span class="wait-time low">0.12天 (3小时)</span></td><td>运营正常</td><td>Portcast</td></tr>
+                <tr><td class="port-code">SOBBO</td><td>柏培拉</td><td>Berbera</td><td><span class="wait-time low">1-2天</span></td><td>轻度拥堵</td><td>估算</td></tr>
+            </table>
+        </div>
+
+        <div class="sources">
+            <h3>数据来源</h3>
+            <p>1. GoComet Port Congestion Tool - 实时港口拥堵追踪 (gocomet.com)</p>
+            <p>2. Portcast Port Congestion Tracker - 船舶等待时间分析 (portcast.io)</p>
+            <p>3. Kuehne+Nagel Port Operational Updates - 每周港口运营更新 (mykn.kuehne-nagel.com)</p>
+            <p>4. Hapag-Lloyd Operational Updates - 航线运营更新 (hapag-lloyd.com)</p>
+            <p>5. Everstream Analytics Port Congestion Report - 2026年4月1日</p>
+            <p style="margin-top:15px;color:#8b949e;font-size:0.85rem;">注：数据更新时间为2026年4月9日，部分港口数据可能因实时变化而有所不同。建议结合船公司最新通知进行决策。</p>
+        </div>
+    </div>
+</body>
+</html>
