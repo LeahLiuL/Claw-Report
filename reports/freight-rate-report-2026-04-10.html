@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱运价分析报告 2026-04-10</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #0a2a4a;
+    --secondary: #0d4f6c;
+    --accent: #00c9b1;
+    --accent2: #f59e0b;
+    --accent3: #ef4444;
+    --accent4: #10b981;
+    --light-bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--light-bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  /* ===== TICKER ===== */
+  .ticker-wrap {
+    background: var(--primary);
+    overflow: hidden;
+    padding: 0;
+    border-bottom: 2px solid var(--accent);
+  }
+  .ticker-label {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--primary);
+    font-weight: 700;
+    padding: 8px 16px;
+    font-size: 12px;
+    vertical-align: middle;
+    position: relative;
+    z-index: 2;
+  }
+  .ticker-content {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 55s linear infinite;
+    color: #e2f8ff;
+    font-size: 13px;
+    padding: 8px 0;
+    vertical-align: middle;
+  }
+  .ticker-content span { margin: 0 32px; }
+  .up { color: #4ade80; }
+  .down { color: #f87171; }
+  .neutral { color: #fbbf24; }
+  @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  /* ===== HEADER ===== */
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 60%, #0a6b8a 100%);
+    color: white;
+    padding: 32px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; top: -50%; right: -10%;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(0,201,177,0.08);
+  }
+  header::after {
+    content: '';
+    position: absolute; bottom: -60%; left: 20%;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: rgba(0,201,177,0.05);
+  }
+  .header-content { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header-left h1 { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  .header-left h2 { font-size: 16px; font-weight: 400; margin-top: 6px; opacity: 0.8; }
+  .header-badge {
+    background: rgba(0,201,177,0.15);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 20px;
+    text-align: right;
+  }
+  .header-badge .date { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .header-badge .label { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .header-meta { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+  .header-meta-item { text-align: center; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 10px 18px; }
+  .header-meta-item .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .header-meta-item .lbl { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  /* ===== LAYOUT ===== */
+  .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+  /* ===== SECTION TITLES ===== */
+  .section { margin-bottom: 36px; }
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-title .icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .section-title h3 { font-size: 18px; font-weight: 700; color: var(--primary); }
+  .section-title .tag {
+    margin-left: auto;
+    font-size: 11px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px;
+  }
+  /* ===== KPI CARDS ===== */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .kpi-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .kpi-card .route { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-card .price { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .kpi-card .unit { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+  .kpi-card .change { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; font-weight: 600; }
+  .kpi-card .change.up { color: #16a34a; }
+  .kpi-card .change.down { color: #dc2626; }
+  .kpi-card .change.flat { color: #6b7280; }
+  .kpi-card .bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.green .bar { background: linear-gradient(90deg, #10b981, #34d399); }
+  .kpi-card.red .bar { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .kpi-card.blue .bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .kpi-card.orange .bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .kpi-card.purple .bar { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .kpi-card .tag-badge {
+    position: absolute; top: 12px; right: 12px;
+    font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 700;
+  }
+  /* ===== ALERT BOX ===== */
+  .alert {
+    border-radius: 10px; padding: 14px 18px;
+    margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .alert.red { background: #fef2f2; border-left: 4px solid #ef4444; }
+  .alert.yellow { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .alert.green { background: #f0fdf4; border-left: 4px solid #10b981; }
+  .alert.blue { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .alert-text { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  /* ===== TABLE ===== */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    background: var(--primary); color: white;
+    padding: 10px 14px; text-align: left;
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:hover td { background: #f8fafc; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .pill.up { background: #dcfce7; color: #15803d; }
+  .pill.down { background: #fee2e2; color: #b91c1c; }
+  .pill.flat { background: #f1f5f9; color: #475569; }
+  .pill.hot { background: #fef3c7; color: #92400e; }
+  /* ===== CHART ===== */
+  .chart-wrap { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+  .chart-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; }
+  .bar-label { font-size: 12px; color: var(--text-muted); width: 150px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; background: #e2e8f0; border-radius: 6px; height: 24px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; font-size: 12px; font-weight: 700; color: white; transition: width 1s ease; }
+  .bar-value { font-size: 12px; font-weight: 700; width: 100px; text-align: left; flex-shrink: 0; }
+  /* ===== TWO COLUMN ===== */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  @media(max-width: 900px) { .two-col, .three-col { grid-template-columns: 1fr; } }
+  /* ===== MARKET CARD ===== */
+  .market-card {
+    background: var(--card-bg); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .market-card h4 { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  /* ===== OUTLOOK ===== */
+  .outlook-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .outlook-card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+  .outlook-card.bullish { border-top: 3px solid #10b981; }
+  .outlook-card.bearish { border-top: 3px solid #ef4444; }
+  .outlook-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .outlook-card.bullish h4 { color: #059669; }
+  .outlook-card.bearish h4 { color: #dc2626; }
+  .factor-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .factor-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; line-height: 1.5; padding: 8px 12px;
+    border-radius: 8px;
+  }
+  .outlook-card.bullish .factor-list li { background: #f0fdf4; }
+  .outlook-card.bearish .factor-list li { background: #fef2f2; }
+  .factor-list li .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .bullish .dot { background: #10b981; }
+  .bearish .dot { background: #ef4444; }
+  /* ===== FOOTER ===== */
+  footer { background: var(--primary); color: rgba(255,255,255,0.6); text-align: center; padding: 20px; font-size: 12px; }
+  footer span { color: var(--accent); }
+  /* ===== MAP VISUAL ===== */
+  .route-map { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .route-header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 14px 20px; font-size: 14px; font-weight: 700; }
+  .route-body { padding: 16px; }
+  .route-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .route-item:last-child { border-bottom: none; }
+  .route-from { font-size: 12px; font-weight: 700; color: var(--primary); min-width: 80px; }
+  .route-arrow { color: var(--text-muted); }
+  .route-to { font-size: 12px; color: var(--text); flex: 1; }
+  .route-price { font-size: 15px; font-weight: 700; color: var(--primary); min-width: 120px; text-align: right; }
+  .route-change { min-width: 80px; text-align: right; }
+  /* ===== COMPANY CARD ===== */
+  .company-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .company-card { background: var(--card-bg); border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
+  .company-name { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .company-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .company-gri { font-size: 12px; color: var(--text-muted); line-height: 1.8; }
+  .company-gri strong { color: var(--text); }
+  /* ===== SUPPLY DEMAND ===== */
+  .supply-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media(max-width: 700px) { .supply-grid { grid-template-columns: 1fr 1fr; } }
+  .supply-card { background: var(--card-bg); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+  .supply-val { font-size: 26px; font-weight: 700; color: var(--primary); }
+  .supply-lbl { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .supply-sub { font-size: 11px; margin-top: 6px; padding: 3px 8px; border-radius: 20px; display: inline-block; font-weight: 600; }
+  /* ===== TIMELINE ===== */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: 20px; }
+  .timeline-dot { position: absolute; left: -24px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid white; box-shadow: 0 0 0 2px var(--accent); }
+  .timeline-date { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .timeline-title { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+  .timeline-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  /* ===== TABLE WRAPPER ===== */
+  .table-wrap { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  /* ===== WARNING STRIP ===== */
+  .warn-strip { background: linear-gradient(90deg, #7f1d1d, #991b1b); color: white; padding: 10px 20px; text-align: center; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+  .warn-strip span { color: #fca5a5; }
+  /* ===== CEASEFIRE STRIP ===== */
+  .ceasefire-strip { background: linear-gradient(90deg, #065f46, #047857); color: white; padding: 10px 20px; text-align: center; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+  .ceasefire-strip span { color: #6ee7b7; }
+</style>
+</head>
+<body>
+
+<!-- TICKER BAR -->
+<div class="ticker-wrap">
+  <span class="ticker-label">实时运价</span>
+  <span class="ticker-content">
+    <span>上海→欧洲基本港 <b class="down">1,650</b> USD/TEU <span class="down">▼-3.11% 欧线受压</span></span>
+    <span>上海→地中海基本港 <b class="down">2,684</b> USD/TEU <span class="down">▼-2.89% 地中海回调</span></span>
+    <span>上海→美西基本港 <b class="up">2,359</b> USD/FEU <span class="up">▲+11%(周) FBX美西强劲</span></span>
+    <span>上海→美东基本港 <b class="up">3,354</b> USD/FEU <span class="up">▲+5%(周) FBX美东续涨</span></span>
+    <span>上海→波斯湾（迪拜） <b class="up">3,977</b> USD/TEU <span class="up">▲+6.68% 五连涨</span></span>
+    <span>上海→东南亚 <b class="up">515</b> USD/TEU <span class="up">▲+2.9% 近洋稳涨</span></span>
+    <span>SCFI综合指数 <b>1,854.96</b> 点 <span class="up">▲+1.54% 两连升</span></span>
+    <span>WCI世界综合运价 <b>2,287</b> USD/FEU <span class="neutral">⇌本周持稳</span></span>
+    <span>霍尔木兹停火：4月7日美伊两周临时停火 船公司审慎观望 暂不恢复通行</span>
+    <span>美中关税战：美对华145% / 中对美125% 跨太平洋货量受抑 中国来源占比降至30.2%</span>
+    <span>C.H. Robinson报告（4月9日）：4月海运表面稳定 实际网络持续收紧</span>
+    <span>赫伯罗特：若停火维持需6-8周才能恢复正常运营 每周额外成本5000-6000万美元</span>
+    <span>达飞轮船：已获得伊朗安全通行保证 三艘船舶向霍尔木兹方向移动</span>
+    <span>马士基：暂不改变现有航线安排 安全第一 持续评估</span>
+    <span>上海→欧洲基本港 <b class="down">1,650</b> USD/TEU <span class="down">▼-3.11%</span></span>
+    <span>上海→美西基本港 <b class="up">2,359</b> USD/FEU <span class="up">▲+11%(周)</span></span>
+    <span>上海→波斯湾（迪拜） <b class="up">3,977</b> USD/TEU <span class="up">▲+6.68%</span></span>
+    <span>SCFI综合指数 <b>1,854.96</b> 点 <span class="up">▲+1.54%</span></span>
+    <span>3月美国集装箱进口量：235万TEU 环比+12.4% 同比-1.1% 来自中国占比降至30.2%</span>
+    <span>新加坡燃油库存：约一个月用量 供应趋紧</span>
+  </span>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-content">
+    <div class="header-left">
+      <h1>集装箱运价分析报告</h1>
+      <h2>Container Freight Rate Analysis Report · 数据来源：SSE/SCFI/FBX/Drewry/WCI · 2026-04-10</h2>
+    </div>
+    <div class="header-badge">
+      <div class="date">2026-04-10</div>
+      <div class="label">星期五 / 每日内参</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="header-meta-item">
+      <div class="val">1,854.96</div>
+      <div class="lbl">SCFI综合指数（4月3日）</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">2,287</div>
+      <div class="lbl">WCI综合指数 USD/FEU</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">+1.54%</div>
+      <div class="lbl">SCFI周涨幅（两连升）</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">+24.6%</div>
+      <div class="lbl">SCFI近一月涨幅</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">停火第3天</div>
+      <div class="lbl">美伊两周临时停火（4月7日起）</div>
+    </div>
+    <div class="header-meta-item">
+      <div class="val">145% vs 125%</div>
+      <div class="lbl">美对华/中对美关税</div>
+    </div>
+  </div>
+</header>
+
+<!-- 停火警示条 -->
+<div class="ceasefire-strip">
+  [停火新进展 · 4月10日]&nbsp;&nbsp;<span>4月7日美伊达成两周临时停火 — 集运市场审慎乐观 船公司尚未恢复霍尔木兹通行 恢复正常运营预计需6-8周</span>
+</div>
+
+<!-- 关税警示条 -->
+<div class="warn-strip">
+  [关税战升级警报]&nbsp;&nbsp;<span>美对华关税145%（4月9日生效） / 中对美报复关税125% — 跨太平洋即期运价承压 部分货主加速前拉货源</span>
+</div>
+
+<div class="container">
+
+<!-- ===== SECTION 1: 警示横幅 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#fef3c7">&#9888;&#65039;</div>
+    <h3>重大市场事件概览</h3>
+    <span class="tag" style="background:#fef3c7;color:#92400e">双重冲击持续</span>
+  </div>
+
+  <div class="alert yellow">
+    <div class="alert-icon">&#127988;</div>
+    <div>
+      <div class="alert-title">霍尔木兹停火 — 船公司审慎观望，短期不恢复通行</div>
+      <div class="alert-text">
+        4月7日，美国与伊朗在巴基斯坦斡旋下达成两周临时停火协议，以开放霍尔木兹海峡为条件。截至4月10日（停火第3天）：<br>
+        <strong>马士基</strong>：欢迎停火，但暂不改变现有服务安排，信息不足，海员/船舶安全是最高优先级；<br>
+        <strong>赫伯罗特</strong>：局势"仍不稳定"，若停火维持需 <strong>6-8周</strong> 恢复正常网络，危机每周额外成本5000-6000万美元；<br>
+        <strong>达飞轮船</strong>：已据报获得伊朗安全通行保证，三艘船舶已向海峡方向移动，为首批试探通行的欧洲船公司；<br>
+        <strong>Xeneta分析</strong>：停火不会使集运立即恢复——每周25万TEU运力已转移，印度/阿联酋港口积压清理需数周，通行"收费站"不确定性依然存在。
+      </div>
+    </div>
+  </div>
+
+  <div class="alert red">
+    <div class="alert-icon">&#128686;</div>
+    <div>
+      <div class="alert-title">美中关税战全面升级 — 跨太平洋运价短期承压</div>
+      <div class="alert-text">
+        美国对华关税4月9日升至 <strong>145%</strong>（叠加10%基础关税+35%附加税），中国对美报复关税达 <strong>125%</strong>。
+        3月美国集装箱进口数据（Descartes，4月10日发布）：中国来源进口量 711,652 TEU，同比下降 <strong>6.7%</strong>，占美国总进口比例降至 <strong>30.2%</strong>（2024年7月历史峰值为76%占比水平）。
+        太平洋航线部分货主加速前拉，推动FBX美西周涨幅高达 <strong>+11%</strong>；但后续若货量下滑，运价上行动能将受限。
+        美国最高法院裁决后临时实施第122条关税，有效期至2026年7月下旬，市场不确定性居高不下。
+      </div>
+    </div>
+  </div>
+
+  <div class="alert blue">
+    <div class="alert-icon">&#128203;</div>
+    <div>
+      <div class="alert-title">C.H. Robinson 4月海运分析（4月9日发布）：表面稳定，底层收紧</div>
+      <div class="alert-text">
+        核心判断：运价相对平稳，需求温和，但 <strong>绕行（好望角）+高燃油成本+承运人运力管理</strong> 三重因素叠加，全球航运网络灵活性持续降低。
+        亚欧、亚美东航线运输时间延长约10-14天；约8-10%全球集装箱运力（约150艘）因波斯湾延误退出市场。
+        4月空白航次延续（东西向主要航线约15%），舱位可用性不均，部分航次会比预期更早满舱。
+        承运人调价频率提升、生效期缩短，总到岸成本可变性增加。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 2: 主要运价指数 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#dbeafe">&#128200;</div>
+    <h3>主要运价指数概览</h3>
+    <span class="tag" style="background:#dbeafe;color:#1d4ed8">最新数据 · 4月3-9日</span>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:20px">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>指数名称</th>
+          <th>最新点位 / 水平</th>
+          <th>周环比</th>
+          <th>月环比</th>
+          <th>同比去年</th>
+          <th>数据日期</th>
+          <th>趋势</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>SCFI 上海出口集装箱综合指数</strong></td>
+          <td><strong>1,854.96 点</strong></td>
+          <td><span class="pill up">▲ +1.54%</span></td>
+          <td><span class="pill up">▲ +24.56%</span></td>
+          <td><span class="pill up">▲ +33.18%</span></td>
+          <td>2026-04-03</td>
+          <td><span class="pill up">两连升</span></td>
+        </tr>
+        <tr>
+          <td><strong>CCFI 中国出口集装箱综合指数</strong></td>
+          <td><strong>季节性上行阶段</strong></td>
+          <td><span class="pill up">▲ 北美/欧洲均同比上涨</span></td>
+          <td>—</td>
+          <td><span class="pill up">▲ 欧洲涨幅显著</span></td>
+          <td>2026-04-03</td>
+          <td><span class="pill up">即期市场5月季节上行</span></td>
+        </tr>
+        <tr>
+          <td><strong>WCI Drewry 世界集装箱运价综合指数</strong></td>
+          <td><strong>2,287 USD/FEU</strong></td>
+          <td><span class="pill flat">⇌ 持稳</span></td>
+          <td>—</td>
+          <td>—</td>
+          <td>2026-04-07周</td>
+          <td><span class="pill flat">高位震荡</span></td>
+        </tr>
+        <tr>
+          <td><strong>FBX Freightos Baltic综合指数</strong></td>
+          <td><strong>运价整体抬升</strong></td>
+          <td><span class="pill up">▲ 多数航线走强</span></td>
+          <td>—</td>
+          <td>▲ 美西+8% / 欧线+22%</td>
+          <td>2026-04-07周</td>
+          <td><span class="pill up">美线强势 欧线企稳</span></td>
+        </tr>
+        <tr>
+          <td><strong>TDII 天津沿海集装箱运价指数</strong></td>
+          <td><strong>1,540.10 点</strong></td>
+          <td><span class="pill up">▲ +0.43%</span></td>
+          <td>—</td>
+          <td>—</td>
+          <td>2026-04-03</td>
+          <td><span class="pill up">沿海市场温和上涨</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- WCI各航线 -->
+  <div class="two-col">
+    <div class="market-card">
+      <h4>&#127758; WCI 各主要航线（Drewry，4月7日周）</h4>
+      <table class="data-table">
+        <thead><tr><th>航线</th><th>运价</th><th>变动</th></tr></thead>
+        <tbody>
+          <tr><td>上海 → 鹿特丹</td><td><strong>2,543 USD/FEU</strong></td><td><span class="pill flat">持稳</span></td></tr>
+          <tr><td>上海 → 洛杉矶</td><td><strong>2,421 USD/FEU</strong></td><td><span class="pill up">▲ 上涨</span></td></tr>
+          <tr><td>上海 → 纽约</td><td><strong>3,434 USD/FEU</strong></td><td><span class="pill up">▲ +1%</span></td></tr>
+          <tr><td>鹿特丹 → 上海</td><td>—</td><td><span class="pill flat">持稳</span></td></tr>
+          <tr><td>鹿特丹 → 纽约</td><td>—</td><td><span class="pill flat">持稳</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="market-card">
+      <h4>&#128200; FBX 周变化亮点（Freightos，4月7日周）</h4>
+      <table class="data-table">
+        <thead><tr><th>航线</th><th>当前参考</th><th>周变化</th></tr></thead>
+        <tbody>
+          <tr><td>亚洲 → 美西 (FBX01)</td><td><strong>&gt;2,400 USD/FEU</strong></td><td><span class="pill up">▲ +11%</span></td></tr>
+          <tr><td>亚洲 → 美东 (FBX03)</td><td>—</td><td><span class="pill up">▲ +5%</span></td></tr>
+          <tr><td>亚洲 → 北欧 (FBX11)</td><td><strong>~2,900 USD/FEU</strong></td><td><span class="pill up">▲ +2%</span></td></tr>
+          <tr><td>亚洲 → 地中海 (FBX13)</td><td><strong>~3,800 USD/FEU</strong></td><td><span class="pill down">▼ -2%</span></td></tr>
+          <tr><td>亚洲 → 美西（近一月）</td><td>比2月底涨约+$700</td><td><span class="pill up">▲ 近40%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 3: SCFI各航线明细 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#dcfce7">&#128680;</div>
+    <h3>SCFI 各航线运价明细</h3>
+    <span class="tag" style="background:#dcfce7;color:#15803d">上海航运交易所 · 4月3日</span>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card red">
+      <div class="tag-badge" style="background:#fee2e2;color:#b91c1c">欧洲回调</div>
+      <div class="route">上海 → 欧洲基本港</div>
+      <div class="price">1,650 <span class="unit">USD/TEU</span></div>
+      <div class="change down">▼ -3.11% · 周跌 · 绕行成本转嫁减弱</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card red">
+      <div class="tag-badge" style="background:#fee2e2;color:#b91c1c">地中海回调</div>
+      <div class="route">上海 → 地中海基本港</div>
+      <div class="price">2,684 <span class="unit">USD/TEU</span></div>
+      <div class="change down">▼ -2.89% · 周跌 · 连续回调</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="tag-badge" style="background:#dcfce7;color:#15803d">美西强势</div>
+      <div class="route">上海 → 美西基本港</div>
+      <div class="price">2,359 <span class="unit">USD/FEU</span></div>
+      <div class="change up">▲ +0.3% (SCFI) / +11% (FBX周) · 前拉提振</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="tag-badge" style="background:#dcfce7;color:#15803d">美东续涨</div>
+      <div class="route">上海 → 美东基本港</div>
+      <div class="price">3,354 <span class="unit">USD/FEU</span></div>
+      <div class="change up">▲ +2.76% (SCFI) / +5% (FBX周) · 货量转移效应</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="tag-badge" style="background:#fef3c7;color:#92400e">五连涨</div>
+      <div class="route">上海 → 波斯湾 (迪拜)</div>
+      <div class="price">3,977 <span class="unit">USD/TEU</span></div>
+      <div class="change up">▲ +6.68% · 停火仍不通行 · 继续五连涨</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="route">上海 → 南美东 (桑托斯)</div>
+      <div class="price">3,977 <span class="unit">USD/TEU</span></div>
+      <div class="change up">▲ 续涨 · 高位运行</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="route">上海 → 东南亚 (新加坡)</div>
+      <div class="price">515 <span class="unit">USD/TEU</span></div>
+      <div class="change up">▲ +15 USD (+2.99%) · 近洋持续上涨</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card red">
+      <div class="route">上海 → 东南亚（FEU近洋）</div>
+      <div class="price">162 <span class="unit">USD/TEU</span></div>
+      <div class="change down">▼ -1 USD (-0.61%) · 基本持稳</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="route">上海 → 日本关东</div>
+      <div class="price">316 <span class="unit">USD/TEU</span></div>
+      <div class="change flat">⇌ 持平 · 日本市场稳定</div>
+      <div class="bar"></div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="route">上海 → 日本关西</div>
+      <div class="price">318 <span class="unit">USD/TEU</span></div>
+      <div class="change flat">⇌ 持平 · 日本市场稳定</div>
+      <div class="bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 4: 航线运价条形图 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#f3e8ff">&#128293;</div>
+    <h3>各航线运价水平对比</h3>
+    <span class="tag" style="background:#f3e8ff;color:#7e22ce">SCFI数据 · 4月3日 USD/TEU or FEU</span>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">主要航线每箱运价（美元，SCFI）</div>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">波斯湾 (迪拜)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24)">3,977</div></div>
+        <div class="bar-value" style="color:#b45309">3,977 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">南美东 (桑托斯)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24)">3,977</div></div>
+        <div class="bar-value" style="color:#b45309">3,977 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">美东基本港</div>
+        <div class="bar-track"><div class="bar-fill" style="width:84%;background:linear-gradient(90deg,#10b981,#34d399)">3,354</div></div>
+        <div class="bar-value" style="color:#059669">3,354 USD/FEU</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">地中海基本港</div>
+        <div class="bar-track"><div class="bar-fill" style="width:67%;background:linear-gradient(90deg,#ef4444,#f87171)">2,684</div></div>
+        <div class="bar-value" style="color:#dc2626">2,684 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">美西基本港</div>
+        <div class="bar-track"><div class="bar-fill" style="width:59%;background:linear-gradient(90deg,#10b981,#34d399)">2,359</div></div>
+        <div class="bar-value" style="color:#059669">2,359 USD/FEU</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">欧洲基本港</div>
+        <div class="bar-track"><div class="bar-fill" style="width:41%;background:linear-gradient(90deg,#ef4444,#f87171)">1,650</div></div>
+        <div class="bar-value" style="color:#dc2626">1,650 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">东南亚 (新加坡)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:13%;background:linear-gradient(90deg,#3b82f6,#60a5fa)">515</div></div>
+        <div class="bar-value" style="color:#2563eb">515 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">日本关西</div>
+        <div class="bar-track"><div class="bar-fill" style="width:8%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)">318</div></div>
+        <div class="bar-value" style="color:#7c3aed">318 USD</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">日本关东</div>
+        <div class="bar-track"><div class="bar-fill" style="width:8%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)">316</div></div>
+        <div class="bar-value" style="color:#7c3aed">316 USD</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 5: 霍尔木兹停火深度分析 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#fef3c7">&#127758;</div>
+    <h3>霍尔木兹停火深度分析</h3>
+    <span class="tag" style="background:#fef3c7;color:#92400e">4月10日最新 · 停火第3天</span>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="market-card" style="margin-bottom:16px">
+        <h4>&#9200; 停火时间线（2026年3月-4月）</h4>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-02-末</div>
+            <div class="timeline-title">伊朗局势急剧升级 · 霍尔木兹通行受限</div>
+            <div class="timeline-text">主要集运班轮公司开始绕行好望角，约25万TEU/周运力被转移，全球航运网络进入应急状态。</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-03-09至25</div>
+            <div class="timeline-title">五大船公司陆续宣布紧急燃油附加费（EBS）</div>
+            <div class="timeline-text">MSC、马士基、达飞、ONE、赫伯罗特相继公布EBS，有效期均较以往更短，调价频率提升。</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-04-06</div>
+            <div class="timeline-title">伊朗拒绝第一份停火方案</div>
+            <div class="timeline-text">美伊谈判出现波折，市场不确定性推高波斯湾航线运价，当日SCFI波斯湾线创新高。</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-04-07 [重大事件]</div>
+            <div class="timeline-title">美伊达成两周临时停火协议</div>
+            <div class="timeline-text">在巴基斯坦斡旋下，双方达成两周临时停火，条件为霍尔木兹海峡"完全、立即、安全开放"。</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-04-08</div>
+            <div class="timeline-title">达飞三艘船向海峡移动 · 马士基/赫伯罗特观望</div>
+            <div class="timeline-text">达飞据报获得伊朗安全通行保证，成为首批试探通行的欧洲船公司；马士基、赫伯罗特持谨慎态度。</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">2026-04-10 [今日]</div>
+            <div class="timeline-title">停火第3天 · 船公司仍未大规模恢复通行</div>
+            <div class="timeline-text">大多数船公司维持好望角绕行，观望停火是否稳固。赫伯罗特表示若停火维持，需6-8周恢复正常运营。海峡通行规则（如收费机制）仍不明朗。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="market-card" style="margin-bottom:16px">
+        <h4>&#128201; 危机对运价与市场的量化影响</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="supply-card">
+            <div class="supply-val" style="color:#ef4444">25万</div>
+            <div class="supply-lbl">每周TEU运力被转移</div>
+            <div class="supply-sub" style="background:#fee2e2;color:#b91c1c">约8-10%全球运力</div>
+          </div>
+          <div class="supply-card">
+            <div class="supply-val" style="color:#f59e0b">150艘</div>
+            <div class="supply-lbl">船舶受波斯湾影响退出</div>
+            <div class="supply-sub" style="background:#fef3c7;color:#92400e">运力暂时减少</div>
+          </div>
+          <div class="supply-card">
+            <div class="supply-val" style="color:#ef4444">$5500万</div>
+            <div class="supply-lbl">赫伯罗特每周额外成本</div>
+            <div class="supply-sub" style="background:#fee2e2;color:#b91c1c">EBS转嫁货主</div>
+          </div>
+          <div class="supply-card">
+            <div class="supply-val" style="color:#10b981">6-8周</div>
+            <div class="supply-lbl">停火后恢复正常需时</div>
+            <div class="supply-sub" style="background:#dcfce7;color:#15803d">乐观情景下</div>
+          </div>
+        </div>
+        <div class="alert green">
+          <div class="alert-icon">&#128218;</div>
+          <div>
+            <div class="alert-title">Xeneta：即便停火，运价不会骤降</div>
+            <div class="alert-text">
+              替代航线的运营惯性、船公司已发布附加费的收入保障需求、港口积压清理工期（印度蒙德拉/Nhava Sheva、阿联酋豪尔费坎），以及通行收费机制不确定性，共同决定即便停火稳固，集运市场向正常化回归也将是 <strong>缓慢且渐进</strong> 的过程。
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="market-card">
+        <h4>&#127966; 替代港口压力状况</h4>
+        <table class="data-table">
+          <thead><tr><th>港口/地区</th><th>状态</th><th>影响</th></tr></thead>
+          <tbody>
+            <tr><td>印度 蒙德拉港</td><td><span class="pill down">严重积压</span></td><td>船期延误，设备短缺</td></tr>
+            <tr><td>印度 Nhava Sheva</td><td><span class="pill down">严重积压</span></td><td>需数周清理</td></tr>
+            <tr><td>阿联酋 豪尔费坎</td><td><span class="pill hot">高负荷运转</span></td><td>成为中东唯一替代枢纽</td></tr>
+            <tr><td>新加坡</td><td><span class="pill hot">燃油库存约1月</span></td><td>供应趋紧，或触发减速</td></tr>
+            <tr><td>美西 洛杉矶/长滩</td><td><span class="pill up">延误改善</span></td><td>货量从USEC转移</td></tr>
+            <tr><td>美东 纽约/萨凡纳</td><td><span class="pill down">延误略增</span></td><td>好望角时间延长效应</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 6: 各船司附加费通知 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#f0fdf4">&#128203;</div>
+    <h3>各船司GRI / EBS / FAK / PSS 附加费通知</h3>
+    <span class="tag" style="background:#f0fdf4;color:#166534">4月最新公告汇总</span>
+  </div>
+
+  <div class="company-grid">
+    <div class="company-card">
+      <div class="company-name">
+        马士基 Maersk
+        <span class="company-tag" style="background:#dbeafe;color:#1d4ed8">4月最新</span>
+      </div>
+      <div class="company-gri">
+        <strong>EBS（紧急燃油附加费）：</strong>4月9日起生效，持续评估中<br>
+        <strong>霍尔木兹通行：</strong>暂不改变航线，安全第一<br>
+        <strong>定价策略：</strong>调价频率提升，生效期缩短<br>
+        <strong>客户建议：</strong>密切关注服务公告，预留缓冲时间<br>
+        <strong>来源：</strong>Maersk官网 2026-04-08
+      </div>
+    </div>
+    <div class="company-card">
+      <div class="company-name">
+        赫伯罗特 Hapag-Lloyd
+        <span class="company-tag" style="background:#fee2e2;color:#b91c1c">高成本警示</span>
+      </div>
+      <div class="company-gri">
+        <strong>EBS已生效：</strong>3月中旬公告，持续收取<br>
+        <strong>停火响应：</strong>"局势仍不稳定"，谨慎观望<br>
+        <strong>恢复时间表：</strong>停火若维持，需<strong>6-8周</strong>恢复正常网络<br>
+        <strong>额外成本：</strong>每周5000-6000万美元<br>
+        <strong>波斯湾开放：</strong>可能逐步开放上波斯湾订舱（数天内）<br>
+        <strong>来源：</strong>WWD/Sourcing Journal 2026-04-08
+      </div>
+    </div>
+    <div class="company-card">
+      <div class="company-name">
+        达飞轮船 CMA CGM
+        <span class="company-tag" style="background:#dcfce7;color:#15803d">首批试探通行</span>
+      </div>
+      <div class="company-gri">
+        <strong>EBS已生效：</strong>3月下旬公告，覆盖多条航线<br>
+        <strong>停火响应：</strong>据报获伊朗安全通行保证，三艘船向海峡移动<br>
+        <strong>PSS旺季附加费：</strong>3月27日起，中国→西非/东非/马尔代夫等航线<br>
+        <strong>中东线开放：</strong>为欧洲主要船公司中首批尝试通行者<br>
+        <strong>来源：</strong>WWD 2026-04-08 / 达飞公告 2026-04-07
+      </div>
+    </div>
+    <div class="company-card">
+      <div class="company-name">
+        地中海航运 MSC
+        <span class="company-tag" style="background:#fef3c7;color:#92400e">持续高附加费</span>
+      </div>
+      <div class="company-gri">
+        <strong>EBS：</strong>3月中旬起生效，幅度较大<br>
+        <strong>GRI：</strong>3月1日起全线调涨，$800-1,200/FEU（中国→美国）<br>
+        <strong>霍尔木兹：</strong>维持绕行，安全第一<br>
+        <strong>运力管理：</strong>持续空白航次，舱位供应不稳定<br>
+        <strong>来源：</strong>YQN.com / MSC公告汇总
+      </div>
+    </div>
+    <div class="company-card">
+      <div class="company-name">
+        ONE
+        <span class="company-tag" style="background:#dbeafe;color:#1d4ed8">美线积极</span>
+      </div>
+      <div class="company-gri">
+        <strong>EBS：</strong>3月下旬公告生效<br>
+        <strong>GRI（中国→美国）：</strong>3月起 $800-1,000/FEU<br>
+        <strong>美线策略：</strong>关税前拉货效应，积极承接美线货量<br>
+        <strong>欧线：</strong>配合好望角绕行，运输时间+10-14天<br>
+        <strong>来源：</strong>行业报告综合
+      </div>
+    </div>
+    <div class="company-card">
+      <div class="company-name">
+        长荣海运 Evergreen
+        <span class="company-tag" style="background:#f3e8ff;color:#7e22ce">亚洲线强势</span>
+      </div>
+      <div class="company-gri">
+        <strong>波斯湾/中东线：</strong>受霍尔木兹影响，绕行运力紧张<br>
+        <strong>美线：</strong>4月GRI持续推涨，维持高位<br>
+        <strong>亚洲近洋线：</strong>东南亚/日本线稳定小涨<br>
+        <strong>附加费：</strong>BAF随燃油波动调整，EBS参照行业水平<br>
+        <strong>来源：</strong>行业报告综合
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 7: 运力供需分析 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#eff6ff">&#9881;&#65039;</div>
+    <h3>运力供需分析</h3>
+    <span class="tag" style="background:#eff6ff;color:#1d4ed8">C.H. Robinson / Descartes · 4月最新</span>
+  </div>
+
+  <div class="supply-grid" style="margin-bottom:20px">
+    <div class="supply-card">
+      <div class="supply-val">235万</div>
+      <div class="supply-lbl">3月美国集装箱进口量（TEU）</div>
+      <div class="supply-sub" style="background:#dcfce7;color:#15803d">环比+12.4%</div>
+    </div>
+    <div class="supply-card">
+      <div class="supply-val" style="color:#ef4444">-6.7%</div>
+      <div class="supply-lbl">3月来自中国进口量同比降幅</div>
+      <div class="supply-sub" style="background:#fee2e2;color:#b91c1c">关税战影响</div>
+    </div>
+    <div class="supply-card">
+      <div class="supply-val">30.2%</div>
+      <div class="supply-lbl">中国占美国进口比例</div>
+      <div class="supply-sub" style="background:#fef3c7;color:#92400e">峰值76%→持续下降</div>
+    </div>
+    <div class="supply-card">
+      <div class="supply-val" style="color:#f59e0b">~15%</div>
+      <div class="supply-lbl">4月东西向空白航次比例</div>
+      <div class="supply-sub" style="background:#fef3c7;color:#92400e">承运人主动管控</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="market-card">
+      <h4>&#127758; 运力面：绕行+空白航次主导</h4>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+        <li style="background:#f0fdf4;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>好望角绕行：</strong> 大多数船公司继续绕行，亚欧/亚美东运输时间延长10-14天，等效占用大量运力。
+        </li>
+        <li style="background:#f0fdf4;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>波斯湾运力退出：</strong> 约150艘船舶受影响，8-10%全球集装箱运力暂时退出市场，且恢复周期长。
+        </li>
+        <li style="background:#fef3c7;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>新船接收：</strong> 4月将接收约6艘12,000-16,999TEU新船及1艘大型船，部分抵消运力收紧影响。
+        </li>
+        <li style="background:#fef3c7;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>舱位可用性：</strong> 整体有运力，但分布不均，部分航次/港口会比预期更早满舱，建议提前预订。
+        </li>
+      </ul>
+    </div>
+    <div class="market-card">
+      <h4>&#128230; 需求面：前拉效应+分化明显</h4>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+        <li style="background:#eff6ff;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>前拉提振：</strong> 美中关税升至145%，部分货主加速前拉货源，短期支撑跨太平洋运价（FBX美西周涨+11%）。
+        </li>
+        <li style="background:#eff6ff;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>供应链多元化：</strong> 泰国（+25.6%）、韩国（+31%）、意大利（+74.5%）对美出口大涨，非中国来源持续增长。
+        </li>
+        <li style="background:#fee2e2;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>欧洲需求疲软：</strong> 欧线传统淡季，运价逆势下跌3.11%，供应端绕行成本未能完全转嫁市场。
+        </li>
+        <li style="background:#fee2e2;padding:10px 14px;border-radius:8px;font-size:13px">
+          <strong>中期需求隐忧：</strong> 若145%关税落地效应充分显现，下半年中美贸易量恐出现更大降幅，运价面临下行压力。
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 8: 运价走势展望 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#f0fdf4">&#128300;</div>
+    <h3>运价走势展望与市场预测</h3>
+    <span class="tag" style="background:#f0fdf4;color:#166534">2周&nbsp;/&nbsp;中期展望</span>
+  </div>
+
+  <div class="outlook-grid">
+    <div class="outlook-card bullish">
+      <h4>&#128200; 看涨支撑因素</h4>
+      <ul class="factor-list">
+        <li><span class="dot"></span>霍尔木兹停火两周内若不稳固，绕行惯性持续——运力收紧红利延续，EBS仍可维持</li>
+        <li><span class="dot"></span>关税前拉效应：美中关税战短期反而推高前拉需求，跨太平洋即期运价承受上行压力</li>
+        <li><span class="dot"></span>空白航次维持：承运人4月继续主动控制东西向运力，阻止运价大幅下滑</li>
+        <li><span class="dot"></span>SCFI季节趋势：CCFI分析预计5月进入季节性上升周期，支撑运价中期偏强</li>
+        <li><span class="dot"></span>新加坡燃油库存约1月用量，若供应进一步收紧，承运人或减速/取消航次——运价有支撑</li>
+        <li><span class="dot"></span>达飞试探通行成功的话，短期市场情绪积极，但其他船公司跟进需时，影响有限</li>
+      </ul>
+    </div>
+    <div class="outlook-card bearish">
+      <h4>&#128201; 看跌风险因素</h4>
+      <ul class="factor-list">
+        <li><span class="dot"></span>霍尔木兹若在4月21日停火到期前稳固——主要船公司陆续恢复通行，供应端改善，运价承压</li>
+        <li><span class="dot"></span>美中关税145% vs 125%若长期僵持，跨太平洋后续货量大幅萎缩，前拉结束后运价面临下跌</li>
+        <li><span class="dot"></span>欧洲航线运价已连跌，表明市场在绕行成本之外需求支撑不足，资本回报压力上升</li>
+        <li><span class="dot"></span>4月新船接收加速，全球集装箱运力基础规模仍在扩大，长期供过于求格局未变</li>
+        <li><span class="dot"></span>美欧贸易协定附带保障条款、美印谈判停滞，全球贸易增长放缓抑制长期运价中枢</li>
+        <li><span class="dot"></span>Xeneta预测：停火不会骤然降价，但恢复正常运营后运价中枢将逐步下移至结构性水平</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="alert blue" style="margin-bottom:0">
+      <div class="alert-icon">&#128161;</div>
+      <div>
+        <div class="alert-title">综合研判（2026年4月10日）</div>
+        <div class="alert-text">
+          短期（未来2周）：霍尔木兹停火期间，运价维持高位震荡，波斯湾航线运价若停火稳固可能小幅回落；美线受前拉效应支撑偏强；欧线则面临量价双压，跌幅有限但需关注。
+          <br><br>
+          中期（4-8周）：若停火稳固并延长，主要船公司逐步恢复通行后，运力将快速改善，运价面临较大下行压力，预计2026年5-6月或出现阶段性调整。反之若停火破裂，运价将重回强涨通道，欧线有望从当前低位反弹。
+          <br><br>
+          关键观察指标：<strong>①停火持续性与伊朗海峡通行条件 ②美中贸易谈判5月高层会谈进展 ③4月下旬空白航次公告数量 ④SCFI 4月10日发布数据（周五）</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 9: 市场动态快讯 ===== -->
+<div class="section">
+  <div class="section-title">
+    <div class="icon" style="background:#fef3c7">&#9889;</div>
+    <h3>本周重要市场动态</h3>
+    <span class="tag" style="background:#fef3c7;color:#92400e">4月7-10日快讯</span>
+  </div>
+  <div class="two-col">
+    <div class="market-card">
+      <h4>&#127974; 港口与运营</h4>
+      <table class="data-table">
+        <thead><tr><th>事项</th><th>状态</th><th>影响</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>美西（洛杉矶/长滩）</td>
+            <td><span class="pill up">延误改善</span></td>
+            <td>货量从美东转移，内陆可能拥堵</td>
+          </tr>
+          <tr>
+            <td>美东（纽约/萨凡纳）</td>
+            <td><span class="pill down">延误略增</span></td>
+            <td>好望角时间延长效应</td>
+          </tr>
+          <tr>
+            <td>东海岸+墨西哥湾份额</td>
+            <td><span class="pill hot">44.3%</span></td>
+            <td>自2025年5月来首超西海岸</td>
+          </tr>
+          <tr>
+            <td>大洋洲 BMSB季节</td>
+            <td><span class="pill up">4月底结束</span></td>
+            <td>合规操作放松，预订稳定改善</td>
+          </tr>
+          <tr>
+            <td>印度/阿联酋替代港</td>
+            <td><span class="pill down">积压严重</span></td>
+            <td>需数周清理，运价支撑延续</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="market-card">
+      <h4>&#128337; 宏观政策与贸易</h4>
+      <table class="data-table">
+        <thead><tr><th>事项</th><th>最新进展</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>美对华关税</td>
+            <td><span class="pill down">145%（4月9日生效）</span></td>
+          </tr>
+          <tr>
+            <td>中对美反制关税</td>
+            <td><span class="pill down">125%（已生效）</span></td>
+          </tr>
+          <tr>
+            <td>美第122条临时关税</td>
+            <td><span class="pill hot">有效至2026年7月</span></td>
+          </tr>
+          <tr>
+            <td>美欧贸易协定</td>
+            <td><span class="pill flat">欧洲议会批准但附保障条款</span></td>
+          </tr>
+          <tr>
+            <td>美印贸易谈判</td>
+            <td><span class="pill down">新调查导致停滞</span></td>
+          </tr>
+          <tr>
+            <td>美中5月高层会谈</td>
+            <td><span class="pill hot">待确认·市场期待</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>
+    <span>集装箱运价分析报告</span> · 2026-04-10 · 数据来源：上海航运交易所(SCFI/CCFI) · Freightos Baltic Index(FBX) · Drewry(WCI) · C.H. Robinson(4月海运市场更新) · Descartes(美国进口报告) · Maersk/Hapag-Lloyd/CMA CGM官方公告 · 国际船舶网 · 上海航交所4月3日周报
+  </p>
+  <p style="margin-top:6px">
+    本报告仅供参考，不构成投资或商业决策建议 · 下一期报告：2026-04-13（周一）
+  </p>
+</footer>
+
+</body>
+</html>
