@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集装箱航运日报 · 2026-04-10 · 第22期 · 聚焦中东/红海/亚洲</title>
+<style>
+:root {
+  --navy: #0a1628; --navy2: #0d2045; --blue: #1a3a6b;
+  --accent: #1e5bbd; --highlight: #2e7de0; --gold: #f0b429;
+  --red: #e53e3e; --green: #38a169; --orange: #dd6b20;
+  --white: #ffffff; --gray: #a0aec0;
+  --card-bg: #0f1e3d; --card-border: #1e3a6b;
+  --text-main: #e2e8f0; --text-sub: #94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--navy); color: var(--text-main); font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; min-height: 100vh; }
+.ticker-wrap { background: var(--accent); padding: 7px 0; overflow: hidden; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+.ticker { display: flex; white-space: nowrap; animation: scroll 60s linear infinite; }
+.ticker span { font-size: 13px; font-weight: 600; padding: 0 28px; letter-spacing: .4px; }
+.ticker .up { color: #4ade80; } .ticker .dn { color: #f87171; } .ticker .ne { color: #fde68a; }
+@keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.header { background: linear-gradient(135deg, #0a1628 0%, #0d2045 45%, #132f5e 100%); border-bottom: 3px solid var(--gold); padding: 32px 40px 28px; position: relative; overflow: hidden; }
+.header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 40%, rgba(30,91,189,0.18) 0%, transparent 70%); }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-icon { width: 52px; height: 52px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 0 18px rgba(30,91,189,0.5); }
+.brand-text h1 { font-size: 22px; font-weight: 800; color: var(--white); letter-spacing: 1px; }
+.brand-text p { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.date-badge { text-align: right; }
+.date-badge .date { font-size: 28px; font-weight: 800; color: var(--gold); line-height: 1; }
+.date-badge .issue { font-size: 13px; color: var(--gray); margin-top: 4px; }
+.header-subtitle { margin-top: 16px; font-size: 14px; color: var(--gray); position: relative; display: flex; align-items: center; gap: 8px; }
+.header-subtitle::before { content: ''; width: 30px; height: 2px; background: var(--gold); display: inline-block; flex-shrink: 0; }
+.index-section { padding: 24px 40px 8px; background: var(--navy2); }
+.index-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.idx-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 12px; text-align: center; }
+.idx-card .idx-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.idx-card .idx-val { font-size: 20px; font-weight: 800; color: var(--white); }
+.idx-card .idx-chg { font-size: 12px; margin-top: 4px; font-weight: 600; }
+.idx-card .idx-chg.up { color: #4ade80; } .idx-card .idx-chg.dn { color: #f87171; } .idx-card .idx-chg.ne { color: #fde68a; }
+.main { padding: 30px 40px 20px; }
+.sec-title { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; margin-top: 32px; }
+.sec-title:first-child { margin-top: 0; }
+.sec-title .icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.sec-title h2 { font-size: 17px; font-weight: 700; color: var(--white); letter-spacing: .5px; }
+.sec-title .badge { background: rgba(30,91,189,0.3); border: 1px solid var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--highlight); }
+.news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.news-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; transition: border-color .2s; }
+.news-card:hover { border-color: var(--accent); }
+.news-card .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+.tag-red { background: rgba(229,62,62,0.15); color: #fc8181; border: 1px solid rgba(229,62,62,0.3); }
+.tag-blue { background: rgba(30,91,189,0.2); color: #90cdf4; border: 1px solid rgba(30,91,189,0.3); }
+.tag-green { background: rgba(56,161,105,0.15); color: #68d391; border: 1px solid rgba(56,161,105,0.3); }
+.tag-orange { background: rgba(221,107,32,0.15); color: #f6ad55; border: 1px solid rgba(221,107,32,0.3); }
+.tag-purple { background: rgba(128,90,213,0.15); color: #b794f4; border: 1px solid rgba(128,90,213,0.3); }
+.news-card h3 { font-size: 14.5px; font-weight: 700; color: var(--white); line-height: 1.5; margin-bottom: 8px; }
+.news-card .summary { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+.news-card .meta { font-size: 11px; color: var(--gray); margin-top: 12px; display: flex; gap: 14px; }
+.banner-alert { background: linear-gradient(90deg, #7f1d1d, #991b1b); border: 1px solid #dc2626; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fca5a5; display: flex; align-items: center; gap: 10px; }
+.banner-warn { background: linear-gradient(90deg, #78350f, #92400e); border: 1px solid #d97706; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: #fde68a; display: flex; align-items: center; gap: 10px; }
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--accent), transparent); }
+.tl-item { position: relative; margin-bottom: 22px; }
+.tl-item::before { content: ''; position: absolute; left: -24px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--navy); }
+.tl-item .tl-date { font-size: 11px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+.tl-item .tl-title { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 5px; }
+.tl-item .tl-body { font-size: 13px; color: var(--text-sub); line-height: 1.7; }
+.carrier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.carrier-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; }
+.carrier-card .carrier-name { font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.carrier-card .carrier-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.status-diverted { background: rgba(229,62,62,0.2); color: #fc8181; }
+.status-partial { background: rgba(245,158,11,0.2); color: #fbbf24; }
+.status-normal { background: rgba(56,161,105,0.2); color: #68d391; }
+.carrier-card p { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
+.port-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.port-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; text-align: center; }
+.port-card .port-name { font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+.port-card .port-status { font-size: 11px; padding: 3px 10px; border-radius: 12px; display: inline-block; margin-bottom: 8px; }
+.port-card .port-delay { font-size: 20px; font-weight: 800; color: var(--gold); }
+.port-card .port-label { font-size: 11px; color: var(--gray); margin-top: 4px; }
+footer { background: var(--navy2); border-top: 1px solid var(--card-border); padding: 20px 40px; text-align: center; font-size: 12px; color: var(--gray); margin-top: 40px; }
+@media(max-width:900px){ .index-grid{grid-template-columns:repeat(3,1fr);} .news-grid{grid-template-columns:1fr;} .carrier-grid{grid-template-columns:1fr 1fr;} .port-grid{grid-template-columns:repeat(2,1fr);} .main,.header{padding-left:18px;padding-right:18px;} }
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="dn">布伦特原油 $96.46/桶 -0.17%</span>
+    <span>SCFI综合 <span class="up">1,854.96</span> +1.54%</span>
+    <span>亚洲区内指数 <span class="up">$865</span> +28%</span>
+    <span>波斯湾航线 <span class="up">$2,450/TEU</span> +28%</span>
+    <span>霍尔木兹停火 <span class="ne">有条件2周</span></span>
+    <span>红海航线 <span class="dn">绕航持续</span></span>
+    <span>新加坡港 <span class="alert">拥堵加剧</span></span>
+    <span>丹戎帕拉帕斯 <span class="alert">延误7天</span></span>
+    <span class="dn">布伦特原油 $96.46/桶 -0.17%</span>
+    <span>SCFI综合 <span class="up">1,854.96</span> +1.54%</span>
+    <span>亚洲区内指数 <span class="up">$865</span> +28%</span>
+    <span>波斯湾航线 <span class="up">$2,450/TEU</span> +28%</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">&#x1F6A2;</div>
+      <div class="brand-text">
+        <h1>集装箱航运日报</h1>
+        <p>Claw Intelligence · 聚焦中东 · 红海 · 亚洲 · 东南亚</p>
+      </div>
+    </div>
+    <div class="date-badge">
+      <div class="date">2026-04-10</div>
+      <div class="issue">第22期 · 星期五</div>
+    </div>
+  </div>
+  <div class="header-subtitle">
+    美伊两周停火协议生效 — 霍尔木兹有条件过境信号引发市场波动，亚洲区内运价暴涨28%
+  </div>
+</div>
+
+<!-- Index Cards -->
+<div class="index-section">
+  <div class="index-grid">
+    <div class="idx-card">
+      <div class="idx-label">SCFI综合</div>
+      <div class="idx-val">1,854.96</div>
+      <div class="idx-chg up">+1.54% 周环比</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">亚洲区内指数</div>
+      <div class="idx-val">$865</div>
+      <div class="idx-chg up">+28% 周涨幅</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">波斯湾航线</div>
+      <div class="idx-val">$2,450</div>
+      <div class="idx-chg up">+28% 周涨幅</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">霍尔木兹状态</div>
+      <div class="idx-val">有条件</div>
+      <div class="idx-chg ne">约2周过境</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">红海航线</div>
+      <div class="idx-val">绕航</div>
+      <div class="idx-chg dn">好望角路线</div>
+    </div>
+    <div class="idx-card">
+      <div class="idx-label">新加坡延误</div>
+      <div class="idx-val">3-5天</div>
+      <div class="idx-chg dn">拥堵加剧</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+<!-- Alert Banner -->
+<div class="banner-alert">
+  <span style="font-size:16px;">&#x26A0;</span>
+  <div>
+    <strong>中东局势最新动态：</strong>美伊于4月7日宣布两周停火协议，伊朗发出有条件安全过境信号。但船公司普遍持谨慎态度，MSC、马士基、赫伯罗特等仍维持绕行策略。亚洲区内集装箱运价指数(IACI)单周暴涨28%，主要受上海至杰贝阿里航线运费激增驱动。
+  </div>
+</div>
+
+<!-- Section: 头条新闻 -->
+<div class="sec-title">
+  <div class="icon">&#x1F4F0;</div>
+  <h2>头条新闻</h2>
+  <span class="badge">聚焦中东/红海/亚洲</span>
+</div>
+
+<div class="news-grid">
+  <div class="news-card">
+    <span class="tag tag-red">霍尔木兹危机</span>
+    <h3>美伊达成两周停火协议 霍尔木兹有条件过境信号引发市场波动</h3>
+    <p class="summary">4月7日，美国与伊朗在巴基斯坦调解下达成两周停火协议。伊朗发出有条件安全过境信号（约2周），引发燃油价格大幅回落，但船公司普遍持谨慎态度，尚未恢复霍尔木兹过境。</p>
+    <div class="meta">
+      <span>来源: EIA / CNN</span>
+      <span>4月10日</span>
+    </div>
+  </div>
+  <div class="news-card">
+    <span class="tag tag-orange">运价暴涨</span>
+    <h3>亚洲区内运价指数创28%单周涨幅 上海-杰贝阿里航线暴涨45%</h3>
+    <p class="summary">Drewry亚洲区内集装箱指数(IACI)单周暴涨28%至$865/FEU，主要受上海至杰贝阿里航线运费激增驱动。中东危机外溢效应显著，东南亚中转港需求激增。</p>
+    <div class="meta">
+      <span>来源: Drewry</span>
+      <span>4月3日</span>
+    </div>
+  </div>
+  <div class="news-card">
+    <span class="tag tag-blue">船公司动态</span>
+    <h3>主要船公司维持绕行策略 CMA CGM和中远海运有限恢复过境</h3>
+    <p class="summary">尽管停火协议达成，MSC、马士基、赫伯罗特等主要船公司仍维持绕行好望角策略。CMA CGM一艘集装箱船成为冲突爆发后首艘确认的西欧关联船舶成功过境霍尔木兹。</p>
+    <div class="meta">
+      <span>来源: Container News</span>
+      <span>4月10日</span>
+    </div>
+  </div>
+  <div class="news-card">
+    <span class="tag tag-purple">港口拥堵</span>
+    <h3>中东冲突外溢至东南亚 新加坡和丹戎帕拉帕斯拥堵加剧</h3>
+    <p class="summary">霍尔木兹危机冲击波已传导至东南亚主要转运港。新加坡港船舶延误3-5天，丹戎帕拉帕斯港延误高达7天。船公司调整航线，跳过部分港口挂靠。</p>
+    <div class="meta">
+      <span>来源: Hapag-Lloyd / 行业数据</span>
+      <span>4月10日</span>
+    </div>
+  </div>
+</div>
+
+<!-- Section: 事件时间线 -->
+<div class="sec-title">
+  <div class="icon">&#x23F3;</div>
+  <h2>中东危机时间线</h2>
+</div>
+
+<div class="timeline">
+  <div class="tl-item">
+    <div class="tl-date">2026年4月7日</div>
+    <div class="tl-title">美伊达成两周停火协议</div>
+    <div class="tl-body">在巴基斯坦调解下，美国与伊朗宣布达成两周停火协议。伊朗发出有条件安全过境信号，但船公司普遍持谨慎态度。</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-date">2026年4月6日</div>
+    <div class="tl-title">伊朗拒绝早期停火提案</div>
+    <div class="tl-body">伊朗最初拒绝了美国提出的停火方案，导致市场紧张情绪升级，布伦特原油价格一度突破$100。</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-date">2026年4月3日</div>
+    <div class="tl-title">IACI指数暴涨28%</div>
+    <div class="tl-body">Drewry亚洲区内集装箱指数单周暴涨28%至$865/FEU，创近年最大单周涨幅，主要受上海-杰贝阿里航线运费激增驱动。</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-date">2026年3月下旬</div>
+    <div class="tl-title">塞拉莱港无人机事件</div>
+    <div class="tl-body">阿曼塞拉莱港发生涉及无人机活动的安全事件，马士基和赫伯罗特均发布安全更新，加强航行安全措施。</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-date">2026年3月中旬</div>
+    <div class="tl-title">赫伯罗特船舶遭碎片击中</div>
+    <div class="tl-body">一艘赫伯罗特集装箱船在霍尔木兹海峡附近被抛射物碎片击中，进一步加剧船公司安全担忧。</div>
+  </div>
+</div>
+
+<!-- Section: 船公司动态 -->
+<div class="sec-title">
+  <div class="icon">&#x1F6A4;</div>
+  <h2>主要船公司中东/红海区域动态</h2>
+</div>
+
+<div class="carrier-grid">
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; MSC</div>
+    <span class="carrier-status status-diverted">暂停订舱</span>
+    <p>暂停全球至中东订舱，指示波斯湾船舶前往安全水域避难。征收战争附加费。</p>
+  </div>
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; 马士基</div>
+    <span class="carrier-status status-diverted">绕航好望角</span>
+    <p>部分航线改道好望角，暂停连接远东、中东至欧洲的服务。提供多式联运替代。</p>
+  </div>
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; CMA CGM</div>
+    <span class="carrier-status status-partial">有限恢复</span>
+    <p>一艘集装箱船成功通过霍尔木兹，成为冲突后首艘确认的西欧关联船舶过境。</p>
+  </div>
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; 中远海运</div>
+    <span class="carrier-status status-partial">部分恢复</span>
+    <p>两艘集装箱船成功过境霍尔木兹。恢复通过多式联运解决方案到多个中东目的地的订舱。</p>
+  </div>
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; 赫伯罗特</div>
+    <span class="carrier-status status-diverted">暂停过境</span>
+    <p>暂停霍尔木兹海峡过境，船舶曾遭碎片击中。征收战争风险附加费。</p>
+  </div>
+  <div class="carrier-card">
+    <div class="carrier-name">&#x1F6A2; ONE</div>
+    <span class="carrier-status status-diverted">暂停订舱</span>
+    <p>暂停波斯湾地区新订舱，调整多条航线服务。实施紧急附加费。</p>
+  </div>
+</div>
+
+<!-- Section: 港口状态监控 -->
+<div class="sec-title">
+  <div class="icon">&#x2693;</div>
+  <h2>重点港口状态监控</h2>
+</div>
+
+<div class="port-grid">
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 新加坡</div>
+    <span class="port-status status-partial">拥堵加剧</span>
+    <div class="port-delay">3-5天</div>
+    <div class="port-label">船舶延误</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 丹戎帕拉帕斯</div>
+    <span class="port-status status-diverted">严重拥堵</span>
+    <div class="port-delay">7天</div>
+    <div class="port-label">船舶延误</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 杰贝阿里</div>
+    <span class="port-status status-partial">供应紧张</span>
+    <div class="port-delay">5-7天</div>
+    <div class="port-label">船舶延误</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 塞拉莱</div>
+    <span class="port-status status-diverted">安全事件</span>
+    <div class="port-delay">高风险</div>
+    <div class="port-label">无人机活动</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 吉达</div>
+    <span class="port-status status-diverted">高风险</span>
+    <div class="port-delay">绕航</div>
+    <div class="port-label">红海危险区</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 塞得港</div>
+    <span class="port-status status-normal">正常运营</span>
+    <div class="port-delay">2-3天</div>
+    <div class="port-label">苏伊士入口</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 釜山</div>
+    <span class="port-status status-normal">正常运营</span>
+    <div class="port-delay">1-2天</div>
+    <div class="port-label">正常</div>
+  </div>
+  <div class="port-card">
+    <div class="port-name">&#x1F6A2; 上海</div>
+    <span class="port-status status-normal">正常运营</span>
+    <div class="port-delay">1-2天</div>
+    <div class="port-label">正常</div>
+  </div>
+</div>
+
+<!-- Section: 市场展望 -->
+<div class="sec-title">
+  <div class="icon">&#x1F52E;</div>
+  <h2>市场展望</h2>
+</div>
+
+<div class="news-grid">
+  <div class="news-card">
+    <span class="tag tag-blue">短期展望</span>
+    <h3>未来2-4周：谨慎乐观</h3>
+    <p class="summary">美伊停火协议为市场带来喘息机会，但船公司普遍持谨慎态度。预计霍尔木兹完全恢复仍需数周时间，期间运价将维持高位波动。</p>
+  </div>
+  <div class="news-card">
+    <span class="tag tag-green">操作建议</span>
+    <h3>托运人应对策略</h3>
+    <p class="summary">建议提前4-6周订舱，考虑多式联运替代方案。关注东南亚中转港拥堵情况，适当调整供应链布局。密切跟踪美伊谈判进展。</p>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  <p>数据来源：Container News / Drewry / EIA / 各船公司公告 / Hapag-Lloyd运营更新</p>
+  <p>报告生成时间：2026-04-10 09:35 | Claw Intelligence · 聚焦中东 · 红海 · 亚洲 · 东南亚</p>
+</footer>
+
+</body>
+</html>
