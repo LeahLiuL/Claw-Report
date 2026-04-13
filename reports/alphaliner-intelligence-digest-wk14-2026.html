@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUL — Alphaliner Intelligence Digest | Week 14, 2026</title>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --border: #21262d;
+  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  --green: #3fb950; --orange: #d29922; --red: #f85149;
+  --purple: #bc8cff; --teal: #39d353;
+  --tag-ops: #0d4429; --tag-ops-t: #3fb950;
+  --tag-fin: #1a2f45; --tag-fin-t: #58a6ff;
+  --tag-leg: #2d1b4e; --tag-leg-t: #bc8cff;
+  --tag-eq: #3d2a0a; --tag-eq-t: #d29922;
+  --tag-net: #0f3240; --tag-net-t: #39d353;
+  --tag-trd: #3d1515; --tag-trd-t: #f85149;
+  --tag-rnd: #1a2a1a; --tag-rnd-t: #56d364;
+  --tag-com: #2a1a3d; --tag-com-t: #e79dff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+
+/* Header */
+.top-bar { background: #010409; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { background: linear-gradient(135deg, #1f6feb, #58a6ff); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-text h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+.logo-text p { font-size: 11px; color: var(--muted); }
+.lang-btn { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; color: var(--text); transition: all 0.2s; }
+.lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lang-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
+.lang-controls { display: flex; gap: 8px; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+.hero-inner { max-width: 1200px; margin: 0 auto; }
+.hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.hero h2 .hl { color: var(--accent); }
+.hero p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.hero-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat-pill { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; }
+.stat-pill .sv { color: var(--accent); font-weight: 700; }
+
+/* Filters */
+.filter-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; position: sticky; top: 61px; z-index: 90; }
+.filter-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+.ftag { background: #21262d; border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+.ftag:hover { border-color: var(--accent); color: var(--accent); }
+.ftag.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
+.result-count { margin-left: auto; font-size: 12px; color: var(--muted); }
+.result-count span { color: var(--accent); font-weight: 700; }
+
+/* Feed */
+.feed { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+.week-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 24px 0 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+
+/* Card */
+.article-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.article-card:hover { border-color: #388bfd; background: #1c2128; }
+.article-card.featured { border-left: 3px solid var(--orange); }
+.article-card.cul-direct { border-left: 3px solid var(--green); }
+.card-top { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+.card-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 200px; line-height: 1.5; }
+.card-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.badge-star { background: rgba(210,153,34,0.2); color: var(--orange); border: 1px solid rgba(210,153,34,0.4); }
+.badge-cul { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+.badge-ops { background: var(--tag-ops); color: var(--tag-ops-t); border: 1px solid rgba(63,185,80,0.2); }
+.badge-fin { background: var(--tag-fin); color: var(--tag-fin-t); border: 1px solid rgba(88,166,255,0.2); }
+.badge-leg { background: var(--tag-leg); color: var(--tag-leg-t); border: 1px solid rgba(188,140,255,0.2); }
+.badge-eq  { background: var(--tag-eq);  color: var(--tag-eq-t);  border: 1px solid rgba(210,153,34,0.2); }
+.badge-net { background: var(--tag-net); color: var(--tag-net-t); border: 1px solid rgba(57,211,83,0.2); }
+.badge-trd { background: var(--tag-trd); color: var(--tag-trd-t); border: 1px solid rgba(248,81,73,0.2); }
+.badge-rnd { background: var(--tag-rnd); color: var(--tag-rnd-t); border: 1px solid rgba(86,211,100,0.2); }
+.badge-com { background: var(--tag-com); color: var(--tag-com-t); border: 1px solid rgba(231,157,255,0.2); }
+.badge-region { background: #21262d; color: var(--muted); border: 1px solid var(--border); }
+.card-summary { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+.card-impact { font-size: 12px; background: rgba(63,185,80,0.06); border: 1px solid rgba(63,185,80,0.15); border-radius: 8px; padding: 8px 12px; margin-top: 6px; color: #8fe898; line-height: 1.5; }
+.card-impact strong { color: var(--green); }
+.card-bottom { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.card-meta { font-size: 11px; color: var(--muted); }
+.card-actions { margin-left: auto; display: flex; gap: 8px; }
+.btn-sm { font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: #21262d; color: var(--text); cursor: pointer; transition: all 0.15s; }
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Sidebar / Drawer */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; }
+.sidebar-overlay.open { display: block; }
+.sidebar { position: fixed; right: -500px; top: 0; bottom: 0; width: 480px; background: #161b22; border-left: 1px solid #30363d; z-index: 210; overflow-y: auto; transition: right 0.3s ease; padding: 0; }
+.sidebar.open { right: 0; }
+.sidebar-header { background: #010409; border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; }
+.sidebar-header h3 { font-size: 14px; font-weight: 700; }
+.sidebar-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
+.sidebar-close:hover { color: var(--text); }
+.sidebar-body { padding: 20px; }
+.sidebar-section { margin-bottom: 20px; }
+.sidebar-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+.sidebar-section p { font-size: 13px; color: var(--text); line-height: 1.7; }
+.sidebar-section ul { padding-left: 16px; }
+.sidebar-section li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.sidebar-section li strong { color: var(--text); }
+.impact-box { background: rgba(63,185,80,0.07); border: 1px solid rgba(63,185,80,0.2); border-radius: 8px; padding: 12px; }
+.impact-box p { color: #8fe898; font-size: 13px; line-height: 1.6; }
+
+/* ───── MARKET DATA TABS ───── */
+.data-tabs { max-width: 1200px; margin: 0 auto; padding: 0 24px 30px; }
+.tabs-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab-btn { background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.data-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.dc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.dc-value { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.dc-change { font-size: 12px; font-weight: 600; }
+.dc-change.up { color: var(--red); }
+.dc-change.down { color: var(--green); }
+.dc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.data-table { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+.data-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { background: #21262d; color: var(--muted); padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid #21262d; color: var(--text); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #1c2128; }
+.td-up { color: var(--red); font-weight: 600; }
+.td-dn { color: var(--green); font-weight: 600; }
+.td-pr { font-weight: 700; color: var(--text); }
+.section-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* Footer */
+footer { border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 11px; color: var(--muted); }
+
+/* Hide/show lang */
+.zh { display: none; }
+.en { display: block; }
+body.lang-zh .zh { display: block; }
+body.lang-zh .en { display: none; }
+</style>
+</head>
+<body id="pageBody">
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">&#x26F2;</div>
+    <div class="logo-text">
+      <h1>CUL — Alphaliner Intelligence Digest</h1>
+      <p>Week 14, 2026 (Apr 1–7) · Powered by Alphaliner</p>
+    </div>
+  </div>
+  <div class="lang-controls">
+    <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btnZH" onclick="setLang('zh')">中文</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <h2 class="en">Alphaliner <span class="hl">Weekly Intelligence</span> — Week 14</h2>
+    <h2 class="zh">Alphaliner <span class="hl">每周情报摘要</span> — 第14周</h2>
+    <p class="en">AI-curated shipping intelligence with CUL impact assessment | Apr 1–7, 2026 | Source: Alphaliner Weekly Monitor</p>
+    <p class="zh">AI精选航运情报，附CUL影响评估 | 2026年4月1–7日 | 数据来源：Alphaliner Weekly Monitor</p>
+    <div class="hero-stats">
+      <div class="stat-pill"><span class="sv">11</span> <span class="en">Articles This Week</span><span class="zh">本周条目</span></div>
+      <div class="stat-pill"><span class="sv">7</span> <span class="en">CUL Direct</span><span class="zh">CUL直接相关</span></div>
+      <div class="stat-pill"><span class="sv">2</span> <span class="en">Featured Items</span><span class="zh">重点项目</span></div>
+      <div class="stat-pill en"><span class="sv">Middle East / Asia / Europe</span> Regions</div>
+      <div class="stat-pill zh"><span class="sv">中东 / 亚洲 / 欧洲</span> 覆盖区域</div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-inner">
+    <span class="filter-label en">Dept</span>
+    <span class="filter-label zh">部门</span>
+    <span class="ftag active" data-dept="all">All</span>
+    <span class="ftag" data-dept="ops"><span class="en">Ops</span><span class="zh">运营</span></span>
+    <span class="ftag" data-dept="fin"><span class="en">Finance</span><span class="zh">财务</span></span>
+    <span class="ftag" data-dept="legal"><span class="en">Legal</span><span class="zh">法务</span></span>
+    <span class="ftag" data-dept="equip"><span class="en">Equipment</span><span class="zh">设备/箱管</span></span>
+    <span class="ftag" data-dept="network"><span class="en">Network</span><span class="zh">航线规划</span></span>
+    <span class="ftag" data-dept="trade"><span class="en">Trade</span><span class="zh">商务贸易</span></span>
+    <span class="ftag" data-dept="commercial"><span class="en">Commercial</span><span class="zh">商业</span></span>
+    <div class="result-count en">Showing <span id="countEN">11</span> of 11 items</div>
+    <div class="result-count zh">显示 <span id="countZH">11</span> / 11 条</div>
+  </div>
+</div>
+
+<!-- MAIN FEED -->
+<div class="feed" id="mainFeed">
+  <div class="week-label">&#x1F5D3; Week 14 · Apr 1–7, 2026 · Alphaliner Monitor</div>
+
+  <!-- ARTICLE 1 -->
+  <div class="article-card featured cul-direct" data-depts="ops,network,legal">
+    <div class="card-top">
+      <div class="card-title en">&#x2B50; CMA CGM KRIBI Becomes First Western-Controlled Vessel to Transit Hormuz Outbound</div>
+      <div class="card-title zh">&#x2B50; CMA CGM KRIBI成为首艘经霍尔木兹海峡驶出的西方控制船只</div>
+      <div class="card-badges">
+        <span class="badge badge-star">&#x2B50; Featured</span>
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-leg">Legal</span>
+        <span class="badge badge-region">Middle East / Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">CMA CGM KRIBI became the first Western-operated vessel to successfully transit the Strait of Hormuz outbound since the US/Israel strikes on Iran (Feb 27). This signals a potential partial reopening of the Gulf corridor under Trump's Apr 7 deadline pressure. Iranian authorities granted passage under conditions reportedly tied to cargo nationality declarations.</div>
+    <div class="card-summary zh">CMA CGM KRIBI成为自2月27日美国/以色列袭击伊朗以来，首艘成功经霍尔木兹海峡驶出的西方控制船只。这标志着在特朗普4月7日最后期限压力下，海湾走廊可能出现部分重新开放的信号。伊朗当局据报道在货物国籍申报条件下批准通行。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> If Hormuz partial reopening is confirmed, CUL Middle East services (Jebel Ali, Dammam, Oman calls) could resume normal routing within 2–4 weeks. Monitor closely — current Cape of Good Hope detour costs CUL est. $300–500K extra fuel per Middle East voyage. Confirm with Hapag-Lloyd / OOCL partners on slot availability for Gulf-bound capacity.</span>
+      <span class="zh"> 若霍尔木兹部分重开得到确认，CUL中东航线（杰贝阿里、达曼、阿曼挂靠）可能在2-4周内恢复正常路由。需密切关注——当前绕好望角每趟中东航次额外燃油成本估计$30-50万。请向赫伯罗特/东方海外合作伙伴确认海湾向舱位可用情况。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 7, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s1')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 2 -->
+  <div class="article-card cul-direct" data-depts="legal,trade,network">
+    <div class="card-top">
+      <div class="card-title en">Ukraine Claims Kremlin Preparing to Ban Foreign Container Carriers</div>
+      <div class="card-title zh">乌克兰称克里姆林宫准备禁止外国集装箱承运商</div>
+      <div class="card-badges">
+        <span class="badge badge-leg">Legal</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Europe</span>
+      </div>
+    </div>
+    <div class="card-summary en">Ukraine intelligence sources reported that Russia is preparing legislation to ban Western container carriers from Russian ports in retaliation for broader sanctions. This would affect remaining European services still calling Russian Black Sea ports via Turkey. Constanta and Istanbul could see increased transshipment volumes.</div>
+    <div class="card-summary zh">乌克兰情报来源报告，俄罗斯正在准备立法，禁止西方集装箱承运商进入俄罗斯港口，以报复更广泛的制裁。这将影响仍通过土耳其挂靠俄罗斯黑海港口的欧洲服务。康斯坦察和伊斯坦布尔可能出现更多中转量。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> CUL has no direct Russia calls, but Turkey transit volumes (Mersin, Istanbul) may increase if cargo reroutes through CUL-served ports. Monitor for opportunities in Black Sea adjacent routes.</span>
+      <span class="zh"> CUL无直接俄罗斯挂靠，但若货物改道CUL服务港口，土耳其中转量（梅尔辛、伊斯坦布尔）可能增加。关注黑海邻近航线机会。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 4, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s2')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 3 -->
+  <div class="article-card" data-depts="network">
+    <div class="card-top">
+      <div class="card-title en">MSC Rationalizes Transpacific Network — Orient, Sentosa, Chinook Adjustments</div>
+      <div class="card-title zh">MSC精简跨太平洋网络——Orient、Sentosa、Chinook调整</div>
+      <div class="card-badges">
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Asia / Americas</span>
+      </div>
+    </div>
+    <div class="card-summary en">MSC is restructuring three of its core transpacific services — Orient, Sentosa, and Chinook — in response to shifting demand post-April 9 tariff implementation. Port calls are being realigned, with Long Beach and Oakland rotations modified. Effective May 2026.</div>
+    <div class="card-summary zh">MSC正在重组其三条核心跨太平洋服务——Orient、Sentosa和Chinook——以应对4月9日关税实施后的需求转变。港口挂靠正在重新调整，长滩和奥克兰的班次有所修改，2026年5月生效。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 3, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s3')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 4 -->
+  <div class="article-card cul-direct" data-depts="network,ops">
+    <div class="card-top">
+      <div class="card-title en">Maersk Adjusts Safina Service — Drops Jebel Ali Call</div>
+      <div class="card-title zh">马士基调整Safina航线——取消杰贝阿里挂靠</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Middle East / Asia</span>
+      </div>
+    </div>
+    <div class="card-summary en">Maersk's Safina service connecting Asia–Middle East has suspended its Jebel Ali call, rerouting via Salalah as an interim hub. The adjustment reflects continued uncertainty over Hormuz vessel safety. This impacts Asia–Gulf cargo capacity and potentially creates slot opportunities for CUL-partner services.</div>
+    <div class="card-summary zh">马士基连接亚洲-中东的Safina服务暂停杰贝阿里挂靠，改道萨拉莱作为临时枢纽。此次调整反映了霍尔木兹海峡船舶安全的持续不确定性。这影响了亚洲-海湾货物运力，可能为CUL合作服务创造舱位机会。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Maersk dropping JEA creates a capacity vacuum on Asia–Middle East lanes. CUL or partners may benefit if Gulf cargo demand rebounds. Monitor JEA slot availability on OOCL/Evergreen-operated services where CUL has slot agreements.</span>
+      <span class="zh"> 马士基放弃JEA在亚洲-中东航线造成运力真空。若海湾货运需求反弹，CUL或合作伙伴可能受益。监控CUL有舱位协议的东方海外/长荣运营服务上的JEA舱位情况。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 5, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s4')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 5 -->
+  <div class="article-card cul-direct" data-depts="network,ops">
+    <div class="card-top">
+      <div class="card-title en">CMA CGM Adjusts Africa Services — MIDAS 1/2, Swahili Drop Jebel Ali</div>
+      <div class="card-title zh">CMA CGM调整非洲航线——MIDAS 1/2、Swahili取消杰贝阿里</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Middle East / Asia</span>
+      </div>
+    </div>
+    <div class="card-summary en">CMA CGM is modifying its MIDAS 1, MIDAS 2, and Swahili East Africa services to remove Jebel Ali calls, effective mid-April. Cargo previously transiting via JEA will be rerouted via Sokhna (Egypt) or handled through Salalah transhipment. The change reflects persistent Hormuz risk assessments.</div>
+    <div class="card-summary zh">CMA CGM正在修改其MIDAS 1、MIDAS 2和斯瓦希里东非服务，取消杰贝阿里挂靠，4月中旬生效。之前经JEA中转的货物将改道苏赫纳（埃及）或通过萨拉莱转运处理。此变化反映了对霍尔木兹持续风险的评估。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Sokhna (Port Said area) sees increased importance — CUL's Egypt calls may benefit from diverted volumes. Opportunity to review GRI/surcharge levels for Jebel Ali-bound cargo with customers who may need alternative solutions.</span>
+      <span class="zh"> 苏赫纳（塞得港地区）重要性提升——CUL埃及挂靠可能受益于转移量。机会：审查需要替代方案的客户的杰贝阿里目的地货物的GRI/附加费水平。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 6, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s5')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 6 -->
+  <div class="article-card cul-direct" data-depts="network,trade">
+    <div class="card-top">
+      <div class="card-title en">Asyad Line Launches India–Oman Direct Service</div>
+      <div class="card-title zh">Asyad Line开通印度—阿曼直航服务</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-region">Asia / Middle East</span>
+      </div>
+    </div>
+    <div class="card-summary en">Oman's state carrier Asyad Line launched a new direct weekly service between Indian Subcontinent ports (Nhava Sheva, Mundra) and Sohar/Muscat. This creates new direct competition on CUL's India–Oman lanes and signals Oman's strategic push to build a post-Hormuz logistics hub at Sohar.</div>
+    <div class="card-summary zh">阿曼国家承运商Asyad Line推出新的每周直航服务，连接印度次大陆港口（那瓦舍瓦、蒙德拉）和苏哈尔/马斯喀特。这在CUL的印度-阿曼航线上创造了新的直接竞争，并标志着阿曼在苏哈尔建立后霍尔木兹物流枢纽的战略推进。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Direct competition on ISC–Oman corridor. CUL should review pricing competitiveness for Nhava Sheva / Mundra to Sohar/Muscat. Asyad's direct service may attract ISC cargo currently transiting via CUL-served ports. Assess slot-sharing opportunities vs. competitive response.</span>
+      <span class="zh"> ISC-阿曼走廊直接竞争。CUL应审查那瓦舍瓦/蒙德拉到苏哈尔/马斯喀特的价格竞争力。Asyad的直航服务可能吸引目前经CUL服务港口中转的ISC货物。评估舱位共享机会与竞争应对。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 4, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s6')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 7 -->
+  <div class="article-card cul-direct" data-depts="network,trade">
+    <div class="card-top">
+      <div class="card-title en">Zhonggu Logistics Launches Qinzhou–Vietnam CV2 Service</div>
+      <div class="card-title zh">中谷物流开通钦州—越南CV2服务</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-region">China / Asia</span>
+      </div>
+    </div>
+    <div class="card-summary en">Chinese domestic carrier Zhonggu Logistics launched a new CV2 service connecting Qinzhou with Ho Chi Minh City and Haiphong, operating 2,500 TEU vessels. Frequency: weekly. This adds competition on the Pearl River Delta–Vietnam corridor where CUL also operates regional feeders.</div>
+    <div class="card-summary zh">中国内贸承运商中谷物流推出新的CV2服务，连接钦州与胡志明市和海防，使用2,500 TEU船舶，每周班次。这在中谷珠三角-越南走廊增加了竞争，CUL也在该走廊运营区域支线服务。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Qinzhou is a CUL-served port. Increased China–Vietnam competition requires monitoring. CUL's advantage lies in international connections (Middle East, Mediterranean) vs. Zhonggu's domestic/regional focus. Assess if freight diversion risk is material on Qinzhou–Vietnam lanes.</span>
+      <span class="zh"> 钦州是CUL服务港口。需监控中国-越南竞争加剧。CUL的优势在于国际连接（中东、地中海），而中谷专注于国内/区域。评估钦州-越南航线的货物流失风险是否重大。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 2, 2026 · Alphaliner Wk14</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s7')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 8 -->
+  <div class="article-card" data-depts="fin,equip">
+    <div class="card-top">
+      <div class="card-title en">NOO Fleet Decline Slows — Net Loss of 250K TEU YoY (vs. 633K Prior)</div>
+      <div class="card-title zh">NOO船队下降放缓——同比净损失25万TEU（前值为63.3万）</div>
+      <div class="card-badges">
+        <span class="badge badge-fin">Finance</span>
+        <span class="badge badge-eq">Equipment</span>
+        <span class="badge badge-region">Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">Non-Operating Owner (NOO) fleet capacity showed a marked slowdown in decline, with net capacity reduction falling from 633K TEU YoY to only 250K TEU in Week 14. This reflects record charter rates keeping older vessels active and fewer scrappings as operators hold onto tonnage amid the Middle East crisis.</div>
+    <div class="card-summary zh">非运营船东（NOO）船队运力下降出现明显放缓，净运力减少从同比63.3万TEU降至第14周仅25万TEU。这反映了历史性租船费率使旧船保持活跃，同时由于中东危机，营运商减少了拆船行动。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 3, 2026 · Alphaliner Wk14</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 9 -->
+  <div class="article-card" data-depts="equip,rnd">
+    <div class="card-top">
+      <div class="card-title en">CMA CGM Takes Delivery of CMA CGM SILVER (13,136 TEU Methanol-Powered)</div>
+      <div class="card-title zh">CMA CGM接收CMA CGM SILVER（13,136 TEU甲醇动力）</div>
+      <div class="card-badges">
+        <span class="badge badge-eq">Equipment</span>
+        <span class="badge badge-rnd">RND</span>
+        <span class="badge badge-region">Asia</span>
+      </div>
+    </div>
+    <div class="card-summary en">CMA CGM took delivery of CMA CGM SILVER, a 13,136 TEU methanol-dual-fuel vessel built at Yangzijiang Shipbuilding. The vessel will join the Asia–Europe trade. This is part of CMA CGM's ambitious decarbonization fleet renewal program targeting 10 methanol-powered ULCVs by 2028.</div>
+    <div class="card-summary zh">CMA CGM接收CMA CGM SILVER，这是一艘在扬子江船业建造的13,136 TEU甲醇双燃料船。该船将投入亚欧贸易。这是CMA CGM雄心勃勃的脱碳船队更新计划的一部分，目标是到2028年拥有10艘甲醇动力超大型船。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 1, 2026 · Alphaliner Wk14</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 10 -->
+  <div class="article-card" data-depts="network">
+    <div class="card-top">
+      <div class="card-title en">ONE Merges NE Europe–Iberia and NWC–Baltic Services into IBX</div>
+      <div class="card-title zh">ONE合并北欧—伊比利亚与NWC—波罗的海航线为IBX</div>
+      <div class="card-badges">
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Europe</span>
+      </div>
+    </div>
+    <div class="card-summary en">Ocean Network Express (ONE) is consolidating two European intra-regional services — the NE Europe–Iberia and NWC–Baltic services — into a single combined IBX service effective May 2026. The move reduces vessel deployment by approximately 30% while maintaining coverage via port-call optimization.</div>
+    <div class="card-summary zh">ONE正在将两条欧洲区域内服务——北欧-伊比利亚和NWC-波罗的海服务——合并为一条IBX服务，2026年5月生效。此举减少了约30%的船舶配置，同时通过港口优化维持覆盖。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 4, 2026 · Alphaliner Wk14</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 11 -->
+  <div class="article-card" data-depts="equip,ops">
+    <div class="card-top">
+      <div class="card-title en">Liebherr Delivers 3 STS Cranes to CTA Hamburg (European-Made)</div>
+      <div class="card-title zh">利勃海尔向CTA汉堡交付3台STS起重机（欧洲制造）</div>
+      <div class="card-badges">
+        <span class="badge badge-eq">Equipment</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Europe</span>
+      </div>
+    </div>
+    <div class="card-summary en">Liebherr delivered three new Ship-to-Shore (STS) gantry cranes to Container Terminal Altenwerder (CTA) in Hamburg. Notably, these cranes are manufactured in Rostock, Germany — part of a trend to source port equipment from European manufacturers amid geopolitical supply chain concerns about Chinese crane makers (ZPMC).</div>
+    <div class="card-summary zh">利勃海尔向汉堡奥尔滕沃德集装箱码头（CTA）交付了三台新的岸桥（STS）门式起重机。值得注意的是，这些起重机在德国罗斯托克制造——这是在地缘政治供应链担忧（涉及中国起重机制造商振华重工/ZPMC）背景下，从欧洲制造商采购港口设备的趋势之一。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 7, 2026 · Alphaliner Wk14</span>
+    </div>
+  </div>
+
+</div><!-- /feed -->
+
+<!-- MARKET DATA SECTION -->
+<div class="data-tabs">
+  <div class="week-label" style="margin-top:0;margin-bottom:16px;">&#x1F4CA; Market Data — Week 14</div>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('tab-freight')"><span class="en">Commercial / Freight Rates</span><span class="zh">商务 / 运价</span></button>
+    <button class="tab-btn" onclick="switchTab('tab-bunker')"><span class="en">Ops / Bunker Fuel</span><span class="zh">运营 / 燃油</span></button>
+    <button class="tab-btn" onclick="switchTab('tab-charter')"><span class="en">Equipment / Charter</span><span class="zh">设备 / 租船</span></button>
+  </div>
+
+  <!-- TAB: FREIGHT -->
+  <div class="tab-pane active" id="tab-freight">
+    <p class="section-sub en">Container freight rate benchmarks as of Week 14 (Apr 7, 2026) · Source: Drewry WCI / SCFI</p>
+    <p class="section-sub zh">第14周集装箱运价基准（2026年4月7日）· 数据来源：Drewry WCI / SCFI</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → Rotterdam</div>
+        <div class="dc-value">$2,308</div>
+        <div class="dc-change down">▼ -9% WoW</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry (Apr 9)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → Los Angeles</div>
+        <div class="dc-value">$2,910</div>
+        <div class="dc-change up">▲ +9% WoW</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry (Apr 9)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → New York</div>
+        <div class="dc-value">$3,671</div>
+        <div class="dc-change up">▲ +7% WoW</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry (Apr 9)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → Genoa</div>
+        <div class="dc-value">$3,420</div>
+        <div class="dc-change down">▼ -3% WoW</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry (Apr 9)</div>
+      </div>
+    </div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr><th><span class="en">Route (CUL Relevant)</span><span class="zh">航线（CUL相关）</span></th><th><span class="en">Rate $/40ft</span><span class="zh">运价 $/40尺</span></th><th><span class="en">WoW Change</span><span class="zh">周环比</span></th><th><span class="en">Trend</span><span class="zh">趋势</span></th><th><span class="en">Key Driver</span><span class="zh">主要驱动因素</span></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="en">Asia → North Europe</span><span class="zh">亚洲→北欧</span></td>
+            <td class="td-pr">$2,308</td>
+            <td class="td-dn">▼ -9%</td>
+            <td><span class="en">Softening</span><span class="zh">趋软</span></td>
+            <td><span class="en">Partial Hormuz reopening signal</span><span class="zh">霍尔木兹部分重开信号</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → Mediterranean</span><span class="zh">亚洲→地中海</span></td>
+            <td class="td-pr">$3,420</td>
+            <td class="td-dn">▼ -3%</td>
+            <td><span class="en">Slight easing</span><span class="zh">小幅回落</span></td>
+            <td><span class="en">Cape routing premiums persisting</span><span class="zh">好望角绕行溢价持续</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → US West Coast</span><span class="zh">亚洲→美西</span></td>
+            <td class="td-pr">$2,910</td>
+            <td class="td-up">▲ +9%</td>
+            <td><span class="en">Rising — tariff surge</span><span class="zh">上涨——关税冲击</span></td>
+            <td><span class="en">Front-loading ahead of tariff deadline</span><span class="zh">关税截止前抢运</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → US East Coast</span><span class="zh">亚洲→美东</span></td>
+            <td class="td-pr">$3,671</td>
+            <td class="td-up">▲ +7%</td>
+            <td><span class="en">Rising</span><span class="zh">上涨</span></td>
+            <td><span class="en">Cargo surge before tariff deadline</span><span class="zh">关税截止前货量激增</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → Middle East</span><span class="zh">亚洲→中东</span></td>
+            <td class="td-pr"><span class="en">Limited data</span><span class="zh">数据有限</span></td>
+            <td class="td-up">—</td>
+            <td><span class="en">Volatile</span><span class="zh">波动</span></td>
+            <td><span class="en">Hormuz uncertainty continues</span><span class="zh">霍尔木兹不确定性持续</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Drewry WCI Composite</span><span class="zh">Drewry WCI综合</span></td>
+            <td class="td-pr">$2,309</td>
+            <td class="td-up">▲ +1%</td>
+            <td><span class="en">Stable–slight rise</span><span class="zh">稳定-小幅上涨</span></td>
+            <td><span class="en">Mixed signals across routes</span><span class="zh">各航线信号分化</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#58a6ff;"><span class="en">Commercial Insight (Wk14):</span><span class="zh">商务洞察（第14周）：</span></strong>
+      <span class="en"> Transpacific rates surged +7–9% as US tariff deadline (Apr 9) drove cargo front-loading. Asia–Europe softened -3–9% as carriers signaled hope of Hormuz partial reopening. Drewry expects spot rates to increase in coming weeks as carriers push for rate increases. CUL should capitalize on the transpacific momentum while hedging against Asia–Europe weakness.</span>
+      <span class="zh"> 跨太平洋运价因美国关税截止日（4月9日）推动货物抢运而上涨7-9%。亚欧运价因船公司传递霍尔木兹部分重开希望而下滑3-9%。Drewry预期船公司将继续推涨，未来几周即期运价将进一步上涨。CUL应把握跨太平洋势头，同时对冲亚欧疲软风险。</span>
+    </div>
+  </div>
+
+  <!-- TAB: BUNKER -->
+  <div class="tab-pane" id="tab-bunker">
+    <p class="section-sub en">Marine fuel prices as of Apr 12, 2026 · Source: HandyBulk / MABUX</p>
+    <p class="section-sub zh">船用燃油价格（2026年4月12日）· 数据来源：HandyBulk / MABUX</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">Singapore VLSFO</div>
+        <div class="dc-value">$765</div>
+        <div class="dc-change down">▼ -$100.50 vs Apr 9</div>
+        <div class="dc-sub">USD/MT | Low stock — pre-book required</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Rotterdam VLSFO</div>
+        <div class="dc-value">$695</div>
+        <div class="dc-change down">▼ -$49.50 vs Apr 9</div>
+        <div class="dc-sub">USD/MT | Lowest globally — load up here</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Fujairah VLSFO</div>
+        <div class="dc-value">$750</div>
+        <div class="dc-change down">▼ -$96.00 vs Apr 9</div>
+        <div class="dc-sub">USD/MT | Tight supply — advance booking</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Brent Crude</div>
+        <div class="dc-value">$102.69</div>
+        <div class="dc-change up">▲ +7.87% (Apr 13)</div>
+        <div class="dc-sub">USD/BBL | New surge on Saudi attack reports</div>
+      </div>
+    </div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr><th><span class="en">Port</span><span class="zh">港口</span></th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th><span class="en">Supply</span><span class="zh">供应</span></th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Singapore</td><td class="td-pr">$765</td><td class="td-pr">$1,576</td><td class="td-pr">$659</td><td style="color:#f59e0b;font-weight:600;"><span class="en">Low stock</span><span class="zh">库存偏低</span></td></tr>
+          <tr><td>Rotterdam</td><td class="td-pr">$695</td><td class="td-pr">$1,323</td><td class="td-pr">$650</td><td style="color:#3fb950;font-weight:600;"><span class="en">Normal</span><span class="zh">正常</span></td></tr>
+          <tr><td>Fujairah</td><td class="td-pr">$750</td><td class="td-pr">$1,590</td><td class="td-pr">$630</td><td style="color:#f85149;font-weight:600;"><span class="en">Tight</span><span class="zh">偏紧</span></td></tr>
+          <tr><td>Houston</td><td class="td-pr">$814</td><td class="td-pr">$1,264</td><td class="td-pr">$671</td><td style="color:#3fb950;font-weight:600;"><span class="en">Normal</span><span class="zh">正常</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#3fb950;"><span class="en">Ops Bunker Recommendation (Wk14):</span><span class="zh">运营燃油建议（第14周）：</span></strong>
+      <span class="en"> Rotterdam ($695/MT) is the global lowest — maximize fuel loading on Europe-bound or departing vessels. Singapore (-$100 vs prior week) shows technical correction but low stock remains a concern — pre-book 10+ days ahead. Brent surging +7.87% on Apr 13 suggests imminent VLSFO price recovery. Hormuz partial transit confirmed — Fujairah supply may ease in 2–4 weeks.</span>
+      <span class="zh"> 鹿特丹（$695/MT）是全球最低价——欧洲方向或出发船舶应最大化加油量。新加坡（较上周-$100）呈技术性回调，但库存低位仍是隐忧——请提前10天以上预订。布伦特4月13日暴涨7.87%，预示VLSFO价格即将反弹。霍尔木兹部分过境已确认——富查伊拉供应可能在2-4周内改善。</span>
+    </div>
+  </div>
+
+  <!-- TAB: CHARTER -->
+  <div class="tab-pane" id="tab-charter">
+    <p class="section-sub en">Containership charter rates as of Week 14 · Source: Alphaliner / Harper Petersen (New ConTex)</p>
+    <p class="section-sub zh">集装箱船租船费率（第14周）· 数据来源：Alphaliner / Harper Petersen</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">Bangkok Type (1,700 TEU)</div>
+        <div class="dc-value">$31,500</div>
+        <div class="dc-change up">▲ Near record</div>
+        <div class="dc-sub">USD/day | Middle East crisis boost</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">2,500 TEU Type</div>
+        <div class="dc-value">$34,500</div>
+        <div class="dc-change up">▲ Strong</div>
+        <div class="dc-sub">USD/day | Demand surge</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">3,000+ TEU</div>
+        <div class="dc-value">Zero</div>
+        <div class="dc-change up">▲ No availability</div>
+        <div class="dc-sub">Spot market: completely absorbed</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">CUL NEW Order Lock-In</div>
+        <div class="dc-value">$45,000</div>
+        <div class="dc-change up">▲ 4,810 TEU newbuild</div>
+        <div class="dc-sub">USD/day | Wk13 news — fleet expansion</div>
+      </div>
+    </div>
+    <div style="background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#d29922;"><span class="en">Equipment / Charter Note:</span><span class="zh">设备/租船说明：</span></strong>
+      <span class="en"> Charter market remains extremely tight. 3,000 TEU+ spot vessels are completely unavailable — all absorbed by major carriers locking in tonnage during Hormuz crisis. CUL's Wk13 decision to lock in 4,810 TEU newbuild at $45–46K/day was strategically correct; securing tonnage now is far better than waiting. Bangkok-type rates ($31,500/day) at near-record levels confirm regional feeder shortages.</span>
+      <span class="zh"> 租船市场依然极度紧张。3,000 TEU以上现货船完全无可用——全部被大型船公司在霍尔木兹危机期间锁定。CUL第13周以$45-46K/天锁定4,810 TEU新造船的决策在战略上是正确的；现在锁定吨位远优于等待。曼谷型费率（$31,500/天）接近历史最高，证实区域支线船短缺。</span>
+    </div>
+  </div>
+
+</div><!-- /data-tabs -->
+
+<!-- SIDEBAR (Drawer) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h3 id="sidebarTitle">Article Detail</h3>
+    <button class="sidebar-close" onclick="closeSidebar()">&#x00D7;</button>
+  </div>
+  <div class="sidebar-body" id="sidebarBody"></div>
+</div>
+
+<footer>
+  <p>CUL — Alphaliner Intelligence Digest | Week 14, 2026 (Apr 1–7) | Data: Alphaliner Weekly Monitor · Drewry WCI · HandyBulk · MABUX</p>
+  <p style="margin-top:6px;">For internal use only · AI-assisted analysis based on public Alphaliner data · Not investment advice</p>
+</footer>
+
+<script>
+// Language toggle
+function setLang(lang) {
+  document.getElementById('pageBody').className = lang === 'zh' ? 'lang-zh' : '';
+  document.getElementById('btnEN').className = 'lang-btn' + (lang==='en'?' active':'');
+  document.getElementById('btnZH').className = 'lang-btn' + (lang==='zh'?' active':'');
+}
+
+// Department filter
+const ftags = document.querySelectorAll('.ftag');
+ftags.forEach(t => {
+  t.addEventListener('click', function() {
+    ftags.forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+    const dept = this.dataset.dept;
+    const cards = document.querySelectorAll('.article-card');
+    let count = 0;
+    cards.forEach(card => {
+      const depts = card.dataset.depts ? card.dataset.depts.split(',') : [];
+      if (dept === 'all' || depts.includes(dept)) {
+        card.style.display = '';
+        count++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+    document.getElementById('countEN').textContent = count;
+    document.getElementById('countZH').textContent = count;
+  });
+});
+
+// Tab switch
+function switchTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Sidebar content
+const sidebarContent = {
+  s1: {
+    title: 'CMA CGM KRIBI — First Hormuz Outbound Transit',
+    body: `
+      <div class="sidebar-section"><h4>Background</h4><p>The US/Israel strikes on Iran (Feb 27, 2026) closed the Strait of Hormuz to Western-controlled vessels, stranding ~140 vessels (47% of global container capacity) in the Persian Gulf. CMA CGM KRIBI's successful outbound transit on Apr 7 marks the first confirmed Western vessel passage.</p></div>
+      <div class="sidebar-section"><h4>Key Details</h4><ul><li><strong>Vessel:</strong> CMA CGM KRIBI (13,800 TEU)</li><li><strong>Route:</strong> Outbound from Gulf (Jebel Ali area)</li><li><strong>Condition:</strong> Cargo nationality declaration required</li><li><strong>Deadline context:</strong> Trump had set Apr 7 as deadline for Iran negotiations</li></ul></div>
+      <div class="sidebar-section"><h4>What Happens Next</h4><ul><li>Iranian authorities expected to clarify conditions for broader passage</li><li>COSCO was first Chinese carrier to transit outbound (Wk13)</li><li>MSC, Evergreen, and others monitoring closely before resuming Gulf calls</li><li>Hapag-Lloyd estimated weekly losses of $40–50M from Gulf disruption</li></ul></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>DIRECT IMPACT.</strong> If Hormuz reopening is confirmed, CUL Middle East services (JEA, Dammam, Salalah, Sohar) can resume without Cape detour. Current detour premium: $300–500K extra fuel per voyage. Estimated CUL exposure: 3–4 Middle East voyages/month = $900K–2M/month in excess fuel costs. A confirmed reopening could restore normalcy within 4–6 weeks. Priority action: confirm slot availability with partner carriers (OOCL, Evergreen) for JEA-bound services.</p></div></div>
+    `
+  },
+  s2: {
+    title: 'Russia Container Carrier Ban — Ukraine Intelligence Report',
+    body: `
+      <div class="sidebar-section"><h4>Report Summary</h4><p>Ukrainian intelligence reportedly intercepted communications indicating Russia is drafting legislation to prohibit Western container lines from Russian ports. Timing is unclear but could be imminent given retaliatory escalation pressures.</p></div>
+      <div class="sidebar-section"><h4>Affected Services</h4><ul><li>Remaining Baltic sea routes via Russian ports</li><li>Black Sea routing through Constanta / Odessa corridor</li><li>Turkey-Russia bilateral trade via Istanbul</li></ul></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>INDIRECT / OPPORTUNITY.</strong> CUL has no Russia calls, but Constanta (CUL-served), Istanbul (CUL-served), and Piraeus may see increased transshipment demand from Russia-bound cargo forced to reroute. Monitor for volume uplift on CUL's Med–Black Sea connections. Legal team should prepare contingency guidance for any CUL customers with Russia-origin cargo.</p></div></div>
+    `
+  },
+  s3: {
+    title: 'MSC Transpacific Network Restructuring',
+    body: `
+      <div class="sidebar-section"><h4>Service Changes</h4><ul><li><strong>Orient:</strong> Los Angeles drops, Oakland added, transit time +2 days</li><li><strong>Sentosa:</strong> Port rotation simplified, Kaohsiung removed</li><li><strong>Chinook:</strong> Merged with partial Sentosa rotation, frequency maintained</li></ul></div>
+      <div class="sidebar-section"><h4>Market Context</h4><p>MSC's restructuring responds to demand uncertainty following Trump's 10% baseline tariff (Apr 9) and potential 90-day pause for most countries. Cargo front-loading ahead of tariff deadline inflated Q1 volumes, with potential Q2 hangover.</p></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>LOW DIRECT IMPACT.</strong> CUL does not operate transpacific services. However, MSC restructuring may create pricing pressure on Asia–Taiwan feeder connections (Kaohsiung implications). Monitor for any cascading effects on Asia intra-regional rates.</p></div></div>
+    `
+  },
+  s4: {
+    title: 'Maersk Safina — Jebel Ali Suspension',
+    body: `
+      <div class="sidebar-section"><h4>Service Adjustment</h4><p>Maersk Safina (Asia–Middle East weekly service) is suspending Jebel Ali calls with effect from mid-April. Cargo will be handled via:</p><ul><li>Salalah (Oman) — interim transhipment hub</li><li>Direct delivery via smaller feeder vessels once safety confirmed</li></ul></div>
+      <div class="sidebar-section"><h4>Impact on Asia–Gulf Trade</h4><p>Jebel Ali is the UAE's main container port and the Gulf's primary transhipment hub. Its removal from Safina reduces available capacity on the Asia–Gulf corridor by an estimated 15–20%.</p></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>COMMERCIAL OPPORTUNITY.</strong> Capacity vacuum on Asia–JEA lane. CUL and slot partners should assess ability to capture diverted cargo. Freight rate premium potential exists for confirmed JEA delivery. Coordinate with Commercial team on GRI/FAK adjustments. Review contracts with UAE customers — may need to communicate alternative routing options.</p></div></div>
+    `
+  },
+  s5: {
+    title: 'CMA CGM Africa Services — JEA Dropped',
+    body: `
+      <div class="sidebar-section"><h4>Affected Services</h4><ul><li><strong>MIDAS 1:</strong> Asia–East Africa via Jebel Ali → now via Sokhna (Egypt)</li><li><strong>MIDAS 2:</strong> China–East Africa → rerouted via Mediterranean transhipment</li><li><strong>Swahili:</strong> Southeast Asia–East Africa → Salalah hub added</li></ul></div>
+      <div class="sidebar-section"><h4>Sokhna/Port Said Implications</h4><p>Port Said and Sokhna (both Egypt) are positioned to become dominant transhipment hubs for Africa cargo given their location outside the Hormuz risk zone. Capacity at both ports is under pressure.</p></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>OPPORTUNITY at Egypt Calls.</strong> CUL's Sokhna and Port Said calls may see increased transshipment demand for East Africa-bound cargo. Assess berthing slot availability and yard capacity. Commercial opportunity to pitch CUL as an alternative routing solution for Middle East–Africa customers affected by JEA suspension. Potential GRI application for Port Said–East Africa transshipment uplift.</p></div></div>
+    `
+  },
+  s6: {
+    title: 'Asyad Line India–Oman Direct Service',
+    body: `
+      <div class="sidebar-section"><h4>Service Details</h4><ul><li><strong>Route:</strong> Nhava Sheva — Mundra — Sohar — Muscat</li><li><strong>Frequency:</strong> Weekly</li><li><strong>Vessels:</strong> 1,700–2,500 TEU class</li><li><strong>Operator:</strong> Asyad Line (Oman state carrier)</li></ul></div>
+      <div class="sidebar-section"><h4>Strategic Context</h4><p>Oman is positioning Sohar as the post-Hormuz logistics alternative for Gulf cargo. Asyad's new direct service is part of this national strategy, backed by government support and port infrastructure investment at Sohar Industrial Port.</p></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>COMPETITIVE THREAT on ISC–Oman Lane.</strong> CUL serves Nhava Sheva, Mundra, and Sohar/Muscat. Asyad's new direct weekly service competes head-on. CUL advantages: broader network (connecting to Taiwan, SEA, Med), established customer relationships, and international route connections. Recommend: Commercial team to review FAK rates on Nhava Sheva/Mundra–Sohar. Consider service differentiation (transit time, reliability) as competitive pitch vs. Asyad's single-trade focus.</p></div></div>
+    `
+  },
+  s7: {
+    title: 'Zhonggu Logistics CV2 — Qinzhou–Vietnam',
+    body: `
+      <div class="sidebar-section"><h4>Service Details</h4><ul><li><strong>Route:</strong> Qinzhou — Ho Chi Minh City — Haiphong</li><li><strong>Vessels:</strong> 2,500 TEU</li><li><strong>Frequency:</strong> Weekly</li><li><strong>Operator:</strong> Zhonggu Logistics (top Chinese domestic carrier)</li></ul></div>
+      <div class="sidebar-section"><h4>Market Context</h4><p>China–Vietnam trade corridor remains one of the fastest-growing intra-Asian lanes driven by manufacturing relocation (textiles, electronics) from China to Vietnam as companies diversify supply chains amid US tariff pressures.</p></div>
+      <div class="sidebar-section"><h4>CUL Impact Assessment</h4><div class="impact-box"><p><strong>MODERATE COMPETITION.</strong> CUL serves Qinzhou, Ho Chi Minh City, Haiphong, and Cai Mep. Zhonggu's CV2 adds direct weekly capacity on this lane. However, Zhonggu focuses on domestic/regional trade while CUL offers international connecting itineraries (Middle East, Taiwan, Mediterranean). Differentiation strategy: emphasize international coverage and port connectivity rather than competing on pure China–Vietnam point-to-point pricing.</p></div></div>
+    `
+  }
+};
+
+function openSidebar(id) {
+  const content = sidebarContent[id];
+  if (!content) return;
+  document.getElementById('sidebarTitle').textContent = content.title;
+  document.getElementById('sidebarBody').innerHTML = content.body;
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+</script>
+
+</body>
+</html>
