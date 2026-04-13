@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shanghai Travel Guide — Top Places to Visit</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f0eb;
+      color: #2c2c2c;
+      line-height: 1.7;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #c0392b 0%, #8e1a0e 40%, #1a1a2e 100%);
+      color: #fff;
+      padding: 70px 40px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 5px 18px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: #f7c948; }
+    .hero p {
+      font-size: 17px;
+      opacity: 0.85;
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+    .hero-meta {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    .hero-meta span {
+      background: rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 50px 30px;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+      position: relative;
+      display: inline-block;
+    }
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 50px; height: 3px;
+      background: #c0392b;
+      border-radius: 2px;
+    }
+    .section-subtitle {
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 28px;
+      margin-top: 10px;
+    }
+
+    /* ── GRID ── */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .card-img {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-body { padding: 20px 22px 24px; }
+    .card-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 9px;
+      margin-bottom: 10px;
+    }
+    .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+    .card p { font-size: 14px; color: #555; line-height: 1.65; }
+    .card-footer {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #f5f0eb;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    /* colour themes */
+    .theme-red .card-img { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+    .theme-red .card-tag { background: #fde8e6; color: #c0392b; }
+    .theme-blue .card-img { background: linear-gradient(135deg, #1a1a6c, #2980b9); }
+    .theme-blue .card-tag { background: #e3eef9; color: #1a5276; }
+    .theme-green .card-img { background: linear-gradient(135deg, #1b6e3a, #27ae60); }
+    .theme-green .card-tag { background: #e4f5ec; color: #1b6e3a; }
+    .theme-gold .card-img { background: linear-gradient(135deg, #7d5a00, #f39c12); }
+    .theme-gold .card-tag { background: #fef8e3; color: #7d5a00; }
+    .theme-purple .card-img { background: linear-gradient(135deg, #5b2c6f, #9b59b6); }
+    .theme-purple .card-tag { background: #f0e6f9; color: #5b2c6f; }
+    .theme-teal .card-img { background: linear-gradient(135deg, #0e6655, #1abc9c); }
+    .theme-teal .card-tag { background: #e3f5f1; color: #0e6655; }
+    .theme-dark .card-img { background: linear-gradient(135deg, #1a1a2e, #4a4a6a); }
+    .theme-dark .card-tag { background: #eaeaf5; color: #2c2c5e; }
+    .theme-orange .card-img { background: linear-gradient(135deg, #a04000, #e67e22); }
+    .theme-orange .card-tag { background: #fdf0e3; color: #a04000; }
+
+    /* ── HIGHLIGHT BAR ── */
+    .highlight-bar {
+      background: linear-gradient(135deg, #1a1a2e, #2d2d5e);
+      border-radius: 14px;
+      padding: 30px 36px;
+      color: #fff;
+      margin: 40px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 20px;
+      text-align: center;
+    }
+    .stat { }
+    .stat-num { font-size: 36px; font-weight: 800; color: #f7c948; line-height: 1; }
+    .stat-label { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+
+    /* ── TIMELINE ── */
+    .timeline { position: relative; padding-left: 30px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px; top: 0; bottom: 0;
+      width: 2px; background: #e0d9d0;
+    }
+    .timeline-item { position: relative; margin-bottom: 28px; }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px; top: 6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #c0392b;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 2px #c0392b;
+    }
+    .timeline-item h4 { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .timeline-item p { font-size: 13px; color: #666; }
+
+    /* ── TIPS BOX ── */
+    .tips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 20px; }
+    .tip-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid #c0392b;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .tip-card .tip-icon { font-size: 26px; margin-bottom: 10px; }
+    .tip-card h4 { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+    .tip-card p { font-size: 13px; color: #666; }
+
+    /* ── FOOD SECTION ── */
+    .food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .food-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: transform 0.2s;
+    }
+    .food-card:hover { transform: translateY(-3px); }
+    .food-card .food-emoji { font-size: 38px; margin-bottom: 10px; }
+    .food-card h4 { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 5px; }
+    .food-card p { font-size: 12px; color: #777; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #1a1a2e;
+      color: rgba(255,255,255,0.65);
+      text-align: center;
+      padding: 28px 20px;
+      font-size: 13px;
+      margin-top: 0;
+    }
+    footer strong { color: #f7c948; }
+
+    /* ── DIVIDER ── */
+    .section-wrap { margin-bottom: 60px; }
+    hr.divider { border: none; border-top: 1px solid #e8e0d6; margin: 50px 0; }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 34px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">✦ Travel Guide ✦</div>
+  <h1>Discover <span>Shanghai</span></h1>
+  <p>China's most cosmopolitan city — where ancient tradition meets cutting-edge modernity on the banks of the Huangpu River.</p>
+  <div class="hero-meta">
+    <span>🗺️ 25+ Attractions</span>
+    <span>🍜 Must-Try Foods</span>
+    <span>💡 Insider Tips</span>
+    <span>📅 Updated March 2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="highlight-bar">
+    <div class="stat"><div class="stat-num">24M+</div><div class="stat-label">Population</div></div>
+    <div class="stat"><div class="stat-num">6,340</div><div class="stat-label">km² City Area</div></div>
+    <div class="stat"><div class="stat-num">800+</div><div class="stat-label">Years of History</div></div>
+    <div class="stat"><div class="stat-num">#1</div><div class="stat-label">Busiest Container Port</div></div>
+    <div class="stat"><div class="stat-num">120M</div><div class="stat-label">Annual Visitors</div></div>
+  </div>
+
+  <!-- ICONIC LANDMARKS -->
+  <div class="section-wrap">
+    <div class="section-title">Iconic Landmarks</div>
+    <div class="section-subtitle">The must-see sights that define Shanghai's skyline and soul</div>
+    <div class="grid-2">
+
+      <div class="card theme-red">
+        <div class="card-img">🌃</div>
+        <div class="card-body">
+          <span class="card-tag">Waterfront</span>
+          <h3>The Bund (外滩)</h3>
+          <p>Shanghai's most famous promenade stretches 1.5 km along the western bank of the Huangpu River. The north bank is lined with 52 magnificent neoclassical and Art Deco buildings from the colonial era, offering a stunning contrast to the futuristic Pudong skyline across the water. Best visited at night when both sides light up spectacularly.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 All day / best at dusk</span>
+            <span class="pill">💰 Free</span>
+            <span class="pill">📍 Huangpu District</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-blue">
+        <div class="card-img">🏙️</div>
+        <div class="card-body">
+          <span class="card-tag">Modern Icon</span>
+          <h3>Oriental Pearl Tower (东方明珠)</h3>
+          <p>This 468-metre TV tower in Lujiazui has become the ultimate symbol of modern Shanghai. Visitors can ascend to three observation decks — including a glass-floored sphere — for breathtaking 360° views. The base houses the Shanghai History Museum, tracing the city from fishing village to global metropolis.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 9:00 – 22:00</span>
+            <span class="pill">💰 ¥200 / person</span>
+            <span class="pill">📍 Pudong</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-dark">
+        <div class="card-img">🗼</div>
+        <div class="card-body">
+          <span class="card-tag">Sky-High</span>
+          <h3>Shanghai Tower (上海中心大厦)</h3>
+          <p>At 632 metres, this is China's tallest building and the world's second tallest. The twisted, double-skin glass façade is an architectural marvel. Rush up to the 118th-floor observation deck — "Cloud Nine" — the world's highest at 546 m, for jaw-dropping views on a clear day. The high-speed elevator reaches the top in just 55 seconds.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 10:00 – 22:00</span>
+            <span class="pill">💰 ¥180 / person</span>
+            <span class="pill">📍 Lujiazui, Pudong</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-gold">
+        <div class="card-img">🏛️</div>
+        <div class="card-body">
+          <span class="card-tag">Heritage</span>
+          <h3>Yu Garden (豫园)</h3>
+          <p>A classical Ming Dynasty garden nestled within the old city. Built in 1559, its 2 hectares pack ornate pavilions, koi ponds, rockeries, and moon gates into a remarkably peaceful retreat. Surrounding the garden, the Yu Garden Bazaar buzzes with snack stalls and souvenir shops — try the famous xiaolongbao (soup dumplings) at the nearby Nanxiang Steamed Bun Restaurant.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 9:00 – 17:30</span>
+            <span class="pill">💰 ¥40 garden entry</span>
+            <span class="pill">📍 Huangpu Old Town</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- NEIGHBOURHOODS -->
+  <div class="section-wrap">
+    <div class="section-title">Must-Visit Neighbourhoods</div>
+    <div class="section-subtitle">Each district tells a different chapter of Shanghai's story</div>
+    <div class="grid-3">
+
+      <div class="card theme-purple">
+        <div class="card-img">🛍️</div>
+        <div class="card-body">
+          <span class="card-tag">Arts &amp; Nightlife</span>
+          <h3>Tianzifang (田子坊)</h3>
+          <p>A labyrinth of narrow shikumen (stone-gate) alleyways in Luwan converted into a thriving arts-and-crafts hub. Browse independent boutiques, local artist studios, quirky cafés, and international galleries. Atmospheric at any hour, especially lively on weekend evenings.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Luwan District</span>
+            <span class="pill">💰 Free to walk</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-teal">
+        <div class="card-img">🏠</div>
+        <div class="card-body">
+          <span class="card-tag">Architecture</span>
+          <h3>Xintiandi (新天地)</h3>
+          <p>An upscale open-air complex of restored 1920s shikumen buildings housing designer restaurants, boutiques, and bars. The north block retains authentic architecture; the south is a modern mall. Also home to the Site of the First National Congress of the CPC — historically significant.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Luwan District</span>
+            <span class="pill">💰 Free entry</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-green">
+        <div class="card-img">🌿</div>
+        <div class="card-body">
+          <span class="card-tag">Green Escape</span>
+          <h3>French Concession (法租界)</h3>
+          <p>Tree-lined boulevards, art deco mansions, independent coffee shops and bookstores populate this former French enclave. Huaihai Road is its main shopping artery, while quieter back streets like Wukang Road — centred on the iconic Normandie Apartments — are perfect for a slow afternoon stroll.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Xuhui / Jing'an</span>
+            <span class="pill">💰 Free</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-orange">
+        <div class="card-img">🔶</div>
+        <div class="card-body">
+          <span class="card-tag">Street Life</span>
+          <h3>Nanjing Road (南京路步行街)</h3>
+          <p>One of the world's busiest shopping streets, stretching 5.5 km from the Bund westward. The pedestrian section between Henan Road and Xizang Road is lined with flagship department stores, neon signs, and street performers. A vibrant sensory overload — and completely free to explore.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Huangpu District</span>
+            <span class="pill">💰 Free</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-blue">
+        <div class="card-img">🎨</div>
+        <div class="card-body">
+          <span class="card-tag">Contemporary Art</span>
+          <h3>M50 Creative Park (M50创意园)</h3>
+          <p>Shanghai's leading contemporary art district housed in repurposed cotton mill warehouses along the Suzhou Creek. Over 100 galleries and studios occupy the complex; many welcome walk-in visitors. The raw industrial aesthetic makes a compelling backdrop for avant-garde exhibitions.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Putuo / Jing'an</span>
+            <span class="pill">💰 Free – varies by gallery</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-red">
+        <div class="card-img">🌆</div>
+        <div class="card-body">
+          <span class="card-tag">Elevated Walk</span>
+          <h3>The High Line — Jing'an Sculpture Park</h3>
+          <p>Inspired by New York's High Line, the Jing'an Sculpture Park and adjacent rail-trail greenway offer a car-free route through the heart of the city. Public sculptures, pop-up markets, and waterside cafés make it ideal for a leisurely afternoon. Adjacent to the West Nanjing Road luxury shopping corridor.</p>
+          <div class="card-footer">
+            <span class="pill">📍 Jing'an District</span>
+            <span class="pill">💰 Free</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- MUSEUMS & CULTURE -->
+  <div class="section-wrap">
+    <div class="section-title">Museums &amp; Culture</div>
+    <div class="section-subtitle">Dive deep into art, history, and the city's living heritage</div>
+    <div class="grid-3">
+
+      <div class="card theme-gold">
+        <div class="card-img">🏺</div>
+        <div class="card-body">
+          <span class="card-tag">World-Class</span>
+          <h3>Shanghai Museum (上海博物馆)</h3>
+          <p>One of China's finest museums, renowned for its ancient bronzes, ceramics, calligraphy, and jade collections spanning 5,000 years of Chinese civilisation. Located on People's Square; the building itself is designed to resemble a bronze ding vessel. Free entry, but weekends get busy — arrive early.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 Tue–Sun 9:00–17:00</span>
+            <span class="pill">💰 Free</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-purple">
+        <div class="card-img">🖼️</div>
+        <div class="card-body">
+          <span class="card-tag">Modern Art</span>
+          <h3>Power Station of Art (当代艺术博物馆)</h3>
+          <p>China's first state-run contemporary art museum, housed in a converted 1985 power plant on the waterfront. Its towering chimney is a Huangpu riverside landmark. Hosts blockbuster international exhibitions alongside Chinese contemporary works. A sister venue to the Shanghai Biennale.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 Tue–Sun 11:00–19:00</span>
+            <span class="pill">💰 ¥20–60 (varies)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-teal">
+        <div class="card-img">🌏</div>
+        <div class="card-body">
+          <span class="card-tag">World Expo Legacy</span>
+          <h3>China Pavilion / China Art Museum (中华艺术宫)</h3>
+          <p>The iconic red pyramid-shaped China Pavilion from the 2010 World Expo has been repurposed as a massive museum of Chinese art. It now houses the largest collection of modern and contemporary Chinese art in the world, including a stunning digital recreation of Along the River During Qingming Festival.</p>
+          <div class="card-footer">
+            <span class="pill">🕐 Tue–Sun 9:00–17:00</span>
+            <span class="pill">💰 Free (reservation needed)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FOOD -->
+  <div class="section-wrap">
+    <div class="section-title">Shanghai on a Plate</div>
+    <div class="section-subtitle">No trip to Shanghai is complete without eating your way through these classics</div>
+    <div class="food-grid">
+      <div class="food-card">
+        <div class="food-emoji">🥟</div>
+        <h4>Xiaolongbao</h4>
+        <p>Delicate soup dumplings with pork and crab filling — a Shanghai icon. Din Tai Fung and Nanxiang are top picks.</p>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🍜</div>
+        <h4>Scallion Oil Noodles</h4>
+        <p>Deceptively simple: wheat noodles, crispy scallions, soy sauce. A soul-food staple of every Shanghainese household.</p>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🦀</div>
+        <h4>Hairy Crab</h4>
+        <p>Seasonal (Oct–Dec) delicacy from nearby Yangcheng Lake — steamed whole with vinegar ginger dipping sauce. A true autumn ritual.</p>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🍖</div>
+        <h4>Red-Braised Pork Belly</h4>
+        <p>Slow-cooked in soy, rice wine and sugar until meltingly tender. The quintessential Shanghainese home dish — rich and aromatic.</p>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🥐</div>
+        <h4>Shengjianbao</h4>
+        <p>Pan-fried pork buns — crispy on the bottom, fluffy on top, bursting with broth inside. Best at Yang's Fry-Dumpling.</p>
+      </div>
+      <div class="food-card">
+        <div class="food-emoji">🍡</div>
+        <h4>Tangyuan (Sweet Rice Balls)</h4>
+        <p>Glutinous rice balls filled with black sesame or red bean paste in warm sweet broth. A comforting winter street snack.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- SEASONAL HIGHLIGHTS -->
+  <div class="section-wrap">
+    <div class="section-title">When to Go</div>
+    <div class="section-subtitle">Shanghai has something special in every season</div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <h4>🌸 Spring (Mar – May) — Best Season</h4>
+        <p>Cherry blossoms at Gucun Park, warm temperatures (10–22°C), the city at its most photogenic. Tourism peaks but still manageable. Perfect for outdoor exploring.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>☀️ Summer (Jun – Aug) — Hot &amp; Humid</h4>
+        <p>Typhoon season, temperatures 28–38°C with high humidity. Offset by long opening hours, outdoor concerts, and Jing'an alfresco dining. Indoor AC is everywhere.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>🍂 Autumn (Sep – Nov) — Second Best</h4>
+        <p>Hairy crab season, mild weather, golden ginkgo leaves line the French Concession avenues. The Shanghai Grand Prix and international film festival draw big crowds in October.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>❄️ Winter (Dec – Feb) — Festive but Cold</h4>
+        <p>Christmas and Chinese New Year celebrations transform the city with lights and markets. Cold (2–10°C) but rarely snowy. Crowds thin out; hotel rates drop. Indoor culture and hotpot restaurants shine.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- PRACTICAL TIPS -->
+  <div class="section-wrap">
+    <div class="section-title">Practical Tips</div>
+    <div class="section-subtitle">Everything you need to know before you go</div>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">🚇</div>
+        <h4>Getting Around</h4>
+        <p>Shanghai Metro (20 lines, 508 stations) is the backbone of the city. Buy a Transport Card for tap-in convenience. Didi (Chinese Uber) is cheaper than taxis.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">📱</div>
+        <h4>Mobile Payments</h4>
+        <p>Alipay and WeChat Pay are accepted almost everywhere. Tourists can now link foreign Visa/Mastercard to Alipay's international version — set it up before arriving.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🌐</div>
+        <h4>Internet Access</h4>
+        <p>VPN required for Google, Instagram, WhatsApp etc. Download and activate your VPN before entering China. Most hotels provide solid Wi-Fi.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🗣️</div>
+        <h4>Language</h4>
+        <p>Mandarin is the official language; Shanghainese dialect is spoken locally. In tourist areas, basic English is common. Google Translate offline (Chinese pack) is a lifesaver.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">✈️</div>
+        <h4>Airports</h4>
+        <p>Two international airports: Pudong (PVG) for long-haul and Hongqiao (SHA) for domestic. Maglev train (¥50, 8 min) connects Pudong to Metro Line 2 — the coolest airport transfer in the world at 430 km/h.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">💴</div>
+        <h4>Currency &amp; Budget</h4>
+        <p>Chinese Yuan (RMB/CNY). ATMs (Bank of China, ICBC) accept foreign cards. Budget: ¥300–500/day for mid-range travel including food, transport, and entry fees.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🏨</div>
+        <h4>Where to Stay</h4>
+        <p>The Bund / Huangpu for luxury and views; French Concession for boutique and atmosphere; Jing'an for central convenience; Lujiazui (Pudong) for business travellers.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🎟️</div>
+        <h4>Booking Ahead</h4>
+        <p>Shanghai Museum, China Art Museum, and popular restaurants require advance reservations (WeChat Mini-Program). Book Disneyland at least 3 days in advance — it sells out on weekends.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- BONUS GEMS -->
+  <div class="section-wrap">
+    <div class="section-title">Hidden Gems &amp; Day Trips</div>
+    <div class="section-subtitle">Beyond the tourist trail</div>
+    <div class="grid-3">
+      <div class="card theme-green">
+        <div class="card-img">🌊</div>
+        <div class="card-body">
+          <span class="card-tag">Day Trip</span>
+          <h3>Zhujiajiao Water Town</h3>
+          <p>A 30-minute drive from central Shanghai, this ancient water town features 36 stone bridges, Ming-Qing dynasty houses, and gondola rides along narrow canals. Far less touristy than Wuzhen but equally atmospheric — ideal for a half-day escape.</p>
+          <div class="card-footer">
+            <span class="pill">🚌 ~40 min from People's Square</span>
+          </div>
+        </div>
+      </div>
+      <div class="card theme-red">
+        <div class="card-img">🎡</div>
+        <div class="card-body">
+          <span class="card-tag">Theme Park</span>
+          <h3>Shanghai Disneyland</h3>
+          <p>Asia's most modern Disney park opened in 2016, featuring the world's largest Disney castle (Enchanted Storybook Castle), a full-scale Pirates of the Caribbean ride, and uniquely Chinese-themed attractions. A full-day experience — arrive at opening to beat queues.</p>
+          <div class="card-footer">
+            <span class="pill">Metro Line 11 direct</span>
+            <span class="pill">💰 ¥400–750</span>
+          </div>
+        </div>
+      </div>
+      <div class="card theme-teal">
+        <div class="card-img">🌱</div>
+        <div class="card-body">
+          <span class="card-tag">Green Space</span>
+          <h3>Botanical Garden &amp; Chenshan</h3>
+          <p>Shanghai Chenshan Botanical Garden, 45 km southwest of the city, spans 207 hectares with one of Asia's largest plant collections. Its sunken rock garden and mineral hot spring make it a relaxing contrast to urban Shanghai — especially beautiful during cherry blossom season.</p>
+          <div class="card-footer">
+            <span class="pill">Metro Line 9 → bus</span>
+            <span class="pill">💰 ¥50</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>🗺️ <strong>Shanghai Travel Guide</strong> &nbsp;·&nbsp; Compiled March 2026 &nbsp;·&nbsp; Information is for reference; please verify opening hours and prices before visiting.</p>
+  <p style="margin-top:8px; opacity:0.5;">Generated by Claw · leahliu@culines.com</p>
+</footer>
+
+</body>
+</html>
