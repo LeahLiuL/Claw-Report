@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUL — Alphaliner Intelligence Digest | Week 16, 2026</title>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --border: #21262d;
+  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  --green: #3fb950; --orange: #d29922; --red: #f85149;
+  --purple: #bc8cff; --teal: #39d353;
+  --tag-ops: #0d4429; --tag-ops-t: #3fb950;
+  --tag-fin: #1a2f45; --tag-fin-t: #58a6ff;
+  --tag-leg: #2d1b4e; --tag-leg-t: #bc8cff;
+  --tag-eq: #3d2a0a; --tag-eq-t: #d29922;
+  --tag-net: #0f3240; --tag-net-t: #39d353;
+  --tag-trd: #3d1515; --tag-trd-t: #f85149;
+  --tag-rnd: #1a2a1a; --tag-rnd-t: #56d364;
+  --tag-com: #2a1a3d; --tag-com-t: #e79dff;
+  --tag-it: #0f2040; --tag-it-t: #79c0ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+
+/* Header */
+.top-bar { background: #010409; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { background: linear-gradient(135deg, #1f6feb, #58a6ff); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-text h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+.logo-text p { font-size: 11px; color: var(--muted); }
+.lang-btn { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; color: var(--text); transition: all 0.2s; }
+.lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+.lang-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
+.lang-controls { display: flex; gap: 8px; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+.hero-inner { max-width: 1200px; margin: 0 auto; }
+.hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.hero h2 .hl { color: var(--accent); }
+.hero p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.hero-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat-pill { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; }
+.stat-pill .sv { color: var(--accent); font-weight: 700; }
+
+/* Filters */
+.filter-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; position: sticky; top: 61px; z-index: 90; }
+.filter-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+.ftag { background: #21262d; border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+.ftag:hover { border-color: var(--accent); color: var(--accent); }
+.ftag.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
+.result-count { margin-left: auto; font-size: 12px; color: var(--muted); }
+.result-count span { color: var(--accent); font-weight: 700; }
+
+/* Feed */
+.feed { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+.week-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 24px 0 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+
+/* Card */
+.article-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.article-card:hover { border-color: #388bfd; background: #1c2128; }
+.article-card.featured { border-left: 3px solid var(--orange); }
+.article-card.cul-direct { border-left: 3px solid var(--green); }
+.card-top { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
+.card-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 200px; line-height: 1.5; }
+.card-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.badge-star { background: rgba(210,153,34,0.2); color: var(--orange); border: 1px solid rgba(210,153,34,0.4); }
+.badge-cul { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+.badge-ops { background: var(--tag-ops); color: var(--tag-ops-t); border: 1px solid rgba(63,185,80,0.2); }
+.badge-fin { background: var(--tag-fin); color: var(--tag-fin-t); border: 1px solid rgba(88,166,255,0.2); }
+.badge-leg { background: var(--tag-leg); color: var(--tag-leg-t); border: 1px solid rgba(188,140,255,0.2); }
+.badge-eq  { background: var(--tag-eq);  color: var(--tag-eq-t);  border: 1px solid rgba(210,153,34,0.2); }
+.badge-net { background: var(--tag-net); color: var(--tag-net-t); border: 1px solid rgba(57,211,83,0.2); }
+.badge-trd { background: var(--tag-trd); color: var(--tag-trd-t); border: 1px solid rgba(248,81,73,0.2); }
+.badge-rnd { background: var(--tag-rnd); color: var(--tag-rnd-t); border: 1px solid rgba(86,211,100,0.2); }
+.badge-com { background: var(--tag-com); color: var(--tag-com-t); border: 1px solid rgba(231,157,255,0.2); }
+.badge-it  { background: var(--tag-it);  color: var(--tag-it-t);  border: 1px solid rgba(121,192,255,0.2); }
+.badge-region { background: #21262d; color: var(--muted); border: 1px solid var(--border); }
+.card-summary { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+.card-impact { font-size: 12px; background: rgba(63,185,80,0.06); border: 1px solid rgba(63,185,80,0.15); border-radius: 8px; padding: 8px 12px; margin-top: 6px; color: #8fe898; line-height: 1.5; }
+.card-impact strong { color: var(--green); }
+.card-bottom { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.card-meta { font-size: 11px; color: var(--muted); }
+.card-actions { margin-left: auto; display: flex; gap: 8px; }
+.btn-sm { font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: #21262d; color: var(--text); cursor: pointer; transition: all 0.15s; }
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Sidebar / Drawer */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; }
+.sidebar-overlay.open { display: block; }
+.sidebar { position: fixed; right: -500px; top: 0; bottom: 0; width: 480px; background: #161b22; border-left: 1px solid #30363d; z-index: 210; overflow-y: auto; transition: right 0.3s ease; padding: 0; }
+.sidebar.open { right: 0; }
+.sidebar-header { background: #010409; border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; }
+.sidebar-header h3 { font-size: 14px; font-weight: 700; }
+.sidebar-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
+.sidebar-close:hover { color: var(--text); }
+.sidebar-body { padding: 20px; }
+.sidebar-section { margin-bottom: 20px; }
+.sidebar-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+.sidebar-section p { font-size: 13px; color: var(--text); line-height: 1.7; }
+.sidebar-section ul { padding-left: 16px; }
+.sidebar-section li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.sidebar-section li strong { color: var(--text); }
+.impact-box { background: rgba(63,185,80,0.07); border: 1px solid rgba(63,185,80,0.2); border-radius: 8px; padding: 12px; }
+.impact-box p { color: #8fe898; font-size: 13px; line-height: 1.6; }
+
+/* ───── MARKET DATA TABS ───── */
+.data-tabs { max-width: 1200px; margin: 0 auto; padding: 0 24px 30px; }
+.tabs-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab-btn { background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.data-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.dc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.dc-value { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.dc-change { font-size: 12px; font-weight: 600; }
+.dc-change.up { color: var(--red); }
+.dc-change.down { color: var(--green); }
+.dc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.data-table { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+.data-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { background: #21262d; color: var(--muted); padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid #21262d; color: var(--text); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #1c2128; }
+.td-up { color: var(--red); font-weight: 600; }
+.td-dn { color: var(--green); font-weight: 600; }
+.td-pr { font-weight: 700; color: var(--text); }
+.section-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* Footer */
+footer { border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 11px; color: var(--muted); }
+
+/* Hide/show lang */
+.zh { display: none; }
+.en { display: block; }
+body.lang-zh .zh { display: block; }
+body.lang-zh .en { display: none; }
+</style>
+</head>
+<body id="pageBody">
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">&#x26F2;</div>
+    <div class="logo-text">
+      <h1>CUL — Alphaliner Intelligence Digest</h1>
+      <p>Week 16, 2026 (Apr 14–20) · Powered by Alphaliner &amp; Linerlytica</p>
+    </div>
+  </div>
+  <div class="lang-controls">
+    <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btnZH" onclick="setLang('zh')">中文</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <h2 class="en">Alphaliner <span class="hl">Weekly Intelligence</span> — Week 16</h2>
+    <h2 class="zh">Alphaliner <span class="hl">每周情报摘要</span> — 第16周</h2>
+    <p class="en">AI-curated shipping intelligence with CUL impact assessment | Apr 14–20, 2026 | Source: Alphaliner / Linerlytica / Kuehne+Nagel / SeaVantage</p>
+    <p class="zh">AI精选航运情报，附CUL影响评估 | 2026年4月14–20日 | 数据来源：Alphaliner / Linerlytica / 德迅 / SeaVantage</p>
+    <div class="hero-stats">
+      <div class="stat-pill"><span class="sv">12</span> <span class="en">Articles This Week</span><span class="zh">本周条目</span></div>
+      <div class="stat-pill"><span class="sv">7</span> <span class="en">CUL Direct</span><span class="zh">CUL直接相关</span></div>
+      <div class="stat-pill"><span class="sv">3</span> <span class="en">Featured Items</span><span class="zh">重点项目</span></div>
+      <div class="stat-pill en"><span class="sv">Middle East / Asia / Americas</span> Regions</div>
+      <div class="stat-pill zh"><span class="sv">中东 / 亚洲 / 美洲</span> 覆盖区域</div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-inner">
+    <span class="filter-label en">Dept</span>
+    <span class="filter-label zh">部门</span>
+    <span class="ftag active" data-dept="all">All</span>
+    <span class="ftag" data-dept="ops"><span class="en">Ops</span><span class="zh">运营</span></span>
+    <span class="ftag" data-dept="fin"><span class="en">Finance</span><span class="zh">财务</span></span>
+    <span class="ftag" data-dept="legal"><span class="en">Legal</span><span class="zh">法务</span></span>
+    <span class="ftag" data-dept="equip"><span class="en">Equipment</span><span class="zh">设备/箱管</span></span>
+    <span class="ftag" data-dept="network"><span class="en">Network</span><span class="zh">航线规划</span></span>
+    <span class="ftag" data-dept="trade"><span class="en">Trade</span><span class="zh">商务贸易</span></span>
+    <span class="ftag" data-dept="commercial"><span class="en">Commercial</span><span class="zh">商业</span></span>
+    <span class="ftag" data-dept="it"><span class="en">IT</span><span class="zh">信息技术</span></span>
+    <div class="result-count en">Showing <span id="countEN">12</span> of 12 items</div>
+    <div class="result-count zh">显示 <span id="countZH">12</span> / 12 条</div>
+  </div>
+</div>
+
+<!-- MAIN FEED -->
+<div class="feed" id="mainFeed">
+  <div class="week-label">&#x1F5D3; Week 16 · Apr 14–20, 2026 · Alphaliner / Linerlytica Monitor</div>
+
+  <!-- ARTICLE 1 -->
+  <div class="article-card featured cul-direct" data-depts="ops,legal,network">
+    <div class="card-top">
+      <div class="card-title en">&#x2B50; Hormuz Ceasefire — "Controlled Access, Not Open Passage": 823 Vessels Still Stranded in Gulf</div>
+      <div class="card-title zh">&#x2B50; 霍尔木兹停火——"受控通行，非自由通航"：湾内仍有823艘船舶滞留</div>
+      <div class="card-badges">
+        <span class="badge badge-star">&#x2B50; Featured</span>
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-leg">Legal</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Middle East / Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">Despite the US-Iran two-week ceasefire announced April 8, shipping through the Strait of Hormuz remains under "controlled access" rather than free commercial transit. As of April 16, Windward Analytics confirmed 823 vessels remain stranded in the Persian Gulf or anchored off Oman. US naval enforcement is active, requiring cargo nationality declarations. Xeneta warns the ceasefire "is not enough to restore normal commercial operations." Insurance war-risk premiums remain at elevated levels.</div>
+    <div class="card-summary zh">尽管4月8日宣布美伊两周停火，霍尔木兹海峡航运仍处于"受控通行"状态，而非自由商业通航。截至4月16日，Windward Analytics确认仍有823艘船舶滞留波斯湾内或在阿曼湾外锚泊。美国海军执法仍处于活跃状态，要求申报货物国籍。Xeneta警告称停火"不足以恢复正常商业运营"。保险战争风险附加费仍维持高位。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Full Hormuz reopening still 4–6 weeks away minimum. CUL Middle East services (Jebel Ali, Dammam) should maintain Cape of Good Hope routing with existing surcharges. Estimated extra cost: $300–500K per Middle East voyage. Coordinate with legal on war risk clauses for Q2 contracts. Monitor Windward vessel tracker weekly.</span>
+      <span class="zh"> 霍尔木兹完全重开最少还需4-6周。CUL中东航线（杰贝阿里、达曼）应继续维持好望角绕行路由和现行附加费。估计额外成本：每趟中东航次$30-50万。与法务协调Q2合同中的战争风险条款。每周监控Windward船舶追踪器。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 16-17, 2026 · Windward / Xeneta / Portnews</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s1')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 2 -->
+  <div class="article-card featured cul-direct" data-depts="commercial,trade,network">
+    <div class="card-top">
+      <div class="card-title en">&#x2B50; Drewry WCI Snaps Six-Week Rally — Falls 3% to $2,246/FEU as Tariff Surge Fades</div>
+      <div class="card-title zh">&#x2B50; Drewry WCI六周连涨终止——下跌3%至$2,246/FEU，关税冲击效应消退</div>
+      <div class="card-badges">
+        <span class="badge badge-star">&#x2B50; Featured</span>
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-com">Commercial</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">The Drewry World Container Index (WCI) fell 3% this week (Week 16) to $2,246/FEU — ending a six-week rally driven by Middle East bunker volatility. All Asia-outbound lanes declined: Shanghai–Rotterdam -3% to $2,229; Shanghai–LA -3% to $2,810; Shanghai–New York -3% to $3,552; Shanghai–Genoa -2% to $3,343. The rally peaked after the US tariff deadline (Apr 9) cargo front-loading subsided. Meanwhile, Week 16 saw 43 blank sailings announced for Wks 13–17, with TPEB (transpacific eastbound) accounting for 58% of capacity cuts.</div>
+    <div class="card-summary zh">Drewry世界集装箱运价指数（WCI）本周（第16周）下跌3%至$2,246/FEU，终止了由中东燃油波动驱动的六周连涨。亚洲出口各航线全线下跌：上海—鹿特丹-3%至$2,229；上海—洛杉矶-3%至$2,810；上海—纽约-3%至$3,552；上海—热那亚-2%至$3,343。涨势随美国关税截止日（4月9日）前的抢运潮消退而见顶。第13-17周共宣布43个停航班次，跨太平洋东行占运力削减的58%。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Rate correction confirms tariff front-loading exhaustion. CUL commercial teams should reassess Q2 spot rate positions — FAK and GRI momentum has stalled. China-US trade volumes may drop further as tariff impact bites. Opportunity to lock in competitive rates for non-TPEB routes (Middle East, SE Asia) as capacity shifts away from transpacific.</span>
+      <span class="zh"> 运价回调证实关税抢运需求耗尽。CUL商务团队应重新评估Q2即期运价定位——FAK和GRI动能已停滞。随着关税影响深入，中美贸易量可能进一步下降。趁运力从跨太平洋转移之机，锁定非TPEB航线（中东、东南亚）的具竞争力运价。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 17, 2026 · Drewry WCI Wk16</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s2')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 3 -->
+  <div class="article-card featured cul-direct" data-depts="network,ops,trade">
+    <div class="card-top">
+      <div class="card-title en">&#x2B50; Transpacific Network Reshuffle: MSC Updates Chinook/Sentosa/Orient; ONE Adds PS8; HMM Launches Vietnam Shuttle</div>
+      <div class="card-title zh">&#x2B50; 跨太平洋网络大重组：MSC更新Chinook/Sentosa/Orient；ONE新增PS8；HMM推出越南穿梭</div>
+      <div class="card-badges">
+        <span class="badge badge-star">&#x2B50; Featured</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-region">Asia / Americas</span>
+      </div>
+    </div>
+    <div class="card-summary en">Multiple carriers have restructured transpacific services in response to US tariff shifts and Vietnam manufacturing diversification. MSC launched updated Chinook (PRC→Pacific NW), Sentosa (SE Asia/China→USWC), and Orient (shortened China→USWC) services effective early April. ONE launched new PS8 (Qingdao/Ningbo→LA/Oakland, May 18 maiden). HMM launched Vietnam Shuttle Express connecting Singapore/Caimep/Haiphong to Los Angeles (Apr 28 maiden), directly serving manufacturing-shift demand from Vietnam.</div>
+    <div class="card-summary zh">多家班轮公司针对美国关税变化和越南制造业转移重构了跨太平洋服务。MSC于4月初推出更新版Chinook（中国华南→太平洋西北）、Sentosa（东南亚/中国→美西）和简化版Orient（中国→美西）服务。ONE推出新PS8（青岛/宁波→洛杉矶/奥克兰，5月18日首航）。HMM推出越南穿梭快线，连接新加坡/改美/海防至洛杉矶（4月28日首航），直接服务越南制造业转移需求。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Increased competition on Vietnam-US lanes. CUL's Haiphong and Caimep calls could benefit from feeder connections to these new services. Assess cargo routing from Vietnam manufacturing customers — are they redirecting US-bound cargo via these new transpacific services? China-US direct volume likely to decline; Southeast Asia-US to grow.</span>
+      <span class="zh"> 越南-美国航线竞争加剧。CUL的海防和改美挂靠可能受益于与这些新服务的支线连接。评估越南制造业客户的货物路由——他们是否通过这些新跨太平洋服务重新定向美国目的地货物？中国-美国直达量可能下降，东南亚-美国将增长。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 14-20, 2026 · KN Carrier Update / Alphaliner</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s3')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 4 -->
+  <div class="article-card cul-direct" data-depts="network,ops">
+    <div class="card-top">
+      <div class="card-title en">CMA CGM Launches Ocean Rise Express (OCR) — Direct Asia–North Europe Pendulum Service</div>
+      <div class="card-title zh">CMA CGM推出Ocean Rise Express（OCR）——直达亚洲—北欧钟摆服务</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Asia / Europe</span>
+      </div>
+    </div>
+    <div class="card-summary en">CMA CGM launched a new Ocean Rise Express (OCR) Asia–North Europe service on April 2, connecting Kobe–Nagoya–Yokohama–Xiamen–Yantian–Rotterdam–Hamburg–Southampton–Nansha. This is a dedicated direct service bypassing typical transshipment hubs, aimed at premium shippers. The service adds approximately 8,000 TEU/week of additional capacity on the Asia–Europe corridor.</div>
+    <div class="card-summary zh">CMA CGM于4月2日推出新的亚洲—北欧Ocean Rise Express（OCR）服务，连接神户—名古屋—横滨—厦门—盐田—鹿特丹—汉堡—南安普顿—南沙。这是一条绕过典型中转枢纽的专用直航服务，针对优质托运人。该服务在亚欧走廊新增约8,000 TEU/周的额外运力。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> OCR adds premium competition on Asia–Europe. CUL should monitor if existing FAK rates are undercut on Yantian/Xiamen–NWE lanes. Potential opportunity for slot-sharing discussions if OCR serves ports where CUL has customer concentration. Watch for rate pressure at Yantian and Nansha (Pearl River Delta).</span>
+      <span class="zh"> OCR在亚欧线增加优质竞争。CUL应监控盐田/厦门—欧洲北部航线现有FAK运价是否被压低。如果OCR服务CUL客户集中的港口，可考虑舱位共享洽谈。重点关注盐田和南沙（珠三角）的运价压力。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 2, 2026 · CMA CGM / KN Carrier Update</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s4')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 5 -->
+  <div class="article-card cul-direct" data-depts="network,trade">
+    <div class="card-top">
+      <div class="card-title en">ONE Launches JTI: Japan–Southeast Asia–Indian Subcontinent New Service</div>
+      <div class="card-title zh">ONE推出JTI：日本—东南亚—印度次大陆新服务</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-region">Asia / Indian Subcontinent</span>
+      </div>
+    </div>
+    <div class="card-summary en">Ocean Network Express (ONE) launched its new JTI service on April 4, connecting Japan (Tokyo, Yokohama, Shimizu, Nagoya, Osaka, Kobe) with Southeast Asia (Laem Chabang, Singapore, Port Klang) and Indian Subcontinent ports (Nhava Sheva, Pipavav, Karachi, Qasim, Colombo). This new service strengthens coverage on the ISC trade corridor and adds direct Japan–ISC capacity outside of traditional routing via Singapore.</div>
+    <div class="card-summary zh">ONE于4月4日推出新的JTI服务，连接日本（东京、横滨、清水、名古屋、大阪、神户）与东南亚（林查班、新加坡、巴生港）及印度次大陆港口（那瓦舍瓦、皮帕瓦夫、卡拉奇、卡西姆、科伦坡）。该新服务加强了ISC贸易走廊的覆盖，并新增了不经新加坡传统路由的直接日本—ISC运力。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Increased competition on Singapore–ISC and SE Asia–ISC lanes. CUL should monitor if JTI captures cargo from CUL-served ISC ports (Nhava Sheva, Mundra). Port Klang and Colombo positioning — assess feeder connection opportunities with JTI at these transshipment hubs.</span>
+      <span class="zh"> 新加坡—ISC和东南亚—ISC航线竞争加剧。CUL应监控JTI是否抢夺CUL服务的ISC港口货物（那瓦舍瓦、蒙德拉）。巴生港和科伦坡定位——在这些中转枢纽评估与JTI的支线连接机会。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 4, 2026 · ONE / KN Carrier Update</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s5')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 6 -->
+  <div class="article-card cul-direct" data-depts="ops,network">
+    <div class="card-top">
+      <div class="card-title en">Maersk Mesawa Service Shifts to Bi-Weekly — Reliability Optimization Amid Hormuz Disruption</div>
+      <div class="card-title zh">马士基Mesawa航线调整为双周班——霍尔木兹中断下的准班率优化</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-region">Middle East / Asia</span>
+      </div>
+    </div>
+    <div class="card-summary en">Maersk announced on April 7 that its Mesawa service (Middle East–South Asia–West Africa) will transition to a bi-weekly proforma schedule to "enhance schedule reliability and reduce cascading disruptions." This represents a de facto capacity reduction of ~50% on the corridor, reflecting the continued inability to transit Hormuz and the resulting vessel tieup in the Arabian Sea/Oman anchorages.</div>
+    <div class="card-summary zh">马士基于4月7日宣布，其Mesawa服务（中东—南亚—西非）将调整为双周班表，以"提升准班率并减少连锁中断"。这实际上使该走廊运力减少约50%，反映了霍尔木兹持续无法通行以及由此导致的船舶滞留阿拉伯海/阿曼锚地的状况。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL Impact:</strong>
+      <span class="en"> Mesawa frequency cut creates potential cargo overflow on ISC–Middle East corridors. CUL services connecting South Asia to Middle East Gulf ports may absorb diverted Mesawa cargo. Immediate action: contact ISC-Middle East customers about alternative routing capacity. Gemini Cooperation reliability advantage could be leveraged for ISC trade premium positioning.</span>
+      <span class="zh"> Mesawa频次削减在ISC—中东走廊可能产生货物溢出。CUL连接南亚与中东海湾港口的服务可能吸纳Mesawa转移货物。立即行动：联系ISC—中东客户介绍替代路由运力。Gemini合作的准班率优势可用于ISC贸易溢价定位。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 7, 2026 · Maersk Advisory</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s6')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 7 -->
+  <div class="article-card" data-depts="network,ops">
+    <div class="card-top">
+      <div class="card-title en">COSCO Launches NAX: New Asia–North Africa–Libya Direct Service via Suez</div>
+      <div class="card-title zh">中远海运推出NAX：全新亚洲—北非—利比亚经苏伊士直航服务</div>
+      <div class="card-badges">
+        <span class="badge badge-net">Network</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Asia / Mediterranean</span>
+      </div>
+    </div>
+    <div class="card-summary en">COSCO launched its NAX service on April 1, connecting Shanghai–Nansha–Port Said (Egypt)–Benghazi–Misurata (Libya)–Qingdao–Ningbo–Shanghai. This is a new direct China–Libya corridor using the Suez Canal route (not affected by Hormuz). Libya's post-reconstruction import demand, particularly for construction materials and consumer goods, is the key driver. CMA CGM's Africa-focus is also evident in its new WAX2 (West Africa) service launched the same week.</div>
+    <div class="card-summary zh">中远海运于4月1日推出NAX服务，连接上海—南沙—塞得港（埃及）—班加西—米苏拉塔（利比亚）—青岛—宁波—上海。这是一条经苏伊士运河（不受霍尔木兹影响）的全新中国—利比亚直航走廊。利比亚战后重建进口需求，特别是建材和消费品，是主要驱动力。CMA CGM同周推出的新WAX2（西非）服务也体现了其对非洲航线的重视。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 1, 2026 · COSCO / KN Carrier Update</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 8 -->
+  <div class="article-card" data-depts="fin,equip">
+    <div class="card-top">
+      <div class="card-title en">Containership Charter Market Stays Bullish — Feeder Rates Continue Rising as Middle East Dislocation Persists</div>
+      <div class="card-title zh">集装箱船租船市场持续偏强——中东错位持续推高支线运费</div>
+      <div class="card-badges">
+        <span class="badge badge-fin">Finance</span>
+        <span class="badge badge-eq">Equipment</span>
+        <span class="badge badge-region">Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">According to Lloyd's List (April 15, 2026), the containership charter market remains bullish heading into Week 16, with smaller vessel segments (1,000–2,800 TEU) continuing to rise. The 1,740 TEU feeder segment saw recent fixtures at $21,500/day+ (Euroseas EM Spetses extended at $21,500/day). The Middle East vessel dislocation — with hundreds of ships unable to transit Hormuz — is artificially tightening supply in all other markets, keeping charter rates elevated despite weakening spot freight rates.</div>
+    <div class="card-summary zh">根据Lloyd's List（2026年4月15日），集装箱船租船市场进入第16周仍偏强，小型船舶细分市场（1,000-2,800 TEU）继续上涨。1,740 TEU支线船段近期成交价在$21,500/天以上（Euroseas EM Spetses以$21,500/天续租）。中东船舶错位——数百艘船舶无法通过霍尔木兹——人为收紧了其他所有市场的供应，使租船费率即便在即期运价走弱的情况下仍维持高位。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 15, 2026 · Lloyd's List Charter Market</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 9 -->
+  <div class="article-card" data-depts="equip,ops">
+    <div class="card-top">
+      <div class="card-title en">Schedule Reliability Falls Industry-Wide — Hapag-Lloyd Best at 67.4%; ZIM Drops Out of Top 10</div>
+      <div class="card-title zh">行业准班率全面下滑——赫伯罗特以67.4%领先；以星跌出前10</div>
+      <div class="card-badges">
+        <span class="badge badge-eq">Equipment</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">Sea-Intelligence data shows industry-wide schedule reliability continues to decline. Hapag-Lloyd (Gemini Cooperation) leads globally at 67.4%, with 88.1% on TPWC. PIL (66.4%) and Evergreen (65.3%) are the only carriers showing reliability improvement. ZIM dropped out of the global top 10 due to Suez Canal rerouting delays. Matson maintains 100% reliability on CLX (Hawaii-West Coast). Average industry reliability is now estimated at ~55%, down from 60%+ in Q4 2025.</div>
+    <div class="card-summary zh">Sea-Intelligence数据显示行业准班率继续下滑。赫伯罗特（Gemini合作）以67.4%全球领先，太平洋西行可靠性达88.1%。PIL（66.4%）和长荣（65.3%）是仅有的两家准班率提升的主要承运人。以星因苏伊士运河改道延误而跌出全球前10。美森在CLX（夏威夷—西海岸）保持100%准班率。行业平均可靠性目前估计约55%，低于2025年四季度的60%+。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 15, 2026 · Sea-Intelligence / SeaVantage</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 10 -->
+  <div class="article-card" data-depts="fin,legal,trade">
+    <div class="card-top">
+      <div class="card-title en">US Tariff Impact: China–US Volumes Hit Record Lows; Southeast Asia Bookings Surge 25%</div>
+      <div class="card-title zh">美国关税影响：中美贸易量创历史新低；东南亚订舱量激增25%</div>
+      <div class="card-badges">
+        <span class="badge badge-fin">Finance</span>
+        <span class="badge badge-leg">Legal</span>
+        <span class="badge badge-trd">Trade</span>
+        <span class="badge badge-region">Asia / Americas</span>
+      </div>
+    </div>
+    <div class="card-summary en">Following the April 9 tariff implementation (145% on Chinese goods, 10% broad-based reciprocal tariff), direct China–US container bookings have fallen sharply. Vizion API's TradeView data shows China-US eastbound bookings down ~35% WoW after the deadline, while Vietnam, Thailand, and Indonesia bookings surged ~25% as importers scramble for alternative sourcing. Carriers are responding with targeted blank sailings on China–USWC lanes (58% of all blank sailing capacity cuts in Wks 13–17).</div>
+    <div class="card-summary zh">继4月9日关税落地（中国商品145%，广泛对等关税10%），中美集装箱直接订舱量急剧下降。Vizion API的TradeView数据显示，截止日后中国—美国东行订舱量周环比下降约35%，而越南、泰国、印尼订舱量激增约25%，因进口商争相寻找替代货源。船公司正对中国—美西航线实施有针对性的停航（第13-17周停航运力削减的58%）。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 14-16, 2026 · Vizion TradeView / SeaVantage</span>
+    </div>
+  </div>
+
+  <!-- ARTICLE 11 (IT) -->
+  <div class="article-card cul-direct" data-depts="it">
+    <div class="card-top">
+      <div class="card-title en">Maritime AI Weekly: Autonomous Coastal Liner Certified; 823 Gulf Vessels Tracked Real-Time; Oman Launches National Maritime Portal</div>
+      <div class="card-title zh">海事AI周报：全球首艘自主沿海班轮获认证；823艘海湾船实时追踪；阿曼推出国家海事门户</div>
+      <div class="card-badges">
+        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
+        <span class="badge badge-it">IT</span>
+        <span class="badge badge-region">Global / Asia / Middle East</span>
+      </div>
+    </div>
+    <div class="card-summary en">Key shipping digitalization & AI developments this week: (1) ClassNK certified the world's first commercial autonomous coastal liner "Genbu" under Japan's MEGURI2040 programme — a milestone for autonomous vessel certification frameworks. (2) Windward Analytics deployed real-time AI tracking of 823 stranded Gulf vessels, demonstrating the operational value of maritime domain awareness platforms. (3) Oman launched a national maritime portal integrating 90+ digital services on a single platform — significant for CUL's Oman port operations. (4) NorthStandard P&I club funded full AI safety technology pilot (ShipIn FleetVision) for all member vessels — first insurer-funded maritime AI trial at scale. (5) Lloyd's Register expanded its AI readiness assessment index to include 360-degree AI maturity scoring.</div>
+    <div class="card-summary zh">本周重要航运数字化与AI动态：(1) ClassNK认证全球首艘商业自主沿海班轮"Genbu"（日本MEGURI2040计划）——自主船舶认证框架的里程碑。(2) Windward Analytics部署对823艘滞留海湾船舶的实时AI追踪，展示了海事域感知平台的运营价值。(3) 阿曼推出国家海事门户，整合90多项数字服务于单一平台——对CUL阿曼港口运营意义重大。(4) NorthStandard P&I俱乐部为所有会员船舶全额资助AI安全技术试点（ShipIn FleetVision）——首个保险公司资助的大规模海事AI试验。(5) Lloyd's Register扩展AI就绪评估指数，引入360度AI成熟度评分。</div>
+    <div class="card-impact">
+      <strong>&#x1F3AF; CUL IT Impact:</strong>
+      <span class="en"> Oman's national maritime portal integration should be monitored — streamlined customs and port clearance could reduce Muscat/Sohar port turnaround times for CUL vessels. Consider evaluating ShipIn or similar AI fleet visibility tools for CUL vessel operations monitoring. The MEGURI2040 autonomous vessel program may eventually affect maritime labor/manning conventions — flag state and legal teams should track IMO developments on autonomous vessel regulations.</span>
+      <span class="zh"> 阿曼国家海事门户整合值得关注——简化的海关和港口清关可减少CUL船舶在马斯喀特/苏哈尔的港口周转时间。可考虑评估ShipIn或类似AI船队可视化工具用于CUL船舶运营监控。MEGURI2040自主船舶项目最终可能影响海事劳工/船员配备规范——船旗国和法务团队应跟踪IMO自主船舶法规进展。</span>
+    </div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 12-19, 2026 · AI at Sea / ClassNK / Lloyd's Register</span>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="openSidebar('s11')">&#x1F4D6; <span class="en">Details</span><span class="zh">详情</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLE 12 (IT) -->
+  <div class="article-card" data-depts="it,ops">
+    <div class="card-top">
+      <div class="card-title en">Kpler Launches MCP for Natural Language Maritime Intelligence; Asyad Deploys Digital Bunker Procurement Fleet-Wide</div>
+      <div class="card-title zh">Kpler推出自然语言海事情报MCP；Asyad全船队部署数字燃料采购平台</div>
+      <div class="card-badges">
+        <span class="badge badge-it">IT</span>
+        <span class="badge badge-ops">Ops</span>
+        <span class="badge badge-region">Global</span>
+      </div>
+    </div>
+    <div class="card-summary en">Two notable shipping tech announcements this week: (1) Kpler launched a Model Context Protocol (MCP) enabling natural language queries against its proprietary maritime intelligence database, allowing AI agents to query vessel movements, cargo flows, and trade data in natural language — a significant step toward AI-native maritime operations. (2) Oman's Asyad Shipping deployed AuctionConnect digital bunker procurement platform across its entire fleet, enabling competitive real-time bunker pricing via digital auction. Thetius data showed 420 organizations now active in maritime AI, reflecting the rapid sector maturation.</div>
+    <div class="card-summary zh">本周两则值得关注的航运科技公告：(1) Kpler推出模型上下文协议（MCP），允许用自然语言查询其专有海事情报数据库，使AI代理能够用自然语言查询船舶动态、货流和贸易数据——向AI原生海事运营迈出重要一步。(2) 阿曼Asyad航运在全船队部署AuctionConnect数字燃料采购平台，通过数字拍卖实现竞争性实时燃油定价。Thetius数据显示现有420个组织活跃于海事AI领域，反映出该行业的快速成熟。</div>
+    <div class="card-bottom">
+      <span class="card-meta">Apr 14-19, 2026 · AI at Sea / Kpler / Thetius</span>
+    </div>
+  </div>
+
+</div><!-- /feed -->
+
+<!-- ─── SIDEBAR DRAWERS ─── -->
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebarPanel">
+  <div class="sidebar-header">
+    <h3 id="sidebarTitle">Details</h3>
+    <button class="sidebar-close" onclick="closeSidebar()">&#x2715;</button>
+  </div>
+  <div class="sidebar-body" id="sidebarBody"></div>
+</div>
+
+<!-- MARKET DATA SECTION -->
+<div class="data-tabs">
+  <div class="week-label" style="margin-top:0;margin-bottom:16px;">&#x1F4CA; Market Data — Week 16</div>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('tab-freight')"><span class="en">Commercial / Freight Rates</span><span class="zh">商务 / 运价</span></button>
+    <button class="tab-btn" onclick="switchTab('tab-bunker')"><span class="en">Ops / Bunker Fuel</span><span class="zh">运营 / 燃油</span></button>
+    <button class="tab-btn" onclick="switchTab('tab-charter')"><span class="en">Equipment / Charter</span><span class="zh">设备 / 租船</span></button>
+  </div>
+
+  <!-- TAB: FREIGHT -->
+  <div class="tab-pane active" id="tab-freight">
+    <p class="section-sub en">Container freight rate benchmarks as of Week 16 (Apr 16, 2026) · Source: Drewry WCI</p>
+    <p class="section-sub zh">第16周集装箱运价基准（2026年4月16日）· 数据来源：Drewry WCI</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → Rotterdam</div>
+        <div class="dc-value">$2,229</div>
+        <div class="dc-change down">▼ -3% WoW (-$79)</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry WCI (Apr 16)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → Los Angeles</div>
+        <div class="dc-value">$2,810</div>
+        <div class="dc-change down">▼ -3% WoW (-$100)</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry WCI (Apr 16)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI — Shanghai → New York</div>
+        <div class="dc-value">$3,552</div>
+        <div class="dc-change down">▼ -3% WoW (-$119)</div>
+        <div class="dc-sub">per 40ft container | Source: Drewry WCI (Apr 16)</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Drewry WCI Composite</div>
+        <div class="dc-value">$2,246</div>
+        <div class="dc-change down">▼ -3% WoW</div>
+        <div class="dc-sub">Global composite | 6-week rally snapped</div>
+      </div>
+    </div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr><th><span class="en">Route (CUL Relevant)</span><span class="zh">航线（CUL相关）</span></th><th><span class="en">Rate $/40ft</span><span class="zh">运价 $/40尺</span></th><th><span class="en">WoW Change</span><span class="zh">周环比</span></th><th><span class="en">Trend</span><span class="zh">趋势</span></th><th><span class="en">Key Driver</span><span class="zh">主要驱动因素</span></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="en">Asia → North Europe</span><span class="zh">亚洲→北欧</span></td>
+            <td class="td-pr">$2,229</td>
+            <td class="td-dn">▼ -3%</td>
+            <td><span class="en">Easing</span><span class="zh">回落</span></td>
+            <td><span class="en">Post-tariff front-load exhaustion</span><span class="zh">关税前置抢运耗尽</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → Mediterranean</span><span class="zh">亚洲→地中海</span></td>
+            <td class="td-pr">$3,343</td>
+            <td class="td-dn">▼ -2%</td>
+            <td><span class="en">Slight easing</span><span class="zh">小幅回落</span></td>
+            <td><span class="en">Cape routing premiums still elevated</span><span class="zh">好望角溢价仍高</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → US West Coast</span><span class="zh">亚洲→美西</span></td>
+            <td class="td-pr">$2,810</td>
+            <td class="td-dn">▼ -3%</td>
+            <td><span class="en">Correcting</span><span class="zh">回调</span></td>
+            <td><span class="en">Tariff deadline passed; volume drop expected</span><span class="zh">关税截止已过；预期量跌</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → US East Coast</span><span class="zh">亚洲→美东</span></td>
+            <td class="td-pr">$3,552</td>
+            <td class="td-dn">▼ -3%</td>
+            <td><span class="en">Softening</span><span class="zh">趋软</span></td>
+            <td><span class="en">Post-deadline volume normalizing</span><span class="zh">截止后量回归正常</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Asia → Middle East</span><span class="zh">亚洲→中东</span></td>
+            <td class="td-pr"><span class="en">Elevated / No benchmark</span><span class="zh">高位/无基准</span></td>
+            <td class="td-up">—</td>
+            <td><span class="en">Volatile — Cape reroute costs</span><span class="zh">波动——好望角绕行成本</span></td>
+            <td><span class="en">Hormuz remains closed to commercial ships</span><span class="zh">霍尔木兹对商船仍封闭</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Rotterdam → New York</span><span class="zh">鹿特丹→纽约</span></td>
+            <td class="td-pr">$2,030</td>
+            <td class="td-up">▲ +3%</td>
+            <td><span class="en">Rising</span><span class="zh">上涨</span></td>
+            <td><span class="en">Transatlantic demand resilience</span><span class="zh">跨大西洋需求韧性</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#58a6ff;"><span class="en">Commercial Insight (Wk16):</span><span class="zh">商务洞察（第16周）：</span></strong>
+      <span class="en"> WCI's six-week rally snapped as the tariff front-loading demand exhausted post-April 9. All Asia-outbound lanes fell 2–3% this week. The transpacific rate correction is expected to continue as China-US volumes drop (China bookings -35% WoW). However, Southeast Asia-US lanes may remain firmer as manufacturing diversion continues. Carriers are managing via blank sailings (43 announced for Wks 13–17, 58% on TPEB). CUL should capitalize on Southeast Asia demand strength while monitoring Asia-Europe rate floors as Cape routing costs remain a floor.</span>
+      <span class="zh"> WCI六周连涨终止，关税前置需求在4月9日后耗尽。本周亚洲出口各航线全线下跌2-3%。跨太平洋运价回调预计将持续，因中美贸易量下降（中国订舱量周降35%）。但东南亚—美国航线可能维持相对坚挺，因制造业转移持续。船公司通过停航管理（第13-17周宣布43个停航，58%在TPEB）。CUL应把握东南亚需求强势，同时监控亚欧运价地板，因好望角绕行成本提供支撑。</span>
+    </div>
+  </div>
+
+  <!-- TAB: BUNKER -->
+  <div class="tab-pane" id="tab-bunker">
+    <p class="section-sub en">Marine fuel prices as of Apr 19-20, 2026 · Source: HandyBulk / MABUX</p>
+    <p class="section-sub zh">船用燃油价格（2026年4月19-20日）· 数据来源：HandyBulk / MABUX</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">Singapore VLSFO</div>
+        <div class="dc-value">$717</div>
+        <div class="dc-change down">▼ -$48 vs Apr 12</div>
+        <div class="dc-sub">USD/MT | Easing from peak ~$960 (Mar); pre-book recommended</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Rotterdam VLSFO</div>
+        <div class="dc-value">$663</div>
+        <div class="dc-change down">▼ -$32 vs Apr 12</div>
+        <div class="dc-sub">USD/MT | Lowest globally — opportunity to load up</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Hong Kong VLSFO</div>
+        <div class="dc-value">$763</div>
+        <div class="dc-change down">▼ Easing</div>
+        <div class="dc-sub">USD/MT | Key CUL bunkering port</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">Houston VLSFO</div>
+        <div class="dc-value">$833</div>
+        <div class="dc-change up">▲ High vs global avg</div>
+        <div class="dc-sub">USD/MT | Gulf region supply tightness</div>
+      </div>
+    </div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr><th><span class="en">Port</span><span class="zh">港口</span></th><th>VLSFO (USD/MT)</th><th>MGO (USD/MT)</th><th><span class="en">vs Peak (Mar)</span><span class="zh">vs 3月峰值</span></th><th><span class="en">CUL Note</span><span class="zh">CUL备注</span></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Singapore</td>
+            <td class="td-pr">$717</td>
+            <td class="td-pr">$1,377</td>
+            <td class="td-dn">▼ -26% from ~$960 peak</td>
+            <td><span class="en">Key hub; pre-book if Middle East ops</span><span class="zh">关键枢纽；中东运营需预约</span></td>
+          </tr>
+          <tr>
+            <td>Rotterdam</td>
+            <td class="td-pr">$663</td>
+            <td class="td-pr">$1,232</td>
+            <td class="td-dn">▼ -25% from peak</td>
+            <td><span class="en">Lowest globally — maximize loading</span><span class="zh">全球最低——最大化加油</span></td>
+          </tr>
+          <tr>
+            <td>Hong Kong</td>
+            <td class="td-pr">$763</td>
+            <td class="td-pr">$1,422</td>
+            <td class="td-dn">▼ Easing</td>
+            <td><span class="en">Monitor vs Singapore spread</span><span class="zh">关注与新加坡价差</span></td>
+          </tr>
+          <tr>
+            <td>Houston</td>
+            <td class="td-pr">$833</td>
+            <td class="td-pr">$1,190</td>
+            <td class="td-up">▲ Elevated</td>
+            <td><span class="en">Gulf supply tightness; avoid if possible</span><span class="zh">海湾供应偏紧；可避则避</span></td>
+          </tr>
+          <tr>
+            <td>Los Angeles</td>
+            <td class="td-pr">$1,036</td>
+            <td class="td-pr">$1,587</td>
+            <td class="td-up">▲ Very high</td>
+            <td><span class="en">Avoid bunker loading here</span><span class="zh">避免在此加油</span></td>
+          </tr>
+          <tr>
+            <td>Fujairah (Gulf)</td>
+            <td class="td-pr">—</td>
+            <td class="td-pr">—</td>
+            <td class="td-up">N/A</td>
+            <td><span class="en">Data unavailable — Hormuz disruption</span><span class="zh">无数据——霍尔木兹中断</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.15);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#3fb950;"><span class="en">Bunker Strategy (Wk16):</span><span class="zh">燃油策略（第16周）：</span></strong>
+      <span class="en"> VLSFO prices have eased significantly from the March peak (~$960/MT) to ~$717 in Singapore — a 26% decline. Rotterdam at $663/MT is the global low; any CUL Europe-calling vessels should maximize loading there. Fujairah data unavailable due to Hormuz crisis — vessels cannot access Gulf bunkering. Emergency Fuel Surcharges (EFS) implemented by carriers in April remain in effect; review BAF adjustment clauses in Q2 contracts. Brent crude softened after April geopolitical adjustments — VLSFO should continue easing through Q2 absent new Middle East escalation.</span>
+      <span class="zh"> VLSFO价格已从3月峰值（约$960/吨）大幅回落至新加坡约$717——下降26%。鹿特丹$663/吨是全球最低；任何挂靠欧洲的CUL船舶都应在此最大化加油。富查伊拉数据因霍尔木兹危机无法获取——船舶无法进入海湾加油。4月承运人实施的紧急燃油附加费（EFS）仍有效；审查Q2合同中的BAF调整条款。布伦特原油在4月地缘政治调整后走软——在没有新的中东升级的情况下，VLSFO整个Q2应持续走低。</span>
+    </div>
+  </div>
+
+  <!-- TAB: CHARTER -->
+  <div class="tab-pane" id="tab-charter">
+    <p class="section-sub en">Containership charter market as of Week 16, Apr 2026 · Source: Lloyd's List / Alphaliner NOO Fleet Data</p>
+    <p class="section-sub zh">集装箱船租船市场（2026年第16周，4月）· 数据来源：Lloyd's List / Alphaliner NOO船队数据</p>
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="dc-label">1,700 TEU Feeder (1yr TC)</div>
+        <div class="dc-value">$21,500+</div>
+        <div class="dc-change up">▲ Rising</div>
+        <div class="dc-sub">USD/day | Euroseas EM Spetses extended at $21,500/day</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">2,700–3,500 TEU (1yr TC)</div>
+        <div class="dc-value">$28,000–$32,000</div>
+        <div class="dc-change up">▲ Firm</div>
+        <div class="dc-sub">USD/day | Hormuz dislocation driving tightness</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">4,000–5,000 TEU (1yr TC)</div>
+        <div class="dc-value">$35,000–$42,000</div>
+        <div class="dc-change up">▲ Elevated</div>
+        <div class="dc-sub">USD/day | Mid-range segment in demand</div>
+      </div>
+      <div class="data-card">
+        <div class="dc-label">NOO Fleet Active Utilization</div>
+        <div class="dc-value">~97%</div>
+        <div class="dc-change up">▲ Near-record</div>
+        <div class="dc-sub">All NOO capacity utilized amid Gulf vessel lockup</div>
+      </div>
+    </div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr><th><span class="en">Vessel Size</span><span class="zh">船型</span></th><th><span class="en">1yr TC Rate (USD/day)</span><span class="zh">1年期TC费率</span></th><th><span class="en">WoW</span><span class="zh">周环比</span></th><th><span class="en">Market Tone</span><span class="zh">市场氛围</span></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="en">Feeder (1,000–2,000 TEU)</span><span class="zh">支线船（1,000-2,000 TEU）</span></td>
+            <td class="td-pr">$18,000–$22,000</td>
+            <td class="td-up">▲ Rising</td>
+            <td><span class="en">Very Tight — Hormuz lockup</span><span class="zh">非常紧张——霍尔木兹锁定</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Small Handy (2,000–3,000 TEU)</span><span class="zh">小型（2,000-3,000 TEU）</span></td>
+            <td class="td-pr">$28,000–$32,000</td>
+            <td class="td-up">▲ Firm</td>
+            <td><span class="en">Tight — short-sea demand strong</span><span class="zh">偏紧——短途需求强</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Intermediate (3,000–5,000 TEU)</span><span class="zh">中型（3,000-5,000 TEU）</span></td>
+            <td class="td-pr">$35,000–$42,000</td>
+            <td class="td-up">▲ Elevated</td>
+            <td><span class="en">Steady demand</span><span class="zh">需求稳定</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">Large (5,000–8,000 TEU)</span><span class="zh">大型（5,000-8,000 TEU）</span></td>
+            <td class="td-pr">$45,000–$55,000</td>
+            <td class="td-up">Stable</td>
+            <td><span class="en">Stable — long-haul programs</span><span class="zh">稳定——远航项目</span></td>
+          </tr>
+          <tr>
+            <td><span class="en">ULCV (13,000+ TEU)</span><span class="zh">超大型（13,000+ TEU）</span></td>
+            <td class="td-pr">$75,000–$90,000</td>
+            <td class="td-up">Stable</td>
+            <td><span class="en">Carrier-controlled</span><span class="zh">船公司掌控</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
+      <strong style="color:#d29922;"><span class="en">Charter Market Insight (Wk16):</span><span class="zh">租船市场洞察（第16周）：</span></strong>
+      <span class="en"> Charter market stays paradoxically bullish despite weakening spot freight rates. The key driver: ~823 vessels stranded in the Persian Gulf cannot be recharterd or repositioned, creating artificial supply tightness in all other segments. NOO fleet utilization near 97% — near-record levels. Feeder and small handy segments (1,000–3,000 TEU) are tightest. CUL's equipment team should note that any charter renewals in the next 60–90 days will face elevated rates. Consider locking in multi-year TCs now at current levels before potential Hormuz reopening resets the market. The Alphaliner NOO fleet capacity decline has slowed (net loss 250K TEU vs 633K TEU YoY) as record charter rates keep older vessels active.</span>
+      <span class="zh"> 租船市场在即期运价走弱的情况下仍矛盾地保持偏强。核心驱动：约823艘被困波斯湾的船舶无法重新租出或重新部署，在所有其他细分市场形成人为供应紧张。NOO船队利用率接近97%——近历史最高水平。支线和小型船细分市场（1,000-3,000 TEU）最为紧张。CUL设备团队应注意未来60-90天内任何租约续签都将面临高价。在霍尔木兹潜在重开重置市场之前，考虑在当前水平锁定多年期TC。Alphaliner NOO船队运力下降放缓（净损失25万TEU vs 同比63.3万TEU），因历史性租船费率使旧船保持活跃。</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>CUL — Alphaliner Intelligence Digest · Week 16, 2026 (Apr 14–20) · Internal Use Only</p>
+  <p style="margin-top:4px;">Sources: Alphaliner Weekly Monitor · Linerlytica · Drewry WCI · HandyBulk/MABUX · Kuehne+Nagel Carrier Update · SeaVantage · AI at Sea · Windward Analytics · Lloyd's List</p>
+</footer>
+
+<!-- ─────── SIDEBAR DATA ─────── -->
+<script>
+const SIDEBARS = {
+  s1: {
+    titleEN: "Hormuz Ceasefire — Controlled Access Details",
+    titleZH: "霍尔木兹停火——受控通行详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>Background</h4>
+        <p>US-Iran ceasefire announced April 8, 2026, after 40 days of conflict following Feb 27 strikes. Two-week ceasefire does NOT automatically restore commercial shipping.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Current Status (Apr 16-17)</h4>
+        <ul>
+          <li><strong>823 vessels</strong> confirmed stranded in Persian Gulf or Oman anchorage (Windward Analytics)</li>
+          <li>US naval enforcement remains active — cargo nationality declarations required</li>
+          <li>Insurance war-risk premiums at ~0.5-0.8% of vessel value/voyage</li>
+          <li>Fujairah bunker data unavailable — port disrupted</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>Xeneta Assessment</h4>
+        <p>Xeneta: "Two-week ceasefire is not enough to restore normal commercial operations through the Strait of Hormuz." Full reopening estimated 4–6 weeks minimum after ceasefire holding confirmed.</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Action Items</h4>
+        <p>1. Maintain Cape of Good Hope routing — DO NOT reroute via Hormuz yet.<br>2. Coordinate with legal on war risk clauses for all Q2 Middle East contracts.<br>3. Monitor Windward vessel count weekly — trigger for routing review at &lt;200 stranded vessels.<br>4. Estimated extra cost per Middle East voyage: $300-500K. Ensure EFS/WAR surcharges cover this.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>背景</h4>
+        <p>2026年4月8日宣布美伊停火，在2月27日袭击事件引发40天冲突后。两周停火并不自动恢复商业航运。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>现状（4月16-17日）</h4>
+        <ul>
+          <li><strong>823艘船舶</strong>确认滞留波斯湾内或阿曼锚地（Windward Analytics）</li>
+          <li>美国海军执法仍活跃——要求申报货物国籍</li>
+          <li>保险战争风险附加费约为船舶价值的0.5-0.8%/航次</li>
+          <li>富查伊拉燃油数据不可用——港口中断</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>Xeneta评估</h4>
+        <p>Xeneta："两周停火不足以恢复经霍尔木兹海峡的正常商业运营。"在停火确认维持后，估计最少还需4-6周才能完全重开。</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL行动项</h4>
+        <p>1. 维持好望角绕行路由——暂勿经霍尔木兹改道。<br>2. 与法务协调所有Q2中东合同的战争风险条款。<br>3. 每周监控Windward船舶数量——滞留船舶&lt;200艘时触发路由审查。<br>4. 每趟中东航次估计额外成本：$30-50万。确保EFS/WAR附加费覆盖此成本。</p>
+      </div>`
+  },
+  s2: {
+    titleEN: "Drewry WCI Wk16 — Rate Correction Detail",
+    titleZH: "Drewry WCI 第16周——运价回调详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>WCI Route Breakdown (Apr 16, 2026)</h4>
+        <ul>
+          <li><strong>Shanghai → Rotterdam:</strong> $2,229 (-3%, -$79)</li>
+          <li><strong>Shanghai → Genoa:</strong> $3,343 (-2%, -$77)</li>
+          <li><strong>Shanghai → Los Angeles:</strong> $2,810 (-3%, -$100)</li>
+          <li><strong>Shanghai → New York:</strong> $3,552 (-3%, -$119)</li>
+          <li><strong>Rotterdam → New York:</strong> $2,030 (+3%, +$62)</li>
+          <li><strong>WCI Composite:</strong> $2,246 (-3%)</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>Context</h4>
+        <p>This ends a 6-week rally fueled by (1) Middle East conflict bunker cost increases and (2) April 9 US tariff deadline front-loading. Both drivers are now exhausted. China-US direct bookings dropped ~35% WoW post-April 9.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Blank Sailings Wk 13–17</h4>
+        <ul>
+          <li>43 blank sailings announced</li>
+          <li>TPEB: 58% of capacity cuts</li>
+          <li>Asia–Europe: 28% of capacity cuts</li>
+          <li>Effective cancellation rate: ~6%</li>
+        </ul>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Commercial Action</h4>
+        <p>Rate correction creates pricing opportunity — review FAK/GRI strategies for Q2. Southeast Asia-US lanes (Vietnam, Thailand, Indonesia) likely to remain firmer as manufacturing diversion accelerates. Prioritize these for rate recovery.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>WCI各航线数据（2026年4月16日）</h4>
+        <ul>
+          <li><strong>上海→鹿特丹：</strong>$2,229（-3%，-$79）</li>
+          <li><strong>上海→热那亚：</strong>$3,343（-2%，-$77）</li>
+          <li><strong>上海→洛杉矶：</strong>$2,810（-3%，-$100）</li>
+          <li><strong>上海→纽约：</strong>$3,552（-3%，-$119）</li>
+          <li><strong>鹿特丹→纽约：</strong>$2,030（+3%，+$62）</li>
+          <li><strong>WCI综合：</strong>$2,246（-3%）</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>背景</h4>
+        <p>此次终止了由（1）中东冲突燃油成本上涨和（2）4月9日美国关税截止前置需求驱动的6周连涨。两个驱动因素现已耗尽。4月9日后中美直接订舱量周降约35%。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>第13-17周停航</h4>
+        <ul>
+          <li>宣布43个停航班次</li>
+          <li>TPEB：占运力削减的58%</li>
+          <li>亚欧：占运力削减的28%</li>
+          <li>有效取消率：约6%</li>
+        </ul>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL商务行动</h4>
+        <p>运价回调创造定价机会——审查Q2 FAK/GRI策略。越南、泰国、印尼等东南亚—美国航线可能更为坚挺，因制造业转移加速。优先在这些航线推动运价恢复。</p>
+      </div>`
+  },
+  s3: {
+    titleEN: "Transpacific Network Reshuffle Details",
+    titleZH: "跨太平洋网络重组详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>MSC Transpacific Updates (Effective Early April)</h4>
+        <ul>
+          <li><strong>Chinook (new):</strong> Mong Cai – Yantian – Ningbo – Shanghai – Qingdao – Busan – Seattle – Vancouver – Prince Rupert – Busan – Mong Cai</li>
+          <li><strong>Sentosa (new):</strong> Singapore – Klang – Laem Chabang – Mong Cai – Haiphong – Yantian – Xiamen – Long Beach – Oakland – Busan – Ningbo – Singapore</li>
+          <li><strong>Orient (simplified):</strong> Qingdao – Ningbo – Shanghai – Busan – Long Beach – Qingdao</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>New Services</h4>
+        <ul>
+          <li><strong>ONE PS8 (May 18 maiden):</strong> Qingdao – Ningbo – Los Angeles – Oakland – Qingdao</li>
+          <li><strong>HMM Vietnam Shuttle (Apr 28 maiden):</strong> Singapore – Caimep – Haiphong – Los Angeles – Busan – Shanghai – Shekou – Singapore – Rio de Janeiro – Santos – Itapoá</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>Market Signal</h4>
+        <p>The heavy Vietnam/SE Asia port inclusion in new transpacific services reflects the structural shift of US-bound manufacturing from China to Vietnam/SE Asia under tariff pressure. This is structural, not cyclical.</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Network Implication</h4>
+        <p>CUL's Haiphong and Caimep feeder connections are strategically valuable. Assess whether CUL can offer competitive feeder service into these new transpacific strings. Consider slot agreements with HMM Vietnam Shuttle for Haiphong-origin cargo.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>MSC跨太平洋更新（4月初生效）</h4>
+        <ul>
+          <li><strong>Chinook（新）：</strong>芒街—盐田—宁波—上海—青岛—釜山—西雅图—温哥华—鲁珀特王子港—釜山—芒街</li>
+          <li><strong>Sentosa（新）：</strong>新加坡—巴生港—林查班—芒街—海防—盐田—厦门—长滩—奥克兰—釜山—宁波—新加坡</li>
+          <li><strong>Orient（简化）：</strong>青岛—宁波—上海—釜山—长滩—青岛</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>新服务</h4>
+        <ul>
+          <li><strong>ONE PS8（5月18日首航）：</strong>青岛—宁波—洛杉矶—奥克兰—青岛</li>
+          <li><strong>HMM越南穿梭（4月28日首航）：</strong>新加坡—改美—海防—洛杉矶—釜山—上海—蛇口—新加坡—里约热内卢—桑托斯—伊塔波阿</li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <h4>市场信号</h4>
+        <p>新跨太平洋服务大量纳入越南/东南亚港口，反映了在关税压力下美国目的地制造业从中国向越南/东南亚的结构性转移。这是结构性的，而非周期性的。</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL航线含义</h4>
+        <p>CUL的海防和改美支线连接具有战略价值。评估CUL能否为这些新跨太平洋主干线提供具竞争力的支线服务。考虑与HMM越南穿梭就海防始发货物签订舱位协议。</p>
+      </div>`
+  },
+  s4: {
+    titleEN: "CMA CGM OCR Service Details",
+    titleZH: "CMA CGM OCR航线详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>OCR Rotation</h4>
+        <p>Kobe – Nagoya – Yokohama – Xiamen – Yantian – Rotterdam – Hamburg – Southampton – Nansha – Kobe</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Service Profile</h4>
+        <ul>
+          <li>Maiden voyage: April 2, 2026</li>
+          <li>Estimated capacity: ~8,000 TEU/week</li>
+          <li>Direct service — bypasses traditional transshipment hubs</li>
+          <li>Target market: Premium Japan + China Pearl River Delta exporters to NWE</li>
+        </ul>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Implication</h4>
+        <p>OCR directly competes at Yantian and Nansha (CUL-served PRD). Monitor if large FAK customers shift to OCR. CUL advantage: Middle East + Mediterranean connections vs. OCR's NWE-only focus.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>OCR航线</h4>
+        <p>神户—名古屋—横滨—厦门—盐田—鹿特丹—汉堡—南安普顿—南沙—神户</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>服务简介</h4>
+        <ul>
+          <li>首航：2026年4月2日</li>
+          <li>估计运力：约8,000 TEU/周</li>
+          <li>直航服务——绕过传统中转枢纽</li>
+          <li>目标市场：优质日本 + 中国珠三角出口商到北欧</li>
+        </ul>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL含义</h4>
+        <p>OCR直接在盐田和南沙（CUL服务的珠三角）竞争。监控大型FAK客户是否转向OCR。CUL优势：中东+地中海连接，而OCR仅专注北欧。</p>
+      </div>`
+  },
+  s5: {
+    titleEN: "ONE JTI Service Details",
+    titleZH: "ONE JTI航线详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>JTI Rotation</h4>
+        <p>Tokyo – Yokohama – Shimizu – Nagoya – Osaka – Kobe – Caimep – Laem Chabang – Singapore – Port Klang – Nhava Sheva – Pipavav – Karachi – Qasim – Colombo – Laem Chabang – Caimep – Tokyo</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Maiden Voyage</h4>
+        <p>April 4, 2026. Frequency: Weekly.</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Competitive Assessment</h4>
+        <p>JTI adds direct Japan–ISC capacity. CUL's India ISC coverage via Middle East-connected services remains differentiated — especially for Jebel Ali/Gulf transshipment-connected ISC cargo. Monitor Nhava Sheva and Mundra market share on Japan-origin cargo.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>JTI航线</h4>
+        <p>东京—横滨—清水—名古屋—大阪—神户—改美—林查班—新加坡—巴生港—那瓦舍瓦—皮帕瓦夫—卡拉奇—卡西姆—科伦坡—林查班—改美—东京</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>首航</h4>
+        <p>2026年4月4日。频次：每周班。</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL竞争评估</h4>
+        <p>JTI新增直接日本—ISC运力。CUL通过中东连接服务的印度ISC覆盖仍具差异化——特别是杰贝阿里/海湾中转连接的ISC货物。监控那瓦舍瓦和蒙德拉日本始发货物的市场份额。</p>
+      </div>`
+  },
+  s6: {
+    titleEN: "Maersk Mesawa Bi-Weekly Details",
+    titleZH: "马士基Mesawa双周班详情",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>Service Change</h4>
+        <p>Effective: April 7, 2026. Mesawa transitions from weekly to bi-weekly proforma. Effective capacity reduction: ~50% on Middle East – South Asia – West Africa corridor.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Rationale</h4>
+        <p>Maersk cited "schedule reliability and reducing cascading disruptions." Real driver: Hormuz closure trapping vessels in Arabian Sea/Oman anchorages, making weekly frequency unsustainable.</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL Opportunity</h4>
+        <p>Mesawa frequency cut creates ~50% capacity gap on ISC–Middle East. Contact ISC shippers immediately — especially Mundra/Nhava Sheva to Jebel Ali/Salalah customers. Propose CUL as alternative with competitive transit via Cape of Good Hope.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>服务变更</h4>
+        <p>生效日期：2026年4月7日。Mesawa从每周班改为双周班。中东—南亚—西非走廊有效运力减少约50%。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>原因</h4>
+        <p>马士基以"准班率和减少连锁中断"为由。实际驱动：霍尔木兹关闭导致船舶被困阿拉伯海/阿曼锚地，使每周班频次难以维持。</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL机会</h4>
+        <p>Mesawa频次削减在ISC—中东造成约50%运力缺口。立即联系ISC发货人——特别是蒙德拉/那瓦舍瓦至杰贝阿里/萨拉莱客户。提出CUL作为替代方案，经好望角提供具竞争力的中转服务。</p>
+      </div>`
+  },
+  s11: {
+    titleEN: "Maritime AI & Digitalization Details — Wk16",
+    titleZH: "海事AI与数字化详情——第16周",
+    bodyEN: `
+      <div class="sidebar-section">
+        <h4>ClassNK Autonomous Vessel Certification</h4>
+        <p>ClassNK certified "Genbu" under Japan's MEGURI2040 programme — the world's first commercial autonomous coastal liner. This is a milestone for autonomous vessel regulatory frameworks globally. IMO is expected to develop MSC guidelines by 2028.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Oman National Maritime Portal</h4>
+        <p>Oman launched a comprehensive national maritime portal integrating 90+ government services (customs, port clearance, permits, vessel registration) on a single digital platform. Impact on Muscat/Sohar port turnaround potentially significant.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>NorthStandard AI Pilot</h4>
+        <p>NorthStandard P&I club is funding full deployment of ShipIn FleetVision AI for all member vessels — the first insurer-funded maritime AI safety trial at scale. This could become standard P&I practice if pilot shows incident reduction.</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Windward Analytics</h4>
+        <p>Windward's real-time tracking of 823 stranded Gulf vessels demonstrates the operational value of maritime domain awareness tools. Free public dashboard available at hormuzstraitmonitor.com.</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL IT Recommendations</h4>
+        <p>1. Track Oman portal rollout — assess if it simplifies Muscat/Sohar customs for CUL vessels.<br>2. Evaluate ShipIn/FleetVision AI for CUL fleet visibility and operational safety.<br>3. Follow ClassNK MEGURI2040 — autonomous vessel regulations will eventually affect CUL fleet strategy and manning requirements.<br>4. Consider subscribing to maritime domain awareness tools (Windward, Kpler) for network risk monitoring — proved essential during Hormuz crisis.</p>
+      </div>`,
+    bodyZH: `
+      <div class="sidebar-section">
+        <h4>ClassNK自主船舶认证</h4>
+        <p>ClassNK在日本MEGURI2040计划下认证"Genbu"——全球首艘商业自主沿海班轮。这是全球自主船舶监管框架的里程碑。IMO预计将在2028年前制定MSC指南。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>阿曼国家海事门户</h4>
+        <p>阿曼推出综合国家海事门户，将90多项政府服务（海关、港口清关、许可证、船舶注册）整合在单一数字平台上。对马斯喀特/苏哈尔港口周转时间可能有重要影响。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>NorthStandard AI试点</h4>
+        <p>NorthStandard P&I俱乐部为所有会员船舶全额资助部署ShipIn FleetVision AI——首个保险公司资助的大规模海事AI安全试验。如果试点显示事故减少，这可能成为P&I标准做法。</p>
+      </div>
+      <div class="sidebar-section">
+        <h4>Windward Analytics</h4>
+        <p>Windward对823艘滞留海湾船舶的实时追踪展示了海事域感知工具的运营价值。免费公共仪表板可在hormuzstraitmonitor.com获取。</p>
+      </div>
+      <div class="sidebar-section impact-box">
+        <h4>CUL IT建议</h4>
+        <p>1. 跟踪阿曼门户推出——评估是否简化CUL船舶的马斯喀特/苏哈尔海关手续。<br>2. 评估ShipIn/FleetVision AI用于CUL船队可视性和运营安全。<br>3. 跟进ClassNK MEGURI2040——自主船舶法规最终将影响CUL船队策略和配员要求。<br>4. 考虑订阅海事域感知工具（Windward、Kpler）用于网络风险监控——霍尔木兹危机证明其价值不可替代。</p>
+      </div>`
+  }
+};
+
+function openSidebar(id) {
+  const data = SIDEBARS[id];
+  if (!data) return;
+  const isZH = document.body.classList.contains('lang-zh');
+  document.getElementById('sidebarTitle').textContent = isZH ? data.titleZH : data.titleEN;
+  document.getElementById('sidebarBody').innerHTML = isZH ? data.bodyZH : data.bodyEN;
+  document.getElementById('sidebarPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebarPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function setLang(lang) {
+  if (lang === 'zh') {
+    document.body.classList.add('lang-zh');
+    document.getElementById('btnZH').classList.add('active');
+    document.getElementById('btnEN').classList.remove('active');
+  } else {
+    document.body.classList.remove('lang-zh');
+    document.getElementById('btnEN').classList.add('active');
+    document.getElementById('btnZH').classList.remove('active');
+  }
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// Filter logic
+const cards = document.querySelectorAll('.article-card');
+document.querySelectorAll('.ftag').forEach(tag => {
+  tag.addEventListener('click', function() {
+    document.querySelectorAll('.ftag').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    const dept = this.dataset.dept;
+    let count = 0;
+    cards.forEach(card => {
+      const depts = (card.dataset.depts || '').split(',');
+      const show = dept === 'all' || depts.includes(dept);
+      card.style.display = show ? '' : 'none';
+      if (show) count++;
+    });
+    document.getElementById('countEN').textContent = count;
+    document.getElementById('countZH').textContent = count;
+  });
+});
+</script>
+</body>
+</html>
