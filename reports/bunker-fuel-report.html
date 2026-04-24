@@ -1,452 +1,299 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
-<title>Bunker Fuel Daily Brief</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全球航运燃油深度分析报告 · 2026-04-24</title>
+<style>
+  :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --accent2: #f59e0b; --accent3: #ef4444; --accent4: #10b981; --up: #ef4444; --down: #10b981; --card-bg: #f8fafc; --border: #e2e8f0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: #f0f4f8; color: #1e293b; }
+  .ticker-wrap { background: var(--primary); overflow: hidden; white-space: nowrap; padding: 8px 0; border-bottom: 2px solid var(--accent); }
+  .ticker-content { display: inline-block; animation: ticker 55s linear infinite; }
+  .ticker-content span { margin: 0 28px; font-size: 13px; color: #e2e8f0; }
+  .ticker-content .up { color: #f87171; font-weight: 600; }
+  .ticker-content .down { color: #34d399; font-weight: 600; }
+  .ticker-content .label { color: #94a3b8; }
+  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  header { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 60%, #0e6b8a 100%); color: white; padding: 32px 40px 24px; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; border-radius: 50%; background: rgba(0,201,177,0.08); }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .header-left h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+  .header-left h1 span { color: var(--accent); }
+  .header-left p { margin-top: 6px; font-size: 13px; color: #94a3b8; }
+  .header-badge { background: rgba(245,158,11,0.2); border: 1px solid #f59e0b; color: #fde68a; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .header-meta { margin-top: 14px; display: flex; gap: 20px; flex-wrap: wrap; }
+  .header-meta span { font-size: 12px; color: #94a3b8; background: rgba(255,255,255,0.07); padding: 3px 12px; border-radius: 12px; }
+  .alert-banner { background: linear-gradient(90deg, #1c3a5e, #1e4976); color: #bfdbfe; padding: 10px 40px; font-size: 13px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #3b82f6; }
+  .alert-banner strong { color: #93c5fd; }
+  .status-bar { background: var(--primary); padding: 10px 40px; display: flex; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .status-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: #ef4444; animation: blink 1.5s ease-in-out infinite; }
+  .dot-yellow { background: #f59e0b; animation: blink 2s ease-in-out infinite; }
+  .dot-green { background: #10b981; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .status-val { color: #e2e8f0; font-weight: 600; }
+  main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 50px; }
+  .section-title { font-size: 17px; font-weight: 700; color: var(--primary); margin: 32px 0 14px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 12px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .kpi-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid var(--accent); }
+  .kpi-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 28px; font-weight: 800; color: var(--primary); margin: 6px 0 4px; }
+  .kpi-change { font-size: 13px; font-weight: 600; }
+  .kpi-change.up { color: var(--up); }
+  .kpi-change.down { color: var(--down); }
+  .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  .kpi-card.orange { border-top-color: #f59e0b; }
+  .kpi-card.red { border-top-color: #ef4444; }
+  .kpi-card.green { border-top-color: #10b981; }
+  .kpi-card.blue { border-top-color: #3b82f6; }
+  .table-wrap { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
+  .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table-wrap thead th { background: #f1f5f9; color: #475569; padding: 11px 16px; text-align: left; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  .table-wrap tbody td { padding: 11px 16px; border-bottom: 1px solid #f1f5f9; }
+  .table-wrap tbody tr:last-child td { border-bottom: none; }
+  .table-wrap tbody tr:hover td { background: #f8fafc; }
+  td.price { font-weight: 700; color: var(--primary); }
+  td.up { color: #ef4444; font-weight: 600; }
+  td.down { color: #10b981; font-weight: 600; }
+  td.neutral { color: #f59e0b; font-weight: 600; }
+  td.na { color: #94a3b8; }
+  .supply-good { color: #10b981; font-weight: 600; }
+  .supply-warn { color: #f59e0b; font-weight: 600; }
+  .supply-bad { color: #ef4444; font-weight: 600; }
+  .outlook-box { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-radius: 14px; padding: 28px; margin-top: 24px; }
+  .outlook-box h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; color: var(--accent); }
+  .outlook-box p { font-size: 13.5px; line-height: 1.8; color: #cbd5e1; margin-bottom: 10px; }
+  .outlook-box strong { color: white; }
+  .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+  .insight-card { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; border-left: 3px solid var(--accent); }
+  .insight-card h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .insight-card p { font-size: 12.5px; color: #cbd5e1; line-height: 1.6; }
+  footer { background: var(--primary); color: #94a3b8; text-align: center; padding: 18px 20px; font-size: 12px; margin-top: 40px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  @media(max-width:768px){ .kpi-grid{grid-template-columns:1fr 1fr;} .header-left h1{font-size:20px;} main{padding:16px;} }
+</style>
 </head>
-<body style='margin:0;padding:0;background:#0f172a;font-family:Arial,Helvetica,sans-serif;color:#e2e8f0;line-height:1.5;'>
-<table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#0f172a;'>
-<tr>
-<td align='center' style='padding:40px 20px;'>
-<table width='600' cellpadding='0' cellspacing='0' border='0' style='max-width:600px;width:100%;'>
+<body>
 
-<!-- Header -->
-<tr>
-<td style='padding:0 0 24px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td>
-      <span style='font-size:10px;font-weight:700;color:#f97316;letter-spacing:2px;text-transform:uppercase;'>FUEL REPORT</span>
-      <h1 style='font-size:28px;font-weight:800;color:#ffffff;margin:8px 0 0 0;'>Bunker Fuel Daily Brief</h1>
-      <p style='font-size:14px;color:#94a3b8;margin:8px 0 0 0;'>星期五, 2026-04-24 | Real-time Market Intelligence</p>
-    </td>
-    <td align='right' style='vertical-align:top;'>
-      <span style='display:inline-block;background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;'>LIVE DATA</span>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+<!-- 实时价格跑马灯 -->
+<div class="ticker-wrap">
+  <div class="ticker-content">
+    <span class="label">【VLSFO今日行情】</span>
+    <span> 新加坡 <span class="up">$708/MT</span></span>
+    <span> 鹿特丹 <span class="down">$666/MT</span></span>
+    <span> 休斯顿 <span class="up">$831/MT</span></span>
+    <span class="label">【MGO今日行情】</span>
+    <span> 新加坡 <span class="up">$1273/MT</span></span>
+    <span> 鹿特丹 <span class="down">$1200/MT</span></span>
+    <span class="label">【原油基准】</span>
+    <span> 布伦特 <span class="up">$105.77/BBL</span></span>
+    <span> 94.05 <span class="up">$94.05/BBL</span></span>
+  </div>
+</div>
 
-<!-- Geopolitical Alert Banner -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:linear-gradient(135deg,#7c2d12 0%,#991b1b 100%);border-radius:8px;border:1px solid #ef4444;'>
-  <tr>
-    <td style='padding:14px 18px;'>
-      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-      <tr>
-        <td style='width:24px;padding-right:12px;'>&#9888;</td>
-        <td>
-          <span style='font-size:11px;font-weight:600;color:#fecaca;text-transform:uppercase;letter-spacing:1px;'>Geopolitical Risk Premium Active</span><br>
-          <span style='font-size:13px;color:#fee2e2;'>Brent surged +`$60/bbl from pre-conflict levels | Supply disruption: 13M bbl/d | IEA April 2026</span>
-        </td>
-      </tr>
-      </table>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+<!-- 页头 -->
+<header>
+  <div class="header-top">
+    <div class="header-left">
+      <h1>全球航运燃油<span>深度分析报告</span></h1>
+      <p>数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
+    </div>
+    <div class="header-badge">美伊谈判 · 油价高位震荡</div>
+  </div>
+  <div class="header-meta">
+    <span>报告日期：2026-04-24_CN</span>
+    <span>更新时间：09:00 CST</span>
+    <span>数据截至：2026-04-24 早间</span>
+    <span>覆盖港口：全球30+个主要港口</span>
+  </div>
+</header>
 
-<!-- Key Market Indicators -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>CRUDE OIL PRICES</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:16px 18px;width:50%;border-right:1px solid #334155;'>
-      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;text-transform:uppercase;'>Brent Crude</p>
-      <p style='font-size:28px;font-weight:700;color:#ffffff;margin:0;'>$106.76<span style='font-size:14px;font-weight:400;color:#94a3b8;'> /bbl</span></p>
-      <p style='font-size:11px;color:#22c55e;margin:6px 0 0 0;'>&#9650; +0.27% | YoY +53.5%</p>
-      <p style='font-size:10px;color:#64748b;margin:4px 0 0 0;'>Real-time | OilPriceAPI</p>
-    </td>
-    <td style='padding:16px 18px;width:50%;'>
-      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;text-transform:uppercase;'>WTI Crude</p>
-      <p style='font-size:28px;font-weight:700;color:#ffffff;margin:0;'>$94.05<span style='font-size:14px;font-weight:400;color:#94a3b8;'> /bbl</span></p>
-      <p style='font-size:11px;color:#22c55e;margin:6px 0 0 0;'>&#9650; +4.18%</p>
-      <p style='font-size:10px;color:#64748b;margin:4px 0 0 0;'>Real-time | OilPriceAPI</p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+<!-- 警示横幅 -->
+<div class="alert-banner">
+  <strong>【市场动态】</strong> 美伊谈判持续进行中，布伦特原油维持在105.77/桶（+0.66%），WTI至94.05/桶（+4.18%）。燃油价格高位震荡，新加坡VLSFO为708/MT，鹿特丹为666/MT，为全球最低价。
+</div>
 
-<!-- VLSFO Bunker Prices - Asia -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>ASIA-PACIFIC PORTS</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr style='background:#334155;'>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Shanghai (Shanghai)</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>$898/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>-</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>OilMonster (Apr 22)</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Qingdao</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>$917/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>-</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>OilMonster (Apr 22)</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Singapore</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$708/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,273/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Hong Kong</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$737/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,291/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  </table>
-</td>
-</tr>
+<!-- 状态栏 -->
+<div class="status-bar">
+  <div class="status-item">
+    <div class="status-dot dot-yellow"></div>
+    <span>布伦特原油：</span><span class="status-val">$105.77/BBL</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-yellow"></div>
+    <span>94.05原油：</span><span class="status-val">$94.05/BBL</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-yellow"></div>
+    <span>富查伊拉供应：</span><span class="status-val">供应偏紧 . 提前预订</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-yellow"></div>
+    <span>新加坡供应：</span><span class="status-val">库存偏低 . 建议提前预订</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-green"></div>
+    <span>鹿特丹供应：</span><span class="status-val">正常供应 . 全球最低价</span>
+  </div>
+</div>
 
-<!-- VLSFO Bunker Prices - Europe & Americas -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>EUROPE & AMERICAS</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr style='background:#334155;'>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Rotterdam</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>$666/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,200/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Piraeus</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$801/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,402/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Gibraltar</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$707/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,316/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Houston</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$831/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,182/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Los Angeles</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$968/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,509/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Santos</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>$673/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,461/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  </table>
-</td>
-</tr>
+<main>
 
-<!-- VLSFO Bunker Prices - Middle East & Turkey -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>MIDDLE EAST & TURKEY</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr style='background:#334155;'>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
-    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#f87171;font-weight:500;'>Fujairah</td>
-    <td style='padding:10px 14px;font-size:12px;color:#f87171;font-weight:600;text-align:right;'>N/A</td>
-    <td style='padding:10px 14px;font-size:12px;color:#f87171;text-align:right;'>N/A</td>
-    <td style='padding:10px 14px;font-size:10px;color:#f87171;text-align:right;'>Blockade</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#fbbf24;font-weight:500;'>Jeddah</td>
-    <td style='padding:10px 14px;font-size:12px;color:#fbbf24;font-weight:600;text-align:right;'>$596/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$768/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#fbbf24;text-align:right;'>OilMonster (Sep 2024)</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Istanbul</td>
-    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>$884/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>$1,385/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  <tr style='border-top:1px solid #334155;background:#263344;'>
-    <td style='padding:10px 14px;font-size:12px;color:#64748b;'>New York</td>
-    <td style='padding:10px 14px;font-size:12px;color:#64748b;text-align:right;'>$733/MT</td>
-    <td style='padding:10px 14px;font-size:12px;color:#64748b;text-align:right;'>$1,232/MT</td>
-    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
-  </tr>
-  </table>
-</td>
-</tr>
+  <!-- KPI卡片 -->
+  <div class="section-title">⚡ 价格速览</div>
+  <div class="kpi-grid">
+    <div class="kpi-card orange">
+      <div class="kpi-label">布伦特原油</div>
+      <div class="kpi-value">$105.77</div>
+      <div class="kpi-change 105.77_DIR">105.77_ARROW  105.77_CHANGE (105.77_PCT)</div>
+      <div class="kpi-sub">美元/桶 · 2026-04-24 | TradingEconomics</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">94.05 原油</div>
+      <div class="kpi-value">$94.05</div>
+      <div class="kpi-change 94.05_DIR">94.05_ARROW 94.05_CHANGE (94.05_PCT)</div>
+      <div class="kpi-sub">美元/桶 · 2026-04-24 | TradingEconomics</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">新加坡 VLSFO</div>
+      <div class="kpi-value">$708</div>
+      <div class="kpi-change">今日数据</div>
+      <div class="kpi-sub">美元/公吨 · 2026-04-24 | HandyBulk</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">鹿特丹 VLSFO</div>
+      <div class="kpi-value">$666</div>
+      <div class="kpi-change">今日数据</div>
+      <div class="kpi-sub">美元/公吨 · 2026-04-24 | HandyBulk</div>
+    </div>
+  </div>
 
-<!-- Geopolitical Analysis Section -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>GEOPOLITICAL & MARKET IMPACT</td>
-  </tr>
-  </table>
-</td>
-</tr>
+  <!-- 原油与能源基准 -->
+  <div class="section-title">🛢️ 原油与能源基准</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>品种</th><th>最新价格</th><th>日涨跌</th><th>月涨跌</th><th>年涨跌</th><th>单位</th><th>数据来源</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>布伦特原油（ICE）</strong></td>
+          <td class="price">$105.77</td>
+          <td class="105.77_DIR">105.77_CHANGE (105.77_PCT)</td>
+          <td class="up">N/A</td>
+          <td class="up">+60.74%</td>
+          <td>美元/桶</td>
+          <td>TradingEconomics</td>
+        </tr>
+        <tr>
+          <td><strong>94.05 原油（NYMEX）</strong></td>
+          <td class="price">$94.05</td>
+          <td class="94.05_DIR">94.05_CHANGE (94.05_PCT)</td>
+          <td class="up">N/A</td>
+          <td class="up">N/A</td>
+          <td>美元/桶</td>
+          <td>TradingEconomics</td>
+        </tr>
+        <tr>
+          <td><strong>MABUX VLSFO指数</strong></td>
+          <td class="price">871.31</td>
+          <td class="up">+$15.29</td>
+          <td class="neutral">高位震荡</td>
+          <td class="up">历史峰值区</td>
+          <td>美元/公吨</td>
+          <td>MABUX (4/23)</td>
+        </tr>
+        <tr>
+          <td><strong>MABUX MGO LS指数</strong></td>
+          <td class="price">1427.49</td>
+          <td class="up">+$20.75</td>
+          <td class="neutral">高位震荡</td>
+          <td class="up">历史最高区</td>
+          <td>美元/公吨</td>
+          <td>MABUX (4/23)</td>
+        </tr>
+        <tr>
+          <td><strong>MABUX 380 HSFO指数</strong></td>
+          <td class="price">747.82</td>
+          <td class="up">+$10.79</td>
+          <td class="neutral">跟随原油</td>
+          <td class="up">仍处高位</td>
+          <td>美元/公吨</td>
+          <td>MABUX (4/23)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-<!-- Hormuz Status -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:14px 16px;background:#7c2d12;border-bottom:1px solid #991b1b;'>
-      <span style='font-size:12px;font-weight:700;color:#fef2f2;text-transform:uppercase;letter-spacing:1px;'>&#9888; Hormuz Strait Status</span>
-    </td>
-  </tr>
-  <tr>
-    <td style='padding:14px 16px;'>
-      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-      <tr>
-        <td style='vertical-align:top;width:50%;padding-right:12px;'>
-          <p style='font-size:11px;color:#f97316;margin:0 0 4px 0;font-weight:600;'>TIMELINE (April 2026)</p>
-          <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
-            <li><strong>Apr 7:</strong> US-Iran ceasefire announced</li>
-            <li><strong>Apr 13:</strong> US announces naval blockade on Iranian ports</li>
-            <li><strong>Apr 17:</strong> Iran reopens Hormuz (linked to Lebanon ceasefire)</li>
-            <li><strong>Apr 19:</strong> US-Iran standoff resumes; ships attacked</li>
-            <li><strong>Apr 21:</strong> Ceasefire expires; negotiations ongoing</li>
-          </ul>
-        </td>
-        <td style='vertical-align:top;width:50%;padding-left:12px;border-left:1px solid #334155;'>
-          <p style='font-size:11px;color:#f97316;margin:0 0 4px 0;font-weight:600;'>PRICE IMPACT</p>
-          <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
-            <li><strong>Peak:</strong> Brent hit ~$116/bbl (Mar 10-20)</li>
-            <li><strong>Apr 17:</strong> -12% crash to ~$88 after Hormuz opened</li>
-            <li><strong>Apr 19:</strong> Rebound after attacks resume</li>
-            <li><strong>Current:</strong> $106.76/bbl (+60% from pre-conflict)</li>
-          </ul>
-        </td>
-      </tr>
-      </table>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+  <!-- 全球港口燃油价格 -->
+  <div class="section-title">🌍 全球主要港口燃油价格</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>港口</th><th>地区</th><th>VLSFO ($/MT)</th><th>MGO ($/MT)</th><th>供应状态</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>新加坡</strong></td>
+          <td>亚太</td>
+          <td class="price">708</td>
+          <td class="price">1273</td>
+          <td><span class="supply-warn">库存偏低 . 建议提前预订</span></td>
+        </tr>
+        <tr>
+          <td><strong>鹿特丹</strong></td>
+          <td>欧洲</td>
+          <td class="price">666</td>
+          <td class="price">1200</td>
+          <td><span class="supply-good">正常供应 . 全球最低价</span></td>
+        </tr>
+        <tr>
+          <td><strong>休斯顿</strong></td>
+          <td>北美</td>
+          <td class="price">831</td>
+          <td class="price">1182</td>
+          <td><span class="supply-good">正常供应</span></td>
+        </tr>
+        <tr>
+          <td><strong>洛杉矶</strong></td>
+          <td>北美西岸</td>
+          <td class="price">968</td>
+          <td class="price">1509</td>
+          <td><span class="supply-warn">溢价显著 . 非必要不补油</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-<!-- IEA Data -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:14px 16px;background:#1e40af;border-bottom:1px solid #1d4ed8;'>
-      <span style='font-size:12px;font-weight:700;color:#dbeafe;text-transform:uppercase;letter-spacing:1px;'>IEA April 2026 Report</span>
-      <span style='font-size:10px;color:#93c5fd;margin-left:12px;'>Source: International Energy Agency</span>
-    </td>
-  </tr>
-  <tr>
-    <td style='padding:14px 16px;'>
-      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-      <tr>
-        <td style='vertical-align:top;width:33%;padding-right:10px;'>
-          <p style='font-size:18px;font-weight:700;color:#60a5fa;margin:0;'>-10.1M</p>
-          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d supply drop (March)</p>
-        </td>
-        <td style='vertical-align:top;width:33%;padding:0 10px;border-left:1px solid #334155;border-right:1px solid #334155;'>
-          <p style='font-size:18px;font-weight:700;color:#f87171;margin:0;'>13M+</p>
-          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d oil export losses</p>
-        </td>
-        <td style='vertical-align:top;width:34%;padding-left:10px;'>
-          <p style='font-size:18px;font-weight:700;color:#fbbf24;margin:0;'>97M</p>
-          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d global supply</p>
-        </td>
-      </tr>
-      </table>
-      <p style='font-size:11px;color:#64748b;margin:12px 0 0 0;padding-top:10px;border-top:1px solid #334155;'>
-        <strong>Key:</strong> Transit through Hormuz dropped from 20M bbl/d (Feb) to ~3.8M bbl/d | Brent spot peaked at ~$150/bbl | Singapore middle distillates hit all-time high $290+/bbl
-      </p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+  <!-- 市场展望 -->
+  <div class="outlook-box">
+    <h3>📊 市场展望与操作建议（2026-04-24_CN）</h3>
+    <p><strong>【核心背景】</strong> 美伊谈判持续进行，霍尔木兹海峡局势仍紧张。布伦特原油维持在105.77/桶，较前期高点有所回落但仍处高位。VLSFO价格高位震荡，鹿特丹666/MT为全球最低价。</p>
+    <div class="insight-grid">
+      <div class="insight-card">
+        <h4>短期建议（1-2周）</h4>
+        <p>1. <strong>鹿特丹优先：</strong>$666/MT为近期低价，欧洲挂港船舶应加满。<br>2. <strong>富查伊拉：</strong>提前10-14天预订，避免到港无油可补。<br>3. <strong>新加坡：</strong>$708/MT，库存有待改善，提前安排。</p>
+      </div>
+      <div class="insight-card">
+        <h4>中期风险（1个月）</h4>
+        <p>1. <strong>美伊谈判：</strong>若达成协议，原油可能回落，燃油价格有下行空间。<br>2. <strong>反转风险：</strong>谈判一旦破裂，原油可能重回$110+，需保持关注。<br>3. <strong>季度预期：</strong>关注布伦特季度末走势，做好应对准备。</p>
+      </div>
+      <div class="insight-card">
+        <h4>长期关注（季度）</h4>
+        <p>1. <strong>地缘缓和：</strong>霍尔木兹局势若实质性松动，供应将逐步改善。<br>2. <strong>VLSFO-HSFO价差：</strong>继续跟踪洗涤器回报率变化。<br>3. <strong>绕行成本：</strong>红海/好望角绕行每航次额外增加油费，持续关注。</p>
+      </div>
+    </div>
+  </div>
 
-<!-- Red Sea / Houthi Status -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:14px 16px;background:#065f46;border-bottom:1px solid #047857;'>
-      <span style='font-size:12px;font-weight:700;color:#d1fae5;text-transform:uppercase;letter-spacing:1px;'>&#9888; Red Sea / Houthi Status</span>
-    </td>
-  </tr>
-  <tr>
-    <td style='padding:14px 16px;'>
-      <p style='font-size:12px;color:#a7f3d0;margin:0 0 8px 0;'><strong>Current Situation (as of Apr 24):</strong></p>
-      <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
-        <li>Red Sea shipping traffic <strong>halved</strong> from Houthi threats (Maritime News)</li>
-        <li>Houthis adopted "watch position" after Oct 2025 Gaza ceasefire, but <strong>threats resurging</strong></li>
-        <li>Apr 8: Houthis threaten second Red Sea chokepoint (Bab el-Mandeb)</li>
-        <li>Apr 29: Houthis launch missiles toward Israel; new attacks feared</li>
-        <li>Carriers testing cautious returns but <strong>reverting to Cape routes</strong></li>
-        <li>Cape of Good Hope reroute adds <strong>10-14 days</strong> and significant fuel costs</li>
-      </ul>
-      <p style='font-size:10px;color:#64748b;margin:12px 0 0 0;'>Sources: Lloyd's List, Maritime News, gCaptain, AP News</p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+</main>
 
-<!-- OPEC+ Status -->
-<tr>
-<td style='padding:0 0 12px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:14px 16px;background:#5b21b6;border-bottom:1px solid #7c3aed;'>
-      <span style='font-size:12px;font-weight:700;color:#e9d5ff;text-transform:uppercase;letter-spacing:1px;'>OPEC+ Production</span>
-    </td>
-  </tr>
-  <tr>
-    <td style='padding:14px 16px;'>
-      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-      <tr>
-        <td style='width:50%;padding-right:12px;'>
-          <p style='font-size:11px;color:#c4b5fd;margin:0 0 4px 0;font-weight:600;'>APRIL 2026 DECISION</p>
-          <p style='font-size:14px;font-weight:700;color:#e9d5ff;margin:0;'>+206,000 bbl/d</p>
-          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>Production increase approved (OPEC+)</p>
-        </td>
-        <td style='width:50%;padding-left:12px;border-left:1px solid #334155;'>
-          <p style='font-size:11px;color:#c4b5fd;margin:0 0 4px 0;font-weight:600;'>OPEC+ OUTPUT (MARCH)</p>
-          <p style='font-size:14px;font-weight:700;color:#e9d5ff;margin:0;'>42.4M bbl/d</p>
-          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>All-time low due to Hormuz closure</p>
-        </td>
-      </tr>
-      </table>
-      <p style='font-size:10px;color:#64748b;margin:10px 0 0 0;padding-top:8px;border-top:1px solid #334155;'>Source: OPEC, Energyprices.net, Commodity Context</p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
+<footer>
+  <p>全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
+  <p style="margin-top:6px;">本报告仅供内部参考，不构成任何投资或采购建议 | 生成时间：2026-04-24 09:00 CST | <a href="https://LeahLiuL.github.io/Claw-Report/reports/">查看历史报告</a></p>
+</footer>
 
-<!-- MABUX Index -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>MABUX MARKET DIVERSION INDEX (MDI)</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
-  <tr>
-    <td style='padding:12px 14px;width:33%;text-align:center;'>
-      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Singapore</p>
-      <p style='font-size:22px;font-weight:700;color:#fbbf24;margin:0;'>584</p>
-      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: -$157</p>
-    </td>
-    <td style='padding:12px 14px;width:34%;text-align:center;border-left:1px solid #334155;border-right:1px solid #334155;'>
-      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Rotterdam</p>
-      <p style='font-size:22px;font-weight:700;color:#22c55e;margin:0;'>556</p>
-      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: -$110</p>
-    </td>
-    <td style='padding:12px 14px;width:33%;text-align:center;'>
-      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Houston</p>
-      <p style='font-size:22px;font-weight:700;color:#f87171;margin:0;'>531</p>
-      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: +$31</p>
-    </td>
-  </tr>
-  <tr style='border-top:1px solid #334155;'>
-    <td colspan='3' style='padding:10px 14px;'>
-      <p style='font-size:10px;color:#64748b;margin:0;text-align:center;'>MDI > 550: Overvalued (sell signal) | MDI < 450: Undervalued (buy signal) | Source: MABUX Weekly</p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
-
-<!-- Data Sources -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>DATA SOURCES</td>
-  </tr>
-  </table>
-  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;'>
-  <tr>
-    <td style='padding:12px 14px;'>
-      <p style='font-size:11px;color:#94a3b8;margin:0;line-height:1.8;'>
-        <strong style='color:#e2e8f0;'>Real-time:</strong> OilPriceAPI (Brent, WTI)<br>
-        <strong style='color:#e2e8f0;'>Daily:</strong> HandyBulk (VLSFO/MGO bunker prices)<br>
-        <strong style='color:#e2e8f0;'>Weekly:</strong> MABUX (Market Diversion Index)<br>
-        <strong style='color:#e2e8f0;'>Monthly:</strong> IEA Oil Market Report, EIA STEO<br>
-        <strong style='color:#e2e8f0;'>News:</strong> Lloyd's List, Maritime News, CNBC, AP News, OPEC, European Business Magazine
-      </p>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
-
-<!-- CTA Button -->
-<tr>
-<td style='padding:0 0 20px 0;'>
-  <table cellpadding='0' cellspacing='0' border='0'>
-  <tr>
-    <td align='center' style='background:#dc2626;border-radius:8px;'>
-      <a href='https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report.html' style='display:block;background:#dc2626;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:14px;font-weight:600;'>View Full Report</a>
-    </td>
-  </tr>
-  </table>
-</td>
-</tr>
-
-<!-- Footer -->
-<tr>
-<td style='padding:20px 0 0 0;border-top:1px solid #334155;'>
-  <p style='font-size:11px;color:#64748b;margin:0;text-align:center;'>Claw Report System | Bunker Fuel Daily Brief</p>
-  <p style='font-size:10px;color:#475569;margin:8px 0 0 0;text-align:center;'>This report contains verified data only. N/A indicates unavailable data from known sources.</p>
-</td>
-</tr>
-
-</table>
-</td>
-</tr>
-</table>
 </body>
 </html>
