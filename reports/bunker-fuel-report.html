@@ -3,229 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claw 航运燃油报告 - 2026-04-24</title>
+    <title>Claw Bunker Fuel Report - 2026-04-24</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #1a365d, #2c5282); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; }
-        .header h1 { font-size: 24px; margin-bottom: 8px; }
-        .header .subtitle { opacity: 0.9; font-size: 14px; }
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .card h2 { color: #1a365d; font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f7fafc; color: #4a5568; font-weight: 600; }
-        .status-real { background: #c6f6d5; color: #276749; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        .status-daily { background: #bee3f8; color: #2b6cb0; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        .status-delayed { background: #feebc8; color: #c05621; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        .status-weekly { background: #e9d8fd; color: #6b46c1; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        .status-no { background: #fed7d7; color: #c53030; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-        .price { font-weight: bold; font-size: 18px; color: #1a365d; }
-        .up { color: #c53030; }
-        .down { color: #276749; }
-        .source { font-size: 11px; color: #718096; margin-top: 4px; }
-        .highlight { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0; }
-        .highlight h3 { color: #92400e; margin-bottom: 8px; }
-        .footer { text-align: center; color: #718096; font-size: 12px; padding: 20px; }
-        .section { margin-bottom: 24px; }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0f3460 0%, #1a4d7c 100%);
+            color: white;
+            padding: 40px 50px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05));
+        }
+        .header-content { position: relative; z-index: 1; }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+        .header .date-badge {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f3460;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e8ecf0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #e74c3c;
+            border-radius: 2px;
+        }
+        
+        /* Price Grid */
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .price-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .price-card.highlight {
+            background: linear-gradient(135deg, #0f3460 0%, #1a4d7c 100%);
+            color: white;
+            border: none;
+        }
+        .price-card.highlight .label { color: rgba(255,255,255,0.8); }
+        .price-card.highlight .price { color: white; }
+        .label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .price {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f3460;
+        }
+        .unit {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .price-card.highlight .unit { color: rgba(255,255,255,0.7); }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .data-table thead {
+            background: #f8fafc;
+        }
+        .data-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .data-table tr:hover {
+            background: #fafbfc;
+        }
+        .data-table .port-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .data-table .price-cell {
+            font-weight: 600;
+            color: #0f3460;
+        }
+        .data-table .no-data {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .source-tag {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .update-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .update-tag.realtime { background: #dcfce7; color: #166534; }
+        .update-tag.daily { background: #dbeafe; color: #1d4ed8; }
+        .update-tag.delayed { background: #fef3c7; color: #92400e; }
+        .update-tag.weekly { background: #f3e8ff; color: #7c3aed; }
+        .update-tag.nodata { background: #fee2e2; color: #dc2626; }
+        
+        /* Market Analysis */
+        .market-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .market-box {
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        .market-box.alert {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+        .market-box.trend {
+            background: #f0fdf4;
+            border-color: #22c55e;
+        }
+        .market-box h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .market-box.alert h4 { color: #92400e; }
+        .market-box.trend h4 { color: #166534; }
+        .market-box ul {
+            list-style: none;
+            font-size: 13px;
+        }
+        .market-box ul li {
+            padding: 6px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        .market-box ul li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: #64748b;
+        }
+        
+        /* Sources Footer */
+        .sources {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px 24px;
+        }
+        .sources h4 {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+        .source-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .source-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #475569;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .source-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .source-item .dot.realtime { background: #22c55e; }
+        .source-item .dot.daily { background: #3b82f6; }
+        .source-item .dot.weekly { background: #a855f7; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            padding: 24px;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 20px;
+        }
+        .footer .disclaimer {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>Claw 航运燃油市场日报</h1>
-            <div class="subtitle">2026-04-24 | 数据来源: OilPriceAPI, HandyBulk, MABUX, Hellenic Shipping News</div>
+            <div class="header-content">
+                <h1>Claw Bunker Fuel Report</h1>
+                <div class="subtitle">Daily Market Intelligence for Shipping Professionals</div>
+            </div>
+            <div class="date-badge">2026-04-24</div>
         </div>
 
+        <!-- Key Indicators -->
         <div class="card">
-            <h2>关键市场指标</h2>
-
-            <div class="section">
-                <h3 style="color:#4a5568;margin-bottom:12px;">原油价格</h3>
-                <table>
-                    <tr>
-                        <th>品种</th>
-                        <th>最新价格</th>
-                        <th>更新时间</th>
-                        <th>数据来源</th>
-                        <th>状态</th>
-                    </tr>
-                    <tr>
-                        <td><strong>布伦特原油 (Brent)</strong></td>
-                        <td class="price">$106.76/桶</td>
-                        <td>2026-04-24</td>
-                        <td>OilPriceAPI</td>
-                        <td><span class="status-real">实时</span></td>
-                    </tr>
-                    <tr>
-                        <td><strong>WTI 原油</strong></td>
-                        <td class="price">$97.24/桶</td>
-                        <td>2026-04-24</td>
-                        <td>OilPriceAPI</td>
-                        <td><span class="status-real">实时</span></td>
-                    </tr>
-                </table>
+            <div class="card-title">Key Market Indicators</div>
+            
+            <div class="price-grid">
+                <div class="price-card highlight">
+                    <div class="label">Brent Crude</div>
+                    <div class="price">$106.76</div>
+                    <div class="unit">/barrel</div>
+                </div>
+                <div class="price-card">
+                    <div class="label">WTI Crude</div>
+                    <div class="price">$97.24</div>
+                    <div class="unit">/barrel</div>
+                </div>
+                <div class="price-card">
+                    <div class="label">MABUX VLSFO Index</div>
+                    <div class="price">$871.31</div>
+                    <div class="unit">/MT (Week 17)</div>
+                </div>
+                <div class="price-card">
+                    <div class="label">Weekly Change</div>
+                    <div class="price" style="color: #dc2626;">-$29.42</div>
+                    <div class="unit">MABUX Global Index</div>
+                </div>
             </div>
+        </div>
 
-            <div class="section">
-                <h3 style="color:#4a5568;margin-bottom:12px;">VLSFO 港口价格 (USD/MT)</h3>
-                <table>
+        <!-- Port Prices -->
+        <div class="card">
+            <div class="card-title">VLSFO / MGO Port Prices (USD/MT)</div>
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th>港口</th>
+                        <th>Port</th>
                         <th>VLSFO</th>
                         <th>MGO</th>
-                        <th>更新时间</th>
-                        <th>数据来源</th>
-                        <th>状态</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="port-name">Singapore</td>
+                        <td class="price-cell">$708</td>
+                        <td class="price-cell">$1,273</td>
+                        <td><span class="source-tag">HandyBulk</span></td>
+                        <td><span class="update-tag daily">Daily - Apr 24</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Singapore</strong></td>
-                        <td class="price">$741</td>
-                        <td>$1273</td>
-                        <td>2026-04-24</td>
-                        <td>HandyBulk</td>
-                        <td><span class="status-daily">每日</span></td>
+                        <td class="port-name">Rotterdam</td>
+                        <td class="price-cell">$666</td>
+                        <td class="price-cell">$1,200</td>
+                        <td><span class="source-tag">HandyBulk</span></td>
+                        <td><span class="update-tag daily">Daily - Apr 24</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Rotterdam</strong></td>
-                        <td class="price">$666</td>
-                        <td>$1200</td>
-                        <td>2026-04-24</td>
-                        <td>HandyBulk</td>
-                        <td><span class="status-daily">每日</span></td>
+                        <td class="port-name">Houston</td>
+                        <td class="price-cell">$849</td>
+                        <td class="price-cell">$1,450</td>
+                        <td><span class="source-tag">HandyBulk</span></td>
+                        <td><span class="update-tag delayed">Apr 23</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Houston</strong></td>
-                        <td class="price">$849</td>
-                        <td>$1450</td>
-                        <td>2026-04-23</td>
-                        <td>HandyBulk</td>
-                        <td><span class="status-delayed">延迟</span></td>
+                        <td class="port-name">Hong Kong</td>
+                        <td class="price-cell">$808</td>
+                        <td class="price-cell">$1,380</td>
+                        <td><span class="source-tag">HandyBulk</span></td>
+                        <td><span class="update-tag delayed">Apr 23</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Hong Kong</strong></td>
-                        <td class="price">$808</td>
-                        <td>$1380</td>
-                        <td>2026-04-23</td>
-                        <td>HandyBulk</td>
-                        <td><span class="status-delayed">延迟</span></td>
+                        <td class="port-name">Los Angeles</td>
+                        <td class="price-cell">$1,044</td>
+                        <td class="price-cell">$1,680</td>
+                        <td><span class="source-tag">HandyBulk</span></td>
+                        <td><span class="update-tag delayed">Apr 23</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Los Angeles</strong></td>
-                        <td class="price">$1044</td>
-                        <td>$1680</td>
-                        <td>2026-04-23</td>
-                        <td>HandyBulk</td>
-                        <td><span class="status-delayed">延迟</span></td>
+                        <td class="port-name">Fujairah</td>
+                        <td colspan="2"><span class="no-data">No quote - Hormuz Blockade</span></td>
+                        <td><span class="source-tag">Hellenic Shipping</span></td>
+                        <td><span class="update-tag nodata">Blocked</span></td>
                     </tr>
                     <tr>
-                        <td><strong>Fujairah</strong></td>
-                        <td colspan="2"><em style="color:#c53030;">霍尔木兹封锁中，无VLSFO报价</em></td>
-                        <td>2026-04-23</td>
-                        <td>Hellenic Shipping News</td>
-                        <td><span class="status-no">无报价</span></td>
+                        <td class="port-name">Shanghai / Ningbo</td>
+                        <td colspan="2"><span class="no-data">No reliable free source available</span></td>
+                        <td><span class="source-tag">N/A</span></td>
+                        <td><span class="update-tag nodata">No Data</span></td>
                     </tr>
-                    <tr>
-                        <td><strong>Shanghai</strong></td>
-                        <td colspan="2"><em style="color:#c53030;">暂无可靠免费数据源</em></td>
-                        <td>N/A</td>
-                        <td>N/A</td>
-                        <td><span class="status-no">无数据</span></td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="section">
-                <h3 style="color:#4a5568;margin-bottom:12px;">MABUX VLSFO 指数</h3>
-                <table>
-                    <tr>
-                        <th>枢纽</th>
-                        <th>指数</th>
-                        <th>更新时间</th>
-                        <th>数据来源</th>
-                        <th>状态</th>
-                    </tr>
-                    <tr>
-                        <td><strong>新加坡</strong></td>
-                        <td class="price">${}</td>
-                        <td>{}</td>
-                        <td>{}</td>
-                        <td><span class="status-weekly">周报</span></td>
-                    </tr>
-                    <tr>
-                        <td><strong>鹿特丹</strong></td>
-                        <td class="price">${}</td>
-                        <td>{}</td>
-                        <td>{}</td>
-                        <td><span class="status-weekly">周报</span></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>市场分析</h2>
-
-            <div class="highlight">
-                <h3>⚠️ 霍尔木兹海峡封锁状态</h3>
-                <ul style="margin-left: 20px; line-height: 1.8;">
-                    <li>通行量 <10% 正常水平</li>
-                    <li>P&I 保险全面撤回</li>
-                    <li>战争险飙升至 0.8%-1.5%（正常水平的8倍）</li>
-                    <li><strong>Fujairah 受封锁影响，VLSFO 无报价</strong></li>
-                </ul>
-            </div>
-
-            <div class="highlight">
-                <h3>市场进入双重叙事</h3>
-                <ul style="margin-left: 20px; line-height: 1.8;">
-                    <li><strong>下行修正：</strong>4月7日停火后，新加坡 VLSFO 从 $900 高点回落至 $741（-17.7%）</li>
-                    <li><strong>底部支撑：</strong>霍尔木兹封锁第56天持续，布伦特从 $92 低点强势反弹至 $106.76（+16%）</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>数据来源说明</h2>
-            <table>
-                <tr>
-                    <th>数据源</th>
-                    <th>数据类型</th>
-                    <th>更新频率</th>
-                    <th>可信度</th>
-                </tr>
-                <tr>
-                    <td>OilPriceAPI</td>
-                    <td>Brent, WTI 原油价格</td>
-                    <td>实时</td>
-                    <td><span class="status-real">⭐⭐⭐⭐⭐</span></td>
-                </tr>
-                <tr>
-                    <td>HandyBulk</td>
-                    <td>VLSFO/MGO 港口价格</td>
-                    <td>每日</td>
-                    <td><span class="status-daily">⭐⭐⭐⭐</span></td>
-                </tr>
-                <tr>
-                    <td>MABUX</td>
-                    <td>VLSFO 市场指数</td>
-                    <td>每周</td>
-                    <td><span class="status-weekly">⭐⭐⭐⭐</span></td>
-                </tr>
-                <tr>
-                    <td>Hellenic Shipping News</td>
-                    <td>Fujairah 状态</td>
-                    <td>每日</td>
-                    <td><span class="status-delayed">⭐⭐⭐⭐</span></td>
-                </tr>
+                </tbody>
             </table>
         </div>
 
+        <!-- MABUX MDI -->
+        <div class="card">
+            <div class="card-title">MABUX Market Differential Index (MDI)</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Hub</th>
+                        <th>MBP (Market)</th>
+                        <th>DBP (Benchmark)</th>
+                        <th>MDI Spread</th>
+                        <th>Signal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="port-name">Rotterdam</td>
+                        <td class="price-cell">$680</td>
+                        <td>$790</td>
+                        <td style="color: #16a34a; font-weight: 600;">-$110</td>
+                        <td><span class="update-tag daily">Undervalued</span></td>
+                    </tr>
+                    <tr>
+                        <td class="port-name">Singapore</td>
+                        <td class="price-cell">$722</td>
+                        <td>$879</td>
+                        <td style="color: #16a34a; font-weight: 600;">-$157</td>
+                        <td><span class="update-tag daily">Undervalued</span></td>
+                    </tr>
+                    <tr>
+                        <td class="port-name">Fujairah</td>
+                        <td class="price-cell">$740</td>
+                        <td>$848</td>
+                        <td style="color: #16a34a; font-weight: 600;">-$108</td>
+                        <td><span class="update-tag daily">Undervalued</span></td>
+                    </tr>
+                    <tr>
+                        <td class="port-name">Houston</td>
+                        <td class="price-cell">$835</td>
+                        <td>$804</td>
+                        <td style="color: #dc2626; font-weight: 600;">+$31</td>
+                        <td><span class="update-tag delayed">Overvalued</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 16px; font-size: 12px; color: #64748b;">
+                MDI = MBP (Market Price) - DBP (MABUX Digital Benchmark). Negative spread suggests potential price upside.
+            </p>
+        </div>
+
+        <!-- Market Analysis -->
+        <div class="card">
+            <div class="card-title">Market Analysis</div>
+            <div class="market-section">
+                <div class="market-box alert">
+                    <h4>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        Hormuz Blockade Status
+                    </h4>
+                    <ul>
+                        <li>Transit volume <10% of normal</li>
+                        <li>P&I insurance fully withdrawn</li>
+                        <li>War risk insurance: 0.8%-1.5% (8x normal)</li>
+                        <li><strong>Fujairah: No VLSFO quote available</strong></li>
+                    </ul>
+                </div>
+                <div class="market-box trend">
+                    <h4>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                        Market Dual Narrative
+                    </h4>
+                    <ul>
+                        <li><strong>Downside:</strong> Singapore VLSFO $900 -> $708 (-17.7%) since Apr 7 ceasefire</li>
+                        <li><strong>Floor:</strong> Brent rebounded from $92 to $106.76 (+16%) on Hormuz concerns</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sources -->
+        <div class="sources">
+            <h4>Data Sources</h4>
+            <div class="source-list">
+                <div class="source-item">
+                    <span class="dot realtime"></span>
+                    <strong>OilPriceAPI</strong> - Brent/WTI (Real-time)
+                </div>
+                <div class="source-item">
+                    <span class="dot daily"></span>
+                    <strong>HandyBulk</strong> - Port Prices (Daily)
+                </div>
+                <div class="source-item">
+                    <span class="dot weekly"></span>
+                    <strong>MABUX</strong> - VLSFO Index (Weekly)
+                </div>
+                <div class="source-item">
+                    <span class="dot daily"></span>
+                    <strong>Hellenic Shipping News</strong> - Fujairah Status
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
         <div class="footer">
-            <p>报告生成时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-            <p>数据截至: {today}</p>
-            <p>免责声明: 本报告数据仅供参考，实际交易请以市场实时报价为准</p>
+            <p>Report generated: 2026-04-24 10:20 (CST)</p>
+            <p class="disclaimer">This report is for reference only. Actual transactions should be based on real-time market quotes.</p>
         </div>
     </div>
 </body>
