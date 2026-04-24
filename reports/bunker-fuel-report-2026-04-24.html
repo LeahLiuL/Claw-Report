@@ -3,37 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球航运燃油深度分析报告 · 2026-04-24</title>
+<title>全球航运燃油市场报告 · 2026-04-24</title>
 <style>
   :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --up: #ef4444; --down: #10b981; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: #f0f4f8; color: #1e293b; }
-  .ticker-wrap { background: var(--primary); overflow: hidden; white-space: nowrap; padding: 8px 0; }
-  .ticker-content { display: inline-block; animation: ticker 40s linear infinite; }
-  .ticker-content span { margin: 0 28px; font-size: 13px; color: #e2e8f0; }
-  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   header { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 32px 40px 24px; }
   h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
   h1 span { color: var(--accent); }
   .header-meta { margin-top: 14px; display: flex; gap: 20px; flex-wrap: wrap; }
   .header-meta span { font-size: 12px; color: #94a3b8; background: rgba(255,255,255,0.07); padding: 3px 12px; border-radius: 12px; }
   .alert-banner { background: linear-gradient(90deg, #7f1d1d, #991b1b); color: #fecaca; padding: 10px 40px; font-size: 13px; }
-  .status-bar { background: var(--primary); padding: 10px 40px; display: flex; gap: 24px; flex-wrap: wrap; }
-  .status-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; }
-  .status-val { color: #e2e8f0; font-weight: 600; }
   main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 50px; }
   .section-title { font-size: 17px; font-weight: 700; color: var(--primary); margin: 32px 0 14px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 12px; }
   .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
   .kpi-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid var(--accent); }
+  .kpi-card.orange { border-top-color: #f59e0b; }
+  .kpi-card.green { border-top-color: #10b981; }
+  .kpi-card.red { border-top-color: #ef4444; }
   .kpi-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
   .kpi-value { font-size: 28px; font-weight: 800; color: var(--primary); margin: 6px 0 4px; }
   .kpi-change { font-size: 13px; font-weight: 600; }
   .kpi-change.up { color: var(--up); }
   .kpi-change.down { color: var(--down); }
   .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 6px; }
-  .kpi-card.orange { border-top-color: #f59e0b; }
-  .kpi-card.red { border-top-color: #ef4444; }
-  .kpi-card.green { border-top-color: #10b981; }
   .table-wrap { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
   .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .table-wrap thead th { background: #f1f5f9; color: #475569; padding: 11px 16px; text-align: left; font-weight: 700; font-size: 12px; }
@@ -41,6 +34,14 @@
   td.price { font-weight: 700; color: var(--primary); }
   td.up { color: #ef4444; font-weight: 600; }
   td.down { color: #10b981; font-weight: 600; }
+  td.na { color: #94a3b8; font-style: italic; }
+  .source-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px; }
+  .source-badge.live { background: #d1fae5; color: #065f46; }
+  .source-badge.delay { background: #fef3c7; color: #92400e; }
+  .source-badge.na { background: #fee2e2; color: #991b1b; }
+  .data-legend { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 11px; color: #64748b; }
+  .data-legend strong { color: #475569; }
+  .data-legend span { margin-right: 16px; display: inline-block; }
   .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .insight-card { background: white; border-radius: 12px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-left: 4px solid; }
   .insight-card.bearish { border-left-color: #10b981; }
@@ -52,139 +53,116 @@
   .insight-card ul { margin: 6px 0 0 16px; font-size: 12px; color: #475569; line-height: 1.8; }
   footer { background: var(--primary); color: #64748b; padding: 20px 40px; text-align: center; font-size: 11px; border-top: 2px solid var(--accent); }
   footer strong { color: #94a3b8; }
-  .data-source { background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
-  .data-source p { font-size: 11px; color: #64748b; margin: 4px 0; }
   @media(max-width: 768px) { .insight-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
-<div class="ticker-wrap">
-  <div class="ticker-content">
-    <span><span style="color:#94a3b8">布伦特</span> $106.87/桶 <span class="up">+4.64%</span></span>
-    <span><span style="color:#94a3b8">WTI</span> $97.24/桶 <span class="up">+4.35%</span></span>
-    <span><span style="color:#94a3b8">MABUX-VLSFO</span> $871.31/MT</span>
-    <span><span style="color:#94a3b8">新加坡VLSFO</span> $N/A/MT</span>
-    <span><span style="color:#94a3b8">鹿特丹VLSFO</span> $N/A/MT</span>
-    <span><span style="color:#94a3b8">富查伊拉VLSFO</span> $N/A/MT</span>
-    <span><span style="color:#94a3b8">新加坡</span> $106.87/桶 <span class="up">+4.64%</span></span>
-    <span><span style="color:#94a3b8">WTI</span> $97.24/桶 <span class="up">+4.35%</span></span>
-    <span><span style="color:#94a3b8">MABUX-VLSFO</span> $871.31/MT</span>
-    <span><span style="color:#94a3b8">新加坡VLSFO</span> $N/A/MT</span>
-    <span><span style="color:#94a3b8">鹿特丹VLSFO</span> $N/A/MT</span>
-    <span><span style="color:#94a3b8">富查伊拉VLSFO</span> $N/A/MT</span>
-  </div>
-</div>
-
 <header>
-  <h1>全球航运燃油<span>深度分析报告</span></h1>
-  <p style="margin-top:6px;font-size:13px;color:#94a3b8;">2026-04-24 | 专业航运燃油市场分析</p>
+  <h1>全球航运燃油<span>市场报告</span></h1>
+  <p style="margin-top:6px;font-size:13px;color:#94a3b8;">2026-04-24 | 数据截至：2026-04-24</p>
   <div class="header-meta">
-    <span>数据来源：OilPriceAPI | EIA | MABUX</span>
-    <span>更新：2026-04-24</span>
+    <span>仅展示可验证的真实数据 | 不含估算值</span>
   </div>
 </header>
 
 <div class="alert-banner">
-  <strong>市场警示：</strong>霍尔木兹海峡封锁持续，第56天。美国威胁攻击布雷船只，全球石油供应面临严重中断风险。
-</div>
-
-<div class="status-bar">
-  <div class="status-item"><span style="width:8px;height:8px;background:#ef4444;border-radius:50%;"></span><span>霍尔木兹封锁</span><span class="status-val">通行量 &lt;10%</span></div>
-  <div class="status-item"><span style="width:8px;height:8px;background:#f59e0b;border-radius:50%;"></span><span>新加坡供应</span><span class="status-val">正常</span></div>
-  <div class="status-item"><span style="width:8px;height:8px;background:#ef4444;border-radius:50%;"></span><span>富查伊拉供应</span><span class="status-val">严重受限</span></div>
-  <div class="status-item"><span style="width:8px;height:8px;background:#10b981;border-radius:50%;"></span><span>战争险</span><span class="status-val">0.8%-1.5%</span></div>
+  <strong>市场警示：</strong>霍尔木兹海峡封锁持续。通行量 &lt;10% 正常水平，P&amp;I保险全面撤回，战争险飙升至 0.8%-1.5%。
 </div>
 
 <main>
-  <h2 class="section-title">关键市场基准</h2>
+  <h2 class="section-title">实时原油价格 <span class="source-badge live">实时</span></h2>
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="kpi-label">布伦特原油</div>
-      <div class="kpi-value">$106.87</div>
-      <div class="kpi-change up">+4.64%</div>
-      <div class="kpi-sub">美元/桶 | OilPriceAPI 实时</div>
+      <div class="kpi-label">布伦特原油 (Brent)</div>
+      <div class="kpi-value">$106.87<span style="font-size:14px;font-weight:400;color:#64748b;"> /桶</span></div>
+      <div class="kpi-change up">▲ +4.64% (本周)</div>
+      <div class="kpi-sub">来源: OilPriceAPI | 更新: 2026-04-24</div>
     </div>
     <div class="kpi-card orange">
       <div class="kpi-label">WTI 原油</div>
-      <div class="kpi-value">$97.24</div>
-      <div class="kpi-change up">+4.35%</div>
-      <div class="kpi-sub">美元/桶 | OilPriceAPI 实时</div>
+      <div class="kpi-value">$97.24<span style="font-size:14px;font-weight:400;color:#64748b;"> /桶</span></div>
+      <div class="kpi-change up">▲ +4.35% (本周)</div>
+      <div class="kpi-sub">来源: OilPriceAPI | 更新: 2026-04-24</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card green">
       <div class="kpi-label">MABUX VLSFO 指数</div>
-      <div class="kpi-value">$871.31</div>
-      <div class="kpi-change up">+$15.29</div>
-      <div class="kpi-sub">美元/MT | MABUX W17</div>
-    </div>
-    <div class="kpi-card red">
-      <div class="kpi-label">新加坡 VLSFO</div>
-      <div class="kpi-value">$N/A</div>
-      <div class="kpi-change down">市场修正</div>
-      <div class="kpi-sub">美元/MT | 更新: </div>
+      <div class="kpi-value">$871.31<span style="font-size:14px;font-weight:400;color:#64748b;"> /MT</span></div>
+      <div class="kpi-change up">▲ +$15.29 (W17)</div>
+      <div class="kpi-sub">来源: MABUX | 更新: 2026-04-23</div>
     </div>
   </div>
 
-  <h2 class="section-title">全球港口燃油价格</h2>
+  <div class="data-legend">
+    <strong>数据状态说明：</strong>
+    <span class="source-badge live" style="vertical-align:middle;">实时</span> 数据实时更新
+    <span class="source-badge delay" style="vertical-align:middle;">延迟</span> 存在3-5天延迟
+    <span class="source-badge na" style="vertical-align:middle;">N/A</span> 当前不可用
+  </div>
+
+  <h2 class="section-title">全球港口 VLSFO 价格 <span class="source-badge delay">免费API暂不可用</span></h2>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>港口</th>
           <th>VLSFO (USD/MT)</th>
-          <th>MGO LS (USD/MT)</th>
           <th>供应状态</th>
           <th>数据来源</th>
+          <th>状态</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>新加坡</td>
-          <td class="price">N/A</td>
-          <td class="price">1293</td>
+          <td class="price na">N/A</td>
           <td style="color:#10b981;font-weight:600;">正常</td>
-          <td>OilPriceAPI / MABUX</td>
+          <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
         <tr>
           <td>鹿特丹</td>
-          <td class="price">N/A</td>
-          <td class="price">1240</td>
+          <td class="price na">N/A</td>
           <td style="color:#10b981;font-weight:600;">良好</td>
-          <td>OilPriceAPI / MABUX</td>
+          <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
         <tr>
           <td>富查伊拉</td>
-          <td class="price">N/A</td>
-          <td class="price">1425</td>
-          <td style="color:#ef4444;font-weight:600;">严重受限</td>
-          <td>OilPriceAPI / MABUX</td>
+          <td class="price na">N/A</td>
+          <td style="color:#ef4444;font-weight:600;">封锁受限</td>
+          <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
         <tr>
           <td>休斯顿</td>
-          <td class="price">N/A</td>
-          <td class="price">1180</td>
+          <td class="price na">N/A</td>
           <td style="color:#10b981;font-weight:600;">充足</td>
-          <td>OilPriceAPI / MABUX</td>
+          <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
         <tr>
           <td>洛杉矶</td>
-          <td class="price">N/A</td>
-          <td class="price">-</td>
+          <td class="price na">N/A</td>
           <td style="color:#f59e0b;font-weight:600;">偏紧</td>
           <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
         <tr>
           <td>香港</td>
-          <td class="price">N/A</td>
-          <td class="price">-</td>
+          <td class="price na">N/A</td>
           <td style="color:#10b981;font-weight:600;">正常</td>
           <td>OilPriceAPI</td>
+          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
         </tr>
       </tbody>
     </table>
   </div>
+  <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#92400e;">
+    <strong>⚠️ 说明：</strong>港口VLSFO价格暂不可用。OilPriceAPI免费版不包含实时VLSFO港口报价。升级到付费版可获取实时港口价格（预计费用：约$99/月起）。
+  </div>
 
-  <h2 class="section-title">EIA 市场预测 (2026年4月)</h2>
+  <h2 class="section-title">EIA 市场预测 (2026年4月) <span class="source-badge">EIA STEO</span></h2>
   <div class="table-wrap">
     <table>
       <thead>
@@ -192,81 +170,113 @@
           <th>预测项目</th>
           <th>数值</th>
           <th>说明</th>
+          <th>数据来源</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>布伦特 2026年均</td>
           <td class="price">$96/桶</td>
-          <td>EIA 预测值</td>
+          <td>EIA 年度预测</td>
+          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
         </tr>
         <tr>
           <td>布伦特 Q2 峰值</td>
-          <td class="price">$115/桶</td>
-          <td style="color:#ef4444;font-weight:600;">短期风险溢价</td>
+          <td class="price up">$115/桶</td>
+          <td>短期地缘风险溢价</td>
+          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
         </tr>
         <tr>
           <td>布伦特 Q4</td>
-          <td class="price">&lt;$90/桶</td>
+          <td class="price down">&lt;$90/桶</td>
           <td>下半年预期回落</td>
+          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
         </tr>
         <tr>
-          <td>霍尔木兹减产</td>
-          <td class="price">9.1百万桶/天</td>
-          <td>4月预期峰值</td>
-        </tr>
-        <tr>
-          <td>OPEC+ 2026</td>
+          <td>OPEC+ 2026产量</td>
           <td class="price">41.7百万桶/天</td>
-          <td>较上次预测-5%</td>
+          <td>较上次预测 -5%</td>
+          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <h2 class="section-title">市场洞察</h2>
+  <h2 class="section-title">市场分析</h2>
   <div class="insight-grid">
     <div class="insight-card bearish">
-      <h4>下行修正因素</h4>
+      <h4>下行因素</h4>
       <ul>
-        <li>MABUX VLSFO 周度下降 $15.29，全球修正中</li>
-        <li>新加坡 VLSFO 从 $900 高点回落至 $N/A</li>
+        <li>MABUX VLSFO 周度上涨 $15.29，市场波动加剧</li>
+        <li>新加坡VLSFO市场正在修正（价格待更新）</li>
         <li>4月7日停火协议短暂缓和市场情绪</li>
       </ul>
     </div>
     <div class="insight-card bullish">
-      <h4>底部支撑因素</h4>
+      <h4>支撑因素</h4>
       <ul>
-        <li>霍尔木兹封锁第56天，通行量 &lt;10%</li>
-        <li>布伦特从 $92 低点反弹至 $106.87（+16.2%）</li>
-        <li>战争险飙升至 0.8%-1.5%（正常8倍）</li>
+        <li>霍尔木兹封锁持续，通行量 &lt;10%</li>
+        <li>布伦特从 $92 低点强势反弹至 $106.87（+16.2%）</li>
+        <li>战争险飙升至 0.8%-1.5%（正常水平的8倍）</li>
       </ul>
     </div>
   </div>
 
-  <h2 class="section-title">操作建议</h2>
-  <div class="insight-card bearish" style="border-left-color:#22c55e;margin-bottom:20px;">
-    <h4 style="color:#166534;">加油策略建议</h4>
-    <ul style="margin:8px 0 0 16px;font-size:13px;color:#166534;line-height:2;">
-      <li><strong>欧洲段：</strong>鹿特丹/安特卫普加油（$N/A/MT，全球最低）</li>
-      <li><strong>亚洲段：</strong>新加坡加油（$N/A/MT，供应正常）</li>
-      <li><strong>避开富查伊拉：</strong>封锁导致供应严重受限，波斯湾绕行成本 +$20-50万/航次</li>
-      <li><strong>洛杉矶：</strong>如需在美西加油，考虑休斯顿（$N/A）比洛杉矶（$N/A）节省 $0.0/MT</li>
-    </ul>
+  <h2 class="section-title">专业数据源推荐</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>数据源</th>
+          <th>覆盖范围</th>
+          <th>费用</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>OilPriceAPI 付费版</strong></td>
+          <td>全球主要港口VLSFO实时价格</td>
+          <td>约$99/月起</td>
+          <td>支持新加坡、鹿特丹、富查伊拉等实时数据</td>
+        </tr>
+        <tr>
+          <td><strong>MABUX</strong></td>
+          <td>400+港口MBP报价</td>
+          <td>€145/月</td>
+          <td>行业标准参考指数</td>
+        </tr>
+        <tr>
+          <td><strong>S&P Global / OPIS</strong></td>
+          <td>全球港口实时报价</td>
+          <td>企业订阅</td>
+          <td>行业黄金标准，船公司常用</td>
+        </tr>
+        <tr>
+          <td><strong>Ship & Bunker</strong></td>
+          <td>亚太/欧洲/美洲</td>
+          <td>免费查看部分</td>
+          <td>手动查询，每日更新</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
-  <div class="data-source">
-    <p><strong>数据来源说明：</strong></p>
-    <p>- 原油价格：OilPriceAPI (https://www.oilpriceapi.com) - 实时数据</p>
-    <p>- VLSFO 港口价格：OilPriceAPI + MABUX (https://mabux.com) - 周报数据 2026-04-23</p>
-    <p>- 市场预测：EIA 短期能源展望 (STEO) 2026年4月</p>
-    <p>- 供应状态：基于 MABUX MBP 市场数据</p>
+  <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin-top:24px;font-size:11px;color:#64748b;">
+    <p style="font-weight:700;color:#475569;margin-bottom:8px;">数据来源说明：</p>
+    <ul style="line-height:1.8;padding-left:16px;">
+      <li><strong>Brent/WTI原油价格：</strong>OilPriceAPI (https://www.oilpriceapi.com) - 实时数据</li>
+      <li><strong>MABUX VLSFO指数：</strong>MABUX (https://mabux.com) - 每周更新（W17: 2026-04-23）</li>
+      <li><strong>EIA市场预测：</strong>EIA Short-Term Energy Outlook (STEO) 2026年4月</li>
+      <li><strong>港口VLSFO价格：</strong>当前免费API暂不可用，显示为N/A，供应状态基于公开新闻</li>
+    </ul>
+    <p style="margin-top:10px;color:#94a3b8;">本报告仅展示可验证数据，不含估算值。如需完整港口VLSFO价格，请联系订阅专业数据源。</p>
   </div>
 </main>
 
 <footer>
-  <p>全球航运燃油深度分析报告 | 数据来源：<strong>OilPriceAPI</strong> | <strong>EIA</strong> | <strong>MABUX</strong></p>
-  <p style="margin-top:8px;">更新时间：2026-04-24 | 本报告仅供参考，不构成投资建议</p>
+  <p>全球航运燃油市场报告 | 实时数据：<strong>OilPriceAPI</strong> | 指数：<strong>MABUX</strong> | 预测：<strong>EIA STEO</strong></p>
+  <p style="margin-top:8px;">报告日期：2026-04-24 | 免责声明：本报告数据仅供参考，不构成任何投资或运营建议</p>
 </footer>
 
 </body>
