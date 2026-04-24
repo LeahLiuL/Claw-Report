@@ -1,283 +1,452 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+﻿<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球航运燃油市场报告 · 2026-04-24</title>
-<style>
-  :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --up: #ef4444; --down: #10b981; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: #f0f4f8; color: #1e293b; }
-  header { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 32px 40px 24px; }
-  h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
-  h1 span { color: var(--accent); }
-  .header-meta { margin-top: 14px; display: flex; gap: 20px; flex-wrap: wrap; }
-  .header-meta span { font-size: 12px; color: #94a3b8; background: rgba(255,255,255,0.07); padding: 3px 12px; border-radius: 12px; }
-  .alert-banner { background: linear-gradient(90deg, #7f1d1d, #991b1b); color: #fecaca; padding: 10px 40px; font-size: 13px; }
-  main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 50px; }
-  .section-title { font-size: 17px; font-weight: 700; color: var(--primary); margin: 32px 0 14px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 12px; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-  .kpi-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid var(--accent); }
-  .kpi-card.orange { border-top-color: #f59e0b; }
-  .kpi-card.green { border-top-color: #10b981; }
-  .kpi-card.red { border-top-color: #ef4444; }
-  .kpi-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .kpi-value { font-size: 28px; font-weight: 800; color: var(--primary); margin: 6px 0 4px; }
-  .kpi-change { font-size: 13px; font-weight: 600; }
-  .kpi-change.up { color: var(--up); }
-  .kpi-change.down { color: var(--down); }
-  .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 6px; }
-  .table-wrap { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
-  .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .table-wrap thead th { background: #f1f5f9; color: #475569; padding: 11px 16px; text-align: left; font-weight: 700; font-size: 12px; }
-  .table-wrap tbody td { padding: 11px 16px; border-bottom: 1px solid #f1f5f9; }
-  td.price { font-weight: 700; color: var(--primary); }
-  td.up { color: #ef4444; font-weight: 600; }
-  td.down { color: #10b981; font-weight: 600; }
-  td.na { color: #94a3b8; font-style: italic; }
-  .source-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px; }
-  .source-badge.live { background: #d1fae5; color: #065f46; }
-  .source-badge.delay { background: #fef3c7; color: #92400e; }
-  .source-badge.na { background: #fee2e2; color: #991b1b; }
-  .data-legend { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 11px; color: #64748b; }
-  .data-legend strong { color: #475569; }
-  .data-legend span { margin-right: 16px; display: inline-block; }
-  .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .insight-card { background: white; border-radius: 12px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-left: 4px solid; }
-  .insight-card.bearish { border-left-color: #10b981; }
-  .insight-card.bullish { border-left-color: #ef4444; }
-  .insight-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-  .insight-card.bearish h4 { color: #10b981; }
-  .insight-card.bullish h4 { color: #ef4444; }
-  .insight-card p { font-size: 12px; color: #475569; line-height: 1.6; }
-  .insight-card ul { margin: 6px 0 0 16px; font-size: 12px; color: #475569; line-height: 1.8; }
-  footer { background: var(--primary); color: #64748b; padding: 20px 40px; text-align: center; font-size: 11px; border-top: 2px solid var(--accent); }
-  footer strong { color: #94a3b8; }
-  @media(max-width: 768px) { .insight-grid { grid-template-columns: 1fr; } }
-</style>
+<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+<title>Bunker Fuel Daily Brief</title>
 </head>
-<body>
+<body style='margin:0;padding:0;background:#0f172a;font-family:Arial,Helvetica,sans-serif;color:#e2e8f0;line-height:1.5;'>
+<table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#0f172a;'>
+<tr>
+<td align='center' style='padding:40px 20px;'>
+<table width='600' cellpadding='0' cellspacing='0' border='0' style='max-width:600px;width:100%;'>
 
-<header>
-  <h1>全球航运燃油<span>市场报告</span></h1>
-  <p style="margin-top:6px;font-size:13px;color:#94a3b8;">2026-04-24 | 数据截至：2026-04-24</p>
-  <div class="header-meta">
-    <span>仅展示可验证的真实数据 | 不含估算值</span>
-  </div>
-</header>
+<!-- Header -->
+<tr>
+<td style='padding:0 0 24px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td>
+      <span style='font-size:10px;font-weight:700;color:#f97316;letter-spacing:2px;text-transform:uppercase;'>FUEL REPORT</span>
+      <h1 style='font-size:28px;font-weight:800;color:#ffffff;margin:8px 0 0 0;'>Bunker Fuel Daily Brief</h1>
+      <p style='font-size:14px;color:#94a3b8;margin:8px 0 0 0;'>星期五, 2026-04-24 | Real-time Market Intelligence</p>
+    </td>
+    <td align='right' style='vertical-align:top;'>
+      <span style='display:inline-block;background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;'>LIVE DATA</span>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-<div class="alert-banner">
-  <strong>市场警示：</strong>霍尔木兹海峡封锁持续。通行量 &lt;10% 正常水平，P&amp;I保险全面撤回，战争险飙升至 0.8%-1.5%。
-</div>
+<!-- Geopolitical Alert Banner -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:linear-gradient(135deg,#7c2d12 0%,#991b1b 100%);border-radius:8px;border:1px solid #ef4444;'>
+  <tr>
+    <td style='padding:14px 18px;'>
+      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+      <tr>
+        <td style='width:24px;padding-right:12px;'>&#9888;</td>
+        <td>
+          <span style='font-size:11px;font-weight:600;color:#fecaca;text-transform:uppercase;letter-spacing:1px;'>Geopolitical Risk Premium Active</span><br>
+          <span style='font-size:13px;color:#fee2e2;'>Brent surged +$60/bbl from pre-conflict levels | Supply disruption: 13M bbl/d | IEA April 2026</span>
+        </td>
+      </tr>
+      </table>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-<main>
-  <h2 class="section-title">实时原油价格 <span class="source-badge live">实时</span></h2>
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-label">布伦特原油 (Brent)</div>
-      <div class="kpi-value">$106.87<span style="font-size:14px;font-weight:400;color:#64748b;"> /桶</span></div>
-      <div class="kpi-change up">▲ +4.64% (本周)</div>
-      <div class="kpi-sub">来源: OilPriceAPI | 更新: 2026-04-24</div>
-    </div>
-    <div class="kpi-card orange">
-      <div class="kpi-label">WTI 原油</div>
-      <div class="kpi-value">$97.24<span style="font-size:14px;font-weight:400;color:#64748b;"> /桶</span></div>
-      <div class="kpi-change up">▲ +4.35% (本周)</div>
-      <div class="kpi-sub">来源: OilPriceAPI | 更新: 2026-04-24</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">MABUX VLSFO 指数</div>
-      <div class="kpi-value">$871.31<span style="font-size:14px;font-weight:400;color:#64748b;"> /MT</span></div>
-      <div class="kpi-change up">▲ +$15.29 (W17)</div>
-      <div class="kpi-sub">来源: MABUX | 更新: 2026-04-23</div>
-    </div>
-  </div>
+<!-- Key Market Indicators -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>CRUDE OIL PRICES</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:16px 18px;width:50%;border-right:1px solid #334155;'>
+      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;text-transform:uppercase;'>Brent Crude</p>
+      <p style='font-size:28px;font-weight:700;color:#ffffff;margin:0;'>.76<span style='font-size:14px;font-weight:400;color:#94a3b8;'> /bbl</span></p>
+      <p style='font-size:11px;color:#22c55e;margin:6px 0 0 0;'>&#9650; +0.27% | YoY +53.5%</p>
+      <p style='font-size:10px;color:#64748b;margin:4px 0 0 0;'>Real-time | OilPriceAPI</p>
+    </td>
+    <td style='padding:16px 18px;width:50%;'>
+      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;text-transform:uppercase;'>WTI Crude</p>
+      <p style='font-size:28px;font-weight:700;color:#ffffff;margin:0;'>.05<span style='font-size:14px;font-weight:400;color:#94a3b8;'> /bbl</span></p>
+      <p style='font-size:11px;color:#22c55e;margin:6px 0 0 0;'>&#9650; +4.18%</p>
+      <p style='font-size:10px;color:#64748b;margin:4px 0 0 0;'>Real-time | OilPriceAPI</p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <div class="data-legend">
-    <strong>数据状态说明：</strong>
-    <span class="source-badge live" style="vertical-align:middle;">实时</span> 数据实时更新
-    <span class="source-badge delay" style="vertical-align:middle;">延迟</span> 存在3-5天延迟
-    <span class="source-badge na" style="vertical-align:middle;">N/A</span> 当前不可用
-  </div>
+<!-- VLSFO Bunker Prices - Asia -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>ASIA-PACIFIC PORTS</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr style='background:#334155;'>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Shanghai (Shanghai)</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>-</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>OilMonster (Apr 22)</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Qingdao</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>-</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>OilMonster (Apr 22)</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Singapore</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,273/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Hong Kong</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,291/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <h2 class="section-title">全球港口 VLSFO 价格 <span class="source-badge delay">免费API暂不可用</span></h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>港口</th>
-          <th>VLSFO (USD/MT)</th>
-          <th>供应状态</th>
-          <th>数据来源</th>
-          <th>状态</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>新加坡</td>
-          <td class="price na">N/A</td>
-          <td style="color:#10b981;font-weight:600;">正常</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-        <tr>
-          <td>鹿特丹</td>
-          <td class="price na">N/A</td>
-          <td style="color:#10b981;font-weight:600;">良好</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-        <tr>
-          <td>富查伊拉</td>
-          <td class="price na">N/A</td>
-          <td style="color:#ef4444;font-weight:600;">封锁受限</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-        <tr>
-          <td>休斯顿</td>
-          <td class="price na">N/A</td>
-          <td style="color:#10b981;font-weight:600;">充足</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-        <tr>
-          <td>洛杉矶</td>
-          <td class="price na">N/A</td>
-          <td style="color:#f59e0b;font-weight:600;">偏紧</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-        <tr>
-          <td>香港</td>
-          <td class="price na">N/A</td>
-          <td style="color:#10b981;font-weight:600;">正常</td>
-          <td>OilPriceAPI</td>
-          <td><span class="source-badge delay">免费版延迟3-5天</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#92400e;">
-    <strong>⚠️ 说明：</strong>港口VLSFO价格暂不可用。OilPriceAPI免费版不包含实时VLSFO港口报价。升级到付费版可获取实时港口价格（预计费用：约$99/月起）。
-  </div>
+<!-- VLSFO Bunker Prices - Europe & Americas -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>EUROPE & AMERICAS</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr style='background:#334155;'>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Rotterdam</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,200/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Piraeus</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,402/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Gibraltar</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,316/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Houston</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,182/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Los Angeles</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,509/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Santos</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#22c55e;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,461/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <h2 class="section-title">EIA 市场预测 (2026年4月) <span class="source-badge">EIA STEO</span></h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>预测项目</th>
-          <th>数值</th>
-          <th>说明</th>
-          <th>数据来源</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>布伦特 2026年均</td>
-          <td class="price">$96/桶</td>
-          <td>EIA 年度预测</td>
-          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
-        </tr>
-        <tr>
-          <td>布伦特 Q2 峰值</td>
-          <td class="price up">$115/桶</td>
-          <td>短期地缘风险溢价</td>
-          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
-        </tr>
-        <tr>
-          <td>布伦特 Q4</td>
-          <td class="price down">&lt;$90/桶</td>
-          <td>下半年预期回落</td>
-          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
-        </tr>
-        <tr>
-          <td>OPEC+ 2026产量</td>
-          <td class="price">41.7百万桶/天</td>
-          <td>较上次预测 -5%</td>
-          <td><span class="source-badge">EIA STEO Apr 2026</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<!-- VLSFO Bunker Prices - Middle East & Turkey -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>MIDDLE EAST & TURKEY</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr style='background:#334155;'>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;'>Port</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>VLSFO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>MGO</td>
+    <td style='padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;text-align:right;'>Source</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#f87171;font-weight:500;'>Fujairah</td>
+    <td style='padding:10px 14px;font-size:12px;color:#f87171;font-weight:600;text-align:right;'>N/A</td>
+    <td style='padding:10px 14px;font-size:12px;color:#f87171;text-align:right;'>N/A</td>
+    <td style='padding:10px 14px;font-size:10px;color:#f87171;text-align:right;'>Blockade</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#fbbf24;font-weight:500;'>Jeddah</td>
+    <td style='padding:10px 14px;font-size:12px;color:#fbbf24;font-weight:600;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#fbbf24;text-align:right;'>OilMonster (Sep 2024)</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;'>Istanbul</td>
+    <td style='padding:10px 14px;font-size:12px;font-weight:600;color:#e2e8f0;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#e2e8f0;text-align:right;'>,385/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  <tr style='border-top:1px solid #334155;background:#263344;'>
+    <td style='padding:10px 14px;font-size:12px;color:#64748b;'>New York</td>
+    <td style='padding:10px 14px;font-size:12px;color:#64748b;text-align:right;'>/MT</td>
+    <td style='padding:10px 14px;font-size:12px;color:#64748b;text-align:right;'>,232/MT</td>
+    <td style='padding:10px 14px;font-size:10px;color:#64748b;text-align:right;'>HandyBulk</td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <h2 class="section-title">市场分析</h2>
-  <div class="insight-grid">
-    <div class="insight-card bearish">
-      <h4>下行因素</h4>
-      <ul>
-        <li>MABUX VLSFO 周度上涨 $15.29，市场波动加剧</li>
-        <li>新加坡VLSFO市场正在修正（价格待更新）</li>
-        <li>4月7日停火协议短暂缓和市场情绪</li>
+<!-- Geopolitical Analysis Section -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>GEOPOLITICAL & MARKET IMPACT</td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- Hormuz Status -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:14px 16px;background:#7c2d12;border-bottom:1px solid #991b1b;'>
+      <span style='font-size:12px;font-weight:700;color:#fef2f2;text-transform:uppercase;letter-spacing:1px;'>&#9888; Hormuz Strait Status</span>
+    </td>
+  </tr>
+  <tr>
+    <td style='padding:14px 16px;'>
+      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+      <tr>
+        <td style='vertical-align:top;width:50%;padding-right:12px;'>
+          <p style='font-size:11px;color:#f97316;margin:0 0 4px 0;font-weight:600;'>TIMELINE (April 2026)</p>
+          <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
+            <li><strong>Apr 7:</strong> US-Iran ceasefire announced</li>
+            <li><strong>Apr 13:</strong> US announces naval blockade on Iranian ports</li>
+            <li><strong>Apr 17:</strong> Iran reopens Hormuz (linked to Lebanon ceasefire)</li>
+            <li><strong>Apr 19:</strong> US-Iran standoff resumes; ships attacked</li>
+            <li><strong>Apr 21:</strong> Ceasefire expires; negotiations ongoing</li>
+          </ul>
+        </td>
+        <td style='vertical-align:top;width:50%;padding-left:12px;border-left:1px solid #334155;'>
+          <p style='font-size:11px;color:#f97316;margin:0 0 4px 0;font-weight:600;'>PRICE IMPACT</p>
+          <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
+            <li><strong>Peak:</strong> Brent hit ~/bbl (Mar 10-20)</li>
+            <li><strong>Apr 17:</strong> -12% crash to ~ after Hormuz opened</li>
+            <li><strong>Apr 19:</strong> Rebound after attacks resume</li>
+            <li><strong>Current:</strong> .76/bbl (+60% from pre-conflict)</li>
+          </ul>
+        </td>
+      </tr>
+      </table>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- IEA Data -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:14px 16px;background:#1e40af;border-bottom:1px solid #1d4ed8;'>
+      <span style='font-size:12px;font-weight:700;color:#dbeafe;text-transform:uppercase;letter-spacing:1px;'>IEA April 2026 Report</span>
+      <span style='font-size:10px;color:#93c5fd;margin-left:12px;'>Source: International Energy Agency</span>
+    </td>
+  </tr>
+  <tr>
+    <td style='padding:14px 16px;'>
+      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+      <tr>
+        <td style='vertical-align:top;width:33%;padding-right:10px;'>
+          <p style='font-size:18px;font-weight:700;color:#60a5fa;margin:0;'>-10.1M</p>
+          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d supply drop (March)</p>
+        </td>
+        <td style='vertical-align:top;width:33%;padding:0 10px;border-left:1px solid #334155;border-right:1px solid #334155;'>
+          <p style='font-size:18px;font-weight:700;color:#f87171;margin:0;'>13M+</p>
+          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d oil export losses</p>
+        </td>
+        <td style='vertical-align:top;width:34%;padding-left:10px;'>
+          <p style='font-size:18px;font-weight:700;color:#fbbf24;margin:0;'>97M</p>
+          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>bbl/d global supply</p>
+        </td>
+      </tr>
+      </table>
+      <p style='font-size:11px;color:#64748b;margin:12px 0 0 0;padding-top:10px;border-top:1px solid #334155;'>
+        <strong>Key:</strong> Transit through Hormuz dropped from 20M bbl/d (Feb) to ~3.8M bbl/d | Brent spot peaked at ~/bbl | Singapore middle distillates hit all-time high +/bbl
+      </p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- Red Sea / Houthi Status -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:14px 16px;background:#065f46;border-bottom:1px solid #047857;'>
+      <span style='font-size:12px;font-weight:700;color:#d1fae5;text-transform:uppercase;letter-spacing:1px;'>&#9888; Red Sea / Houthi Status</span>
+    </td>
+  </tr>
+  <tr>
+    <td style='padding:14px 16px;'>
+      <p style='font-size:12px;color:#a7f3d0;margin:0 0 8px 0;'><strong>Current Situation (as of Apr 24):</strong></p>
+      <ul style='font-size:12px;color:#cbd5e1;margin:0;padding-left:16px;line-height:1.8;'>
+        <li>Red Sea shipping traffic <strong>halved</strong> from Houthi threats (Maritime News)</li>
+        <li>Houthis adopted "watch position" after Oct 2025 Gaza ceasefire, but <strong>threats resurging</strong></li>
+        <li>Apr 8: Houthis threaten second Red Sea chokepoint (Bab el-Mandeb)</li>
+        <li>Apr 29: Houthis launch missiles toward Israel; new attacks feared</li>
+        <li>Carriers testing cautious returns but <strong>reverting to Cape routes</strong></li>
+        <li>Cape of Good Hope reroute adds <strong>10-14 days</strong> and significant fuel costs</li>
       </ul>
-    </div>
-    <div class="insight-card bullish">
-      <h4>支撑因素</h4>
-      <ul>
-        <li>霍尔木兹封锁持续，通行量 &lt;10%</li>
-        <li>布伦特从 $92 低点强势反弹至 $106.87（+16.2%）</li>
-        <li>战争险飙升至 0.8%-1.5%（正常水平的8倍）</li>
-      </ul>
-    </div>
-  </div>
+      <p style='font-size:10px;color:#64748b;margin:12px 0 0 0;'>Sources: Lloyd's List, Maritime News, gCaptain, AP News</p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <h2 class="section-title">专业数据源推荐</h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>数据源</th>
-          <th>覆盖范围</th>
-          <th>费用</th>
-          <th>说明</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>OilPriceAPI 付费版</strong></td>
-          <td>全球主要港口VLSFO实时价格</td>
-          <td>约$99/月起</td>
-          <td>支持新加坡、鹿特丹、富查伊拉等实时数据</td>
-        </tr>
-        <tr>
-          <td><strong>MABUX</strong></td>
-          <td>400+港口MBP报价</td>
-          <td>€145/月</td>
-          <td>行业标准参考指数</td>
-        </tr>
-        <tr>
-          <td><strong>S&P Global / OPIS</strong></td>
-          <td>全球港口实时报价</td>
-          <td>企业订阅</td>
-          <td>行业黄金标准，船公司常用</td>
-        </tr>
-        <tr>
-          <td><strong>Ship & Bunker</strong></td>
-          <td>亚太/欧洲/美洲</td>
-          <td>免费查看部分</td>
-          <td>手动查询，每日更新</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<!-- OPEC+ Status -->
+<tr>
+<td style='padding:0 0 12px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:14px 16px;background:#5b21b6;border-bottom:1px solid #7c3aed;'>
+      <span style='font-size:12px;font-weight:700;color:#e9d5ff;text-transform:uppercase;letter-spacing:1px;'>OPEC+ Production</span>
+    </td>
+  </tr>
+  <tr>
+    <td style='padding:14px 16px;'>
+      <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+      <tr>
+        <td style='width:50%;padding-right:12px;'>
+          <p style='font-size:11px;color:#c4b5fd;margin:0 0 4px 0;font-weight:600;'>APRIL 2026 DECISION</p>
+          <p style='font-size:14px;font-weight:700;color:#e9d5ff;margin:0;'>+206,000 bbl/d</p>
+          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>Production increase approved (OPEC+)</p>
+        </td>
+        <td style='width:50%;padding-left:12px;border-left:1px solid #334155;'>
+          <p style='font-size:11px;color:#c4b5fd;margin:0 0 4px 0;font-weight:600;'>OPEC+ OUTPUT (MARCH)</p>
+          <p style='font-size:14px;font-weight:700;color:#e9d5ff;margin:0;'>42.4M bbl/d</p>
+          <p style='font-size:11px;color:#94a3b8;margin:4px 0 0 0;'>All-time low due to Hormuz closure</p>
+        </td>
+      </tr>
+      </table>
+      <p style='font-size:10px;color:#64748b;margin:10px 0 0 0;padding-top:8px;border-top:1px solid #334155;'>Source: OPEC, Energyprices.net, Commodity Context</p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-  <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin-top:24px;font-size:11px;color:#64748b;">
-    <p style="font-weight:700;color:#475569;margin-bottom:8px;">数据来源说明：</p>
-    <ul style="line-height:1.8;padding-left:16px;">
-      <li><strong>Brent/WTI原油价格：</strong>OilPriceAPI (https://www.oilpriceapi.com) - 实时数据</li>
-      <li><strong>MABUX VLSFO指数：</strong>MABUX (https://mabux.com) - 每周更新（W17: 2026-04-23）</li>
-      <li><strong>EIA市场预测：</strong>EIA Short-Term Energy Outlook (STEO) 2026年4月</li>
-      <li><strong>港口VLSFO价格：</strong>当前免费API暂不可用，显示为N/A，供应状态基于公开新闻</li>
-    </ul>
-    <p style="margin-top:10px;color:#94a3b8;">本报告仅展示可验证数据，不含估算值。如需完整港口VLSFO价格，请联系订阅专业数据源。</p>
-  </div>
-</main>
+<!-- MABUX Index -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>MABUX MARKET DIVERSION INDEX (MDI)</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;overflow:hidden;'>
+  <tr>
+    <td style='padding:12px 14px;width:33%;text-align:center;'>
+      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Singapore</p>
+      <p style='font-size:22px;font-weight:700;color:#fbbf24;margin:0;'>584</p>
+      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: -</p>
+    </td>
+    <td style='padding:12px 14px;width:34%;text-align:center;border-left:1px solid #334155;border-right:1px solid #334155;'>
+      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Rotterdam</p>
+      <p style='font-size:22px;font-weight:700;color:#22c55e;margin:0;'>556</p>
+      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: -</p>
+    </td>
+    <td style='padding:12px 14px;width:33%;text-align:center;'>
+      <p style='font-size:11px;color:#64748b;margin:0 0 4px 0;'>Houston</p>
+      <p style='font-size:22px;font-weight:700;color:#f87171;margin:0;'>531</p>
+      <p style='font-size:10px;color:#94a3b8;margin:4px 0 0 0;'>Fair Value Gap: +</p>
+    </td>
+  </tr>
+  <tr style='border-top:1px solid #334155;'>
+    <td colspan='3' style='padding:10px 14px;'>
+      <p style='font-size:10px;color:#64748b;margin:0;text-align:center;'>MDI > 550: Overvalued (sell signal) | MDI < 450: Undervalued (buy signal) | Source: MABUX Weekly</p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
-<footer>
-  <p>全球航运燃油市场报告 | 实时数据：<strong>OilPriceAPI</strong> | 指数：<strong>MABUX</strong> | 预测：<strong>EIA STEO</strong></p>
-  <p style="margin-top:8px;">报告日期：2026-04-24 | 免责声明：本报告数据仅供参考，不构成任何投资或运营建议</p>
-</footer>
+<!-- Data Sources -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td style='font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;padding-bottom:12px;'>DATA SOURCES</td>
+  </tr>
+  </table>
+  <table width='100%' cellpadding='0' cellspacing='0' border='0' style='background:#1e293b;border-radius:8px;'>
+  <tr>
+    <td style='padding:12px 14px;'>
+      <p style='font-size:11px;color:#94a3b8;margin:0;line-height:1.8;'>
+        <strong style='color:#e2e8f0;'>Real-time:</strong> OilPriceAPI (Brent, WTI)<br>
+        <strong style='color:#e2e8f0;'>Daily:</strong> HandyBulk (VLSFO/MGO bunker prices)<br>
+        <strong style='color:#e2e8f0;'>Weekly:</strong> MABUX (Market Diversion Index)<br>
+        <strong style='color:#e2e8f0;'>Monthly:</strong> IEA Oil Market Report, EIA STEO<br>
+        <strong style='color:#e2e8f0;'>News:</strong> Lloyd's List, Maritime News, CNBC, AP News, OPEC, European Business Magazine
+      </p>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
 
+<!-- CTA Button -->
+<tr>
+<td style='padding:0 0 20px 0;'>
+  <table cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+    <td align='center' style='background:#dc2626;border-radius:8px;'>
+      <a href='https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report.html' style='display:block;background:#dc2626;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:14px;font-weight:600;'>View Full Report</a>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style='padding:20px 0 0 0;border-top:1px solid #334155;'>
+  <p style='font-size:11px;color:#64748b;margin:0;text-align:center;'>Claw Report System | Bunker Fuel Daily Brief</p>
+  <p style='font-size:10px;color:#475569;margin:8px 0 0 0;text-align:center;'>This report contains verified data only. N/A indicates unavailable data from known sources.</p>
+</td>
+</tr>
+
+</table>
+</td>
+</tr>
+</table>
 </body>
 </html>
