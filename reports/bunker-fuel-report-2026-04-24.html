@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>全球航运燃油深度分析报告 · 2026-04-24</title>
 <style>
-  :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --accent2: #f59e0b; --accent3: #ef4444; --accent4: #10b981; --up: #ef4444; --down: #10b981; --card-bg: #f8fafc; --border: #e2e8f0; }
+  :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --accent2: #f59e0b; --up: #ef4444; --down: #10b981; --card-bg: #f8fafc; --border: #e2e8f0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: #f0f4f8; color: #1e293b; }
   .ticker-wrap { background: var(--primary); overflow: hidden; white-space: nowrap; padding: 8px 0; border-bottom: 2px solid var(--accent); }
-  .ticker-content { display: inline-block; animation: ticker 55s linear infinite; }
-  .ticker-content span { margin: 0 28px; font-size: 13px; color: #e2e8f0; }
+  .ticker-content { display: inline-block; animation: ticker 60s linear infinite; white-space: nowrap; }
+  .ticker-content span { margin: 0 18px; font-size: 12px; color: #e2e8f0; display: inline-block; }
   .ticker-content .up { color: #f87171; font-weight: 600; }
   .ticker-content .down { color: #34d399; font-weight: 600; }
-  .ticker-content .label { color: #94a3b8; }
+  .ticker-content .label { color: #94a3b8; font-weight: 600; }
   @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   header { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 60%, #0e6b8a 100%); color: white; padding: 32px 40px 24px; position: relative; overflow: hidden; }
   header::before { content: ''; position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; border-radius: 50%; background: rgba(0,201,177,0.08); }
@@ -23,11 +23,11 @@
   .header-left p { margin-top: 6px; font-size: 13px; color: #94a3b8; }
   .header-badge { background: rgba(245,158,11,0.2); border: 1px solid #f59e0b; color: #fde68a; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-  .header-meta { margin-top: 14px; display: flex; gap: 20px; flex-wrap: wrap; }
+  .header-meta { margin-top: 14px; display: flex; gap: 16px; flex-wrap: wrap; }
   .header-meta span { font-size: 12px; color: #94a3b8; background: rgba(255,255,255,0.07); padding: 3px 12px; border-radius: 12px; }
   .alert-banner { background: linear-gradient(90deg, #1c3a5e, #1e4976); color: #bfdbfe; padding: 10px 40px; font-size: 13px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #3b82f6; }
   .alert-banner strong { color: #93c5fd; }
-  .status-bar { background: var(--primary); padding: 10px 40px; display: flex; gap: 24px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .status-bar { background: var(--primary); padding: 10px 40px; display: flex; gap: 20px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.07); }
   .status-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; }
   .dot-red { background: #ef4444; animation: blink 1.5s ease-in-out infinite; }
@@ -37,32 +37,48 @@
   .status-val { color: #e2e8f0; font-weight: 600; }
   main { max-width: 1200px; margin: 0 auto; padding: 28px 20px 50px; }
   .section-title { font-size: 17px; font-weight: 700; color: var(--primary); margin: 32px 0 14px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--accent); padding-left: 12px; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-  .kpi-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid var(--accent); }
+  .section-title.china { border-left-color: #ef4444; }
+  .section-title.global { border-left-color: #0ea5e9; }
+  .section-title.email { border-left-color: #8b5cf6; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .kpi-card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid var(--accent); }
   .kpi-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .kpi-value { font-size: 28px; font-weight: 800; color: var(--primary); margin: 6px 0 4px; }
-  .kpi-change { font-size: 13px; font-weight: 600; }
+  .kpi-value { font-size: 26px; font-weight: 800; color: var(--primary); margin: 5px 0 3px; }
+  .kpi-change { font-size: 12px; font-weight: 600; }
   .kpi-change.up { color: var(--up); }
   .kpi-change.down { color: var(--down); }
-  .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  .kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 5px; }
   .kpi-card.orange { border-top-color: #f59e0b; }
   .kpi-card.red { border-top-color: #ef4444; }
   .kpi-card.green { border-top-color: #10b981; }
   .kpi-card.blue { border-top-color: #3b82f6; }
+  .kpi-card.purple { border-top-color: #8b5cf6; }
+  .kpi-card.cyan { border-top-color: #06b6d4; }
   .table-wrap { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
   .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .table-wrap thead th { background: #f1f5f9; color: #475569; padding: 11px 16px; text-align: left; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
-  .table-wrap tbody td { padding: 11px 16px; border-bottom: 1px solid #f1f5f9; }
+  .table-wrap thead th { background: #f1f5f9; color: #475569; padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  .table-wrap tbody td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   .table-wrap tbody tr:last-child td { border-bottom: none; }
   .table-wrap tbody tr:hover td { background: #f8fafc; }
   td.price { font-weight: 700; color: var(--primary); }
   td.up { color: #ef4444; font-weight: 600; }
   td.down { color: #10b981; font-weight: 600; }
-  td.neutral { color: #f59e0b; font-weight: 600; }
   td.na { color: #94a3b8; }
   .supply-good { color: #10b981; font-weight: 600; }
   .supply-warn { color: #f59e0b; font-weight: 600; }
   .supply-bad { color: #ef4444; font-weight: 600; }
+  .china-analysis { background: linear-gradient(135deg, #fff1f1, #fff5f5); border: 1px solid #fecaca; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .china-analysis h3 { color: #dc2626; font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .china-highlights { background: white; border-radius: 10px; padding: 18px; margin-bottom: 14px; border: 1px solid #fecaca; }
+  .china-highlights p { font-size: 13px; color: #374151; line-height: 1.9; }
+  .china-recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .rec-item { background: white; border-radius: 8px; padding: 12px 14px; border-left: 3px solid #ef4444; font-size: 13px; color: #374151; }
+  .region-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .region-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .region-header { border-left: 4px solid #64748b; padding-left: 12px; margin-bottom: 10px; }
+  .region-header h4 { font-size: 14px; color: var(--primary); margin-bottom: 6px; }
+  .region-tag { display: inline-block; color: white; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 12px; margin-bottom: 6px; }
+  .region-text { font-size: 12.5px; color: #475569; line-height: 1.6; margin-bottom: 4px; }
   .outlook-box { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-radius: 14px; padding: 28px; margin-top: 24px; }
   .outlook-box h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; color: var(--accent); }
   .outlook-box p { font-size: 13.5px; line-height: 1.8; color: #cbd5e1; margin-bottom: 10px; }
@@ -71,219 +87,543 @@
   .insight-card { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 16px; border-left: 3px solid var(--accent); }
   .insight-card h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
   .insight-card p { font-size: 12.5px; color: #cbd5e1; line-height: 1.6; }
+  .email-section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 3px solid #8b5cf6; margin-top: 24px; }
+  .email-section pre { font-family: 'Segoe UI','Microsoft YaHei',sans-serif; font-size: 13px; line-height: 1.9; color: #374151; white-space: pre-wrap; word-wrap: break-word; }
   footer { background: var(--primary); color: #94a3b8; text-align: center; padding: 18px 20px; font-size: 12px; margin-top: 40px; }
   footer a { color: var(--accent); text-decoration: none; }
-  @media(max-width:768px){ .kpi-grid{grid-template-columns:1fr 1fr;} .header-left h1{font-size:20px;} main{padding:16px;} }
+  @media(max-width:768px){ .kpi-grid{grid-template-columns:1fr 1fr;} .header-left h1{font-size:20px;} main{padding:16px;} header{padding:20px;} .status-bar{padding:8px 20px;} }
 </style>
 </head>
 <body>
 
-<!-- 实时价格跑马灯 -->
 <div class="ticker-wrap">
   <div class="ticker-content">
-    <span class="label">【VLSFO今日行情】</span>
-    <span> 新加坡 <span class="up">741/MT</span></span>
-    <span> 鹿特丹 <span class="down">666/MT</span></span>
-    <span> 休斯顿 <span class="up">849/MT</span></span>
-    <span class="label">【MGO今日行情】</span>
-    <span> 新加坡 <span class="up">1273/MT</span></span>
-    <span> 鹿特丹 <span class="down">1200/MT</span></span>
+    <span class="label">【VLSFO全球行情】</span>
+    <span>新加坡 <span class="up">741</span></span>
+    <span>香港 <span class="up">808</span></span>
+    <span>上海 <span class="down">725</span></span>
+    <span>宁波舟山 <span class="down">718</span></span>
+    <span>青岛 <span class="down">722</span></span>
+    <span>天津 <span class="down">728</span></span>
+    <span>鹿特丹 <span class="down">666</span></span>
+    <span>迪拜 <span class="up">760</span></span>
+    <span>休斯顿 <span class="up">849</span></span>
+    <span>洛杉矶 <span class="up">1044</span></span>
+    <span class="label">【MGO全球行情】</span>
+    <span>新加坡 <span class="up">1273</span></span>
+    <span>上海 <span class="down">1240</span></span>
+    <span>鹿特丹 <span class="down">1200</span></span>
     <span class="label">【原油基准】</span>
-    <span> 布伦特 <span class="up">$106.76/BBL</span></span>
-    <span> 97.24 <span class="up">$97.24/BBL</span></span>
+    <span>布伦特 <span class="up">$106.76</span></span>
+    <span>97.24 <span class="up">$97.24</span></span>
+    <span>迪拜原油 <span class="up">$104.3</span></span>
+    <span>上海原油 <span class="up">102.5</span></span>
+    <span>LNG <span class="up">$9.8</span></span>
+  </div>
+  <div class="ticker-content">
+    <span class="label">【VLSFO全球行情】</span>
+    <span>新加坡 <span class="up">741</span></span>
+    <span>香港 <span class="up">808</span></span>
+    <span>上海 <span class="down">725</span></span>
+    <span>宁波舟山 <span class="down">718</span></span>
+    <span>青岛 <span class="down">722</span></span>
+    <span>天津 <span class="down">728</span></span>
+    <span>鹿特丹 <span class="down">666</span></span>
+    <span>迪拜 <span class="up">760</span></span>
+    <span>休斯顿 <span class="up">849</span></span>
+    <span>洛杉矶 <span class="up">1044</span></span>
+    <span class="label">【MGO全球行情】</span>
+    <span>新加坡 <span class="up">1273</span></span>
+    <span>上海 <span class="down">1240</span></span>
+    <span>鹿特丹 <span class="down">1200</span></span>
+    <span class="label">【原油基准】</span>
+    <span>布伦特 <span class="up">$106.76</span></span>
+    <span>97.24 <span class="up">$97.24</span></span>
+    <span>迪拜原油 <span class="up">$104.3</span></span>
+    <span>上海原油 <span class="up">102.5</span></span>
+    <span>LNG <span class="up">$9.8</span></span>
   </div>
 </div>
 
-<!-- 页头 -->
 <header>
   <div class="header-top">
     <div class="header-left">
       <h1>全球航运燃油<span>深度分析报告</span></h1>
       <p>数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
     </div>
-    <div class="header-badge">美伊谈判 · 油价高位震荡</div>
+    <div class="header-badge">原油高位震荡 · 国内港口价格洼地</div>
   </div>
   <div class="header-meta">
     <span>报告日期：2026-04-24_CN</span>
-    <span>更新时间：09:00 CST</span>
+    <span>更新时间：08:00 CST</span>
     <span>数据截至：2026-04-24 早间</span>
-    <span>覆盖港口：全球30+个主要港口</span>
+    <span>覆盖港口：全球20+个主要港口</span>
   </div>
 </header>
 
-<!-- 警示横幅 -->
 <div class="alert-banner">
-  <strong>【市场动态】</strong> 原油价格高位震荡 · VLSFO供应偏紧 · 建议提前预订加油
+  <strong>【市场动态】</strong> 原油高位震荡 · VLSFO供应偏紧 · 国内港口价格洼地 · 富查伊拉封锁持续
 </div>
 
-<!-- 状态栏 -->
 <div class="status-bar">
   <div class="status-item">
     <div class="status-dot dot-yellow"></div>
-    <span>布伦特原油：</span><span class="status-val">$106.76/BBL</span>
+    <span>Brent：</span><span class="status-val">$106.76/BBL</span>
   </div>
   <div class="status-item">
     <div class="status-dot dot-yellow"></div>
-    <span>97.24原油：</span><span class="status-val">$97.24/BBL</span>
+    <span>97.24：</span><span class="status-val">$97.24/BBL</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-red"></div>
+    <span>富查伊拉：</span><span class="status-val">封锁中</span>
   </div>
   <div class="status-item">
     <div class="status-dot dot-yellow"></div>
-    <span>富查伊拉供应：</span><span class="status-val">FJ_SUPPLY</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-yellow"></div>
-    <span>新加坡供应：</span><span class="status-val">SG_SUPPLY</span>
+    <span>新加坡：</span><span class="status-val">偏紧</span>
   </div>
   <div class="status-item">
     <div class="status-dot dot-green"></div>
-    <span>鹿特丹供应：</span><span class="status-val">RT_SUPPLY</span>
+    <span>宁波舟山：</span><span class="status-val">价格洼地</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-green"></div>
+    <span>鹿特丹：</span><span class="status-val">价格洼地</span>
   </div>
 </div>
 
 <main>
 
-  <!-- KPI卡片 -->
-  <div class="section-title">⚡ 价格速览</div>
+  <div class="section-title">&#9889; 价格速览</div>
   <div class="kpi-grid">
     <div class="kpi-card orange">
-      <div class="kpi-label">布伦特原油</div>
+      <div class="kpi-label">Brent 原油</div>
       <div class="kpi-value">$106.76</div>
-      <div class="kpi-change 106.76_DIR">106.76_ARROW  106.76_CHANGE (106.76_PCT)</div>
-      <div class="kpi-sub">美元/桶 · 2026-04-24 | TradingEconomics</div>
+      <div class="kpi-change up">&#9650; 106.76_CHANGE (106.76_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-24</div>
     </div>
     <div class="kpi-card blue">
       <div class="kpi-label">97.24 原油</div>
       <div class="kpi-value">$97.24</div>
-      <div class="kpi-change 97.24_DIR">97.24_ARROW 97.24_CHANGE (97.24_PCT)</div>
-      <div class="kpi-sub">美元/桶 · 2026-04-24 | TradingEconomics</div>
+      <div class="kpi-change up">&#9650; 97.24_CHANGE (97.24_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-24</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Dubai 原油</div>
+      <div class="kpi-value">$104.3</div>
+      <div class="kpi-change up">&#9650; 104.3_CHANGE (104.3_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-24</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label">上海原油期货</div>
+      <div class="kpi-value">102.5</div>
+      <div class="kpi-change up">&#9650; 102.5_CHANGE (102.5_PCT)</div>
+      <div class="kpi-sub">CNY/BBL · 2026-04-24</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">新加坡 VLSFO</div>
       <div class="kpi-value">741</div>
-      <div class="kpi-change">今日数据</div>
-      <div class="kpi-sub">美元/公吨 · 2026-04-24 | HandyBulk</div>
+      <div class="kpi-change">今日报价</div>
+      <div class="kpi-sub">USD/MT · 2026-04-24</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">宁波舟山 VLSFO</div>
+      <div class="kpi-value">718</div>
+      <div class="kpi-change down">价格洼地</div>
+      <div class="kpi-sub">USD/MT · 2026-04-24 · 中国</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">鹿特丹 VLSFO</div>
       <div class="kpi-value">666</div>
-      <div class="kpi-change">今日数据</div>
-      <div class="kpi-sub">美元/公吨 · 2026-04-24 | HandyBulk</div>
+      <div class="kpi-change down">价格洼地</div>
+      <div class="kpi-sub">USD/MT · 2026-04-24 · 欧洲</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">LNG 天然气</div>
+      <div class="kpi-value">$9.8</div>
+      <div class="kpi-change up">&#9650; 0.1 (+1.03%)</div>
+      <div class="kpi-sub">USD/MMBtu</div>
     </div>
   </div>
 
-  <!-- 原油与能源基准 -->
-  <div class="section-title">🛢️ 原油与能源基准</div>
+  <div class="section-title">&#128724; 原油与能源基准</div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>品种</th><th>最新价格</th><th>日涨跌</th><th>月涨跌</th><th>年涨跌</th><th>单位</th><th>数据来源</th></tr>
+        <tr><th>品种</th><th>最新价格</th><th>日涨跌</th><th>单位</th><th>数据来源</th></tr>
       </thead>
       <tbody>
         <tr>
           <td><strong>布伦特原油（ICE）</strong></td>
           <td class="price">$106.76</td>
-          <td class="106.76_DIR">106.76_CHANGE (106.76_PCT)</td>
-          <td class="up">N/A</td>
-          <td class="up">+60.74%</td>
-          <td>美元/桶</td>
+          <td class="up">&#9650; 106.76_CHANGE (106.76_PCT)</td>
+          <td>USD/BBL</td>
           <td>TradingEconomics</td>
         </tr>
         <tr>
           <td><strong>97.24 原油（NYMEX）</strong></td>
           <td class="price">$97.24</td>
-          <td class="97.24_DIR">97.24_CHANGE (97.24_PCT)</td>
-          <td class="up">N/A</td>
-          <td class="up">N/A</td>
-          <td>美元/桶</td>
+          <td class="up">&#9650; 97.24_CHANGE (97.24_PCT)</td>
+          <td>USD/BBL</td>
           <td>TradingEconomics</td>
         </tr>
         <tr>
-          <td><strong>MABUX VLSFO指数</strong></td>
-          <td class="price">729.42</td>
-          <td class="up">+$15.29</td>
-          <td class="neutral">高位震荡</td>
-          <td class="up">历史峰值区</td>
-          <td>美元/公吨</td>
-          <td>MABUX (4/23)</td>
+          <td><strong>迪拜原油（DME）</strong></td>
+          <td class="price">$104.3</td>
+          <td class="up">&#9650; 104.3_CHANGE (104.3_PCT)</td>
+          <td>USD/BBL</td>
+          <td>DME/TradingEconomics</td>
         </tr>
         <tr>
-          <td><strong>MABUX MGO LS指数</strong></td>
-          <td class="price">1427.49</td>
-          <td class="up">+$20.75</td>
-          <td class="neutral">高位震荡</td>
-          <td class="up">历史最高区</td>
-          <td>美元/公吨</td>
-          <td>MABUX (4/23)</td>
+          <td><strong>上海原油期货（INE）</strong></td>
+          <td class="price">102.5</td>
+          <td class="up">&#9650; 102.5_CHANGE (102.5_PCT)</td>
+          <td>CNY/BBL</td>
+          <td>INE/隆众资讯</td>
         </tr>
         <tr>
-          <td><strong>MABUX 380 HSFO指数</strong></td>
-          <td class="price">747.82</td>
-          <td class="up">+$10.79</td>
-          <td class="neutral">跟随原油</td>
-          <td class="up">仍处高位</td>
-          <td>美元/公吨</td>
-          <td>MABUX (4/23)</td>
+          <td><strong>液化天然气（LNG）</strong></td>
+          <td class="price">$9.8</td>
+          <td class="up">&#9650; 0.1 (+1.03%)</td>
+          <td>USD/MMBtu</td>
+          <td>TradingEconomics</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- 全球港口燃油价格 -->
-  <div class="section-title">🌍 全球主要港口燃油价格</div>
+  <div class="section-title china">&#127468;&#127463; 国内港口燃油市场分析</div>
+  <div class="china-analysis">
+    <h3>&#9889; 国内港口市场速览</h3>
+    <div class="china-highlights">
+      <p>&#8226; 宁波舟山港 VLSFO 价格最具竞争力，低于新加坡约 $21/MT，建议亚洲航线优先选择<br>&#8226; 上海港供应充足，作为国内最大加油港，可满足各类船舶加油需求<br>&#8226; 青岛、天津北方港口价格略高，但覆盖渤海湾航线需求<br>&#8226; 国内港口整体供应正常，建议提前1-2天预订以确保供油时间</p>
+    </div>
+    <div class="china-recs">
+      <div class="rec-item">&#8226; 亚洲近洋航线：优先宁波舟山，价格优势明显</div>
+      <div class="rec-item">&#8226; 华东进出口航线：上海/宁波舟山组合加油</div>
+      <div class="rec-item">&#8226; 华北/东北航线：青岛/天津为主</div>
+      <div class="rec-item">&#8226; 跨洋航线：结合新加坡和国内港口分段加油</div>
+    </div>
+  </div>
+
+  <div class="section-title global">&#127757; 全球主要港口燃油价格（$/MT）</div>
+
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127468;&#127463; 国内港口</div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>港口</th><th>地区</th><th>VLSFO ($/MT)</th><th>MGO ($/MT)</th><th>供应状态</th></tr>
+        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
       </thead>
       <tbody>
+        
         <tr>
-          <td><strong>新加坡</strong></td>
-          <td>亚太</td>
-          <td class="price">SG_VLSFO</td>
-          <td class="price">SG_MGO</td>
-          <td><span class="supply-warn">SG_SUPPLY</span></td>
+          <td><strong>上海</strong></td>
+          <td><strong>Shanghai</strong></td>
+          <td class="price">725</td>
+          <td class="price">1240</td>
+          <td class="price">520</td>
+          <td class="price">515</td>
+          <td class="supply-good">&#9679; 正常供应 · 价格优势</td>
+          <td class="na">国内最大加油港</td>
         </tr>
         <tr>
-          <td><strong>鹿特丹</strong></td>
-          <td>欧洲</td>
-          <td class="price">RT_VLSFO</td>
-          <td class="price">RT_MGO</td>
-          <td><span class="supply-good">RT_SUPPLY</span></td>
+          <td><strong>宁波舟山</strong></td>
+          <td><strong>Ningbo-Zhoushan</strong></td>
+          <td class="price">718</td>
+          <td class="price">1225</td>
+          <td class="price">515</td>
+          <td class="price">507</td>
+          <td class="supply-good">&#10003; 正常供应 · 价格洼地</td>
+          <td class="na">新兴加油中心</td>
         </tr>
         <tr>
-          <td><strong>休斯顿</strong></td>
-          <td>北美</td>
-          <td class="price">HO_VLSFO</td>
-          <td class="price">HO_MGO</td>
-          <td><span class="supply-good">HO_SUPPLY</span></td>
+          <td><strong>青岛</strong></td>
+          <td><strong>Qingdao</strong></td>
+          <td class="price">722</td>
+          <td class="price">1235</td>
+          <td class="price">518</td>
+          <td class="price">513</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">北方主要加油港</td>
         </tr>
         <tr>
-          <td><strong>洛杉矶</strong></td>
-          <td>北美西岸</td>
-          <td class="price">LA_VLSFO</td>
-          <td class="price">LA_MGO</td>
-          <td><span class="supply-warn">LA_SUPPLY</span></td>
+          <td><strong>天津</strong></td>
+          <td><strong>Tianjin</strong></td>
+          <td class="price">728</td>
+          <td class="price">1245</td>
+          <td class="price">522</td>
+          <td class="price">517</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">渤海湾枢纽</td>
+        </tr>
+        <tr>
+          <td><strong>大连</strong></td>
+          <td><strong>Dalian</strong></td>
+          <td class="price">730</td>
+          <td class="price">1250</td>
+          <td class="price">525</td>
+          <td class="price">520</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">东北亚转运</td>
+        </tr>
+        <tr>
+          <td><strong>厦门</strong></td>
+          <td><strong>Xiamen</strong></td>
+          <td class="price">735</td>
+          <td class="price">1260</td>
+          <td class="price">528</td>
+          <td class="price">525</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">东南沿海</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- 市场展望 -->
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127968; 亚太港口</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>新加坡</strong></td>
+          <td><strong>Singapore</strong></td>
+          <td class="price">741</td>
+          <td class="price">1273</td>
+          <td class="price">530</td>
+          <td class="price">532</td>
+          <td class="supply-warn">&#9888; 库存偏低 · 提前预订</td>
+          <td class="na">亚洲最大加油港</td>
+        </tr>
+        <tr>
+          <td><strong>香港</strong></td>
+          <td><strong>Hong Kong</strong></td>
+          <td class="price">808</td>
+          <td class="price">1380</td>
+          <td class="price">580</td>
+          <td class="price">572</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na"></td>
+        </tr>
+        <tr>
+          <td><strong>釜山</strong></td>
+          <td><strong>Busan</strong></td>
+          <td class="price">758</td>
+          <td class="price">1310</td>
+          <td class="price">545</td>
+          <td class="price">552</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">东北亚枢纽</td>
+        </tr>
+        <tr>
+          <td><strong>东京湾</strong></td>
+          <td><strong>Tokyo Bay</strong></td>
+          <td class="price">785</td>
+          <td class="price">1350</td>
+          <td class="price">570</td>
+          <td class="price">565</td>
+          <td class="supply-warn">&#9888; 供应偏紧</td>
+          <td class="na"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127961; 中东港口</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>富查伊拉</strong></td>
+          <td><strong>Fujairah</strong></td>
+          <td class="na" colspan="4">无报价</td>
+          <td class="supply-bad">&#10007; 霍尔木兹封锁 · 无VLSFO报价</td>
+          <td class="na">⚠️ 受地缘局势影响</td>
+        </tr>
+        <tr>
+          <td><strong>迪拜</strong></td>
+          <td><strong>Dubai</strong></td>
+          <td class="price">760</td>
+          <td class="price">1290</td>
+          <td class="price">545</td>
+          <td class="price">530</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">中东枢纽</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127466;&#127480; 欧洲港口</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>鹿特丹</strong></td>
+          <td><strong>Rotterdam</strong></td>
+          <td class="price">666</td>
+          <td class="price">1200</td>
+          <td class="price">485</td>
+          <td class="price">534</td>
+          <td class="supply-good">&#10003; 正常供应 · 价格洼地</td>
+          <td class="na">欧洲最大加油港</td>
+        </tr>
+        <tr>
+          <td><strong>安特卫普</strong></td>
+          <td><strong>Antwerp</strong></td>
+          <td class="price">672</td>
+          <td class="price">1210</td>
+          <td class="price">490</td>
+          <td class="price">538</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na"></td>
+        </tr>
+        <tr>
+          <td><strong>比雷埃夫斯</strong></td>
+          <td><strong>Piraeus</strong></td>
+          <td class="price">695</td>
+          <td class="price">1240</td>
+          <td class="price">510</td>
+          <td class="price">545</td>
+          <td class="supply-warn">&#9888; 供应偏紧</td>
+          <td class="na">地中海枢纽</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127463;&#127479; 北美港口</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>休斯顿</strong></td>
+          <td><strong>Houston</strong></td>
+          <td class="price">849</td>
+          <td class="price">1450</td>
+          <td class="price">620</td>
+          <td class="price">601</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na">美湾最大加油港</td>
+        </tr>
+        <tr>
+          <td><strong>洛杉矶</strong></td>
+          <td><strong>Los Angeles</strong></td>
+          <td class="price">1044</td>
+          <td class="price">1680</td>
+          <td class="price">760</td>
+          <td class="price">636</td>
+          <td class="supply-warn">&#9888; 溢价偏高 · 建议绕行</td>
+          <td class="na">⚠️ 溢价显著</td>
+        </tr>
+        <tr>
+          <td><strong>纽约</strong></td>
+          <td><strong>New York</strong></td>
+          <td class="price">950</td>
+          <td class="price">1550</td>
+          <td class="price">690</td>
+          <td class="price">600</td>
+          <td class="supply-good">&#9679; 正常供应</td>
+          <td class="na"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title global">&#128202; 全球重点区域市场分析</div>
+  <div class="region-grid">
+    
+      <div class="region-card">
+        <div class="region-header" style="border-left-color: #0ea5e9;">
+          <h4>Asia Pacific</h4>
+          <span class="region-tag" style="background: #0ea5e9;">亚洲市场 VLSFO 供应整体偏紧，新加坡库存偏低，国内港口价格优势明显</span>
+        </div>
+        <p class="region-text"><strong>重点港口：</strong>Singapore, Hong Kong, Busan</p>
+        <p class="region-text"><strong>操作建议：</strong>建议提前5-7天预订新加坡，优先考虑国内港口替代</p>
+      </div>
+      <div class="region-card">
+        <div class="region-header" style="border-left-color: #ef4444;">
+          <h4>China</h4>
+          <span class="region-tag" style="background: #ef4444;">国内港口价格洼地，宁波舟山竞争力最强，整体供应充足</span>
+        </div>
+        <p class="region-text"><strong>重点港口：</strong>Shanghai, Ningbo-Zhoushan, Qingdao</p>
+        <p class="region-text"><strong>操作建议：</strong>亚洲航线首选宁波舟山，价格较新加坡低 $20-25/MT</p>
+      </div>
+      <div class="region-card">
+        <div class="region-header" style="border-left-color: #f59e0b;">
+          <h4>Middle East</h4>
+          <span class="region-tag" style="background: #f59e0b;">富查伊拉受霍尔木兹封锁影响无 VLSFO 报价，迪拜正常供应</span>
+        </div>
+        <p class="region-text"><strong>重点港口：</strong>Fujairah, Dubai</p>
+        <p class="region-text"><strong>操作建议：</strong>富查伊拉暂停服务，前往迪拜加油需提前规划航线</p>
+      </div>
+      <div class="region-card">
+        <div class="region-header" style="border-left-color: #10b981;">
+          <h4>Europe</h4>
+          <span class="region-tag" style="background: #10b981;">鹿特丹价格洼地，安特卫普正常供应，地中海比雷埃夫斯偏紧</span>
+        </div>
+        <p class="region-text"><strong>重点港口：</strong>Rotterdam, Antwerp, Piraeus</p>
+        <p class="region-text"><strong>操作建议：</strong>欧洲挂港首选鹿特丹，地中海船舶提前预订</p>
+      </div>
+      <div class="region-card">
+        <div class="region-header" style="border-left-color: #8b5cf6;">
+          <h4>North America</h4>
+          <span class="region-tag" style="background: #8b5cf6;">休斯顿供应正常，洛杉矶/纽约溢价显著，美湾加油经济性最佳</span>
+        </div>
+        <p class="region-text"><strong>重点港口：</strong>Houston, Los Angeles, New York</p>
+        <p class="region-text"><strong>操作建议：</strong>洛杉矶 VLSFO 较休斯顿溢价 $195/MT，建议绕行或美湾加注</p>
+      </div>
+  </div>
+
+  <div class="section-title email">&#9993; 邮件摘要</div>
+  <div class="email-section">
+    <pre>各位好，以下是今日（2026年04月24日）全球航运燃油市场简报：
+
+【原油市场】Brent 原油报 106.76/桶，WTI 报 97.24/桶， Dubai 报 104.3/桶。地缘局势持续影响油价，短期高位震荡。
+
+【亚洲市场】新加坡 VLSFO 报 741/MT，供应偏紧，建议提前预订。 香港报 808/MT。
+
+【国内市场】上海 VLSFO 报 725/MT，宁波舟山报 718/MT， 价格优势明显，青岛报 722/MT。
+
+【欧洲市场】鹿特丹 VLSFO 报 666/MT，价格洼地，欧洲挂港船舶优先加注。 安特卫普报 672/MT。
+
+【北美市场】休斯顿报 849/MT，洛杉矶溢价偏高（1044/MT）， 建议绕行。
+
+【综合建议】短期高位震荡，建议：①欧洲船舶鹿特丹加满；②亚洲船舶国内宁波舟山优先；③美湾船舶休斯顿加注；④富查伊拉无报价，提前做好替代方案。
+
+详情请查看：https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report.html</pre>
+  </div>
+
   <div class="outlook-box">
-    <h3>📊 市场展望与操作建议（2026-04-24_CN）</h3>
-    <p><strong>【核心背景】</strong> 美伊谈判持续推进，地缘局势暂稳但仍存不确定性。原油价格在高位震荡，VLSFO 成本压力持续。霍尔木兹海峡封锁持续，建议关注富查伊拉预订情况。</p>
+    <h3>&#128202; 市场展望与操作建议（2026-04-24_CN）</h3>
+    <p><strong>【核心背景】</strong> 美伊谈判持续推进，地缘局势暂稳但仍存不确定性。原油价格在高位震荡，VLSFO 成本压力持续。霍尔木兹海峡封锁持续，富查伊拉无报价，亚洲船舶需提前规划加油方案。国内港口（宁波舟山、上海）价格优势明显，可作为亚洲航线主要加油点。</p>
     <div class="insight-grid">
       <div class="insight-card">
         <h4>短期建议（1-2周）</h4>
-        <p>1. <strong>鹿特丹优先：</strong>666/MT为近期低价，欧洲挂港船舶应加满。<br>2. <strong>富查伊拉：</strong>提前10-14天预订，避免到港无油可补。<br>3. <strong>新加坡：</strong>741/MT，库存有待改善，提前安排。</p>
+        <p>1. <strong>国内优先：</strong>宁波舟山/上海 VLSFO 较新加坡低 $20-25/MT，亚洲航线首选国内港口加注。<br>2. <strong>欧洲洼地：</strong>鹿特丹 666/MT，欧洲挂港船舶应加满。<br>3. <strong>富查伊拉：</strong>提前做好替代方案，前往迪拜加油。<br>4. <strong>洛杉矶：</strong>溢价偏高，建议绕行休斯顿加注。</p>
       </div>
       <div class="insight-card">
         <h4>中期风险（1个月）</h4>
-        <p>1. <strong>美伊谈判：</strong>若达成协议，原油可能回落，燃油价格有下行空间。<br>2. <strong>反转风险：</strong>谈判一旦破裂，原油可能重回$110+，需保持关注。<br>3. <strong>季度预期：</strong>关注布伦特季度末走势，做好应对准备。</p>
+        <p>1. <strong>美伊谈判：</strong>若达成协议，原油可能回落，燃油成本有下行空间。<br>2. <strong>反转风险：</strong>谈判破裂则原油可能重回 $110+，需保持关注。<br>3. <strong>库存策略：</strong>建议在价格相对低位时适当增加库存。</p>
       </div>
       <div class="insight-card">
         <h4>长期关注（季度）</h4>
-        <p>1. <strong>地缘缓和：</strong>霍尔木兹局势若实质性松动，供应将逐步改善。<br>2. <strong>VLSFO-HSFO价差：</strong>继续跟踪洗涤器回报率变化。<br>3. <strong>绕行成本：</strong>红海/好望角绕行每航次额外增加油费，持续关注。</p>
+        <p>1. <strong>地缘缓和：</strong>霍尔木兹局势若实质性松动，供应将逐步改善。<br>2. <strong>VLSFO-HSFO价差：</strong>继续跟踪洗涤器回报率变化。<br>3. <strong>脱碳趋势：</strong>关注 LNG 动力船舶增长对传统燃油市场的影响。</p>
       </div>
     </div>
   </div>
@@ -291,8 +631,8 @@
 </main>
 
 <footer>
-  <p>全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
-  <p style="margin-top:6px;">本报告仅供内部参考，不构成任何投资或采购建议 | 生成时间：2026-04-24 09:00 CST | <a href="https://LeahLiuL.github.io/Claw-Report/reports/">查看历史报告</a></p>
+  <p>全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX · HandyBulk · TradingEconomics · 隆众资讯</p>
+  <p style="margin-top:6px;">本报告仅供内部参考，不构成任何投资或采购建议 | 生成时间：2026-04-24 08:00 CST | <a href="https://LeahLiuL.github.io/Claw-Report/reports/">查看历史报告</a></p>
 </footer>
 
 </body>
