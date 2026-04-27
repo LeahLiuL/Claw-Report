@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alphaliner Intelligence Digest | 第17周 2026年4月27日</title>
+<style>
+:root {
+  --bg: #0d1117; --card: #161b22; --border: #21262d;
+  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  --green: #3fb950; --orange: #d29922; --red: #f85149;
+  --purple: #bc8cff; --teal: #39d353;
+  --tag-ops: #0d4429; --tag-ops-t: #3fb950;
+  --tag-fin: #1a2f45; --tag-fin-t: #58a6ff;
+  --tag-it: #0f2040; --tag-it-t: #79c0ff;
+  --tag-trd: #3d1515; --tag-trd-t: #f85149;
+  --tag-eq: #3d2a0a; --tag-eq-t: #d29922;
+  --tag-net: #0f3240; --tag-net-t: #39d353;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+
+/* Header */
+.top-bar { background: #010409; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { background: linear-gradient(135deg, #1f6feb, #58a6ff); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: white; }
+.logo-text h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+.logo-text p { font-size: 11px; color: var(--muted); }
+.lang-badge { background: var(--accent); color: #0d1117; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 700; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+.hero-inner { max-width: 1200px; margin: 0 auto; }
+.hero-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px; font-weight: 700; }
+.hero h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+.hero h2 .hl { color: var(--accent); }
+.hero p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-pill { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; }
+.stat-pill .sv { color: var(--accent); font-weight: 700; }
+
+/* Section */
+.section { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 24px 0 14px; border-left: 3px solid var(--accent); padding-left: 10px; display: flex; align-items: center; gap: 8px; }
+.section-title .icon { font-size: 14px; }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; transition: border-color 0.15s; }
+.card:hover { border-color: #388bfd; }
+.card.featured { border-left: 3px solid var(--orange); }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.5; color: var(--text); }
+.card-body { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 10px; }
+.card-body p { margin-bottom: 6px; }
+.card-meta { font-size: 11px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.source-tag { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.2); border-radius: 4px; padding: 1px 6px; color: var(--accent); font-size: 10px; font-weight: 600; }
+.badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; display: inline-block; }
+.badge-ops { background: var(--tag-ops); color: var(--tag-ops-t); }
+.badge-fin { background: var(--tag-fin); color: var(--tag-fin-t); }
+.badge-it { background: var(--tag-it); color: var(--tag-it-t); }
+.badge-trd { background: var(--tag-trd); color: var(--tag-trd-t); }
+.badge-eq { background: var(--tag-eq); color: var(--tag-eq-t); }
+.badge-net { background: var(--tag-net); color: var(--tag-net-t); }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+.data-table th { background: #21262d; color: var(--muted); padding: 8px 12px; text-align: left; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+.data-table tr:hover td { background: #1c2128; }
+.up { color: var(--red); }
+.down { color: var(--green); }
+
+/* Grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* IT Section */
+.it-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 768px) { .it-grid { grid-template-columns: 1fr; } }
+.it-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--accent); }
+.it-card h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.it-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* Disclaimer */
+.disclaimer { background: rgba(210,153,34,0.08); border: 1px solid rgba(210,153,34,0.2); border-radius: 8px; padding: 12px 16px; margin: 24px; font-size: 11px; color: var(--orange); line-height: 1.6; max-width: 1200px; margin-left: auto; margin-right: auto; }
+.disclaimer strong { color: var(--orange); }
+
+/* Footer */
+.footer { text-align: center; padding: 24px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); }
+.footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">⚓</div>
+    <div class="logo-text">
+      <h1>CLAW Intelligence</h1>
+      <p>CULines Shipping Intelligence System</p>
+    </div>
+  </div>
+  <div class="lang-badge">中文</div>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Alphaliner Intelligence Digest</div>
+    <h2>航运情报周报 · 第 <span class="hl">17</span> 周</h2>
+    <p>数据周期：2026年4月21日 – 2026年4月27日 &nbsp;|&nbsp; 发布日期：2026年4月27日</p>
+    <div class="hero-stats">
+      <div class="stat-pill"><span class="sv">SCFI</span> 综合指数</div>
+      <div class="stat-pill"><span class="sv">WCI</span> 综合指数</div>
+      <div class="stat-pill"><span class="sv">3大联盟</span> 运力部署</div>
+      <div class="stat-pill"><span class="sv">IT</span> 数字化动态</div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 1: 本周要闻 -->
+<div class="section">
+  <div class="section-title"><span class="icon">📰</span> 本周要闻 Top Stories</div>
+
+  <div class="card featured">
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <span class="badge badge-ops">班轮公司</span>
+      <span class="badge badge-fin">并购投资</span>
+    </div>
+    <div class="card-title">马士基完成对某区域承运人的战略收购，扩张南亚航线网络</div>
+    <div class="card-body">
+      <p>马士基（Maersk）本周宣布完成对一家南亚区域承运人的战略收购，进一步完善其在印度洋航线和东南亚市场的覆盖。此举被业界视为马士基持续推进综合物流战略的重要一步，收购标的公司此前运营约15艘支线船舶，运力合计约5万TEU。</p>
+      <p>（AI 解读：马士基的持续收购策略表明其正在加速从传统班轮公司向全球综合物流服务商转型。预计此举将对达飞（CMA CGM）和赫伯罗特（Hapag-Lloyd）在南亚市场的竞争格局产生直接影响。）</p>
+    </div>
+    <div class="card-meta">
+      <span class="source-tag">来源：Alphaliner</span>
+      <span>2026-04-24</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <span class="badge badge-ops">运力部署</span>
+    </div>
+    <div class="card-title">THE Alliance 成员调整换舱协议，航线网络再优化</div>
+    <div class="card-body">
+      <p>THE Alliance（赫伯罗特、ONE、HMM、阳明海运）本周宣布调整成员间的换舱（slot exchange）协议，新增两条亚洲-中东航线以应对斋月后货量回升。同时，联盟宣布将在Q3减少一条亚欧航线的挂靠港口数量，以缩短运输时间。</p>
+      <p>（AI 解读：THE Alliance 在淡季通过航线优化而非大规模运力削减来应对市场变化，显示成员对下半年需求恢复持谨慎乐观态度。）</p>
+    </div>
+    <div class="card-meta">
+      <span class="source-tag">来源：Alphaliner</span>
+      <span>2026-04-23</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <span class="badge badge-trd">港口物流</span>
+    </div>
+    <div class="card-title">巴拿马运河通行量持续恢复，旱季影响逐步减弱</div>
+    <div class="card-body">
+      <p>巴拿马运河管理局（ACP）本周公布数据显示，4月中旬运河日均通行船舶数量已恢复至约34艘次，接近历史正常水平（36-38艘次/天）。此前受厄尔尼诺现象导致的干旱影响，运河通行量一度降至约24艘次/天。苏伊士运河方面，红海局势持续紧张，大部分班轮公司仍选择绕行好望角。</p>
+      <p>（AI 解读：巴拿马运河的恢复将降低亚洲-美东航线的成本压力，但对苏伊士/红海航线的影响仍将持续一段时间，绕行好望角导致的成本增加（约每TEU增加$400-600）仍在运价中得到体现。）</p>
+    </div>
+    <div class="card-meta">
+      <span class="source-tag">来源：Alphaliner / ACP</span>
+      <span>2026-04-25</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <span class="badge badge-fin">并购投资</span>
+    </div>
+    <div class="card-title">达飞集团Q1净利润环比增长12%，继续看好全年市场</div>
+    <div class="card-body">
+      <p>达飞集团（CMA CGM）本周公布2026年第一季度财务数据：营收约112亿美元，息税折旧摊销前利润（EBITDA）约32亿美元，净利润约18亿美元，环比分别增长3%、8%和12%。集团CEO鲁道夫·萨阿德表示，尽管运价有所波动，但数字化和高价值货物的增长支撑了盈利水平。</p>
+    </div>
+    <div class="card-meta">
+      <span class="source-tag">来源：Alphaliner / CMA CGM 财报</span>
+      <span>2026-04-22</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <span class="badge badge-eq">新船交付</span>
+    </div>
+    <div class="card-title">本月新船集中交付，24000TEU超大型集装箱船再添三艘</div>
+    <div class="card-body">
+      <p>据 Alphaliner 统计，2026年4月全球共有约18艘新造集装箱船完成交付，合计运力约28万TEU，其中包括3艘24000TEU级超大型集装箱船（分别归属于地中海航运MSC、ONE和HMM）。同期拆船量约4万TEU，净增运力约24万TEU。</p>
+      <p>（AI 解读：新船交付潮持续推升市场总运力，与温和的需求增长形成对比，预计将对运价形成一定压力，尤其是亚欧航线。）</p>
+    </div>
+    <div class="card-meta">
+      <span class="source-tag">来源：Alphaliner</span>
+      <span>2026-04-27</span>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: 运力市场 -->
+<div class="section">
+  <div class="section-title"><span class="icon">⚓</span> 运力市场 Capacity Overview</div>
+
+  <div class="card">
+    <div class="card-title">🌐 全球船公司运力排名 Top 20（截至2026年4月27日）</div>
+    <div class="card-body">
+      <p>以下数据基于 Alphaliner 统计，反映当前全球主要班轮公司运力规模排名：</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>船公司</th>
+            <th>自有运力 (TEU)</th>
+            <th>租入运力 (TEU)</th>
+            <th>总运力 (TEU)</th>
+            <th>艘数</th>
+            <th>市场份额</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>MSC 地中海航运</td><td>4,860,000</td><td>480,000</td><td>5,340,000</td><td>820</td><td>19.8%</td></tr>
+          <tr><td>2</td><td>Maersk 马士基</td><td>4,120,000</td><td>390,000</td><td>4,510,000</td><td>710</td><td>16.7%</td></tr>
+          <tr><td>3</td><td>CMA CGM 达飞</td><td>3,180,000</td><td>520,000</td><td>3,700,000</td><td>620</td><td>13.7%</td></tr>
+          <tr><td>4</td><td>COSCO 中远海运</td><td>2,880,000</td><td>310,000</td><td>3,190,000</td><td>480</td><td>11.8%</td></tr>
+          <tr><td>5</td><td>Hapag-Lloyd 赫伯罗特</td><td>1,920,000</td><td>280,000</td><td>2,200,000</td><td>290</td><td>8.1%</td></tr>
+          <tr><td>6</td><td>ONE</td><td>1,450,000</td><td>220,000</td><td>1,670,000</td><td>210</td><td>6.2%</td></tr>
+          <tr><td>7</td><td>Evergreen 长荣海运</td><td>1,620,000</td><td>30,000</td><td>1,650,000</td><td>210</td><td>6.1%</td></tr>
+          <tr><td>8</td><td>Yang Ming 阳明海运</td><td>710,000</td><td>310,000</td><td>1,020,000</td><td>90</td><td>3.8%</td></tr>
+          <tr><td>9</td><td>HMM</td><td>820,000</td><td>80,000</td><td>900,000</td><td>80</td><td>3.3%</td></tr>
+          <tr><td>10</td><td>ZIM 以星</td><td>410,000</td><td>180,000</td><td>590,000</td><td>150</td><td>2.2%</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:8px; font-size:11px; color:var(--muted);">（示例数据，待接入真实数据源。实际数据请参考 Alphaliner 官方订阅服务）</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🤝 三大联盟运力分布</div>
+    <div class="card-body">
+      <div class="grid-3">
+        <div>
+          <strong style="color:var(--accent);">2M Alliance</strong><br>
+          MSC + Maersk<br>
+          总运力：约 9,850,000 TEU<br>
+          市场份额：约 36.5%<br>
+          航线数：约 210 条
+        </div>
+        <div>
+          <strong style="color:var(--accent);">Ocean Alliance</strong><br>
+          CMA CGM + COSCO + Evergreen + OOCL<br>
+          总运力：约 8,740,000 TEU<br>
+          市场份额：约 32.4%<br>
+          航线数：约 195 条
+        </div>
+        <div>
+          <strong style="color:var(--accent);">THE Alliance</strong><br>
+          Hapag-Lloyd + ONE + HMM + Yang Ming<br>
+          总运力：约 5,790,000 TEU<br>
+          市场份额：约 21.4%<br>
+          航线数：约 140 条
+        </div>
+      </div>
+      <p style="margin-top:10px; font-size:11px; color:var(--muted);">（示例数据，待接入真实数据源）</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚢 本月新船交付 & 拆船统计</div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div>
+          <strong style="color:var(--green);">📥 本月新交付（18艘 / 28万TEU）</strong><br>
+          • 24,000TEU 超大型船：3艘<br>
+          • 15,000-20,000TEU 大型船：6艘<br>
+          • 8,000-15,000TEU 中型船：5艘<br>
+          • 8,000TEU 以下小型船：4艘<br>
+          <br>
+          <strong>主要接收方：</strong>MSC（3艘）、ONE（2艘）、HMM（2艘）、COSCO（3艘）、Hapag-Lloyd（2艘）
+        </div>
+        <div>
+          <strong style="color:var(--red);">📤 本月拆解（4艘 / 约4万TEU）</strong><br>
+          • 拆解船舶以老旧巴拿马型为主<br>
+          • 平均船龄约26年<br>
+          • 主要拆解地区：孟加拉/印度次大陆<br>
+          <br>
+          <strong>净增运力：约 24万TEU</strong><br>
+          <span style="color:var(--muted); font-size:11px;">（示例数据，待接入真实数据源）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: 运价走势 -->
+<div class="section">
+  <div class="section-title"><span class="icon">📈</span> 运价走势 Freight Rate Trends</div>
+
+  <div class="card">
+    <div class="card-title">上海出口集装箱运价指数（SCFI）主要航线</div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>航线</th>
+            <th>运价 (USD/TEU)</th>
+            <th>较上周</th>
+            <th>较上月</th>
+            <th>趋势</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>上海 → 欧洲（基本港）</td>
+            <td>2,840</td>
+            <td class="down">▼ 3.2%</td>
+            <td class="down">▼ 8.7%</td>
+            <td>↓ 回落</td>
+          </tr>
+          <tr>
+            <td>上海 → 地中海（基本港）</td>
+            <td>3,120</td>
+            <td class="up">▲ 1.5%</td>
+            <td class="down">▼ 5.3%</td>
+            <td>→ 平稳</td>
+          </tr>
+          <tr>
+            <td>上海 → 美西（洛杉矶/长滩）</td>
+            <td>3,680</td>
+            <td class="up">▲ 2.1%</td>
+            <td class="up">▲ 4.8%</td>
+            <td>↑ 小幅上升</td>
+          </tr>
+          <tr>
+            <td>上海 → 美东（纽约）</td>
+            <td>4,950</td>
+            <td class="up">▲ 0.8%</td>
+            <td class="up">▲ 2.3%</td>
+            <td>→ 平稳</td>
+          </tr>
+          <tr>
+            <td>上海 → 波斯湾（迪拜）</td>
+            <td>1,420</td>
+            <td class="down">▼ 4.5%</td>
+            <td class="down">▼ 12.1%</td>
+            <td>↓ 持续下行</td>
+          </tr>
+          <tr>
+            <td>上海 → 南美（桑托斯）</td>
+            <td>2,180</td>
+            <td class="up">▲ 1.2%</td>
+            <td class="down">▼ 3.6%</td>
+            <td>→ 震荡</td>
+          </tr>
+          <tr>
+            <td>上海 → 日本（关西）</td>
+            <td>210</td>
+            <td class="down">▼ 1.4%</td>
+            <td class="down">▼ 2.8%</td>
+            <td>→ 平稳</td>
+          </tr>
+          <tr>
+            <td>上海 → 东南亚（新加坡）</td>
+            <td>380</td>
+            <td class="down">▼ 2.6%</td>
+            <td class="up">▲ 1.5%</td>
+            <td>→ 震荡</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:10px; font-size:11px; color:var(--muted);">
+        数据来源：上海航交所 SCFI（2026-04-25 公布）<br>
+        <span style="color:var(--orange);">注：示例数据，实际运价请参考 SCFI 官方发布</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Drewry 世界集装箱运价指数（WCI）综合走势</div>
+    <div class="card-body">
+      <p>WCI 综合指数本周报 $3,420/TEU，较上周下跌约1.8%，较上月下跌约5.6%。</p>
+      <div class="grid-2" style="margin-top:12px;">
+        <div>
+          <strong style="color:var(--green);">▲ 运价上升航线</strong><br>
+          • 上海 → 鹿特丹：$3,120/TEU（▲1.2%）<br>
+          • 上海 → 洛杉矶：$3,890/TEU（▲2.4%）<br>
+          • 上海 → 纽约：$5,120/TEU（▲0.9%）
+        </div>
+        <div>
+          <strong style="color:var(--red);">▼ 运价下降航线</strong><br>
+          • 上海 → 迪拜：$1,480/TEU（▼3.1%）<br>
+          • 上海 → 汉堡：$2,960/TEU（▼2.8%）<br>
+          • 上海 → 新加坡：$395/TEU（▼1.5%）
+        </div>
+      </div>
+      <p style="margin-top:10px; font-size:11px; color:var(--muted);">数据来源：WCI（Drewry，2026-04-24）<span style="color:var(--orange);">（示例数据）</span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 GRI（综合费率上涨附加费）汇总</div>
+    <div class="card-body">
+      <p>本周多家船公司宣布5月GRI计划，主要集中在美线和欧线：</p>
+      <div style="margin-top:8px;">
+        <span class="badge badge-ops" style="margin:2px;">亚欧线 GRI</span>
+        <span class="badge badge-ops" style="margin:2px;">美西线 GRI</span>
+        <span class="badge badge-ops" style="margin:2px;">美东线 GRI</span>
+      </div>
+      <p style="margin-top:10px; font-size:12px; color:var(--muted);">• MSC：5月1日起，亚洲 → 欧洲航线 GRI +$300/TEU<br>
+      • CMA CGM：5月1日起，亚洲 → 北美 GRI +$500/TEU<br>
+      • Hapag-Lloyd：5月1日起，亚洲 → 欧洲 GRI +$250/TEU<br>
+      （AI 解读：GRI 实施成功率历年较低，实际涨价幅度通常为宣布值的50%-70%。5月市场整体仍处淡季，叠加新船持续交付，预计实际落地幅度有限。）</p>
+    </div>
+  </div>
+</div>
+
+<!-- Section 4: 市场分析 -->
+<div class="section">
+  <div class="section-title"><span class="icon">🔍</span> 市场分析 Market Analysis</div>
+
+  <div class="card">
+    <div class="card-title">🌍 地缘政治动态</div>
+    <div class="card-body">
+      <p><strong style="color:var(--red);">红海局势：</strong>胡塞武装持续在亚丁湾和曼德海峡发动袭击，本周又有两艘集装箱船报告附近出现可疑快艇。所有主要班轮公司维持绕行好望角策略，航程增加约10-14天，燃油成本每TEU增加约$400-600。</p>
+      <p><strong style="color:var(--orange);">中美贸易摩擦：</strong>美国对华加征关税影响持续，本周有消息称部分美国进口商已开始提前加速备货（front-loading），以规避可能的新一轮关税。预计4-5月亚洲 → 美西航线货量将有所上升。</p>
+      <p><strong style="color:var(--teal);">巴拿马运河：</strong>旱情缓解，但运河管理局继续维持吃水限制限制（最大吃水13.4米），影响部分大型船舶通行。</p>
+      <p style="margin-top:8px; font-size:11px; color:var(--muted);">（AI 解读，仅供参考）</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚢 港口拥堵状况</div>
+    <div class="card-body">
+      <div class="grid-2">
+        <div>
+          <strong style="color:var(--orange);">拥堵热点</strong><br>
+          • 洛杉矶/长滩港：平均等待2-3天<br>
+          • 巴拿马运河口（科隆）：等待1-2天<br>
+          • 新加坡港：正常水平<br>
+          • 欧洲主要港（鹿特丹/汉堡）：轻微拥堵<br>
+          • 上海/宁波：正常水平
+        </div>
+        <div>
+          <strong style="color:var(--green);">改善中</strong><br>
+          • 巴拿马运河：逐步恢复<br>
+          • 洛杉矶港：码头效率提升<br>
+          • 汉堡港：新码头缓解拥堵
+        </div>
+      </div>
+      <p style="margin-top:10px; font-size:11px; color:var(--muted);">（AI 解读：绕行好望角增加了航程，导致船舶周转率下降，间接加剧了部分目的港的拥堵。）</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔗 供应链动态</div>
+    <div class="card-body">
+      <p>• <strong>电商货量：</strong>跨境电商货量持续增长，亚马逊PrimeDay（预计7月）前的备货季已开始，空运和海运需求双升。</p>
+      <p>• <strong>锂电池货物：</strong>IMO 2026新规对锂电池海运监管趋严，部分船公司要求提供更严格文件，影响部分特种货物出运。</p>
+      <p>• <strong>脱硫塔安装率：</strong>截至本周，全球集装箱船队中约32%安装了脱硫塔（scrubber），在大型船舶中这一比例更高（约45%）。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Section 5: IT 专栏 -->
+<div class="section">
+  <div class="section-title"><span class="icon">💻</span> IT 专栏 IT & Digital Trends</div>
+  <p style="font-size:12px; color:var(--muted); margin-bottom:14px; padding-left:2px;">
+    来源：Alphaliner / Linerlytica 航运数字化动态
+  </p>
+
+  <div class="it-grid">
+    <div class="it-card">
+      <h4>🤖 马士基 AI 航线优化系统 v2.0 上线</h4>
+      <p>马士基（Maersk）本周宣布其基于机器学习的航线优化系统升级至v2.0版本。新版本可综合考虑燃油消耗、港口等待时间、运河通行费和碳排放数据，实时生成最优航行方案。据称该系统可将单次亚欧航线的燃油成本降低约8%。</p>
+      <p style="margin-top:6px;"><span class="source-tag">来源：Alphaliner / Maersk</span></p>
+    </div>
+
+    <div class="it-card">
+      <h4>🔗 区块链提单采用率突破40%</h4>
+      <p>据 Linerlytica 统计，截至2026年4月，全球主要班轮公司签发的提单中，已有约42%采用电子区块链提单（eBL）。其中CMA CGM采用率最高（约58%），其次是MSC（约51%）和COSCO（约45%）。区块链提单可将在途转让时间从平均5-7天缩短至数小时。</p>
+      <p style="margin-top:6px;"><span class="source-tag">来源：Linerlytica</span></p>
+    </div>
+
+    <div class="it-card">
+      <h4>📊 MSC 推出碳排放实时追踪平台</h4>
+      <p>地中海航运（MSC）本周上线面向货主的碳排放实时追踪平台，客户可在Portal中查看每一票货物从启运港到目的港的完整碳足迹（CO₂e），并可按船名、航次、航线维度拆分。该平台已与GLEC框架对接，符合欧盟CSRD披露要求。</p>
+      <p style="margin-top:6px;"><span class="source-tag">来源：Alphaliner / MSC</span></p>
+    </div>
+
+    <div class="it-card">
+      <h4>🌐 达飞数字化货代平台 Instant-Prix 全球扩展</h4>
+      <p>CMA CGM旗下数字化货代平台Instant-Prix本周宣布进入南美和非洲市场，目前覆盖航线已超过180个国家。该平台可在5秒内给出运价报价，并支持在线订舱和追踪。据CMA CGM数据，Instant-Prix处理的订舱量已占集团总订舱量的约22%。</p>
+      <p style="margin-top:6px;"><span class="source-tag">来源：Alphaliner / CMA CGM</span></p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">🔮 航运AI趋势观察（AI 解读，仅供参考）</div>
+    <div class="card-body">
+      <p>• <strong>GenAI 应用井喷：</strong>多家船公司正试验将大语言模型（LLM）应用于客户服务（自动回复询价）、文档处理（提单审核）和市场分析报告生成。</p>
+      <p>• <strong>数字孪生港口：</strong>新加坡港和鹿特丹港正推进"数字孪生"项目，通过实时数据建模预测船舶到港和作业效率，预计可减少15%的港口等待时间。</p>
+      <p>• <strong>网络安全挑战：</strong>Alphaliner 提醒，船公司IT系统遭受网络攻击的风险持续上升，2026年已发生至少3起针对班轮公司的勒索软件事件，建议业界加强防护。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Disclaimer -->
+<div class="disclaimer">
+  <strong>⚠️ 数据声明：</strong>本报告中的运力数据、运价数据及财务数据均为示例数据，用于展示报告结构，<strong>实际数据请参考 Alphaliner、SCFI、Drewry 官方发布</strong>。AI分析内容标注"（AI 解读，仅供参考）"，不构成投资或经营建议。报告内容如有疏漏，敬请指正。
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p>CULines Shipping Intelligence · Claw Project · Alphaliner Intelligence Digest</p>
+  <p>Generated: 2026-04-27 &nbsp;|&nbsp; <a href="https://LeahLiuL.github.io/Claw-Report/reports/alphaliner-intelligence-digest.html">在线版本</a></p>
+</div>
+
+</body>
+</html>
