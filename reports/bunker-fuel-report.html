@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球航运燃油深度分析报告 · 2026-04-28</title>
+<title class="i18n" data-zh="全球航运燃油深度分析报告 · 2026-04-28" data-en="Global Bunker Fuel Analysis Report · 2026-04-28">全球航运燃油深度分析报告 · 2026-04-28</title>
 <style>
   :root { --primary: #0a2a4a; --secondary: #0d4f6c; --accent: #00c9b1; --accent2: #f59e0b; --up: #ef4444; --down: #10b981; --card-bg: #f8fafc; --border: #e2e8f0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -92,55 +92,70 @@
   footer { background: var(--primary); color: #94a3b8; text-align: center; padding: 18px 20px; font-size: 12px; margin-top: 40px; }
   footer a { color: var(--accent); text-decoration: none; }
   @media(max-width:768px){ .kpi-grid{grid-template-columns:1fr 1fr;} .header-left h1{font-size:20px;} main{padding:16px;} header{padding:20px;} .status-bar{padding:8px 20px;} }
+  /* ===== Language Toggle ===== */
+  .lang-toggle-wrap { position: fixed; top: 16px; right: 20px; z-index: 9999; }
+  .lang-toggle { display: flex; background: rgba(10,42,74,0.92); border: 1px solid var(--accent); border-radius: 24px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.3); backdrop-filter: blur(8px); }
+  .lang-btn { padding: 7px 18px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #94a3b8; transition: all 0.25s; letter-spacing: 0.5px; }
+  .lang-btn.active { background: var(--accent); color: #0a2a4a; border-radius: 22px; }
+  .lang-btn:hover:not(.active) { color: #e2e8f0; }
+  [lang-hide] { display: none !important; }
 </style>
 </head>
 <body>
 
+<!-- 语言切换按钮 -->
+<div class="lang-toggle-wrap">
+  <div class="lang-toggle">
+    <button class="lang-btn active" id="btn-zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+  </div>
+</div>
+
 <div class="ticker-wrap">
   <div class="ticker-content">
-    <span class="label">【VLSFO全球行情】</span>
-    <span>新加坡 <span class="up">741</span></span>
-    <span>香港 <span class="up">808</span></span>
-    <span>上海 <span class="down">725</span></span>
-    <span>宁波舟山 <span class="down">718</span></span>
-    <span>青岛 <span class="down">722</span></span>
-    <span>天津 <span class="down">728</span></span>
-    <span>鹿特丹 <span class="down">666</span></span>
-    <span>迪拜 <span class="up">760</span></span>
-    <span>休斯顿 <span class="up">849</span></span>
-    <span>洛杉矶 <span class="up">1044</span></span>
-    <span class="label">【MGO全球行情】</span>
-    <span>新加坡 <span class="up">1273</span></span>
-    <span>上海 <span class="down">1240</span></span>
-    <span>鹿特丹 <span class="down">1200</span></span>
-    <span class="label">【原油基准】</span>
-    <span>布伦特 <span class="up">$106.76</span></span>
+    <span class="label i18n" data-zh="【VLSFO全球行情】" data-en="[VLSFO Global Market]">【VLSFO全球行情】</span>
+    <span><span class="i18n" data-zh="新加坡" data-en="Singapore">新加坡</span> <span class="up">741</span></span>
+    <span><span class="i18n" data-zh="香港" data-en="Hong Kong">香港</span> <span class="up">808</span></span>
+    <span><span class="i18n" data-zh="上海" data-en="Shanghai">上海</span> <span class="down">725</span></span>
+    <span><span class="i18n" data-zh="宁波舟山" data-en="Ningbo-Zhoushan">宁波舟山</span> <span class="down">718</span></span>
+    <span><span class="i18n" data-zh="青岛" data-en="Qingdao">青岛</span> <span class="down">722</span></span>
+    <span><span class="i18n" data-zh="天津" data-en="Tianjin">天津</span> <span class="down">728</span></span>
+    <span><span class="i18n" data-zh="鹿特丹" data-en="Rotterdam">鹿特丹</span> <span class="down">666</span></span>
+    <span><span class="i18n" data-zh="迪拜" data-en="Dubai">迪拜</span> <span class="up">760</span></span>
+    <span><span class="i18n" data-zh="休斯顿" data-en="Houston">休斯顿</span> <span class="up">849</span></span>
+    <span><span class="i18n" data-zh="洛杉矶" data-en="Los Angeles">洛杉矶</span> <span class="up">1044</span></span>
+    <span class="label i18n" data-zh="【MGO全球行情】" data-en="[MGO Global Market]">【MGO全球行情】</span>
+    <span><span class="i18n" data-zh="新加坡" data-en="Singapore">新加坡</span> <span class="up">1273</span></span>
+    <span><span class="i18n" data-zh="上海" data-en="Shanghai">上海</span> <span class="down">1240</span></span>
+    <span><span class="i18n" data-zh="鹿特丹" data-en="Rotterdam">鹿特丹</span> <span class="down">1200</span></span>
+    <span class="label i18n" data-zh="【原油基准】" data-en="[Crude Benchmark]">【原油基准】</span>
+    <span><span class="i18n" data-zh="布伦特" data-en="Brent">布伦特</span> <span class="up">$106.76</span></span>
     <span>97.24 <span class="up">$97.24</span></span>
-    <span>迪拜原油 <span class="up">$104.3</span></span>
-    <span>上海原油 <span class="up">102.5</span></span>
+    <span><span class="i18n" data-zh="迪拜原油" data-en="Dubai Crude">迪拜原油</span> <span class="up">$104.3</span></span>
+    <span><span class="i18n" data-zh="上海原油" data-en="Shanghai Crude">上海原油</span> <span class="up">102.5</span></span>
     <span>LNG <span class="up">$9.8</span></span>
   </div>
   <div class="ticker-content">
-    <span class="label">【VLSFO全球行情】</span>
-    <span>新加坡 <span class="up">741</span></span>
-    <span>香港 <span class="up">808</span></span>
-    <span>上海 <span class="down">725</span></span>
-    <span>宁波舟山 <span class="down">718</span></span>
-    <span>青岛 <span class="down">722</span></span>
-    <span>天津 <span class="down">728</span></span>
-    <span>鹿特丹 <span class="down">666</span></span>
-    <span>迪拜 <span class="up">760</span></span>
-    <span>休斯顿 <span class="up">849</span></span>
-    <span>洛杉矶 <span class="up">1044</span></span>
-    <span class="label">【MGO全球行情】</span>
-    <span>新加坡 <span class="up">1273</span></span>
-    <span>上海 <span class="down">1240</span></span>
-    <span>鹿特丹 <span class="down">1200</span></span>
-    <span class="label">【原油基准】</span>
-    <span>布伦特 <span class="up">$106.76</span></span>
+    <span class="label i18n" data-zh="【VLSFO全球行情】" data-en="[VLSFO Global Market]">【VLSFO全球行情】</span>
+    <span><span class="i18n" data-zh="新加坡" data-en="Singapore">新加坡</span> <span class="up">741</span></span>
+    <span><span class="i18n" data-zh="香港" data-en="Hong Kong">香港</span> <span class="up">808</span></span>
+    <span><span class="i18n" data-zh="上海" data-en="Shanghai">上海</span> <span class="down">725</span></span>
+    <span><span class="i18n" data-zh="宁波舟山" data-en="Ningbo-Zhoushan">宁波舟山</span> <span class="down">718</span></span>
+    <span><span class="i18n" data-zh="青岛" data-en="Qingdao">青岛</span> <span class="down">722</span></span>
+    <span><span class="i18n" data-zh="天津" data-en="Tianjin">天津</span> <span class="down">728</span></span>
+    <span><span class="i18n" data-zh="鹿特丹" data-en="Rotterdam">鹿特丹</span> <span class="down">666</span></span>
+    <span><span class="i18n" data-zh="迪拜" data-en="Dubai">迪拜</span> <span class="up">760</span></span>
+    <span><span class="i18n" data-zh="休斯顿" data-en="Houston">休斯顿</span> <span class="up">849</span></span>
+    <span><span class="i18n" data-zh="洛杉矶" data-en="Los Angeles">洛杉矶</span> <span class="up">1044</span></span>
+    <span class="label i18n" data-zh="【MGO全球行情】" data-en="[MGO Global Market]">【MGO全球行情】</span>
+    <span><span class="i18n" data-zh="新加坡" data-en="Singapore">新加坡</span> <span class="up">1273</span></span>
+    <span><span class="i18n" data-zh="上海" data-en="Shanghai">上海</span> <span class="down">1240</span></span>
+    <span><span class="i18n" data-zh="鹿特丹" data-en="Rotterdam">鹿特丹</span> <span class="down">1200</span></span>
+    <span class="label i18n" data-zh="【原油基准】" data-en="[Crude Benchmark]">【原油基准】</span>
+    <span><span class="i18n" data-zh="布伦特" data-en="Brent">布伦特</span> <span class="up">$106.76</span></span>
     <span>97.24 <span class="up">$97.24</span></span>
-    <span>迪拜原油 <span class="up">$104.3</span></span>
-    <span>上海原油 <span class="up">102.5</span></span>
+    <span><span class="i18n" data-zh="迪拜原油" data-en="Dubai Crude">迪拜原油</span> <span class="up">$104.3</span></span>
+    <span><span class="i18n" data-zh="上海原油" data-en="Shanghai Crude">上海原油</span> <span class="up">102.5</span></span>
     <span>LNG <span class="up">$9.8</span></span>
   </div>
 </div>
@@ -148,21 +163,21 @@
 <header>
   <div class="header-top">
     <div class="header-left">
-      <h1>全球航运燃油<span>深度分析报告</span></h1>
-      <p>数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
+      <h1><span class="i18n" data-zh="全球航运燃油" data-en="Global Bunker Fuel">全球航运燃油</span><span class="i18n" data-zh="深度分析报告" data-en="Deep Analysis Report">深度分析报告</span></h1>
+      <p class="i18n" data-zh="数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯" data-en="Sources: Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics">数据来源：Ship & Bunker · MABUX World Bunker Index · HandyBulk · TradingEconomics · 隆众资讯</p>
     </div>
-    <div class="header-badge">原油高位震荡 · 国内港口价格洼地</div>
+    <div class="header-badge i18n" data-zh="原油高位震荡 · 国内港口价格洼地" data-en="Crude High Volatility · China Ports Cost Advantage">原油高位震荡 · 国内港口价格洼地</div>
   </div>
   <div class="header-meta">
-    <span>报告日期：2026-04-28_CN</span>
-    <span>更新时间：08:00 CST</span>
-    <span>数据截至：2026-04-28 早间</span>
-    <span>覆盖港口：全球20+个主要港口</span>
+    <span class="i18n" data-zh="报告日期：2026-04-28_CN" data-en="Report Date: 2026-04-28">报告日期：2026-04-28_CN</span>
+    <span class="i18n" data-zh="更新时间：08:00 CST" data-en="Updated: 08:00 CST">更新时间：08:00 CST</span>
+    <span class="i18n" data-zh="数据截至：2026-04-28 早间" data-en="Data as of: 2026-04-28 Morning">数据截至：2026-04-28 早间</span>
+    <span class="i18n" data-zh="覆盖港口：全球20+个主要港口" data-en="Coverage: 20+ Global Major Ports">覆盖港口：全球20+个主要港口</span>
   </div>
 </header>
 
 <div class="alert-banner">
-  <strong>【市场动态】</strong> 原油高位震荡 · VLSFO供应偏紧 · 国内港口价格洼地 · 富查伊拉封锁持续
+  <strong class="i18n" data-zh="【市场动态】" data-en="[Market Update]">【市场动态】</strong> 原油高位震荡 · VLSFO供应偏紧 · 国内港口价格洼地 · 富查伊拉封锁持续
 </div>
 
 <div class="status-bar">
@@ -176,7 +191,133 @@
   </div>
   <div class="status-item">
     <div class="status-dot dot-red"></div>
-    <span>富查伊拉：</span><span class="status-val">封锁中</span>
+    <span class="i18n" data-zh="富查伊拉：" data-en="Fujairah:">富查伊拉：</span><span class="status-val i18n" data-zh="封锁中" data-en="Blocked">封锁中</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-yellow"></div>
+    <span class="i18n" data-zh="新加坡：" data-en="Singapore:">新加坡：</span><span class="status-val i18n" data-zh="偏紧" data-en="Tight">偏紧</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-green"></div>
+    <span class="i18n" data-zh="宁波舟山：" data-en="Ningbo-Zhoushan:">宁波舟山：</span><span class="status-val i18n" data-zh="价格洼地" data-en="Cost Advantage">价格洼地</span>
+  </div>
+  <div class="status-item">
+    <div class="status-dot dot-green"></div>
+    <span class="i18n" data-zh="鹿特丹：" data-en="Rotterdam:">鹿特丹：</span><span class="status-val i18n" data-zh="价格洼地" data-en="Cost Advantage">价格洼地</span>
+  </div>
+</div>
+
+<main>
+
+  <div class="section-title">&#9889; <span class="i18n" data-zh="价格速览" data-en="Price Overview">价格速览</span></div>
+  <div class="kpi-grid">
+    <div class="kpi-card orange">
+      <div class="kpi-label i18n" data-zh="Brent 原油" data-en="Brent Crude">Brent 原油</div>
+      <div class="kpi-value">$106.76</div>
+      <div class="kpi-change up">&#9650; 106.76_CHANGE (106.76_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-28</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label i18n" data-zh="97.24 原油" data-en="97.24 Crude">97.24 原油</div>
+      <div class="kpi-value">$97.24</div>
+      <div class="kpi-change up">&#9650; 97.24_CHANGE (97.24_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-28</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label i18n" data-zh="Dubai 原油" data-en="Dubai Crude">Dubai 原油</div>
+      <div class="kpi-value">$104.3</div>
+      <div class="kpi-change up">&#9650; 104.3_CHANGE (104.3_PCT)</div>
+      <div class="kpi-sub">USD/BBL · 2026-04-28</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label i18n" data-zh="上海原油期货" data-en="Shanghai Crude Futures">上海原油期货</div>
+      <div class="kpi-value">102.5</div>
+      <div class="kpi-change up">&#9650; 102.5_CHANGE (102.5_PCT)</div>
+      <div class="kpi-sub">CNY/BBL · 2026-04-28</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label i18n" data-zh="新加坡 VLSFO" data-en="Singapore VLSFO">新加坡 VLSFO</div>
+      <div class="kpi-value">741</div>
+      <div class="kpi-change i18n" data-zh="今日报价" data-en="Today's Quote">今日报价</div>
+      <div class="kpi-sub">USD/MT · 2026-04-28</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label i18n" data-zh="宁波舟山 VLSFO" data-en="Ningbo-Zhoushan VLSFO">宁波舟山 VLSFO</div>
+      <div class="kpi-value">718</div>
+      <div class="kpi-change down i18n" data-zh="价格洼地" data-en="Cost Advantage">价格洼地</div>
+      <div class="kpi-sub i18n" data-zh="USD/MT · 2026-04-28 · 中国" data-en="USD/MT · 2026-04-28 · China">USD/MT · 2026-04-28 · 中国</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label i18n" data-zh="鹿特丹 VLSFO" data-en="Rotterdam VLSFO">鹿特丹 VLSFO</div>
+      <div class="kpi-value">666</div>
+      <div class="kpi-change down i18n" data-zh="价格洼地" data-en="Cost Advantage">价格洼地</div>
+      <div class="kpi-sub i18n" data-zh="USD/MT · 2026-04-28 · 欧洲" data-en="USD/MT · 2026-04-28 · Europe">USD/MT · 2026-04-28 · 欧洲</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label i18n" data-zh="LNG 天然气" data-en="LNG Natural Gas">LNG 天然气</div>
+      <div class="kpi-value">$9.8</div>
+      <div class="kpi-change up">&#9650; 0.1 (+1.03%)</div>
+      <div class="kpi-sub">USD/MMBtu</div>
+    </div>
+  </div>
+
+  <div class="section-title">&#128724; <span class="i18n" data-zh="原油与能源基准" data-en="Crude & Energy Benchmarks">原油与能源基准</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="i18n" data-zh="品种" data-en="Commodity">品种</th>
+          <th class="i18n" data-zh="最新价格" data-en="Latest Price">最新价格</th>
+          <th class="i18n" data-zh="日涨跌" data-en="Daily Change">日涨跌</th>
+          <th class="i18n" data-zh="单位" data-en="Unit">单位</th>
+          <th class="i18n" data-zh="数据来源" data-en="Source">数据来源</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong class="i18n" data-zh="布伦特原油（ICE）" data-en="Brent Crude (ICE)">布伦特原油（ICE）</strong></td>
+          <td class="price">$106.76</td>
+          <td class="up">&#9650; 106.76_CHANGE (106.76_PCT)</td>
+          <td>USD/BBL</td>
+          <td>TradingEconomics</td>
+        </tr>
+        <tr>
+          <td><strong class="i18n" data-zh="97.24 原油（NYMEX）" data-en="97.24 Crude (NYMEX)">97.24 原油（NYMEX）</strong></td>
+          <td class="price">$97.24</td>
+          <td class="up">&#9650; 97.24_CHANGE (97.24_PCT)</td>
+          <td>USD/BBL</td>
+          <td>TradingEconomics</td>
+        </tr>
+        <tr>
+          <td><strong class="i18n" data-zh="迪拜原油（DME）" data-en="Dubai Crude (DME)">迪拜原油（DME）</strong></td>
+          <td class="price">$104.3</td>
+          <td class="up">&#9650; 104.3_CHANGE (104.3_PCT)</td>
+          <td>USD/BBL</td>
+          <td>DME/TradingEconomics</td>
+        </tr>
+        <tr>
+          <td><strong class="i18n" data-zh="上海原油期货（INE）" data-en="Shanghai Crude Futures (INE)">上海原油期货（INE）</strong></td>
+          <td class="price">102.5</td>
+          <td class="up">&#9650; 102.5_CHANGE (102.5_PCT)</td>
+          <td>CNY/BBL</td>
+          <td class="i18n" data-zh="INE/隆众资讯" data-en="INE">INE/隆众资讯</td>
+        </tr>
+        <tr>
+          <td><strong class="i18n" data-zh="液化天然气（LNG）" data-en="Liquefied Natural Gas (LNG)">液化天然气（LNG）</strong></td>
+          <td class="price">$9.8</td>
+          <td class="up">&#9650; 0.1 (+1.03%)</td>
+          <td>USD/MMBtu</td>
+          <td>TradingEconomics</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title china">&#127468;&#127463; <span class="i18n" data-zh="国内港口燃油市场分析" data-en="China Port Bunker Market Analysis">国内港口燃油市场分析</span></div>
+  <div class="china-analysis">
+    <h3>&#9889; <span class="i18n" data-zh="国内港口市场速览" data-en="China Port Market Snapshot">国内港口市场速览</span></h3>
+    <div class="china-highlights">
+      <p>&#8226; 宁波舟山港 VLSFO 价格最具竞争力，低于新加坡约 $21/MT，建议亚洲航线优先选择<br>&#8226; 上海港供应充足，作为国内最大加油港，可满足各类船舶加油需求<br>&#8226; 青岛、天津北方港口价格略高，但覆盖渤海湾航线需求<br>&#8226; 国内港口整体供应正常，建议提前1-2天预订以确保供油时间</p>
   </div>
   <div class="status-item">
     <div class="status-dot dot-yellow"></div>
@@ -299,20 +440,27 @@
       <p>&#8226; 宁波舟山港 VLSFO 价格最具竞争力，低于新加坡约 $21/MT，建议亚洲航线优先选择<br>&#8226; 上海港供应充足，作为国内最大加油港，可满足各类船舶加油需求<br>&#8226; 青岛、天津北方港口价格略高，但覆盖渤海湾航线需求<br>&#8226; 国内港口整体供应正常，建议提前1-2天预订以确保供油时间</p>
     </div>
     <div class="china-recs">
-      <div class="rec-item">&#8226; 亚洲近洋航线：优先宁波舟山，价格优势明显</div>
-      <div class="rec-item">&#8226; 华东进出口航线：上海/宁波舟山组合加油</div>
-      <div class="rec-item">&#8226; 华北/东北航线：青岛/天津为主</div>
-      <div class="rec-item">&#8226; 跨洋航线：结合新加坡和国内港口分段加油</div>
+      <div class="rec-item">&#8226; <span class="i18n" data-zh="亚洲近洋航线：优先宁波舟山，价格优势明显" data-en="Intra-Asia routes: Ningbo-Zhoushan preferred, significant price advantage">亚洲近洋航线：优先宁波舟山，价格优势明显</span></div>
+      <div class="rec-item">&#8226; <span class="i18n" data-zh="华东进出口航线：上海/宁波舟山组合加油" data-en="East China trade routes: Shanghai/Ningbo-Zhoushan combination bunkering">华东进出口航线：上海/宁波舟山组合加油</span></div>
+      <div class="rec-item">&#8226; <span class="i18n" data-zh="华北/东北航线：青岛/天津为主" data-en="North China routes: Qingdao/Tianjin as primary ports">华北/东北航线：青岛/天津为主</span></div>
+      <div class="rec-item">&#8226; <span class="i18n" data-zh="跨洋航线：结合新加坡和国内港口分段加油" data-en="Transoceanic routes: split bunkering between Singapore and China ports">跨洋航线：结合新加坡和国内港口分段加油</span></div>
     </div>
   </div>
 
-  <div class="section-title global">&#127757; 全球主要港口燃油价格（$/MT）</div>
+  <div class="section-title global">&#127757; <span class="i18n" data-zh="全球主要港口燃油价格（$/MT）" data-en="Global Major Port Bunker Prices ($/MT)">全球主要港口燃油价格（$/MT）</span></div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127468;&#127463; 国内港口</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127468;&#127463; <span class="i18n" data-zh="国内港口" data-en="China Ports">国内港口</span></div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+        <tr>
+          <th class="i18n" data-zh="中文名" data-en="Port (CN)">中文名</th>
+          <th class="i18n" data-zh="港口" data-en="Port (EN)">港口</th>
+          <th>VLSFO</th><th>MGO</th><th>HSFO</th>
+          <th class="i18n" data-zh="价差" data-en="Spread">价差</th>
+          <th class="i18n" data-zh="供应状态" data-en="Supply Status">供应状态</th>
+          <th class="i18n" data-zh="备注" data-en="Remarks">备注</th>
+        </tr>
       </thead>
       <tbody>
         
@@ -380,11 +528,18 @@
     </table>
   </div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127968; 亚太港口</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127968; <span class="i18n" data-zh="亚太港口" data-en="Asia-Pacific Ports">亚太港口</span></div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+        <tr>
+          <th class="i18n" data-zh="中文名" data-en="Port (CN)">中文名</th>
+          <th class="i18n" data-zh="港口" data-en="Port (EN)">港口</th>
+          <th>VLSFO</th><th>MGO</th><th>HSFO</th>
+          <th class="i18n" data-zh="价差" data-en="Spread">价差</th>
+          <th class="i18n" data-zh="供应状态" data-en="Supply Status">供应状态</th>
+          <th class="i18n" data-zh="备注" data-en="Remarks">备注</th>
+        </tr>
       </thead>
       <tbody>
         
@@ -432,11 +587,18 @@
     </table>
   </div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127961; 中东港口</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127961; <span class="i18n" data-zh="中东港口" data-en="Middle East Ports">中东港口</span></div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+        <tr>
+          <th class="i18n" data-zh="中文名" data-en="Port (CN)">中文名</th>
+          <th class="i18n" data-zh="港口" data-en="Port (EN)">港口</th>
+          <th>VLSFO</th><th>MGO</th><th>HSFO</th>
+          <th class="i18n" data-zh="价差" data-en="Spread">价差</th>
+          <th class="i18n" data-zh="供应状态" data-en="Supply Status">供应状态</th>
+          <th class="i18n" data-zh="备注" data-en="Remarks">备注</th>
+        </tr>
       </thead>
       <tbody>
         
@@ -461,11 +623,18 @@
     </table>
   </div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127466;&#127480; 欧洲港口</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127466;&#127480; <span class="i18n" data-zh="欧洲港口" data-en="European Ports">欧洲港口</span></div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+        <tr>
+          <th class="i18n" data-zh="中文名" data-en="Port (CN)">中文名</th>
+          <th class="i18n" data-zh="港口" data-en="Port (EN)">港口</th>
+          <th>VLSFO</th><th>MGO</th><th>HSFO</th>
+          <th class="i18n" data-zh="价差" data-en="Spread">价差</th>
+          <th class="i18n" data-zh="供应状态" data-en="Supply Status">供应状态</th>
+          <th class="i18n" data-zh="备注" data-en="Remarks">备注</th>
+        </tr>
       </thead>
       <tbody>
         
@@ -503,11 +672,18 @@
     </table>
   </div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127463;&#127479; 北美港口</div>
+  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127463;&#127479; <span class="i18n" data-zh="北美港口" data-en="North America Ports">北美港口</span></div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
+        <tr>
+          <th class="i18n" data-zh="中文名" data-en="Port (CN)">中文名</th>
+          <th class="i18n" data-zh="港口" data-en="Port (EN)">港口</th>
+          <th>VLSFO</th><th>MGO</th><th>HSFO</th>
+          <th class="i18n" data-zh="价差" data-en="Spread">价差</th>
+          <th class="i18n" data-zh="供应状态" data-en="Supply Status">供应状态</th>
+          <th class="i18n" data-zh="备注" data-en="Remarks">备注</th>
+        </tr>
       </thead>
       <tbody>
         
@@ -545,7 +721,7 @@
     </table>
   </div>
 
-  <div class="section-title global">&#128202; 全球重点区域市场分析</div>
+  <div class="section-title global">&#128202; <span class="i18n" data-zh="全球重点区域市场分析" data-en="Global Regional Market Analysis">全球重点区域市场分析</span></div>
   <div class="region-grid">
     
       <div class="region-card">
@@ -590,7 +766,7 @@
       </div>
   </div>
 
-  <div class="section-title email">&#9993; 邮件摘要</div>
+  <div class="section-title email">&#9993; <span class="i18n" data-zh="邮件摘要" data-en="Email Summary">邮件摘要</span></div>
   <div class="email-section">
     <pre>各位好，以下是今日（2026年04月28日）全球航运燃油市场简报：
 
@@ -610,20 +786,33 @@
   </div>
 
   <div class="outlook-box">
-    <h3>&#128202; 市场展望与操作建议（2026-04-28_CN）</h3>
-    <p><strong>【核心背景】</strong> 美伊谈判持续推进，地缘局势暂稳但仍存不确定性。原油价格在高位震荡，VLSFO 成本压力持续。霍尔木兹海峡封锁持续，富查伊拉无报价，亚洲船舶需提前规划加油方案。国内港口（宁波舟山、上海）价格优势明显，可作为亚洲航线主要加油点。</p>
+    <h3>&#128202; <span class="i18n" data-zh="市场展望与操作建议（2026-04-28_CN）" data-en="Market Outlook & Recommendations (2026-04-28)">市场展望与操作建议（2026-04-28_CN）</span></h3>
+    <p><strong class="i18n" data-zh="【核心背景】" data-en="[Background]">【核心背景】</strong> 美伊谈判持续推进，地缘局势暂稳但仍存不确定性。原油价格在高位震荡，VLSFO 成本压力持续。霍尔木兹海峡封锁持续，富查伊拉无报价，亚洲船舶需提前规划加油方案。国内港口（宁波舟山、上海）价格优势明显，可作为亚洲航线主要加油点。</p>
     <div class="insight-grid">
       <div class="insight-card">
-        <h4>短期建议（1-2周）</h4>
-        <p>1. <strong>国内优先：</strong>宁波舟山/上海 VLSFO 较新加坡低 $20-25/MT，亚洲航线首选国内港口加注。<br>2. <strong>欧洲洼地：</strong>鹿特丹 666/MT，欧洲挂港船舶应加满。<br>3. <strong>富查伊拉：</strong>提前做好替代方案，前往迪拜加油。<br>4. <strong>洛杉矶：</strong>溢价偏高，建议绕行休斯顿加注。</p>
+        <h4 class="i18n" data-zh="短期建议（1-2周）" data-en="Short-Term Recommendations (1-2 Weeks)">短期建议（1-2周）</h4>
+        <p>
+          1. <strong class="i18n" data-zh="国内优先：" data-en="China First:">国内优先：</strong><span class="i18n" data-zh="宁波舟山/上海 VLSFO 较新加坡低 $20-25/MT，亚洲航线首选国内港口加注。" data-en="Ningbo-Zhoushan/Shanghai VLSFO is $20-25/MT below Singapore, preferred for Asia routes.">宁波舟山/上海 VLSFO 较新加坡低 $20-25/MT，亚洲航线首选国内港口加注。</span><br>
+          2. <strong class="i18n" data-zh="欧洲洼地：" data-en="Europe Advantage:">欧洲洼地：</strong><span class="i18n" data-zh="鹿特丹 666/MT，欧洲挂港船舶应加满。" data-en="Rotterdam 666/MT, vessels calling Europe should top up.">鹿特丹 666/MT，欧洲挂港船舶应加满。</span><br>
+          3. <strong class="i18n" data-zh="富查伊拉：" data-en="Fujairah:">富查伊拉：</strong><span class="i18n" data-zh="提前做好替代方案，前往迪拜加油。" data-en="Prepare alternatives in advance, divert to Dubai.">提前做好替代方案，前往迪拜加油。</span><br>
+          4. <strong class="i18n" data-zh="洛杉矶：" data-en="Los Angeles:">洛杉矶：</strong><span class="i18n" data-zh="溢价偏高，建议绕行休斯顿加注。" data-en="Premium too high, recommend bunkering at Houston instead.">溢价偏高，建议绕行休斯顿加注。</span>
+        </p>
       </div>
       <div class="insight-card">
-        <h4>中期风险（1个月）</h4>
-        <p>1. <strong>美伊谈判：</strong>若达成协议，原油可能回落，燃油成本有下行空间。<br>2. <strong>反转风险：</strong>谈判破裂则原油可能重回 $110+，需保持关注。<br>3. <strong>库存策略：</strong>建议在价格相对低位时适当增加库存。</p>
+        <h4 class="i18n" data-zh="中期风险（1个月）" data-en="Medium-Term Risk (1 Month)">中期风险（1个月）</h4>
+        <p>
+          1. <strong class="i18n" data-zh="美伊谈判：" data-en="US-Iran Talks:">美伊谈判：</strong><span class="i18n" data-zh="若达成协议，原油可能回落，燃油成本有下行空间。" data-en="If a deal is reached, crude may drop, reducing bunker costs.">若达成协议，原油可能回落，燃油成本有下行空间。</span><br>
+          2. <strong class="i18n" data-zh="反转风险：" data-en="Reversal Risk:">反转风险：</strong><span class="i18n" data-zh="谈判破裂则原油可能重回 $110+，需保持关注。" data-en="If talks fail, crude may rebound to $110+, stay alert.">谈判破裂则原油可能重回 $110+，需保持关注。</span><br>
+          3. <strong class="i18n" data-zh="库存策略：" data-en="Inventory Strategy:">库存策略：</strong><span class="i18n" data-zh="建议在价格相对低位时适当增加库存。" data-en="Consider building inventory when prices are relatively low.">建议在价格相对低位时适当增加库存。</span>
+        </p>
       </div>
       <div class="insight-card">
-        <h4>长期关注（季度）</h4>
-        <p>1. <strong>地缘缓和：</strong>霍尔木兹局势若实质性松动，供应将逐步改善。<br>2. <strong>VLSFO-HSFO价差：</strong>继续跟踪洗涤器回报率变化。<br>3. <strong>脱碳趋势：</strong>关注 LNG 动力船舶增长对传统燃油市场的影响。</p>
+        <h4 class="i18n" data-zh="长期关注（季度）" data-en="Long-Term Focus (Quarterly)">长期关注（季度）</h4>
+        <p>
+          1. <strong class="i18n" data-zh="地缘缓和：" data-en="Geopolitical Easing:">地缘缓和：</strong><span class="i18n" data-zh="霍尔木兹局势若实质性松动，供应将逐步改善。" data-en="If Strait of Hormuz situation eases materially, supply will improve.">霍尔木兹局势若实质性松动，供应将逐步改善。</span><br>
+          2. <strong class="i18n" data-zh="VLSFO-HSFO价差：" data-en="VLSFO-HSFO Spread:">VLSFO-HSFO价差：</strong><span class="i18n" data-zh="继续跟踪洗涤器回报率变化。" data-en="Continue monitoring scrubber payback changes.">继续跟踪洗涤器回报率变化。</span><br>
+          3. <strong class="i18n" data-zh="脱碳趋势：" data-en="Decarbonization Trend:">脱碳趋势：</strong><span class="i18n" data-zh="关注 LNG 动力船舶增长对传统燃油市场的影响。" data-en="Monitor impact of LNG-fueled vessel growth on conventional bunker market.">关注 LNG 动力船舶增长对传统燃油市场的影响。</span>
+        </p>
       </div>
     </div>
   </div>
@@ -631,20 +820,50 @@
 </main>
 
 <footer>
-  <p>全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX · HandyBulk · TradingEconomics · 隆众资讯</p>
-  <p style="margin-top:6px;">本报告仅供内部参考，不构成任何投资或采购建议 | 生成时间：2026-04-28 08:00 CST | <a href="https://LeahLiuL.github.io/Claw-Report/reports/">查看历史报告</a></p>
+  <p class="i18n" data-zh="全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX · HandyBulk · TradingEconomics · 隆众资讯" data-en="Global Bunker Fuel Analysis Report &copy; 2026 CUL | Sources: Ship & Bunker · MABUX · HandyBulk · TradingEconomics">全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：Ship & Bunker · MABUX · HandyBulk · TradingEconomics · 隆众资讯</p>
+  <p style="margin-top:6px;"><span class="i18n" data-zh="本报告仅供内部参考，不构成任何投资或采购建议 | " data-en="For internal reference only. Not investment/procurement advice. | ">本报告仅供内部参考，不构成任何投资或采购建议 | </span><span class="i18n" data-zh="生成时间：2026-04-28 08:00 CST | " data-en="Generated: 2026-04-28 08:00 CST | ">生成时间：2026-04-28 08:00 CST | </span><a href="https://LeahLiuL.github.io/Claw-Report/reports/" class="i18n" data-zh="查看历史报告" data-en="View Historical Reports">查看历史报告</a></p>
 </footer>
 
-<div style="margin-top:40px;padding:16px 0;border-top:1px solid #e2e8f0;">
-  <div style="font-size:11px;color:#94a3b8;line-height:1.8;">
-    <strong style="color:#64748b;">数据来源 / Sources：</strong>
-    港口燃油价格：HandyBulk、MABUX（<span style="color:#f59e0b;">示例数据，待接入真实数据源</span>）<br>
-    原油期货价格：Brent / 97.24（公开市场数据）<br>
-    地缘政治：Hellenic Shipping News（<span style="color:#f59e0b;">示例数据，待核实</span>）<br>
-    <br>
-    <span style="color:#f87171;">&#9888; 本报告含示例数据及 AI 分析，内容仅供参考，以实际市场数据为准。AI 解读请勿直接用于交易决策。</span><br>
-    <span style="color:#cbd5e1;">Generated by Claw System &bull; leahliu@culines.com &bull; CULines</span>
-  </div>
+<div style="background:#f1f5f9;border-top:2px solid #e2e8f0;padding:16px 32px;font-size:11px;color:#64748b;line-height:1.8;">
+  <div style="font-weight:700;color:#334155;margin-bottom:8px;"><span class="i18n" data-zh="数据来源 / Sources" data-en="Data Sources">数据来源 / Sources</span></div>
+  <div class="i18n" data-zh="港口燃油价格：HandyBulk、MABUX（示例数据，待接入真实数据源）" data-en="Port bunker prices: HandyBulk, MABUX (sample data, pending live feed integration)">港口燃油价格：HandyBulk、MABUX（示例数据，待接入真实数据源）</div>
+  <div class="i18n" data-zh="原油期货价格：Brent / 97.24（公开市场数据）" data-en="Crude futures: Brent / 97.24 (public market data)">原油期货价格：Brent / 97.24（公开市场数据）</div>
+  <div class="i18n" data-zh="地缘政治：Hellenic Shipping News（示例数据，待核实）" data-en="Geopolitics: Hellenic Shipping News (sample data, to be verified)">地缘政治：Hellenic Shipping News（示例数据，待核实）</div>
+  <div style="margin-top:6px;color:#f87171;" class="i18n" data-zh="⚠ 本报告含示例数据及 AI 分析，内容仅供参考，以实际市场数据为准。AI 解读请勿直接用于交易决策。" data-en="⚠ This report contains sample data and AI analysis for reference only. Do not use AI interpretations directly for trading decisions.">⚠ 本报告含示例数据及 AI 分析，内容仅供参考，以实际市场数据为准。AI 解读请勿直接用于交易决策。</div>
+  <div style="margin-top:6px;color:#cbd5e1;">Generated by Claw System &bull; leahliu@culines.com &bull; CULines</div>
 </div>
+
+<script>
+(function() {
+  // ===== 中英文切换核心逻辑 =====
+  var currentLang = localStorage.getItem('bunkerLang') || 'zh';
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('bunkerLang', lang);
+    document.querySelectorAll('.i18n').forEach(function(el) {
+      var text = el.getAttribute('data-' + lang);
+      if (text) el.innerHTML = text;
+    });
+    document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    // 更新 title
+    var titleEl = document.querySelector('title');
+    if (titleEl) {
+      var t = titleEl.getAttribute('data-' + lang);
+      if (t) document.title = t;
+    }
+  }
+
+  // 暴露到全局供按钮调用
+  window.setLang = setLang;
+
+  // 页面加载后应用语言
+  document.addEventListener('DOMContentLoaded', function() {
+    setLang(currentLang);
+  });
+})();
+</script>
 </body>
 </html>
