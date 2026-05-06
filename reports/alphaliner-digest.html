@@ -90,10 +90,26 @@ a { color:var(--accent);text-decoration:none; }
 .td-pr { font-weight:700;color:var(--text); }
 .section-sub { font-size:12px;color:var(--muted);margin-bottom:12px; }
 footer { border-top:1px solid var(--border);padding:20px 24px;text-align:center;font-size:11px;color:var(--muted); }
-.zh { display:none; }
+/* Bilingual mode: both EN and ZH show simultaneously */
+.zh { display:block; }
 .en { display:block; }
-body.lang-zh .zh { display:block; }
-body.lang-zh .en { display:none; }
+/* EN text is styled as secondary/smaller in bilingual mode */
+.card-title.en { font-size:11px; color:var(--muted); font-weight:500; margin-bottom:3px; }
+.card-title.zh { font-size:14px; font-weight:700; color:var(--text); }
+.card-summary.en { font-size:11px; color:#5a6472; line-height:1.5; margin-top:2px; border-top:1px solid #21262d; padding-top:6px; margin-bottom:2px; font-style:italic; }
+.card-summary.zh { font-size:13px; color:var(--muted); line-height:1.65; margin-bottom:4px; }
+.card-impact .en { font-size:11px; color:#5a7a5a; line-height:1.5; display:block; border-top:1px dashed #2a3d2a; padding-top:5px; margin-top:5px; font-style:italic; }
+.card-impact .zh { font-size:12px; display:block; }
+.hero h2.en { font-size:14px; font-weight:500; color:var(--muted); margin-bottom:2px; }
+.hero h2.zh { font-size:22px; font-weight:800; margin-bottom:6px; }
+.hero p.en { font-size:11px; color:#4a5260; margin-bottom:2px; font-style:italic; }
+.hero p.zh { font-size:13px; color:var(--muted); margin-bottom:16px; }
+.section-sub.en { font-size:11px; color:#4a5260; font-style:italic; margin-bottom:4px; }
+.section-sub.zh { font-size:12px; color:var(--muted); margin-bottom:12px; }
+footer p.en { font-size:10px; color:#3a4050; font-style:italic; }
+footer p.zh { font-size:11px; color:var(--muted); }
+/* hide lang toggle controls since we're bilingual now */
+.lang-controls { display:none; }
 .alert-banner { background:linear-gradient(135deg,rgba(248,81,73,0.15),rgba(210,153,34,0.1));border:1px solid rgba(248,81,73,0.4);border-radius:10px;padding:12px 16px;margin:0 24px 0;max-width:1200px;margin-left:auto;margin-right:auto;margin-bottom:12px; }
 .alert-banner-inner { max-width:1200px;margin:0 auto; }
 .alert-title { font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px; }
@@ -106,51 +122,44 @@ body.lang-zh .en { display:none; }
   <div class="logo">
     <div class="logo-icon">&#x26F2;</div>
     <div class="logo-text">
-      <h1>CUL — Alphaliner Intelligence Digest</h1>
-      <p>Week 19, 2026 (May 5–11) · Powered by Alphaliner &amp; Drewry</p>
+      <h1>CUL — Alphaliner 航运情报摘要</h1>
+      <p>Week 19, 2026 (May 5–11) · 第19周 · Powered by Alphaliner &amp; Drewry</p>
     </div>
-  </div>
-  <div class="lang-controls">
-    <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
-    <button class="lang-btn" id="btnZH" onclick="setLang('zh')">&#20013;&#25991;</button>
   </div>
 </div>
 
 <div class="hero">
   <div class="hero-inner">
     <h2 class="en">Alphaliner <span class="hl">Weekly Intelligence</span> — Week 19</h2>
-    <h2 class="zh">Alphaliner <span class="hl">&#27599;&#21608;&#24773;&#25253;&#25688;&#35201;</span> — &#31532;19&#21608;</h2>
+    <h2 class="zh">Alphaliner <span class="hl">每周情报摘要</span> — 第19周（2026年5月5–11日）</h2>
     <p class="en">AI-curated shipping intelligence | May 5–11, 2026 | Source: Drewry / Alphaliner / Lloyd's List / CENTCOM / ProCarrier / SINO Shipping</p>
-    <p class="zh">AI&#31934;&#36873;&#33322;&#36816;&#24773;&#25253; | 2026&#24180;5&#26376;5&#26085;&#8211;11&#26085; | &#25968;&#25454;&#26469;&#28304;&#65306;Drewry / Alphaliner / Lloyd's List / CENTCOM / ProCarrier / SINO Shipping</p>
+    <p class="zh">AI精选航运情报 | 数据来源：Drewry / Alphaliner / Lloyd's List / CENTCOM / ProCarrier / SINO Shipping</p>
     <div class="hero-stats">
-      <div class="stat-pill"><span class="sv">7</span> <span class="en">Articles</span><span class="zh">&#26465;&#20869;&#23481;</span></div>
-      <div class="stat-pill"><span class="sv">5</span> <span class="en">CUL Direct</span><span class="zh">CUL&#30452;&#25509;&#30456;&#20851;</span></div>
-      <div class="stat-pill"><span class="sv">3</span> <span class="en">Featured</span><span class="zh">&#37325;&#28857;&#26465;&#30446;</span></div>
-      <div class="stat-pill"><span class="sv" style="color:var(--red)">ALERT</span> <span class="en" style="color:var(--red)">Hormuz Crisis Escalating</span><span class="zh" style="color:var(--red)">&#39764;&#29305;&#21496;&#26432;&#21322;&#23631;&#19978;&#21345;&#21046;</span></div>
+      <div class="stat-pill"><span class="sv">7</span> 条情报 / Articles</div>
+      <div class="stat-pill"><span class="sv">5</span> CUL 直接相关</div>
+      <div class="stat-pill"><span class="sv">3</span> 重点 / Featured</div>
+      <div class="stat-pill"><span class="sv" style="color:var(--red)">ALERT</span> <span style="color:var(--red)">霍尔木兹危机升级 / Hormuz Escalating</span></div>
     </div>
   </div>
 </div>
 
 <div style="padding:12px 24px 0;max-width:1248px;margin:0 auto;">
   <div class="alert-banner">
-    <div class="alert-title en">&#9888; CRITICAL: Project Freedom — US Military Escorts in Strait of Hormuz (from May 4)</div>
-    <div class="alert-title zh">&#9888; &#37325;&#35201;&#35686;&#31034;&#65306;&#8220;&#33258;&#30001;&#34892;&#21160;&#8221; &#8212; &#32654;&#36164;5&#26376;4&#26085;&#36827;&#20837;&#39764;&#29305;&#21496;&#26432;&#21322;&#23631;&#25252;&#36865;&#21830;&#33239;</div>
-    <div class="alert-body en">U.S. CENTCOM launched "Project Freedom" on May 4 to escort neutral merchant vessels through the Strait of Hormuz under naval protection. Only limited commercial traffic has moved so far; experts are skeptical of success. Iran's IRGC issued new threats. Oil has surged to ~$110/bbl. War risk insurance has multiplied. Carriers scrambling for details — no industry coordination prior to announcement. (Sources: CENTCOM press release May 4; CNBC May 5; Lloyd's List May 5, 2026)</div>
-    <div class="alert-body zh">&#32654;&#22269;&#20013;&#22830;&#21629;&#20196;&#20844;&#24335;&#20110;5&#26376;4&#26085;&#21551;&#21160;&#8220;&#33258;&#30001;&#34892;&#21160;&#8221;&#65292;&#22312;&#28023;&#20405;&#25252;&#36761;&#19979;&#25252;&#36865;&#20013;&#31435;&#21830;&#33239;&#36890;&#36807;&#39764;&#29305;&#21496;&#26432;&#21322;&#23631;&#12290;&#30446;&#21069;&#20165;&#26377;&#26377;&#38480;&#21830;&#20551;&#36890;&#34892;&#65307;&#19987;&#23478;&#23545;&#25104;&#21151;&#25345;&#24758;&#30097;&#24441;&#12290;&#20234;&#26183;&#38405;&#21629;&#21010;&#38450;&#536B;&#38505;&#38450;&#38431;&#21457;&#20986;&#26032;威胁&#12290;&#21407;&#27979;&#28246;&#21040;&#32422;$110/&#26690;&#12290;&#25112;&#20105;&#38515;&#36153;&#29992;&#30103;&#22312;&#37325;&#21457;&#12290;&#65288;&#26469;&#28304;&#65306;CENTCOM 5&#26376;4&#26085;&#12289;CNBC 5&#26376;5&#26085;&#12289;Lloyd's List 5&#26376;5&#26085;&#65289;</div>
+    <div class="alert-title">&#9888; 重要警示 / CRITICAL: "自由行动 Project Freedom" — 美军5月4日启动霍尔木兹护航</div>
+    <div class="alert-body" style="font-size:13px;color:var(--muted);margin-bottom:5px;">美国中央司令部于5月4日启动"自由行动"，在海军护卫下引导中立商船通过霍尔木兹海峡。目前仅有有限商船恢复通行；专家持怀疑态度。伊朗革命卫队发出新威胁。原油飙至约 $110/桶，战争险暴增数倍。（来源：CENTCOM 5月4日；CNBC、Lloyd's List 5月5日）</div>
+    <div class="alert-body" style="font-size:11px;color:#4a5260;font-style:italic;">U.S. CENTCOM launched "Project Freedom" May 4 to escort neutral merchant vessels through Hormuz under naval protection. Only limited commercial traffic moving; experts skeptical. IRGC issued new threats. Oil ~$110/bbl. War risk insurance multiplied. Carriers scrambling for details.</div>
   </div>
 </div>
 
 <div class="filter-bar">
   <div class="filter-inner">
-    <span class="filter-label en">Dept</span>
-    <span class="filter-label zh">&#37096;&#38272;</span>
-    <span class="ftag active" data-dept="all">All</span>
-    <span class="ftag" data-dept="ops">Ops</span>
-    <span class="ftag" data-dept="fin">Finance</span>
-    <span class="ftag" data-dept="commercial">Commercial</span>
-    <span class="ftag" data-dept="network">Network</span>
-    <div class="result-count en">Showing <span id="countEN">7</span> items</div>
-    <div class="result-count zh">&#26174;&#31034; <span id="countZH">7</span> &#26465;</div>
+    <span class="filter-label">部门 / Dept</span>
+    <span class="ftag active" data-dept="all">All 全部</span>
+    <span class="ftag" data-dept="ops">运营 Ops</span>
+    <span class="ftag" data-dept="fin">财务 Fin</span>
+    <span class="ftag" data-dept="commercial">商务 Commercial</span>
+    <span class="ftag" data-dept="network">航网 Network</span>
+    <div class="result-count">共 <span id="countEN">7</span> 条</div>
   </div>
 </div>
 
@@ -311,9 +320,9 @@ body.lang-zh .en { display:none; }
 <!-- MARKET DATA -->
 <div class="data-tabs">
   <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('tab-freight')">Freight Rates</button>
-    <button class="tab-btn" onclick="switchTab('tab-bunker')">Bunker Fuel</button>
-    <button class="tab-btn" onclick="switchTab('tab-charter')">Charter</button>
+    <button class="tab-btn active" onclick="switchTab('tab-freight')">运价 Freight Rates</button>
+    <button class="tab-btn" onclick="switchTab('tab-bunker')">燃油 Bunker</button>
+    <button class="tab-btn" onclick="switchTab('tab-charter')">租船 Charter</button>
   </div>
 
   <div class="tab-pane active" id="tab-freight">
@@ -347,7 +356,7 @@ body.lang-zh .en { display:none; }
     </div>
     <div class="data-table">
       <table>
-        <thead><tr><th>Route</th><th>Rate ($/40ft)</th><th>WoW / MoM</th><th>Trend</th></tr></thead>
+        <thead><tr><th>航线 Route</th><th>运价 Rate ($/40ft)</th><th>周/月变化 WoW/MoM</th><th>走势 Trend</th></tr></thead>
         <tbody>
           <tr><td>Asia &#8594; N. Europe (Big 4)</td><td class="td-pr">~$1,650</td><td class="td-dn">&#x25BC; -26% MoM</td><td>Collapsing</td></tr>
           <tr><td>Asia &#8594; Med</td><td class="td-pr">~$2,400</td><td class="td-dn">&#x25BC; Softening</td><td>Weakening</td></tr>
@@ -425,8 +434,8 @@ body.lang-zh .en { display:none; }
 </div>
 
 <footer>
-  <p class="en">CUL — Alphaliner Intelligence Digest | Week 19 (May 5–11, 2026) | Generated May 6, 2026 | Data: Drewry WCI, Alphaliner, SCFI, CENTCOM, Lloyd's List, ProCarrier, SINO Shipping, Magellan Logistics, AlixPartners</p>
-  <p class="zh">CUL — Alphaliner&#24773;&#25253;&#25688;&#35201; | &#31532;19&#21608;&#65288;2026&#24180;5&#26376;5&#8211;11&#26085;&#65289; | &#29983;&#25104;&#20110;2026&#24180;5&#26376;6&#26085; | &#25968;&#25454;&#26469;&#28304;&#65306;Drewry WCI / Alphaliner / SCFI / CENTCOM / Lloyd's List / ProCarrier / SINO Shipping / AlixPartners</p>
+  <p class="zh">CUL — Alphaliner 航运情报摘要 | 第19周（2026年5月5–11日）| 生成于2026年5月6日 | 数据来源：Drewry WCI / Alphaliner / SCFI / CENTCOM / Lloyd's List / ProCarrier / SINO Shipping / AlixPartners</p>
+  <p class="en">CUL Alphaliner Intelligence Digest | Week 19 (May 5–11, 2026) | Generated May 6, 2026 | Data: Drewry WCI, Alphaliner, SCFI, CENTCOM, Lloyd's List, ProCarrier, SINO Shipping, Magellan Logistics, AlixPartners</p>
 </footer>
 
 <script>
