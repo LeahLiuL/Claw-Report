@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CUL Daily Movement Dashboard</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
     --bg:#f0f2f5; --card:#fff;--primary:#1F4E79;--accent:#2F75B5;
@@ -60,7 +61,79 @@ td { padding:8px 10px; vertical-align:middle; }
 .search-box { flex:1; min-width:180px; max-width:300px; }
 .result-count { font-size:13px; color:var(--text2); padding:8px 0; font-weight:600; }
 
-.filter-hint { background:#fff8e1; border:1px solid #ffd54f; border-radius:8px; padding:10px 16px; margin-bottom:12px; font-size:12px; color:#f57f17; }
+/* ========== 下拉式多选框 ========= */
+.multi-select {
+    position:relative; display:inline-block;
+}
+.ms-trigger {
+    display:flex; align-items:center; gap:6px;
+    padding:7px 12px; border:1px solid var(--border); border-radius:6px;
+    font-size:13px; cursor:pointer; background:#fff; min-width:130px;
+    transition:border-color .2s; user-select:none;
+}
+.ms-trigger:hover { border-color:var(--primary); }
+.ms-trigger.open { border-color:var(--primary); box-shadow:0 0 0 2px rgba(31,78,121,.15); }
+.ms-trigger .ms-arrow { margin-left:auto; font-size:10px; color:#999; transition:transform .2s; }
+.ms-trigger.open .ms-arrow { transform:rotate(180deg); }
+.ms-trigger .ms-placeholder { color:#999; }
+.ms-trigger .ms-tags { display:flex; gap:4px; flex-wrap:wrap; max-width:200px; }
+.ms-tag {
+    display:inline-flex; align-items:center; gap:3px;
+    padding:1px 6px; background:var(--primary); color:#fff;
+    border-radius:4px; font-size:11px; white-space:nowrap;
+    max-width:80px; overflow:hidden; text-overflow:ellipsis;
+}
+.ms-tag .ms-remove { cursor:pointer; opacity:.7; line-height:1; }
+.ms-tag .ms-remove:hover { opacity:1; }
+
+/* 下拉面板 */
+.ms-dropdown {
+    position:absolute; top:100%; left:0; z-index:1000;
+    background:#fff; border:1px solid var(--border);
+    border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15);
+    min-width:220px; max-height:300px; display:none;
+    flex-direction:column; overflow:hidden; margin-top:4px;
+}
+.ms-dropdown.show { display:flex; }
+
+/* 面板头部 */
+.ms-header {
+    display:flex; align-items:center; padding:8px 14px;
+    border-bottom:1px solid #f0f0f0; gap:8px;
+}
+.ms-header input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; }
+.ms-header span { font-size:13px; font-weight:600; color:var(--text); cursor:pointer; user-select:none; }
+
+/* 列表区域 */
+.ms-list {
+    overflow-y:auto; flex:1; padding:6px 0;
+}
+.ms-item {
+    display:flex; align-items:center; gap:8px;
+    padding:5px 14px; cursor:pointer; font-size:13px; transition:background .1s;
+}
+.ms-item:hover { background:#f5f7fa; }
+.ms-item.selected { background:#eef4fc; }
+.ms-item input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); cursor:pointer; pointer-events:none; }
+.ms-item span { flex:1; user-select:none; }
+
+/* 底部按钮 */
+.ms-footer {
+    display:flex; justify-content:space-between; padding:8px 14px;
+    border-top:1px solid #f0f0f0; gap:8px;
+}
+.ms-footer button {
+    padding:4px 16px; border-radius:4px; font-size:12px;
+    cursor:pointer; border:1px solid var(--border); background:#fff;
+    transition:all .15s;
+}
+.ms-footer .ms-clear-btn { color:#999; }
+.ms-footer .ms-clear-btn:hover { color:var(--red); border-color:#ffcdd2; background:#fff5f5; }
+.ms-footer .ms-ok-btn {
+    background:var(--primary); color:#fff; border-color:var(--primary);
+}
+.ms-footer .ms-ok-btn:hover { background:#163d61; }
+
 @media(max-width:900px){ .toolbar{flex-direction:column;align-items:stretch;} .search-box{max-width:none} }
 </style>
 </head>
@@ -84,16 +157,34 @@ td { padding:8px 10px; vertical-align:middle; }
     <label><span title="To">至:</span></label>
     <input type="date" id="dateTo" title="End Date / 截止日期">
 
-    <label>🛳️ <span title="Service Lane">航线:</span></label>
-    <select id="selSvc"><option value="">All 全部</option></select>
+    <label>🛳️ <span title="Service Lane">Lane / 航线:</span></label>
+    <div class="multi-select" id="laneMultiSelect">
+        <div class="ms-trigger" id="msTrigger" onclick="toggleMsDropdown()">
+            <span id="msPlaceholder" class="ms-placeholder">无限制 / No Filter</span>
+            <span class="ms-tags" id="msTags"></span>
+            <span class="ms-arrow">▾</span>
+        </div>
+        <div class="ms-dropdown" id="msDropdown">
+            <div class="ms-header">
+                <input type="checkbox" id="msSelectAll" onchange="msToggleAll(this.checked)">
+                <span onclick="document.getElementById('msSelectAll').checked=!document.getElementById('msSelectAll').checked;msToggleAll(document.getElementById('msSelectAll').checked)">全选 Select All</span>
+            </div>
+            <div class="ms-list" id="msList"></div>
+            <div class="ms-footer">
+                <button class="ms-clear-btn" onclick="msClear()">清空 Clear</button>
+                <button class="ms-ok-btn" onclick="msConfirm()">确定 OK</button>
+            </div>
+        </div>
+    </div>
 
-    <label>🏭 <span title="Terminal/Port">港口:</span></label>
+    <label>🏭 <span title="Terminal/Port">Terminal 港口:</span></label>
     <select id="selTerminal"><option value="">All 全部</option></select>
 
     <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search Vessel/VoyNo 搜索..." oninput="renderCurrent()">
 
     <button class="btn-primary" onclick="renderCurrent()">🔍 Filter 筛选</button>
     <button class="btn-outline" onclick="resetFilters()">↺ Reset 重置</button>
+    <button class="btn-primary" onclick="exportExcel()" style="background:#27ae60;">📥 Export Excel</button>
 </div>
 
 <div class="tabs">
@@ -26289,9 +26380,9 @@ const DATA = {
   ]
 };
 
-const SVC_COLORS = {'HDT':'#C6E0B4','CCT':'#FCE4D6','REX':'#DDEBF7','CGX':'#FFF2CC','AEM':'#E4DFEC',
-    'JPS':'#F2F2F2','NAF':'#DBEEF4','MES':'#FFE6F0','RES':'#FFFACD','SGX':'#E6E6FA',
-    'SJA':'#F0FFF0','NP2':'#FFE4E1','GTS':'#E0FFFF','IMR':'#FFEFDB'};
+const SVC_COLORS = {'HDT':'#F4A261','CCT':'#2A9D8F','REX':'#457B9D','CGX':'#E9C46A','AEM':'#9B5DE5',
+    'JPS':'#00B4D8','NAF':'#E76F51','MES':'#D63384','RES':'#06D6A0','SGX':'#7209B7',
+    'SJA':'#4CC9F0','NP2':'#F72585','GTS':'#FFD166','IMR':'#06A77D'};
 
 // Init stats
 const shipSet = new Set(DATA.all_records.map(function(r){return r['Vessel Name'];}));
@@ -26299,17 +26390,138 @@ document.getElementById('totalShips').textContent = shipSet.size;
 document.getElementById('totalRecords').textContent = DATA.all_records.length;
 document.getElementById('totalTerminals').textContent = DATA.all_terminals.length;
 
-// Populate selects
+// Populate Terminal select
 DATA.all_terminals.forEach(function(t){
     const o = document.createElement('option');
     o.value=t; o.textContent=t;
     document.getElementById('selTerminal').appendChild(o);
 });
-DATA.services.forEach(function(s){
-    const o = document.createElement('option');
-    o.value=s; o.textContent=s;
-    document.getElementById('selSvc').appendChild(o);
-});
+
+// ========== Lane 多选下拉框 ==========
+var msSelected = {};  // {svc: true/false}
+var msDropdownOpen = false;
+
+function initMultiSelect(){
+    var listEl = document.getElementById('msList');
+    listEl.innerHTML = '';
+    DATA.services.forEach(function(svc){
+        // 默认全选
+        msSelected[svc] = true;
+        var div = document.createElement('div');
+        div.className = 'ms-item selected';
+        div.innerHTML = '<input type="checkbox" checked><span>' + svc + '</span>';
+        div.onclick = function(e){
+            e.stopPropagation();
+            var cb = this.querySelector('input[type=checkbox]');
+            cb.checked = !cb.checked;
+            msSelected[svc] = cb.checked;
+            this.classList.toggle('selected', cb.checked);
+            updateSelectAllState();
+        };
+        listEl.appendChild(div);
+    });
+    updateTriggerUI();
+}
+
+function toggleMsDropdown(){
+    var dd = document.getElementById('msDropdown');
+    var trig = document.getElementById('msTrigger');
+    msDropdownOpen = !msDropdownOpen;
+    if(msDropdownOpen){
+        dd.classList.add('show');
+        trig.classList.add('open');
+        // 点击外部关闭
+        setTimeout(function(){
+            document.addEventListener('click', closeMsOnOutside);
+        }, 0);
+    } else {
+        closeMsPanel();
+    }
+}
+
+function closeMsOnOutside(e){
+    var container = document.getElementById('laneMultiSelect');
+    if(!container.contains(e.target)){
+        closeMsPanel();
+    }
+}
+
+function closeMsPanel(){
+    document.removeEventListener('click', closeMsOnOutside);
+    var dd = document.getElementById('msDropdown');
+    var trig = document.getElementById('msTrigger');
+    dd.classList.remove('show');
+    trig.classList.remove('open');
+    msDropdownOpen = false;
+}
+
+function msToggleAll(checked){
+    msSelected = {};
+    DATA.services.forEach(function(s){ msSelected[s] = checked; });
+    var items = document.querySelectorAll('.ms-item');
+    items.forEach(function(item){
+        item.querySelector('input[type=checkbox]').checked = checked;
+        item.classList.toggle('selected', checked);
+    });
+}
+
+function updateSelectAllState(){
+    var allChecked = DATA.services.every(function(s){ return msSelected[s]; });
+    var noneChecked = DATA.services.every(function(s){ return !msSelected[s]; });
+    var sa = document.getElementById('msSelectAll');
+    sa.checked = allChecked;
+    sa.indeterminate = !allChecked && !noneChecked;
+}
+
+function msClear(){
+    msToggleAll(false);
+}
+
+function msConfirm(){
+    closeMsPanel();
+    updateTriggerUI();
+    renderCurrent();
+}
+
+function updateTriggerUI(){
+    var selectedKeys = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
+    var placeholder = document.getElementById('msPlaceholder');
+    var tagsContainer = document.getElementById('msTags');
+
+    if(selectedKeys.length === 0 || selectedKeys.length === DATA.services.length){
+        placeholder.style.display = '';
+        tagsContainer.innerHTML = '';
+        placeholder.textContent = selectedKeys.length === 0 ? '无限制 / No Filter' : 'All / 全部';
+    } else {
+        placeholder.style.display = 'none';
+        tagsContainer.innerHTML = '';
+        selectedKeys.forEach(function(k){
+            var tag = document.createElement('span');
+            tag.className = 'ms-tag';
+            tag.textContent = k + ' ×';
+            tag.title = k + ' (click to remove)';
+            tag.onclick = function(e){
+                e.stopPropagation();
+                msSelected[k] = false;
+                // 更新list里的状态
+                var items = document.querySelectorAll('.ms-item');
+                items.forEach(function(item){
+                    if(item.textContent.trim() === k){
+                        item.querySelector('input[type=checkbox]').checked = false;
+                        item.classList.remove('selected');
+                    }
+                });
+                updateSelectAllState();
+                renderCurrent();
+            };
+            tagsContainer.appendChild(tag);
+        });
+    }
+    updateSelectAllState();
+}
+
+// 初始化多选
+initMultiSelect();
 
 // Default date range (auto-fill from data)
 if(DATA.dated_records && DATA.dated_records.length > 0){
@@ -26330,7 +26542,15 @@ function switchTab(tab){
 function resetFilters(){
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
-    document.getElementById('selSvc').value = '';
+    // 全选航线
+    msSelected = {};
+    DATA.services.forEach(function(s){ msSelected[s] = true; });
+    var items = document.querySelectorAll('.ms-item');
+    items.forEach(function(item){
+        item.querySelector('input[type=checkbox]').checked = true;
+        item.classList.add('selected');
+    });
+    updateTriggerUI();
     document.getElementById('selTerminal').value = '';
     document.getElementById('searchInput').value = '';
     renderCurrent();
@@ -26340,13 +26560,17 @@ function resetFilters(){
 function filterRecords(){
     var df = document.getElementById('dateFrom').value;
     var dt = document.getElementById('dateTo').value;
-    var sVal = document.getElementById('selSvc').value;       // Lane/航线
+    // Lane多选: 从msSelected获取选中项
+    var selectedKeys = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
+    var selCount = selectedKeys.length;
+    var selVals = {};
+    selectedKeys.forEach(function(k){ selVals[k] = true; });
     var tVal = document.getElementById('selTerminal').value;   // Terminal
     var q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
 
     return DATA.all_records.filter(function(r){
-        // 1) Lane/航线筛选
-        if(sVal && (r.Service || '') !== sVal) return false;
+        // 1) Lane/航线多选筛选
+        if(selCount > 0 && !selVals[r.Service || '']) return false;
 
         // 2) Terminal 筛选（支持模糊匹配）
         if(tVal){
@@ -26411,7 +26635,9 @@ function renderCurrent(){
     var countHtml = '筛选结果 Filtered：<b style="color:var(--primary)">' + filtered.length + '</b> / ' + DATA.all_records.length + ' 条 Records';
     // 显示当前筛选条件摘要
     var hints = [];
-    if(document.getElementById('selSvc').value) hints.push('Lane: ' + document.getElementById('selSvc').value);
+    // 航线提示
+    var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
+    if(selectedSvcs.length > 0 && selectedSvcs.length < DATA.services.length) hints.push('Lane: ' + selectedSvcs.join('/'));
     if(document.getElementById('selTerminal').value) hints.push('Terminal: ' + document.getElementById('selTerminal').value);
     if(document.getElementById('dateFrom').value || document.getElementById('dateTo').value)
         hints.push(document.getElementById('dateFrom').value + ' ~ ' + document.getElementById('dateTo').value);
@@ -26784,6 +27010,32 @@ function renderMatrixRow(v, terminals){
     });
     r += '</tr>';
     return r;
+}
+
+function exportExcel(){
+    var filtered = sortByETA(filterRecords());
+    if(filtered.length === 0){ alert('No data to export / 无数据可导出'); return; }
+
+    // 准备数据
+    var keys = ['Service','Vessel Name','PIC','Port Code','Terminal','Proforma Window',
+                'Voy.No','ETA','ETB','ETD','Port Stay(h)','Delay'];
+    var headers = ['Service / 航线','Vessel / 船名','PIC','Port Code','Terminal / 港口','Proforma',
+                   'Voy.No','ETA','ETB','ETD','Port Stay(h)','Delay'];
+
+    var data = [headers];
+    filtered.forEach(function(r){
+        var row = [];
+        keys.forEach(function(k){ row.push(r[k] || ''); });
+        data.push(row);
+    });
+
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    var colWidths = [{wch:6},{wch:22},{wch:14},{wch:10},{wch:24},{wch:18},{wch:10},{wch:16},{wch:16},{wch:16},{wch:10},{wch:14}];
+    ws['!cols'] = colWidths;
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Filtered Data');
+    XLSX.writeFile(wb, 'CUL_Daily_Movement_Filtered.xlsx');
 }
 
 function escapeHtml(text){
