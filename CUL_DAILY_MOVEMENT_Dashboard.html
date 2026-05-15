@@ -26596,20 +26596,26 @@ function renderMatrix(records){
     });
     // ---- Custom Port Order ----
     var portOrderMap = {
-        'Qingdao, CN': 0, 'Shanghai, CN': 1, 'Ningbo, CN': 2,
-        'Shekou, CN': 3, 'Nansha, CN': 4, 'Xiamen, CN': 5,
-        'Port Klang, MY': 6,
-        'Sokhna, EG': 7, 'Jeddah, SA': 8,
+        'Qingdao, CN': 0, 'CNTAO': 0, 'Shanghai, CN': 1, 'CNSHA': 1,
+        'Ningbo, CN': 2, 'CNNGB': 2, 'Shekou, CN': 3, 'CNSWA': 3,
+        'Nansha, CN': 4, 'CNNAS': 4, 'Xiamen, CN': 5, 'CNXMN': 5,
+        'Port Klang, MY': 6, 'MYPKG': 6,
+        'Sokhna, EG': 7, 'EGSOK': 7, 'Jeddah, SA': 8, 'SAJED': 8,
         'PKKHI': 9, 'JOAQJ': 10,
-        'Mundra, IN': 11,
+        'Mundra, IN': 11, 'INMUN': 11,
     };
     var PORT_DISPLAY_LABEL = {
-        'Qingdao, CN':'TAO (Qingdao)', 'Shanghai, CN':'SHA (Shanghai)',
-        'Ningbo, CN':'NGB (Ningbo)', 'Shekou, CN':'SHK (Shekou)',
-        'Nansha, CN':'NAS (Nansha)', 'Xiamen, CN':'XMN (Xiamen)',
-        'Port Klang, MY':'PKG (Port Klang)', 'Sokhna, EG':'SOK (Sokhna)',
-        'Jeddah, SA':'JED (Jeddah)', 'PKKHI':'KHI (Karachi)',
-        'JOAQJ':'AQJ (Aqaba)', 'Mundra, IN':'MUN (Mundra)',
+        'Qingdao, CN':'TAO', 'Shanghai, CN':'SHA',
+        'Ningbo, CN':'NGB', 'Shekou, CN':'SHK',
+        'Nansha, CN':'NAS', 'Xiamen, CN':'XMN',
+        'Port Klang, MY':'PKG', 'Sokhna, EG':'SOK',
+        'Jeddah, SA':'JED', 'PKKHI':'KHI',
+        'JOAQJ':'AQJ', 'Mundra, IN':'MUN',
+        'CNNSA':'NAS', 'CNSWA':'SHK', 'CNTAO':'TAO',
+        'CNSHA':'SHA', 'CNNGB':'NGB', 'CNXMN':'XMN',
+        'MYPKG':'PKG', 'EGSOK':'SOK', 'SAJED':'JED',
+        'INMUN':'MUN', 'SGSIN':'SIN', 'CNSHK':'HKG',
+        'INNSA':'NSA', 'CNGCT':'GCT', 'CNHMN':'HMN',
     };
     function portSortKey(t){
         var idx = portOrderMap[t];
