@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,7 @@
     --border:#e0e0e0;--text:#333;--text2:#666;--red:#c0392b;--green:#27ae60;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg); padding:16px; }
+body { font-family:'Segoe UI',-apple-system,sans-serif; background:var(--bg); padding:16px; }
 
 .header { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff;
     padding:20px 28px; border-radius:12px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
@@ -142,56 +142,56 @@ td { padding:8px 10px; vertical-align:middle; }
 <div class="header">
     <div>
         <h1>🚢 CUL VESSEL DAILY MOVEMENT</h1>
-        <p style="opacity:.85;font-size:13px;margin-top:4px;">船舶调度总览 · Daily Operations Dashboard</p>
+        <p style="opacity:.85;font-size:13px;margin-top:4px;">Daily Operations Dashboard</p>
     </div>
     <div class="stats">
-        <span><b id="totalShips">-</b> Vessels 艘船</span>
-        <span><b id="totalRecords">-</b> Records 记录</span>
-        <span><b id="totalTerminals">-</b> Ports 港口</span>
+        <span><b id="totalShips">-</b> Vessels</span>
+        <span><b id="totalRecords">-</b> Records</span>
+        <span><b id="totalTerminals">-</b> Ports</span>
     </div>
 </div>
 
 <div class="toolbar">
-    <label>📅 <span title="From">从:</span></label>
-    <input type="date" id="dateFrom" title="Start Date / 起始日期">
-    <label><span title="To">至:</span></label>
-    <input type="date" id="dateTo" title="End Date / 截止日期">
+    <label>📅 <span title="From">From:</span></label>
+    <input type="date" id="dateFrom" title="Start Date">
+    <label><span title="To">To:</span></label>
+    <input type="date" id="dateTo" title="End Date">
 
-    <label>🛳️ <span title="Service Lane">Lane / 航线:</span></label>
+    <label>🛳️ <span title="Service Lane">Lane:</span></label>
     <div class="multi-select" id="laneMultiSelect">
         <div class="ms-trigger" id="msTrigger" onclick="toggleMsDropdown()">
-            <span id="msPlaceholder" class="ms-placeholder">无限制 / No Filter</span>
+            <span id="msPlaceholder" class="ms-placeholder">All Lanes</span>
             <span class="ms-tags" id="msTags"></span>
             <span class="ms-arrow">▾</span>
         </div>
         <div class="ms-dropdown" id="msDropdown">
             <div class="ms-header">
                 <input type="checkbox" id="msSelectAll" onchange="msToggleAll(this.checked)">
-                <span onclick="document.getElementById('msSelectAll').checked=!document.getElementById('msSelectAll').checked;msToggleAll(document.getElementById('msSelectAll').checked)">全选 Select All</span>
+                <span onclick="document.getElementById('msSelectAll').checked=!document.getElementById('msSelectAll').checked;msToggleAll(document.getElementById('msSelectAll').checked)">Select All</span>
             </div>
             <div class="ms-list" id="msList"></div>
             <div class="ms-footer">
-                <button class="ms-clear-btn" onclick="msClear()">清空 Clear</button>
-                <button class="ms-ok-btn" onclick="msConfirm()">确定 OK</button>
+                <button class="ms-clear-btn" onclick="msClear()">Clear</button>
+                <button class="ms-ok-btn" onclick="msConfirm()">OK</button>
             </div>
         </div>
     </div>
 
-    <label>🏭 <span title="Terminal/Port">Terminal 港口:</span></label>
-    <select id="selTerminal"><option value="">All 全部</option></select>
+    <label>🏭 <span title="Terminal/Port">Terminal:</span></label>
+    <select id="selTerminal"><option value="">All</option></select>
 
-    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search Vessel/VoyNo 搜索..." oninput="renderCurrent()">
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search Vessel/VoyNo..." oninput="renderCurrent()">
 
-    <button class="btn-primary" onclick="renderCurrent()">🔍 Filter 筛选</button>
-    <button class="btn-outline" onclick="resetFilters()">↺ Reset 重置</button>
+    <button class="btn-primary" onclick="renderCurrent()">🔍 Filter</button>
+    <button class="btn-outline" onclick="resetFilters()">↺ Reset</button>
     <button class="btn-primary" onclick="exportExcel()" style="background:#27ae60;">📥 Export Excel</button>
 </div>
 
 <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('terminal')" id="tabTerminal">📍 By Terminal 按港口</button>
-    <button class="tab-btn" onclick="switchTab('timeline')" id="tabTimeline">📅 Timeline 时间线</button>
-    <button class="tab-btn" onclick="switchTab('matrix')" id="tabMatrix">📊 Matrix 矩阵</button>
-    <button class="tab-btn" onclick="switchTab('raw')" id="tabRaw">📋 Raw Data 原始数据</button>
+    <button class="tab-btn active" onclick="switchTab('terminal')" id="tabTerminal">📍 By Terminal</button>
+    <button class="tab-btn" onclick="switchTab('timeline')" id="tabTimeline">📅 Timeline</button>
+    <button class="tab-btn" onclick="switchTab('matrix')" id="tabMatrix">📊 Matrix</button>
+    <button class="tab-btn" onclick="switchTab('raw')" id="tabRaw">📋 Raw Data</button>
 </div>
 
 <div id="resultCount" class="result-count"></div>
@@ -26491,7 +26491,7 @@ function updateTriggerUI(){
     if(selectedKeys.length === 0 || selectedKeys.length === DATA.services.length){
         placeholder.style.display = '';
         tagsContainer.innerHTML = '';
-        placeholder.textContent = selectedKeys.length === 0 ? '无限制 / No Filter' : 'All / 全部';
+        placeholder.textContent = selectedKeys.length === 0 ? 'No Filter' : 'All';
     } else {
         placeholder.style.display = 'none';
         tagsContainer.innerHTML = '';
@@ -26632,7 +26632,7 @@ function sortByETA(arr){
 
 function renderCurrent(){
     var filtered = sortByETA(filterRecords());
-    var countHtml = '筛选结果 Filtered：<b style="color:var(--primary)">' + filtered.length + '</b> / ' + DATA.all_records.length + ' 条 Records';
+    var countHtml = 'Filtered: <b style="color:var(--primary)">' + filtered.length + '</b> / ' + DATA.all_records.length + ' Records';
     // 显示当前筛选条件摘要
     var hints = [];
     // 航线提示
@@ -26671,14 +26671,14 @@ function renderByTerminal(records){
 
     var html = '<div style="padding:12px;">';
     if(sortedTerms.length === 0){
-        html += '<div class="filter-hint">⚠️ No matching records 无匹配记录<br>• Try clearing filters / 试试清空筛选条件<br>• Switch to Raw Data tab / 切换到原始数据Tab<br>• Check date range. Data covers: ' +
+        html += '<div class="filter-hint">⚠️ No matching records<br>• Try clearing filters<br>• Switch to Raw Data tab<br>• Check date range. Data covers: ' +
                (DATA.dated_records[0]?DATA.dated_records[0]._date:'?') + ' ~ ' +
-               (DATA.dated_records[DATA.dated_records.length-1]?DATA.dated_records[DATA.dated_records.length-1]._date:'?') + '）</div>';
+               (DATA.dated_records[DATA.dated_records.length-1]?DATA.dated_records[DATA.dated_records.length-1]._date:'?') + '</div>';
     } else {
         sortedTerms.forEach(function(term){
             var recs = groups[term];
             html += '<div class="terminal-group"><div class="terminal-group-header">' +
-                    '📍 ' + escapeHtml(term) + '<span class="count">' + recs.length + ' 艘到港</span></div>' +
+                    '📍 ' + escapeHtml(term) + '<span class="count">' + recs.length + ' Arrivals</span></div>' +
                     '<table><thead><tr>' +
                     '<th>#</th><th>Port</th><th>🛳️ Lane</th><th>Vessel</th><th>Voy.No</th>' +
                     '<th>ETA</th><th>ETB → ETD</th><th>Proforma</th></tr></thead><tbody>';
@@ -26737,10 +26737,10 @@ function renderTimeline(records){
     var html = '<div style="padding:12px;">';
 
     if(Object.keys(days).length === 0){
-        html += '<div class="filter-hint">⚠️ No arrivals in this period / 该时间段内无到港记录<br>' +
-               '• Data coverage / 数据覆盖: ' + (dated[0]?dated[0]._date||'?':'?') + ' ~ ' +
+        html += '<div class="filter-hint">⚠️ No arrivals in this period<br>' +
+               '• Data coverage: ' + (dated[0]?dated[0]._date||'?':'?') + ' ~ ' +
                (dated[dated.length-1]?dated[dated.length-1]._date||'?':'?') + '<br>' +
-               '• Try clearing date range or switch to Raw Data tab / 试试清空日期或切换到原始数据Tab</div>';
+               '• Try clearing date range or switch to Raw Data tab</div>';
     } else {
         Object.keys(days).sort().forEach(function(dateStr){
             var recs = days[dateStr];
@@ -26750,7 +26750,7 @@ function renderTimeline(records){
             html += '<div style="margin-bottom:12px;"><div class="date-group-header">' +
                     '📅 ' + dateStr + ' <span style="font-size:11px;opacity:.8">(' + dow + ')</span> ' +
                     '<span style="margin-left:auto;background:rgba(255,255,255,.25);padding:2px 10px;border-radius:10px;font-size:11px;">' +
-                    recs.length + ' 艘</span></div>' +
+                    recs.length + ' Vessels</span></div>' +
                     '<table><thead><tr>' +
                     '<th>Time</th><th>Port / Terminal</th><th>🛳️ Lane</th><th>Vessel</th>' +
                     '<th>Voy.No</th><th>ETB → ETD</th><th>Delay</th></tr></thead><tbody>';
@@ -26801,13 +26801,13 @@ function renderRaw(records){
 }
 
 // ========== TAB 4: MATRIX (REX Schedule 风格) ==========
-// Sort mode: 0=按航线, 1=按船名(W/E合并)
+// Sort mode: 0=By Service, 1=By Vessel (W/E merged)
 var matrixSortMode = 1;  // 默认按船名排序（W/E合并）
 
 function renderMatrix(records){
     if(records.length === 0){
         document.getElementById('mainContent').innerHTML =
-            '<div class="filter-hint">⚠️ No matching records / 无匹配记录</div>';
+            '<div class="filter-hint">⚠️ No matching records</div>';
         return;
     }
 
@@ -26917,15 +26917,15 @@ function renderMatrix(records){
 
     // 排序切换UI
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;">' +
-        '<span style="color:#888;">Sort 排序:</span>' +
+        '<span style="color:#888;">Sort:</span>' +
         '<button class="' + (matrixSortMode===0?'btn-primary':'btn-outline') +
             '" onclick="matrixSetSort(0)" id="sortSvcBtn" style="padding:4px 12px;font-size:11px;">'
-            + ' By Service 按航线</button>' +
+            + ' By Service</button>' +
         '<button class="' + (matrixSortMode===1?'btn-primary':'btn-outline') +
             '" onclick="matrixSetSort(1)" id="sortVslBtn" style="padding:4px 12px;font-size:11px;">'
-            + ' By Vessel 按船名 (W/E merged)</button>' +
+            + ' By Vessel (W/E merged)</button>' +
         '<span style="color:#999;margin-left:8px;">' +
-            '<b>' + Object.keys(vessels).length + '</b> Vessels 艘船 × <b>' + terminals.length + '</b> Ports 港口</span>' +
+            '<b>' + Object.keys(vessels).length + '</b> Vessels × <b>' + terminals.length + '</b> Ports</span>' +
         '</div>';
 
     html += '<table style="font-size:11.5px;"><thead><tr>' +
@@ -27014,12 +27014,12 @@ function renderMatrixRow(v, terminals){
 
 function exportExcel(){
     var filtered = sortByETA(filterRecords());
-    if(filtered.length === 0){ alert('No data to export / 无数据可导出'); return; }
+    if(filtered.length === 0){ alert('No data to export'); return; }
 
     // 准备数据
     var keys = ['Service','Vessel Name','PIC','Port Code','Terminal','Proforma Window',
                 'Voy.No','ETA','ETB','ETD','Port Stay(h)','Delay'];
-    var headers = ['Service / 航线','Vessel / 船名','PIC','Port Code','Terminal / 港口','Proforma',
+    var headers = ['Service','Vessel Name','PIC','Port Code','Terminal','Proforma',
                    'Voy.No','ETA','ETB','ETD','Port Stay(h)','Delay'];
 
     var data = [headers];
