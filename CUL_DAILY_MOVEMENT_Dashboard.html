@@ -26585,25 +26585,25 @@ function renderMatrix(records){
         return;
     }
 
-    // 1. 收集所有Terminal
+    // 1. 收集所有Terminal（统一归一化到短码）
     var termSet = {};
     var terminals = [];
     records.forEach(function(r){
-        var t = (r.Terminal || r['Port Code'] || '-').trim();
+        var rawKey = (r.Terminal || r['Port Code'] || '-').trim();
+        var t = PORT_DISPLAY_LABEL[rawKey] || rawKey;
         if(!termSet[t]){
             termSet[t] = true;
             terminals.push(t);
         }
     });
-    // ---- Custom Port Order ----
+    // ---- Custom Port Order (short codes) ----
     var portOrderMap = {
-        'Qingdao, CN': 0, 'CNTAO': 0, 'Shanghai, CN': 1, 'CNSHA': 1,
-        'Ningbo, CN': 2, 'CNNGB': 2, 'Shekou, CN': 3, 'CNSWA': 3,
-        'Nansha, CN': 4, 'CNNAS': 4, 'Xiamen, CN': 5, 'CNXMN': 5,
-        'Port Klang, MY': 6, 'MYPKG': 6,
-        'Sokhna, EG': 7, 'EGSOK': 7, 'Jeddah, SA': 8, 'SAJED': 8,
-        'PKKHI': 9, 'JOAQJ': 10,
-        'Mundra, IN': 11, 'INMUN': 11,
+        'TAO': 0, 'SHA': 1, 'NGB': 2, 'SHK': 3,
+        'NAS': 4, 'XMN': 5,
+        'PKG': 6,
+        'SOK': 7, 'JED': 8,
+        'KHI': 9, 'AQJ': 10,
+        'MUN': 11,
     };
     var PORT_DISPLAY_LABEL = {"CNSWA": "SHK", "CNBJI": "BJI", "CNDLC": "DLC", "CNLYG": "LYG", "CNQDG": "TAO", "CNSHA": "SHA", "CNNGB": "NGB", "CNFOC": "FOC", "CNXAM": "XMN", "CNSHK": "HKG", "CNSZP": "SZA", "CNZUH": "ZUH", "CNSKZ": "SKZ", "CNSZU": "SZU", "CNHKG": "HKG", "CNHMN": "HMN", "CNHPG": "HPG", "CNSGH": "SHA", "CNDGB": "DGB", "CNYTN": "YTN", "CNCWN": "CWN", "CNDAL": "DAL", "CNRZH": "RZH", "CNNZH": "NZH", "CNJIW": "NGB", "CNSHK/NAS": "NAS", "CNJIJ": "JJ", "CNNSA": "NAS", "Nansha, CN": "NAS", "Nansha": "NAS", "Shekou, CN": "SHK", "Shekou": "SHK", "Qingdao, CN": "TAO", "Qingdao": "TAO", "Shanghai, CN": "SHA", "Shanghai": "SHA", "Ningbo, CN": "NGB", "Ningbo": "NGB", "Xiamen, CN": "XMN", "Xiamen": "XMN", "Port Klang, MY": "PKG", "Port Klang": "PKG", "Hong Kong, CN": "HKG", "Hong Kong": "HKG", "Vung Tau, VN": "VUT", "Vung Tau": "VUT", "Humen, CN": "HMN", "Humen": "HMN", "Kaohsiung, TW": "KHH", "Kaohsiung": "KHH", "Keelung, TW": "KEL", "Keelung": "KEL", "Busan, KR": "BUSAN", "Busan": "BUSAN", "SDPZU": "BUSAN", "Singapore, SG": "SIN", "Singapore": "SIN", "Jeddah, SA": "JED", "Jeddah": "JED", "SAJED": "JED", "Yanbu, SA": "YANBU", "Yanbu": "YANBU", "Sokhna, EG": "SOK", "Sokhna": "SOK", "Djibouti, DJ": "DJJ", "Djibouti": "DJJ", "Nhava Sheva, IN": "NSA", "Nhava Sheva": "NSA", "Mundra, IN": "MUN", "Mundra": "MUN", "Laem Chabang, TH": "LCH", "Laem Chabang": "LCH", "Izmir, TR": "IZM", "Izmir": "IZM"};
     function portSortKey(t){
@@ -26644,7 +26644,8 @@ function renderMatrix(records){
            r.ETA.replace(/\//g,'-').localeCompare(vessels[key].etaFirst.replace(/\//g,'-')) < 0)){
             vessels[key].etaFirst = r.ETA;
         }
-        var t = (r.Terminal || r['Port Code'] || '-').trim();
+        var rawT = (r.Terminal || r['Port Code'] || '-').trim();
+        var t = PORT_DISPLAY_LABEL[rawT] || rawT;
         vessels[key].ports[t] = r.ETA || '';
         vessels[key].rawVoySet[r['Voy.No'] || ''] = true;
     });
