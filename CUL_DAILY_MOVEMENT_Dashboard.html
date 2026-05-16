@@ -26830,86 +26830,53 @@ var userPortOrder = null; // 用户拖拽后的自定义列顺序，null=默认
 
 // ===== Column Drag & Drop =====
 var _dragStartX = 0, _draggedPort = '', _draggedEl = null;
-function onDragStartCol(e, portCode, el){
+function onDragStartCol(e, el){
     _dragStartX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-    _draggedPort = portCode;
+    _draggedPort = el.getAttribute('data-port');
     _draggedEl = el;
     el.style.opacity = '0.4';
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', portCode);
+    e.dataTransfer.setData('text/plain', _draggedPort);
 }
 function onDragOverCol(e){
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     var th = e.currentTarget;
-    if(th !== _draggedEl) th.style.background = '#c8ddf0';
-}
-function onDragLeaveCol(e){
-    e.currentTarget.style.background = '';
-}
-function onDropCol(e, targetPort){
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.style.background = '';
-    if(_draggedEl) _draggedEl.style.opacity = '';
-    if(_draggedPort && targetPort && _draggedPort !== targetPort){
-        if(!userPortOrder) userPortOrder = terminals.slice();
-        var fromIdx = userPortOrder.indexOf(_draggedPort);
-        var toIdx = userPortOrder.indexOf(targetPort);
-        if(fromIdx > -1 && toIdx > -1){
-            userPortOrder.splice(fromIdx, 1);
-            userPortOrder.splice(toIdx, 0, _draggedPort);
-            matrixSetSort(matrixSortMode); // re-render with new order
-        }
-    }
-    _draggedPort = '';
-}
-function onDragEndCol(e){
-    if(_draggedEl) _draggedEl.style.opacity = '';
-    document.querySelectorAll('.matrix-th-drop').forEach(function(el){ el.style.background = ''; });
-}
-// End drag
-function onDragStartCol(e, portCode, el){
-    _dragStartX = e.clientX || 0;
-    _draggedPort = portCode;
-    _draggedEl = el;
-    el.style.opacity = '0.5';
-    if(e.dataTransfer){
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', portCode);
-    }
-}
-function onDragOverCol(e){
-    e.preventDefault();
-    if(e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    if(th && th !== _draggedEl) th.style.boxShadow = 'inset 0 0 0 2px #1F4E79';
 }
 function onDragEnterCol(e){
-    var th = e.currentTarget;
-    if(th !== _draggedEl) th.style.boxShadow = 'inset 0 0 0 2px #1F4E79';
+    e.preventDefault();
 }
 function onDragLeaveCol(e){
-    e.currentTarget.style.boxShadow = '';
+    var th = e.currentTarget;
+    if(th) th.style.boxShadow = '';
 }
-function onDropCol(e, targetPort){
+function onDropCol(e){
     e.preventDefault();
     e.stopPropagation();
     var th = e.currentTarget;
-    th.style.boxShadow = '';
+    var targetPort = th.getAttribute('data-port');
+    if(th) th.style.boxShadow = '';
     if(_draggedEl) _draggedEl.style.opacity = '';
     if(_draggedPort && targetPort && _draggedPort !== targetPort){
-        if(!userPortOrder) userPortOrder = terminals.slice();
+        if(!userPortOrder){
+            userPortOrder = [];
+            var ths = document.querySelectorAll('.matrix-th-drop');
+            for(var i=0;i<ths.length;i++) userPortOrder.push(ths[i].getAttribute('data-port'));
+        }
         var fi = userPortOrder.indexOf(_draggedPort);
         var ti = userPortOrder.indexOf(targetPort);
         if(fi > -1 && ti > -1){
             userPortOrder.splice(fi, 1);
             userPortOrder.splice(ti, 0, _draggedPort);
-            matrixSetSort(matrixSortMode);
+            matrixSetSort(matrixSortMode); // re-render with new order
         }
     }
     _draggedPort = ''; _draggedEl = null;
 }
 function onDragEndCol(e){
     if(_draggedEl) _draggedEl.style.opacity = '';
+    document.querySelectorAll('.matrix-th-drop').forEach(function(el){ el.style.boxShadow = ''; });
     _draggedPort = ''; _draggedEl = null;
 }
 
@@ -27085,14 +27052,14 @@ function renderMatrix(records){
         var thStyle = isSortKey
             ? 'min-width:90px;text-align:center;font-size:10px;white-space:normal;padding:4px;cursor:grab;background:#163d61;color:#fff;font-weight:700;user-select:none;'
             : 'min-width:90px;text-align:center;font-size:10px;white-space:normal;padding:4px;cursor:grab;transition:background .15s;user-select:none;';
-        html += '<th draggable="true" class="matrix-th-drop" style="' + thStyle + '"' +
-            ' ondragstart="onDragStartCol(event,&apos;' + t + '&apos;,this)"' +
+        html += '<th draggable="true" class="matrix-th-drop" data-port="' + t + '" style="' + thStyle + '"' +
+            ' ondragstart="onDragStartCol(event,this)"' +
             ' ondragover="onDragOverCol(event)"' +
             ' ondragenter="onDragEnterCol(event)"' +
             ' ondragleave="onDragLeaveCol(event)"' +
-            ' ondrop="onDropCol(event,&apos;' + t + '&apos;)"' +
+            ' ondrop="onDropCol(event)"' +
             ' ondragend="onDragEndCol(event)"' +
-            ' onclick="matrixSetSortPort(&apos;' + t + '&apos;)"' +
+            ' onclick="matrixSetSortPort(this.getAttribute(&apos;data-port&apos;))"' +
             ' title="Drag to reorder / Click to sort by ETA ' + escapeHtml(t) + '">' +
             escapeHtml(label) + sortIcon + '</th>';
     });
