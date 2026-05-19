@@ -1303,7 +1303,82 @@ var cfTargetPort = 'MYPKG';
 var cfBaseDate = '';
 var cfSpeed = 15; // knots default
 var cfDayWindow = 15; // +/- days around base date
-var cfLaneFilter = '';
+var cfLaneFilter = []; // array of selected service codes, empty = all
+var cfMsDropdownOpen = false;
+
+function toggleCfMsDropdown(){
+    var dd = document.getElementById('cfMsDropdown');
+    var trig = document.getElementById('cfMsTrigger');
+    cfMsDropdownOpen = !cfMsDropdownOpen;
+    if(cfMsDropdownOpen){
+        dd.classList.add('show');
+        trig.classList.add('open');
+        initCfMultiSelect();
+        setTimeout(function(){ document.addEventListener('click', closeCfMsOnOutside); }, 0);
+    } else {
+        closeCfMsPanel();
+    }
+}
+function closeCfMsOnOutside(e){
+    var container = document.getElementById('cfLaneMultiSelect');
+    if(!container.contains(e.target)) closeCfMsPanel();
+}
+function closeCfMsPanel(){
+    document.removeEventListener('click', closeCfMsOnOutside);
+    var dd = document.getElementById('cfMsDropdown'), trig = document.getElementById('cfMsTrigger');
+    dd.classList.remove('show'); trig.classList.remove('open'); cfMsDropdownOpen = false;
+}
+function initCfMultiSelect(){
+    var listEl = document.getElementById('cfMsList');
+    listEl.innerHTML = '';
+    var svcs = window._cfAllSvcs || [];
+    svcs.forEach(function(sc){
+        var div = document.createElement('div');
+        div.className = 'ms-item' + (cfLaneFilter.indexOf(sc) !== -1 ? ' selected' : '');
+        div.innerHTML = '<input type="checkbox"' + (cfLaneFilter.indexOf(sc) !== -1 ? ' checked' : '') + '><span>' + sc + '</span>';
+        div.dataset.cfCode = sc;
+        div.onclick = function(e){
+            e.stopPropagation();
+            var cb = this.querySelector('input[type=checkbox]');
+            cb.checked = !cb.checked;
+            var code = this.dataset.cfCode;
+            if(cb.checked && cfLaneFilter.indexOf(code)===-1) cfLaneFilter.push(code);
+            else if(!cb.checked){ var idx=cfLaneFilter.indexOf(code); if(idx!==-1) cfLaneFilter.splice(idx,1); }
+            this.classList.toggle('selected', cb.checked);
+            updateCfSelectAllState();
+        };
+        listEl.appendChild(div);
+    });
+    updateCfSelectAllState();
+    updateCfTriggerUI();
+}
+function updateCfSelectAllState(){
+    var svcs = window._cfAllSvcs || [];
+    var cb = document.getElementById('cfMsSelectAll');
+    if(cb) cb.checked = svcs.length > 0 && cfLaneFilter.length === svcs.length;
+}
+function updateCfTriggerUI(){
+    var ph = document.getElementById('cfMsPlaceholder');
+    if(ph) ph.textContent = cfLaneFilter.length > 0 ? cfLaneFilter.length + ' selected' : 'All Lanes';
+}
+function cfMsToggleAll(checked){
+    var svcs = window._cfAllSvcs || [];
+    cfLaneFilter = checked ? svcs.slice() : [];
+    var items = document.querySelectorAll('#cfMsList .ms-item');
+    items.forEach(function(item){
+        item.querySelector('input[type=checkbox]').checked = checked;
+        item.classList.toggle('selected', checked);
+    });
+    updateCfSelectAllState();
+    updateCfTriggerUI();
+}
+function cfMsClear(){
+    cfMsToggleAll(false);
+}
+function cfMsConfirm(){
+    closeCfMsPanel();
+    renderConnectionFinder();
+}
 
 function _cfParseDate(s) {
     if (!s) return null;
@@ -1359,9 +1434,29 @@ function renderConnectionFinder() {
     h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">⏱️ 到港日期范围 ±</label>';
     h += '<input type="number" id="cfDayWindow" min="1" max="60" step="1" value="'+cfDayWindow+'" onchange="cfDayWindow=parseInt(this.value)||15;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:70px;text-align:center;"> 天</div>';
 
-    // Lane filter
+    // Lane filter - multi-select (same style as Long Term)
+    var allSvcs = [];
+    LT_DATA.forEach(function(s){ var s2 = (s.short||'').trim()||(s.code||'').substring(0,3); if(s2 && allSvcs.indexOf(s2)===-1) allSvcs.push(s2); });
+    allSvcs.sort();
+    window._cfAllSvcs = allSvcs;
     h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">🚢 筛选航线</label>';
-    h += '<input type="text" id="cfLaneFilter" placeholder="(空=全部)" value="'+escapeHtml(cfLaneFilter)+'" onchange="cfLaneFilter=this.value;renderConnectionFinder()" oninput="cfLaneFilter=this.value;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:120px;"></div>';
+    h += '<div class="multi-select" id="cfLaneMultiSelect" style="width:180px;">';
+    h += '  <div class="ms-trigger" id="cfMsTrigger" onclick="toggleCfMsDropdown()">';
+    h += '    <span id="cfMsPlaceholder" class="ms-placeholder">' + (cfLaneFilter.length > 0 ? cfLaneFilter.length + ' selected' : 'All Lanes') + '</span>';
+    h += '    <span class="ms-arrow">▾</span>';
+    h += '  </div>';
+    h += '  <div class="ms-dropdown" id="cfMsDropdown">';
+    h += '    <div class="ms-header">';
+    h += '      <input type="checkbox" id="cfMsSelectAll" onchange="cfMsToggleAll(this.checked)">';
+    h += '      <span onclick="var cb=document.getElementById(\'cfMsSelectAll\');cb.checked=!cb.checked;cfMsToggleAll(cb.checked)">Select All</span>';
+    h += '    </div>';
+    h += '    <div class="ms-list" id="cfMsList"></div>';
+    h += '    <div class="ms-footer">';
+    h += '      <button class="ms-clear-btn" onclick="cfMsClear()">Clear</button>';
+    h += '      <button class="ms-ok-btn" onclick="cfMsConfirm()">OK</button>';
+    h += '    </div>';
+    h += '  </div>';
+    h += '</div></div>';
 
     h += '</div></div>'; // end controls
 
@@ -1385,7 +1480,7 @@ function renderConnectionFinder() {
 
     LT_DATA.forEach(function(svc) {
         var svcShort = (svc.short || '').trim() || (svc.code || '').substring(0, 3);
-        if (cfLaneFilter && svcShort.toUpperCase().indexOf(cfLaneFilter.toUpperCase()) === -1) return;
+        if (cfLaneFilter.length > 0 && cfLaneFilter.indexOf(svcShort) === -1) return;
         
         (svc.voyages || []).forEach(function(v) {
             var etas = v.etas || {};
@@ -1449,8 +1544,12 @@ function renderConnectionFinder() {
         });
     });
 
-    // Sort by estimated arrival
-    results.sort(function(a, b) { return a.sortKey - b.sortKey; });
+    // Sort by gap (diffDays) ascending - fastest connection first
+    results.sort(function(a, b) {
+        var da = isNaN(a.diffDays) ? 9999 : a.diffDays;
+        var db = isNaN(b.diffDays) ? 9999 : b.diffDays;
+        return da - db;
+    });
 
     // Filter by day window
     var filtered = results.filter(function(r) {
