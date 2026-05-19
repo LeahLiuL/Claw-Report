@@ -209,7 +209,24 @@ td { padding:8px 10px; vertical-align:middle; }
 <div id="mainContent" class="card"></div>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<script src="long_term_schedule_data.js?v=20260519d2"></script>
+<script src="long_term_schedule_data.js?v=20260519d3"></script>
+<script>
+// Data version check - shows actual HAIAN MIND CNNGB value
+window._dataVersion = '20260519-d3-fix';
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.LT_DATA) {
+        var info = [];
+        LT_DATA.forEach(function(svc) {
+            (svc.voyages||[]).forEach(function(v) {
+                if (/MIND/i.test(v.vessel)) {
+                    info.push(v.vessel_voy + '/' + svc.code + ': CNNGB=' + (v.etas['CNNGB'] || '(empty)'));
+                }
+            });
+        });
+        console.log('[DATA-VER] HAIAN MIND:', info.join(' | '));
+    }
+});
+</script>
 <script>
 // ========== Export Functions ==========
 
@@ -928,6 +945,14 @@ function renderLongTermMatrix() {
     h += '</select>';
 
     h += '<span style="color:#999;margin-left:auto;font-size:11px;">Long Term Schedule Matrix</span>';
+    // Data version debug: show HAIAN MIND CNNGB values
+    var _haianDebug = [];
+    LT_DATA.forEach(function(svc) {
+        (svc.voyages||[]).forEach(function(v) {
+            if (/MIND/i.test(v.vessel)) _haianDebug.push(v.vessel_voy + ':CNNGB=' + (v.etas['CNNGB']||'∅'));
+        });
+    });
+    if (_haianDebug.length) h += '<span style="color:#e67e22;margin-left:8px;font-size:10px;" title="Data v20260519-d3 | Open F12 Console for more">[v-d3 ' + _haianDebug.join(' ') + ']</span>';
     h += '</div>';
 
     // Read toolbar search & terminal
