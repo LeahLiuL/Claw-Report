@@ -945,14 +945,13 @@ function renderLongTermMatrix() {
     h += '</select>';
 
     h += '<span style="color:#999;margin-left:auto;font-size:11px;">Long Term Schedule Matrix</span>';
-    // Data version debug: show HAIAN MIND CNNGB values
-    var _haianDebug = [];
-    LT_DATA.forEach(function(svc) {
-        (svc.voyages||[]).forEach(function(v) {
-            if (/MIND/i.test(v.vessel)) _haianDebug.push(v.vessel_voy + ':CNNGB=' + (v.etas['CNNGB']||'∅'));
-        });
-    });
-    if (_haianDebug.length) h += '<span style="color:#e67e22;margin-left:8px;font-size:10px;" title="Data v20260519-d3 | Open F12 Console for more">[v-d3 ' + _haianDebug.join(' ') + ']</span>';
+    // Data version debug - list ALL HAIAN MIND voyages with full details
+    var _haianAll = [];
+    var _totalVoy = 0;
+    LT_DATA.forEach(function(svc) { _totalVoy += (svc.voyages||[]).length; (svc.voyages||[]).forEach(function(v) {
+        if (/MIND/i.test(v.vessel)) _haianAll.push(v.vessel_voy);
+    }); });
+    h += '<span style="background:red;color:white;padding:2px 8px;margin-left:8px;font-size:11px;font-weight:bold;border-radius:4px;" title=' + JSON.stringify(_haianAll) + '> [v4 ' + new Date().toISOString().slice(5,16).replace(/-/,'/') + ' | MIND:' + _haianAll.length + ' voy | total:' + _totalVoy + '] </span>';
     h += '</div>';
 
     // Read toolbar search & terminal
