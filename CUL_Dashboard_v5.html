@@ -203,6 +203,7 @@ td { padding:8px 10px; vertical-align:middle; }
 <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('longterm')" id="tabLongterm">🗓️ Long Term</button>
     <button class="tab-btn" onclick="switchTab('raw')" id="tabRaw">📋 Raw Data</button>
+    <button class="tab-btn" onclick="switchTab('connection')" id="tabConnection">🔗 Connection Finder</button>
 </div>
 
 <div id="resultCount" class="result-count"></div>
@@ -210,6 +211,7 @@ td { padding:8px 10px; vertical-align:middle; }
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="long_term_schedule_data_v3.js"></script>
+<script src="port_distances.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (window.LT_DATA) {
@@ -707,6 +709,7 @@ function switchTab(tab){
     var tabLabel = tab === 'longterm' ? 'Long_Term' : tab.charAt(0).toUpperCase() + tab.slice(1);
     var btnExp = document.getElementById('btnExport');
     if (btnExp) btnExp.textContent = 'Export ' + tabLabel;
+    if (tab === 'connection') { renderConnectionFinder(); return; }
     renderCurrent();
 }
 
@@ -1279,6 +1282,264 @@ function exportPDF() {
         jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' }
     };
     html2pdf().set(opt).from(el).save();
+}
+
+// ========== CONNECTION FINDER (接货推荐器) ==========
+var CF_PORTS = [
+  {code:'MYPKG',name:'Port Klang (巴生)'}, {code:'SGSIN',name:'Singapore (新加坡)'},
+  {code:'HKHKG',name:'Hong Kong (香港)'}, {code:'CNSHA',name:'Shanghai (上海)'},
+  {code:'CNNGB',name:'Ningbo (宁波)'}, {code:'CNTAO',name:'Tianjin (天津)'},
+  {code:'CNSHK',name:'Shekou (蛇口)'}, {code:'CNZJG',name:'Zhongshan (中山)'},
+  {code:'CNDGG',name:'Dapenggang (大鹏港)'}, {code:'CNSWA',name:'Shanwei (汕尾)'},
+  {code:'CNFAN',name:'Nansha (南沙)'}, {code:'CNGCT',name:'Chiwan (赤湾)'},
+  {code:'KRPUS',name:'Busan (釜山)'}, {code:'TWKHH',name:'Kaohsiung (高雄)'},
+  {code:'VNSGN',name:'Ho Chi Minh (胡志明市)'}, {code:'THBKK',name:'Bangkok (曼谷)'},
+  {code:'LKCMB',name:'Colombo (科伦坡)'}, {code:'AEJEA',name:'Jebel Ali (杰贝阿里)'},
+  {code:'INMUN',name:'Mumbai (孟买)'}, {code:'PKKHI',name:'Karachi (卡拉奇)'},
+  {code:'DZALG',name:'Algeria (阿尔及尔)'}, {code:'EGSOK',name:'Sokhna (苏赫纳)'}
+];
+
+var cfTargetPort = 'MYPKG';
+var cfBaseDate = '';
+var cfSpeed = 15; // knots default
+var cfDayWindow = 15; // +/- days around base date
+var cfLaneFilter = '';
+
+function _cfParseDate(s) {
+    if (!s) return null;
+    // Format: DD-MON (e.g., "08-Jun")
+    var months = {'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,
+                  'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11};
+    var m = s.match(/^(\d{1,2})-(\w{3})$/);
+    if (!m) return null;
+    var d = parseInt(m[1]), mon = months[m[2]];
+    if (mon === undefined) return null;
+    var yr = new Date().getFullYear(); // assume current year
+    return new Date(yr, mon, d);
+}
+
+function _cfFormatDate(d) {
+    if (!d || isNaN(d)) return '-';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return ('0'+d.getDate()).slice(-2) + '-' + months[d.getMonth()];
+}
+
+function _cfDaysDiff(d1, d2) {
+    if (!d1 || !d2 || isNaN(d1) || isNaN(d2)) return null;
+    return Math.round((d2.getTime() - d1.getTime()) / 86400000);
+}
+
+function renderConnectionFinder() {
+    var h = '<div style="padding:16px;">';
+    
+    h += '<h2 style="margin-bottom:12px;color:var(--primary);">🔗 Connection Finder <span style="font-size:13px;font-weight:400;color:#888;">— 接货船期推荐</span></h2>';
+
+    // Controls row
+    h += '<div style="background:#f8fafc;border:1px solid #e0e0e0;border-radius:10px;padding:14px;margin-bottom:14px;">';
+    h += '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">';
+
+    // Target port
+    h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">📍 目标港口</label>';
+    h += '<select id="cfTargetPort" onchange="cfTargetPort=this.value;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:200px;">';
+    CF_PORTS.forEach(function(p){
+        h += '<option value="' + p.code + '"' + (cfTargetPort===p.code?' selected':'') + '>' + p.code + ' - ' + p.name + '</option>';
+    });
+    h += '</select></div>';
+
+    // Base date
+    h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">📅 起算日期(卸箱日)</label>';
+    h += '<input type="date" id="cfBaseDate" value="'+cfBaseDate+'" onchange="cfBaseDate=this.value;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">';
+    h += '</div>';
+
+    // Speed
+    h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">⚓ 船速 (knots)</label>';
+    h += '<input type="number" id="cfSpeed" min="8" max="30" step="1" value="'+cfSpeed+'" onchange="cfSpeed=parseInt(this.value)||15;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:80px;text-align:center;"> kn</div>';
+
+    // Day window
+    h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">⏱️ 到港日期范围 ±</label>';
+    h += '<input type="number" id="cfDayWindow" min="1" max="60" step="1" value="'+cfDayWindow+'" onchange="cfDayWindow=parseInt(this.value)||15;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:70px;text-align:center;"> 天</div>';
+
+    // Lane filter
+    h += '<div><label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:3px;">🚢 筛选航线</label>';
+    h += '<input type="text" id="cfLaneFilter" placeholder="(空=全部)" value="'+escapeHtml(cfLaneFilter)+'" onchange="cfLaneFilter=this.value;renderConnectionFinder()" oninput="cfLaneFilter=this.value;renderConnectionFinder()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:120px;"></div>';
+
+    h += '</div></div>'; // end controls
+
+    // Calculate
+    if (!cfBaseDate) {
+        h += '<div style="text-align:center;padding:40px;color:#888;font-size:14px;">请输入起算日期后点击计算</div>';
+        document.getElementById('mainContent').innerHTML = h;
+        document.getElementById('resultCount').textContent = '';
+        return;
+    }
+
+    var baseDate = _cfParseDate(cfBaseDate.replace(/-/g, '-'));
+    if (!baseDate) { baseDate = new Date(cfBaseDate); }
+
+    var earliestOk = new Date(baseDate.getTime() - cfDayWindow * 86400000);
+    var latestOk = new Date(baseDate.getTime() + cfDayWindow * 86400000);
+
+    // Collect all voyages and compute connection options
+    var results = [];
+    var distLookup = typeof PORT_DISTANCES !== 'undefined' ? PORT_DISTANCES : {};
+
+    LT_DATA.forEach(function(svc) {
+        var svcShort = (svc.short || '').trim() || (svc.code || '').substring(0, 3);
+        if (cfLaneFilter && svcShort.toUpperCase().indexOf(cfLaneFilter.toUpperCase()) === -1) return;
+        
+        (svc.voyages || []).forEach(function(v) {
+            var etas = v.etas || {};
+            
+            // 1. Direct call to target port
+            var directEta = etas[cfTargetPort] ? _cfParseDate(etas[cfTargetPort]) : null;
+            if (directEta && !isNaN(directEta)) {
+                var diff = _cfDaysDiff(baseDate, directEta);
+                results.push({
+                    svc: svcShort, code: svc.code, vessel: v.vessel,
+                    vessel_voy: v.vessel_voy, op: v.operator || '', week: v.week || '',
+                    type: 'DIRECT', viaPort: '-', etaRaw: etas[cfTargetPort],
+                    estArrival: directEta, distanceNm: 0, travelDays: 0,
+                    diffDays: diff, sortKey: directEta.getTime()
+                });
+            }
+
+            // 2. Indirect: find closest port with distance data
+            var bestIndirect = null;
+            Object.keys(etas).forEach(function(port) {
+                if (!etas[port]) return;
+                var pd = _cfParseDate(etas[port]);
+                if (!pd || isNaN(pd)) return;
+
+                var d1 = distLookup[port] && distLookup[port][cfTargetPort];
+                if (!d1) return; // no distance data
+
+                // Only consider ports with future dates or within range
+                if (pd < earliestOk - 365*86400000) return; // too old
+
+                var travelDays = Math.ceil(d1 / (cfSpeed * 24));
+                var estArrival = new Date(pd.getTime() + travelDays * 86400000);
+
+                // Only include if within day window OR after base date (future connections)
+                if (estArrival > latestOk && estArrival > baseDate + 60*86400000) return;
+
+                if (!bestIndirect || estArrival.getTime() < bestIndirect.estArrival.getTime()) {
+                    bestIndirect = {
+                        svc: svcShort, code: svc.code, vessel: v.vessel,
+                        vessel_voy: v.vessel_voy, op: v.operator || '', week: v.week || '',
+                        type: 'INDIRECT', viaPort: port, etaRaw: etas[port],
+                        estArrival: estArrival, distanceNm: d1, travelDays: travelDays,
+                        diffDays: _cfDaysDiff(baseDate, estArrival),
+                        sortKey: estArrival.getTime()
+                    };
+                }
+            });
+
+            if (bestIndirect) {
+                // Skip if we already have a direct result for this voyage (avoid duplicates)
+                var hasDirect = results.some(function(r) {
+                    return r.svc === bestIndirect.svc && r.vessel_voy === bestIndirect.vessel_voy && r.type === 'DIRECT';
+                });
+                if (!hasDirect) {
+                    results.push(bestIndirect);
+                } else {
+                    // Keep both only if indirect is faster than direct (unlikely but possible)
+                    // Actually skip duplicate for same voyage
+                }
+            }
+        });
+    });
+
+    // Sort by estimated arrival
+    results.sort(function(a, b) { return a.sortKey - b.sortKey; });
+
+    // Filter by day window
+    var filtered = results.filter(function(r) {
+        return !isNaN(r.estArrival) &&
+               r.estArrival >= earliestOk && r.estArrival <= latestOk;
+    });
+
+    // Also show up to next 30 days beyond window if few results
+    if (filtered.length < 5) {
+        var extLimit = new Date(latestOk.getTime() + 30 * 86400000);
+        filtered = results.filter(function(r) {
+            return !isNaN(r.estArrival) && r.estArrival >= earliestOk && r.estArrival <= extLimit;
+        });
+    }
+
+    // Stats
+    var withinWindow = results.filter(function(r) {
+        return !isNaN(r.estArrival) &&
+               r.estArrival >= earliestOk && r.estArrival <= latestOk;
+    }).length;
+    h += '<div style="margin-bottom:10px;font-size:12px;color:#666;">';
+    h += '目标港口: <b>' + cfTargetPort + '</b> | ';
+    h += '起算日期: <b>' + cfBaseDate + '</b> | ';
+    h += '速度: <b>' + cfSpeed + ' kn</b> | ';
+    h += '窗口: ±<b>' + cfDayWindow + '</b>天 | ';
+    h += '匹配结果: <b>' + filtered.length + '</b> 条 (±' + cfDayWindow + '天内 ' + withinWindow + ' 条)';
+    h += '</div>';
+
+    // Results table
+    h += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">';
+    
+    // Header
+    h += '<thead><tr style="background:var(--primary);color:#fff;">';
+    h += '<th style="padding:8px 6px;text-align:center;width:36px;">#</th>';
+    h += '<th style="padding:8px 6px;">Svc</th>';
+    h += '<th style="padding:8px 6px;">Vessel</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">VOY</th>';
+    h += '<th style="padding:8px 6px;text-align:center;width:50px;">方式</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">经由/直靠</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">原ETA</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">距(nm)</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">航程(天)</th>';
+    h += '<th style="padding:8px 6px;text-align:center;font-weight:700;">预计到' + cfTargetPort + '</th>';
+    h += '<th style="padding:8px 6px;text-align:center;">差距(天)</th>';
+    h += '</tr></thead><tbody>';
+
+    var prevSvc = '';
+    var rank = 0;
+    filtered.forEach(function(r, idx) {
+        rank++;
+        var isDirect = r.type === 'DIRECT';
+        var badgeStyle = isDirect 
+            ? 'background:#27ae60;color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;'
+            : 'background:#f39c12;color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;';
+        var diffColor = r.diffDays < 0 ? '#c0392b' : (r.diffDays === 0 ? '#27ae60' : '#666');
+        var diffLabel = r.diffDays === 0 ? '✅' : (r.diffDays < 0 ? r.diffDays : '+' + r.diffDays);
+        
+        // Service group header
+        if (r.svc !== prevSvc) {
+            prevSvc = r.svc;
+            h += '<tr style="background:#f0f4f8;">';
+            h += '<td colspan="11" style="padding:3px 8px;font-weight:700;font-size:10.5px;color:var(--primary);border-bottom:1px solid #ddd;">&#x1F6A2; ' + escapeHtml(r.svc) + ' (' + escapeHtml(r.code) + ')</td>';
+            h += '</tr>';
+        }
+
+        h += '<tr style="border-bottom:1px solid #eee;' + (idx%2===0?'':'background:#fafbfc') + '">';
+        h += '<td style="text-align:center;font-weight:700;color:#999;">' + rank + '</td>';
+        h += '<td style="font-weight:600;color:var(--primary);">' + escapeHtml(r.svc) + '</td>';
+        h += '<td style="white-space:nowrap;">' + escapeHtml(r.vessel) + '</td>';
+        h += '<td style="text-align:center;color:#555;">' + escapeHtml(r.vessel_voy) + '</td>';
+        h += '<td style="text-align:center;"><span style="' + badgeStyle + '">' + (isDirect ? '🟢直靠' : '🔵中转') + '</span></td>';
+        h += '<td style="text-align:center;color:#444;">' + escapeHtml(r.viaPort) + '</td>';
+        h += '<td style="text-align:center;color:#888;">' + escapeHtml(r.etaRaw) + '</td>';
+        h += '<td style="text-align:center;color:#888;">' + (r.distanceNm > 0 ? r.distanceNm.toLocaleString() : '-') + '</td>';
+        h += '<td style="text-align:center;color:#888;">' + (r.travelDays > 0 ? r.travelDays + 'd' : '-') + '</td>';
+        h += '<td style="text-align:center;font-weight:700;color:var(--primary);">' + _cfFormatDate(r.estArrival) + '</td>';
+        h += '<td style="text-align:center;font-weight:600;color:' + diffColor + ';">' + diffLabel + '</td>';
+        h += '</tr>';
+    });
+
+    if (filtered.length === 0) {
+        h += '<tr><td colspan="11" style="text-align:center;padding:24px;color:#999;">无匹配结果。尝试扩大日期范围或调整筛选条件。</td></tr>';
+    }
+
+    h += '</tbody></table></div>';
+    h += '</div>'; // main container
+
+    document.getElementById('mainContent').innerHTML = h;
+    document.getElementById('resultCount').textContent = '🔗 ' + filtered.length + ' 接货方案';
 }
 </script>
 </body>
