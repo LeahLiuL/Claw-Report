@@ -1026,15 +1026,8 @@ function renderLongTermMatrix() {
         var isSortCol = (ltSortPort === p);
         var arrow = isSortCol ? (ltSortAsc ? ' ▲' : ' ▼') : '';
         var sortStyle = isSortCol ? 'text-decoration:underline;' : '';
-        h += '<th style="min-width:72px;text-align:center;padding:6px 2px;background:#1a3a5c;color:#fff;font-size:9.5px;white-space:nowrap;cursor:pointer;user-select:none;' + sortStyle + '"' +
+        h += '<th style="min-width:72px;text-align:center;padding:6px 2px;background:#1a3a5c;color:#fff;font-size:9.5px;white-space:nowrap;cursor:grab;user-select:none;' + sortStyle + '"' +
             ' onclick="ltSortByPort(\'' + escapeHtml(p) + '\')"' +
-            ' draggable="true"' +
-            ' ondragstart="onDragStartLTPort(event,this)"' +
-            ' ondragover="onDragOverLTPort(event)"' +
-            ' ondragenter="onDragEnterLTPort(event)"' +
-            ' ondragleave="onDragLeaveLTPort(event)"' +
-            ' ondrop="onDropLTPort(event)"' +
-            ' ondragend="onDragEndLTPort(event)"' +
             ' title="Click to sort by ' + escapeHtml(p) + ' ETA">' + escapeHtml(label) + arrow + '</th>';
     });
     h += '</tr></thead><tbody>';
@@ -1077,38 +1070,81 @@ function renderLongTermMatrix() {
     h += '</div>';
 
     document.getElementById('mainContent').innerHTML = h;
+    _ltInitPortDrag();
 }
 
-// ========== Long Term Port Drag Reorder ==========
-var ltDragSrcPort = null;
+// ========== Long Term Port Drag Reorder (mouse-based, more reliable than HTML5 DnD) ==========
+var _ltDragState = { active: false, srcPort: null, srcIdx: -1, startX: 0, moved: false };
 
-function onDragStartLTPort(e, el) {
-    ltDragSrcPort = el.getAttribute('title');
-    el.style.opacity = '0.4';
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', ltDragSrcPort);
+function _ltInitPortDrag() {
+    var ths = document.querySelectorAll('#mainContent thead th[title]');
+    ths.forEach(function(th) {
+        th.addEventListener('mousedown', function(e) {
+            if (e.button !== 0) return; // left button only
+            var port = this.getAttribute('title');
+            if (!port || port.indexOf('Click to sort') === -1) return;
+            // Extract actual port code from title "Click to sort by XXX ETA"
+            port = port.replace('Click to sort by ', '').replace(' ETA', '');
+            _ltDragState = { active: true, srcPort: port, srcIdx: -1, startX: e.clientX, startY: e.clientY, moved: false };
+            this.style.opacity = '0.4';
+            this.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!_ltDragState.active) return;
+        var dx = e.clientX - _ltDragState.startX;
+        var dy = e.clientY - _ltDragState.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            _ltDragState.moved = true;
+            // Highlight target column under cursor
+            var ths = document.querySelectorAll('#mainContent thead th[title]');
+            ths.forEach(function(t) { t.style.borderBottom = ''; });
+            var targetTh = document.elementFromPoint(e.clientX, e.clientY);
+            while (targetTh && targetTh.tagName !== 'TH') targetTh = targetTh.parentElement;
+            if (targetTh && targetTh.getAttribute('title')) {
+                targetTh.style.borderBottom = '3px solid #ff6b00';
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', function(e) {
+        if (!_ltDragState.active) return;
+        var ths = document.querySelectorAll('#mainContent thead th[title]');
+        ths.forEach(function(t) { t.style.opacity = ''; t.style.borderBottom = ''; t.style.cursor = ''; });
+
+        if (_ltDragState.moved) {
+            var targetTh = null;
+            ths.forEach(function(t) {
+                var rect = t.getBoundingClientRect();
+                if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                    e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                    targetTh = t;
+                }
+            });
+            if (targetTh) {
+                var targetTitle = targetTh.getAttribute('title') || '';
+                var targetPort = targetTitle.replace('Click to sort by ', '').replace(' ETA', '');
+                if (targetPort && targetPort !== _ltDragState.srcPort) {
+                    var allPorts = ltAllPorts();
+                    if (!ltPortOrder) ltPortOrder = allPorts.slice();
+                    var fi = ltPortOrder.indexOf(_ltDragState.srcPort);
+                    var ti = ltPortOrder.indexOf(targetPort);
+                    if (fi >= 0 && ti >= 0) {
+                        ltPortOrder.splice(fi, 1);
+                        ltPortOrder.splice(ti, 0, _ltDragState.srcPort);
+                        renderLongTermMatrix();
+                    }
+                }
+            }
+        }
+
+        _ltDragState = { active: false, srcPort: null, srcIdx: -1, startX: 0, moved: false };
+    });
 }
-function onDragOverLTPort(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-function onDragEnterLTPort(e) { e.preventDefault(); e.target.style && (e.target.style.borderBottom = '2px solid var(--primary)'); }
-function onDragLeaveLTPort(e) { if (e.target.style) e.target.style.borderBottom = ''; }
-function onDropLTPort(e) {
-    e.preventDefault();
-    if (e.target.style) e.target.style.borderBottom = '';
-    var targetPort = e.target.getAttribute('title');
-    if (!targetPort || !ltDragSrcPort || targetPort === ltDragSrcPort) return;
-    var allPorts = ltAllPorts();
-    if (!ltPortOrder) ltPortOrder = allPorts.slice();
-    var fi = ltPortOrder.indexOf(ltDragSrcPort);
-    var ti = ltPortOrder.indexOf(targetPort);
-    if (fi < 0 || ti < 0) return;
-    ltPortOrder.splice(fi, 1);
-    ltPortOrder.splice(ti, 0, ltDragSrcPort);
-    renderLongTermMatrix();
-}
-function onDragEndLTPort(e) {
-    if (e.target) e.target.style.opacity = '';
-    ltDragSrcPort = null;
-}
+
+// Call init after each render (hooked at end of renderLongTermMatrix)
 
 </script>
 <script>
