@@ -853,7 +853,7 @@ function ltSortByPort(port) {
 
 function ltParseETA(raw) {
     // Parse "DD-Mon" format like "15-Jun", "03-Jul"
-    if (!raw || raw === '-') return null;
+    if (!raw || raw === '-' || raw.trim() === '') return null;
     raw = raw.trim();
     var m = raw.match(/^(\d{1,2})-([A-Za-z]{3})$/);
     if (!m) return null;
@@ -861,10 +861,8 @@ function ltParseETA(raw) {
     var day = parseInt(m[1], 10);
     var mon = months[m[2].toLowerCase()];
     if (mon === undefined) return null;
-    var now = new Date();
-    var d = new Date(now.getFullYear(), mon, day);
-    if (d < now) d = new Date(now.getFullYear() + 1, mon, day);
-    return d;
+    // Use a fixed base year so all dates sort on the same timeline (no cross-year wrap)
+    return new Date(2026, mon, day);
 }
 
 function renderLongTermMatrix() {
