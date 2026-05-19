@@ -1094,9 +1094,7 @@ function renderLongTermMatrix() {
         h += '<td style="position:sticky;left:0;z-index:2;text-align:center;font-weight:700;font-size:10px;color:#1F4E79;background:#fff;border-bottom:1px solid #eee;">' + escapeHtml(v.service) + '</td>';
         h += '<td style="position:sticky;left:42px;z-index:2;background:#fff;font-size:11px;border-bottom:1px solid #eee;white-space:nowrap;">' + escapeHtml(v.vessel) + '</td>';
         var voyLabel = (v.vessel_voy || '');
-        var weekNum = (v.week || '').substring(2); // 202615 → 2615
-        var voyText = voyLabel + (weekNum ? ' <b style="font-size:10px;color:#1F4E79;">' + weekNum + '</b>' : '');
-        h += '<td style="position:sticky;left:182px;z-index:2;text-align:center;font-size:10px;color:#555;background:#fff;border-bottom:1px solid #eee;">' + voyText + '</td>';
+        h += '<td style="position:sticky;left:182px;z-index:2;text-align:center;font-size:10px;color:#555;background:#fff;border-bottom:1px solid #eee;">' + escapeHtml(voyLabel) + '</td>';
         h += '<td style="position:sticky;left:230px;z-index:2;text-align:center;font-size:10px;color:#888;background:#fff;border-bottom:1px solid #eee;">' + escapeHtml(v.operator || '') + '</td>';
 
         ports.forEach(function(p) {
