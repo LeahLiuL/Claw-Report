@@ -83,7 +83,7 @@ td { padding:8px 10px; vertical-align:middle; }
     position:absolute; top:100%; left:0; z-index:1000;
     background:#fff; border:1px solid var(--border);
     border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15);
-    min-width:220px; max-height:300px; display:none;
+    min-width:220px; max-height:450px; display:none;
     flex-direction:column; overflow:hidden; margin-top:4px;
 }
 .ms-dropdown.show { display:flex; }
@@ -235,15 +235,17 @@ function getCurrentMatrixData() {
         'AM','BDX','CGS','CH','CI','CP','CST','CSX','CWS','HLX','IQH','JCT','KHX','MFX','NSX','RTS','SGS','SL','ST','SVP','TBS','TH'];
     var allVoyages = [];
     var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
-    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < (window.DATA && window.DATA.services || []).length;
+    var allLanes = _getLaneOptions().map(function(l){ return l.code; });
+    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < allLanes.length;
     var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
     var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators || []).length;
     LT_DATA.forEach(function(svc) {
-        var svcId = (svc.code || svc.short || '').substring(0, 3);
-        if (msHasSelection && selectedSvcs.indexOf(svcId) === -1) return;
+        var svcShort = (svc.short || '').trim();
+        if (!svcShort) svcShort = (svc.code || '').substring(0, 3);
+        if (msHasSelection && selectedSvcs.indexOf(svcShort) === -1) return;
         (svc.voyages || []).forEach(function(v) {
             if (opHasSelection && opSelectedKeys.indexOf((v.operator || '').trim()) === -1) return;
-            allVoyages.push({ service: svcId, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
+            allVoyages.push({ service: svcShort, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
         });
     });
     // Sort
@@ -371,14 +373,18 @@ var LT_SVC_COLORS = {
         document.getElementById('selTerminal').appendChild(o);
     });
 
-    // Populate OP multi-select
+    // Populate OP multi-select — use LT operators (more complete than CSV raw data)
     var opListEl = document.getElementById('opMsList');
     opListEl.innerHTML = '';
-    window.DATA.all_operators.forEach(function(op){
+    var ltOps = ltAllOperators();
+    // Override all_operators with LT data
+    window.DATA.all_operators = ltOps;
+    ltOps.forEach(function(op){
         opMsSelected[op] = true;
         var div = document.createElement('div');
         div.className = 'ms-item selected';
         div.innerHTML = '<input type="checkbox" checked><span>' + escapeHtml(op) + '</span>';
+        div.dataset.opCode = op;  // store for tag removal matching
         div.onclick = function(e){
             e.stopPropagation();
             var cb = this.querySelector('input[type=checkbox]');
@@ -437,20 +443,37 @@ function formatLTDate(eta) {
 // SVC_COLORS is now initialized inside the IIFE above (window.SVC_COLORS)
 
 // ========== Lane 多选下拉框 ==========
+// Build unique lane short-codes from LT_DATA (deduplicated, user-friendly)
+function _getLaneOptions(){
+    var laneMap = {};  // short -> count
+    (window.LT_DATA || []).forEach(function(svc){
+        var s = (svc.short || '').trim().substring(0, 5);
+        if (!s) return;
+        laneMap[s] = (laneMap[s] || 0) + 1;
+    });
+    // Sort by code alphabetically
+    var keys = Object.keys(laneMap).sort();
+    return keys.map(function(k){ return {code: k, count: laneMap[k]}; });
+}
+
 function initMultiSelect(){
     var listEl = document.getElementById('msList');
     listEl.innerHTML = '';
-    DATA.services.forEach(function(svc){
-        // 默认全选
-        msSelected[svc] = true;
+    var lanes = _getLaneOptions();
+    // Reset msSelected with lane short-codes
+    msSelected = {};
+    lanes.forEach(function(lane){
+        var label = lane.count > 1 ? lane.code + ' (' + lane.count + ')' : lane.code;
+        msSelected[lane.code] = true;
         var div = document.createElement('div');
         div.className = 'ms-item selected';
-        div.innerHTML = '<input type="checkbox" checked><span>' + svc + '</span>';
+        div.innerHTML = '<input type="checkbox" checked><span>' + label + '</span>';
+        div.dataset.laneCode = lane.code;
         div.onclick = function(e){
             e.stopPropagation();
             var cb = this.querySelector('input[type=checkbox]');
             cb.checked = !cb.checked;
-            msSelected[svc] = cb.checked;
+            msSelected[this.dataset.laneCode] = cb.checked;
             this.classList.toggle('selected', cb.checked);
             updateSelectAllState();
         };
@@ -493,8 +516,9 @@ function closeMsPanel(){
 
 function msToggleAll(checked){
     msSelected = {};
-    DATA.services.forEach(function(s){ msSelected[s] = checked; });
-    var items = document.querySelectorAll('.ms-item');
+    var lanes = _getLaneOptions();
+    lanes.forEach(function(l){ msSelected[l.code] = checked; });
+    var items = document.querySelectorAll('#msList .ms-item');
     items.forEach(function(item){
         item.querySelector('input[type=checkbox]').checked = checked;
         item.classList.toggle('selected', checked);
@@ -502,8 +526,9 @@ function msToggleAll(checked){
 }
 
 function updateSelectAllState(){
-    var allChecked = DATA.services.every(function(s){ return msSelected[s]; });
-    var noneChecked = DATA.services.every(function(s){ return !msSelected[s]; });
+    var lanes = _getLaneOptions();
+    var allChecked = lanes.every(function(l){ return msSelected[l.code]; });
+    var noneChecked = lanes.every(function(l){ return !msSelected[l.code]; });
     var sa = document.getElementById('msSelectAll');
     sa.checked = allChecked;
     sa.indeterminate = !allChecked && !noneChecked;
@@ -520,17 +545,19 @@ function msConfirm(){
 }
 
 function updateTriggerUI(){
+    var lanes = _getLaneOptions();
     var selectedKeys = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
     var placeholder = document.getElementById('msPlaceholder');
     var tagsContainer = document.getElementById('msTags');
 
-    if(selectedKeys.length === 0 || selectedKeys.length === DATA.services.length){
+    tagsContainer.innerHTML = '';
+    if(selectedKeys.length === 0 || selectedKeys.length === lanes.length){
+        // 全选或全不选 → 显示 All 或 No Filter
         placeholder.style.display = '';
-        tagsContainer.innerHTML = '';
         placeholder.textContent = selectedKeys.length === 0 ? 'No Filter' : 'All';
     } else {
+        // 部分选中 → 显示 tag
         placeholder.style.display = 'none';
-        tagsContainer.innerHTML = '';
         selectedKeys.forEach(function(k){
             var tag = document.createElement('span');
             tag.className = 'ms-tag';
@@ -539,10 +566,9 @@ function updateTriggerUI(){
             tag.onclick = function(e){
                 e.stopPropagation();
                 msSelected[k] = false;
-                // 更新list里的状态
-                var items = document.querySelectorAll('.ms-item');
+                var items = document.querySelectorAll('#msList .ms-item');
                 items.forEach(function(item){
-                    if(item.textContent.trim() === k){
+                    if(item.dataset.laneCode === k){
                         item.querySelector('input[type=checkbox]').checked = false;
                         item.classList.remove('selected');
                     }
@@ -550,7 +576,6 @@ function updateTriggerUI(){
                 updateTriggerUI();
                 updateSelectAllState();
                 renderCurrent();
-                // Re-open dropdown so user can continue adjusting
                 if(!msDropdownOpen) toggleMsDropdown();
             };
             tagsContainer.appendChild(tag);
@@ -644,7 +669,7 @@ function updateOpTriggerUI(){
                 opMsSelected[k] = false;
                 var items = document.querySelectorAll('#opMsList .ms-item');
                 items.forEach(function(item){
-                    if(item.textContent.trim() === k){
+                    if(item.dataset.opCode === k){
                         item.querySelector('input[type=checkbox]').checked = false;
                         item.classList.remove('selected');
                     }
@@ -750,7 +775,7 @@ function renderCurrent() {
     var countHtml = 'Filtered: <b style="color:var(--primary)">' + filtered.length + '</b> / ' + DATA.all_records.length + ' Records';
     var hints = [];
     var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
-    if (selectedSvcs.length > 0 && selectedSvcs.length < DATA.services.length) hints.push('Lane: ' + selectedSvcs.join('/'));
+    if (selectedSvcs.length > 0 && selectedSvcs.length < _getLaneOptions().length) hints.push('Lane: ' + selectedSvcs.join('/'));
     if (document.getElementById('selTerminal').value) hints.push('Port: ' + document.getElementById('selTerminal').value);
     if (document.getElementById('dateFrom').value || document.getElementById('dateTo').value)
         hints.push(document.getElementById('dateFrom').value + ' ~ ' + document.getElementById('dateTo').value);
@@ -818,7 +843,11 @@ function ltAllPorts() {
 
 function ltAllServices() {
     var set = {};
-    LT_DATA.forEach(function(svc) { set[(svc.code || svc.short || '').substring(0, 3)] = true; });
+    LT_DATA.forEach(function(svc) {
+        var s = (svc.short || '').trim();
+        if (!s) s = (svc.code || '').substring(0, 5);
+        if (s) set[s] = true;
+    });
     return Object.keys(set).sort();
 }
 
@@ -920,11 +949,13 @@ function renderLongTermMatrix() {
     // Collect all voyages across filtered services
     var allVoyages = [];
     var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
-    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < DATA.services.length;
+    var allLanes = _getLaneOptions().map(function(l){ return l.code; });
+    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < allLanes.length;
     LT_DATA.forEach(function(svc) {
-        var svcId = (svc.code || svc.short || '').substring(0, 3);
-        if (msHasSelection && selectedSvcs.indexOf(svcId) === -1) return;
-        if (ltFilterSvc && (svc.code || svc.short || '').substring(0, 3) !== ltFilterSvc) return;
+        var svcShort = (svc.short || '').trim();
+        if (!svcShort) svcShort = (svc.code || '').substring(0, 3);
+        if (msHasSelection && selectedSvcs.indexOf(svcShort) === -1) return;
+        if (ltFilterSvc && svcShort !== ltFilterSvc) return;
         (svc.voyages || []).forEach(function(v) {
             if (ltFilterVessel && v.vessel.toUpperCase().indexOf(ltFilterVessel.toUpperCase()) === -1) return;
             if (ltFilterOp && (v.operator || '').trim() !== ltFilterOp) return;
@@ -1168,15 +1199,17 @@ function getCurrentMatrixData() {
         'AM','BDX','CGS','CH','CI','CP','CST','CSX','CWS','HLX','IQH','JCT','KHX','MFX','NSX','RTS','SGS','SL','ST','SVP','TBS','TH'];
     var allVoyages = [];
     var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
-    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < (window.DATA && window.DATA.services ? window.DATA.services.length : 0);
+    var allLanes = _getLaneOptions().map(function(l){ return l.code; });
+    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < (window.DATA && window.DATA.services ? allLanes.length : 0);
     var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
     var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators ? window.DATA.all_operators.length : 0);
     LT_DATA.forEach(function(svc) {
-        var svcId = (svc.code || svc.short || '').substring(0, 3);
-        if (msHasSelection && selectedSvcs.indexOf(svcId) === -1) return;
+        var svcShort = (svc.short || '').trim();
+        if (!svcShort) svcShort = (svc.code || '').substring(0, 3);
+        if (msHasSelection && selectedSvcs.indexOf(svcShort) === -1) return;
         (svc.voyages || []).forEach(function(v) {
             if (opHasSelection && opSelectedKeys.indexOf((v.operator || '').trim()) === -1) return;
-            allVoyages.push({ service: svcId, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
+            allVoyages.push({ service: svcShort, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
         });
     });
     if (ltSortPort) {
