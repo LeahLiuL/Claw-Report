@@ -196,6 +196,8 @@ td { padding:8px 10px; vertical-align:middle; }
 
     <button class="btn-primary" onclick="renderCurrent()">🔍 Filter</button>
     <button class="btn-outline" onclick="resetFilters()">↺ Reset</button>
+    <button class="btn-outline" onclick="exportExcel()" title="Export to Excel">📊 Excel</button>
+    <button class="btn-outline" onclick="exportPDF()" title="Export to PDF">📄 PDF</button>
 </div>
 
 <div class="tabs">
@@ -206,8 +208,80 @@ td { padding:8px 10px; vertical-align:middle; }
 <div id="resultCount" class="result-count"></div>
 <div id="mainContent" class="card"></div>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="long_term_schedule_data.js"></script>
 <script>
+// ========== Export Functions ==========
+
+function getCurrentRawData() {
+    var tVal = document.getElementById('selTerminal').value;
+    var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
+    var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators || []).length;
+    var q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    return (window.DATA && window.DATA.all_records || []).filter(function(r) {
+        if (tVal && (r['Port Code'] || '') !== tVal && (r['Terminal'] || '') !== tVal) return false;
+        var selCount = 0, selVals = {};
+        Object.keys(msSelected).forEach(function(k){ if(msSelected[k]){ selVals[k]=true; selCount++; } });
+        if (selCount > 0 && !selVals[r.Service || '']) return false;
+        if (opHasSelection && opSelectedKeys.indexOf((r.Operator || '').trim()) === -1) return false;
+        if (q) { var hay = (r.Service + ' ' + r['Vessel Name'] + ' ' + r['Port Code'] + ' ' + r['Voy.No']).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+        return true;
+    });
+}
+
+function getCurrentMatrixData() {
+    // Rebuild from renderLongTermMatrix logic (filtered voyages × ports)
+    var svcOrder = ['HDT','CCT','REX','CGX','AEM','SGX','JPS','NAF','MES','NP','GTS','IMR','RES','SJA',
+        'AM','BDX','CGS','CH','CI','CP','CST','CSX','CWS','HLX','IQH','JCT','KHX','MFX','NSX','RTS','SGS','SL','ST','SVP','TBS','TH'];
+    var allVoyages = [];
+    var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
+    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < (window.DATA && window.DATA.services || []).length;
+    var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
+    var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators || []).length;
+    LT_DATA.forEach(function(svc) {
+        var svcId = (svc.code || svc.short || '').substring(0, 3);
+        if (msHasSelection && selectedSvcs.indexOf(svcId) === -1) return;
+        (svc.voyages || []).forEach(function(v) {
+            if (opHasSelection && opSelectedKeys.indexOf((v.operator || '').trim()) === -1) return;
+            allVoyages.push({ service: svcId, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
+        });
+    });
+    // Sort
+    if (ltSortPort) {
+        allVoyages.sort(function(a, b) {
+            var da = ltParseETA(a.etas[ltSortPort] || ''), db = ltParseETA(b.etas[ltSortPort] || '');
+            if (da === null && db === null) return 0; if (da === null) return 1; if (db === null) return -1;
+            return ltSortAsc ? (da - db) : (db - da);
+        });
+    } else {
+        allVoyages.sort(function(a, b) {
+            var sa = svcOrder.indexOf(a.service), sb = svcOrder.indexOf(b.service);
+            if (sa !== sb) return (sa === -1 ? 999 : sa) - (sb === -1 ? 999 : sb);
+            return (a.week || '').localeCompare(b.week || '');
+        });
+    }
+    // Ports with data
+    var portHasData = {};
+    allVoyages.forEach(function(v) { Object.keys(v.etas).forEach(function(p) { if (v.etas[p] && v.etas[p] !== '-') portHasData[p] = true; }); });
+    var ports = (ltPortOrder || []).filter(function(p) { return portHasData[p]; });
+    if (ports.length === 0) ports = Object.keys(portHasData);
+    // Build rows
+    var rows = [];
+    allVoyages.forEach(function(v) {
+        var row = { 'Service': v.service, 'Vessel': v.vessel, 'Voy': v.vessel_voy || '', 'Week': v.week || '', 'OP': v.operator || '' };
+        ports.forEach(function(p) { row['ETA_' + p] = v.etas[p] || ''; });
+        rows.push(row);
+    });
+    return rows;
+}
+
+function exportPDF() {
+    var el = document.getElementById('mainContent');
+    if (!el) return;
+    var opt = { margin: 0.3, filename: 'CUL_DAILY_' + currentTab + '_' + new Date().toISOString().slice(0,10) + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' } };
+    html2pdf().set(opt).from(el).save();
+}
+
 // ========== Global state (must be before IIFE) ==========
 var msSelected = {};  // {svc: true/false}
 var opMsSelected = {};  // {op: true/false}
@@ -829,6 +903,22 @@ function renderLongTermMatrix() {
     h += '<span style="color:#999;margin-left:auto;font-size:11px;">Long Term Schedule Matrix</span>';
     h += '</div>';
 
+    // Read toolbar search & terminal
+    var toolbarQ = (document.getElementById('searchInput') && document.getElementById('searchInput').value || '').trim().toLowerCase();
+    var toolbarTerminal = (document.getElementById('selTerminal') && document.getElementById('selTerminal').value || '').trim();
+
+    // Build terminal → port code mapping
+    var termToPorts = {};
+    LT_DATA.forEach(function(svc) {
+        var pts = svc.port_terminals || {};
+        Object.keys(pts).forEach(function(port) {
+            var term = pts[port] || port;
+            if (!termToPorts[term]) termToPorts[term] = [];
+            if (termToPorts[term].indexOf(port) === -1) termToPorts[term].push(port);
+        });
+    });
+    var terminalPorts = toolbarTerminal ? (termToPorts[toolbarTerminal] || []) : null;
+
     // Collect all voyages across filtered services
     var allVoyages = [];
     var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
@@ -840,6 +930,11 @@ function renderLongTermMatrix() {
         (svc.voyages || []).forEach(function(v) {
             if (ltFilterVessel && v.vessel.toUpperCase().indexOf(ltFilterVessel.toUpperCase()) === -1) return;
             if (ltFilterOp && (v.operator || '').trim() !== ltFilterOp) return;
+            // Toolbar vessel/voy search
+            if (toolbarQ) {
+                var hay = (v.vessel + ' ' + v.vessel_voy + ' ' + (v.operator || '')).toLowerCase();
+                if (hay.indexOf(toolbarQ) === -1) return;
+            }
             // Also check upper OP multi-select
             var opMsKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
             var opMsAllOps = (window.DATA && window.DATA.all_operators) || [];
@@ -866,6 +961,11 @@ function renderLongTermMatrix() {
         });
     });
     var ports = allPorts.filter(function(p) { return portHasData[p]; });
+
+    // Further filter ports by toolbar Terminal selection
+    if (terminalPorts && terminalPorts.length > 0) {
+        ports = ports.filter(function(p) { return terminalPorts.indexOf(p) !== -1; });
+    }
 
     // Apply port order (drag or default)
     if (ltPortOrder) {
@@ -1010,6 +1110,96 @@ function onDragEndLTPort(e) {
     ltDragSrcPort = null;
 }
 
+</script>
+<script>
+// ========== Export Functions ==========
+function getCurrentRawData() {
+    var tVal = document.getElementById('selTerminal').value;
+    var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
+    var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators ? window.DATA.all_operators.length : 0);
+    var q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    return (window.DATA && window.DATA.all_records ? window.DATA.all_records : []).filter(function(r) {
+        if (tVal && (r['Port Code'] || '') !== tVal && (r['Terminal'] || '') !== tVal) return false;
+        var selCount = 0, selVals = {};
+        Object.keys(msSelected).forEach(function(k){ if(msSelected[k]){ selVals[k]=true; selCount++; } });
+        if (selCount > 0 && !selVals[r.Service || '']) return false;
+        if (opHasSelection && opSelectedKeys.indexOf((r.Operator || '').trim()) === -1) return false;
+        if (q) { var hay = (r.Service + ' ' + r['Vessel Name'] + ' ' + r['Port Code'] + ' ' + r['Voy.No']).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+        return true;
+    });
+}
+
+function getCurrentMatrixData() {
+    var svcOrder = ['HDT','CCT','REX','CGX','AEM','SGX','JPS','NAF','MES','NP','GTS','IMR','RES','SJA',
+        'AM','BDX','CGS','CH','CI','CP','CST','CSX','CWS','HLX','IQH','JCT','KHX','MFX','NSX','RTS','SGS','SL','ST','SVP','TBS','TH'];
+    var allVoyages = [];
+    var selectedSvcs = Object.keys(msSelected).filter(function(k){ return msSelected[k]; });
+    var msHasSelection = selectedSvcs.length > 0 && selectedSvcs.length < (window.DATA && window.DATA.services ? window.DATA.services.length : 0);
+    var opSelectedKeys = Object.keys(opMsSelected).filter(function(k){ return opMsSelected[k]; });
+    var opHasSelection = opSelectedKeys.length > 0 && opSelectedKeys.length < (window.DATA && window.DATA.all_operators ? window.DATA.all_operators.length : 0);
+    LT_DATA.forEach(function(svc) {
+        var svcId = (svc.code || svc.short || '').substring(0, 3);
+        if (msHasSelection && selectedSvcs.indexOf(svcId) === -1) return;
+        (svc.voyages || []).forEach(function(v) {
+            if (opHasSelection && opSelectedKeys.indexOf((v.operator || '').trim()) === -1) return;
+            allVoyages.push({ service: svcId, code: svc.code, vessel: v.vessel, vessel_voy: v.vessel_voy, operator: v.operator || '', week: v.week || '', etas: v.etas || {} });
+        });
+    });
+    if (ltSortPort) {
+        allVoyages.sort(function(a, b) {
+            var da = ltParseETA(a.etas[ltSortPort] || ''), db = ltParseETA(b.etas[ltSortPort] || '');
+            if (da === null && db === null) return 0; if (da === null) return 1; if (db === null) return -1;
+            return ltSortAsc ? (da - db) : (db - da);
+        });
+    } else {
+        allVoyages.sort(function(a, b) {
+            var sa = svcOrder.indexOf(a.service), sb = svcOrder.indexOf(b.service);
+            if (sa !== sb) return (sa === -1 ? 999 : sa) - (sb === -1 ? 999 : sb);
+            return (a.week || '').localeCompare(b.week || '');
+        });
+    }
+    var portHasData = {};
+    allVoyages.forEach(function(v) { Object.keys(v.etas).forEach(function(p) { if (v.etas[p] && v.etas[p] !== '-') portHasData[p] = true; }); });
+    var ports = (ltPortOrder && ltPortOrder.length ? ltPortOrder : []).filter(function(p) { return portHasData[p]; });
+    if (ports.length === 0) ports = Object.keys(portHasData);
+    var rows = [];
+    allVoyages.forEach(function(v) {
+        var row = { 'Service': v.service, 'Vessel': v.vessel, 'Voy': v.vessel_voy || '', 'Week': v.week || '', 'OP': v.operator || '' };
+        ports.forEach(function(p) { row['ETA_' + p] = v.etas[p] || ''; });
+        rows.push(row);
+    });
+    return rows;
+}
+
+function exportExcel() {
+    var tab = currentTab;
+    var data = (tab === 'longterm') ? getCurrentMatrixData() : getCurrentRawData();
+    if (!data || !data.length) { alert('No data to export'); return; }
+    var ws = XLSX.utils.json_to_sheet(data);
+    var wscols = Object.keys(data[0]).map(function(k) {
+        var max = k.length;
+        data.forEach(function(r) { var len = String(r[k] || '').length; if (len > max) max = len; });
+        return { wch: Math.min(max + 2, 30) };
+    });
+    ws['!cols'] = wscols;
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, tab === 'longterm' ? 'LongTermMatrix' : 'RawData');
+    var fname = 'CUL_DAILY_' + (tab === 'longterm' ? 'LongTerm' : 'Raw') + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    XLSX.writeFile(wb, fname);
+}
+
+function exportPDF() {
+    var el = document.getElementById('mainContent');
+    if (!el) return;
+    var opt = {
+        margin: 0.3,
+        filename: 'CUL_DAILY_' + currentTab + '_' + new Date().toISOString().slice(0,10) + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' }
+    };
+    html2pdf().set(opt).from(el).save();
+}
 </script>
 </body>
 </html>
