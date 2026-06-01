@@ -1,651 +1,913 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CUL &mdash; Alphaliner Intelligence Digest | Week 23, 2026</title>
-<style>
-:root {
-  --bg: #0d1117; --card: #161b22; --border: #21262d;
-  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-  --green: #3fb950; --orange: #d29922; --red: #f85149;
-  --purple: #bc8cff; --teal: #39d353;
-  --tag-ops: #0d4429; --tag-ops-t: #3fb950;
-  --tag-fin: #1a2f45; --tag-fin-t: #58a6ff;
-  --tag-leg: #2d1b4e; --tag-leg-t: #bc8cff;
-  --tag-eq: #3d2a0a; --tag-eq-t: #d29922;
-  --tag-net: #0f3240; --tag-net-t: #39d353;
-  --tag-trd: #3d1515; --tag-trd-t: #f85149;
-  --tag-rnd: #1a2a1a; --tag-rnd-t: #56d364;
-  --tag-com: #2a1a3d; --tag-com-t: #e79dff;
-  --tag-vsl: #1a2a3a; --tag-vsl-t: #79c0ff;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-a { color: var(--accent); text-decoration: none; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alphaliner Intelligence Digest - Week 23 2026</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #1c2128;
+      --bg-hover: #222a35;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent-blue: #58a6ff;
+      --accent-cyan: #39d353;
+      --accent-orange: #f78166;
+      --accent-yellow: #e3b341;
+      --accent-purple: #bc8cff;
+      --accent-teal: #56d364;
+      --up: #3fb950;
+      --down: #f85149;
+      --neutral: #8b949e;
+      --warning: #d29922;
+      --cul-gold: #ffd700;
+    }
 
-.top-bar { background: #010409; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-icon { background: linear-gradient(135deg, #1f6feb, #58a6ff); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.logo-text h1 { font-size: 16px; font-weight: 700; color: var(--text); }
-.logo-text p { font-size: 11px; color: var(--muted); }
-.lang-btn { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; cursor: pointer; color: var(--text); transition: all 0.2s; }
-.lang-btn:hover { border-color: var(--accent); color: var(--accent); }
-.lang-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
-.lang-controls { display: flex; gap: 8px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
-.hero-inner { max-width: 1200px; margin: 0 auto; }
-.hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
-.hero h2 .hl { color: var(--accent); }
-.hero p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
-.hero-stats { display: flex; gap: 20px; flex-wrap: wrap; }
-.stat-pill { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; }
-.stat-pill .sv { color: var(--accent); font-weight: 700; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
 
-.pending-banner { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.4); border-radius: 8px; padding: 12px 20px; margin: 16px 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #d29922; max-width: 1200px; margin-left: auto; margin-right: auto; }
+    /* ── Header ─────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 40px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #1f6feb, #388bfd, #58a6ff, #79c0ff, #58a6ff, #1f6feb);
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-.filter-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; position: sticky; top: 61px; z-index: 90; }
-.filter-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
-.ftag { background: #21262d; border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
-.ftag:hover { border-color: var(--accent); color: var(--accent); }
-.ftag.active { background: var(--accent); color: #0d1117; border-color: var(--accent); font-weight: 700; }
-.result-count { margin-left: auto; font-size: 12px; color: var(--muted); }
-.result-count span { color: var(--accent); font-weight: 700; }
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #1f6feb, #388bfd);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .brand-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .header-meta {
+      text-align: right;
+    }
+    .week-badge {
+      display: inline-block;
+      background: rgba(31,111,235,0.18);
+      border: 1px solid rgba(88,166,255,0.35);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .header-date {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .header-title {
+      margin-top: 20px;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+    .header-title span { color: var(--accent-blue); }
+    .header-desc {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
 
-.feed { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
-.week-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 24px 0 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+    /* ── Alert Banner ────────────────────────────── */
+    .alert-banner {
+      background: linear-gradient(90deg, rgba(210,153,34,0.15), rgba(210,153,34,0.08));
+      border: 1px solid rgba(210,153,34,0.4);
+      border-left: 4px solid var(--warning);
+      margin: 0 40px;
+      margin-top: 20px;
+      border-radius: 8px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #e3b341;
+    }
+    .alert-icon { font-size: 16px; }
 
-.article-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
-.article-card:hover { border-color: #388bfd; background: #1c2128; }
-.article-card.featured { border-left: 3px solid var(--orange); }
-.article-card.cul-direct { border-left: 3px solid var(--green); }
-.card-top { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 8px; }
-.card-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 200px; line-height: 1.5; }
-.card-badges { display: flex; gap: 5px; flex-wrap: wrap; }
-.badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
-.badge-star { background: rgba(210,153,34,0.2); color: var(--orange); border: 1px solid rgba(210,153,34,0.4); }
-.badge-cul { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
-.badge-ops { background: var(--tag-ops); color: var(--tag-ops-t); border: 1px solid rgba(63,185,80,0.2); }
-.badge-fin { background: var(--tag-fin); color: var(--tag-fin-t); border: 1px solid rgba(88,166,255,0.2); }
-.badge-leg { background: var(--tag-leg); color: var(--tag-leg-t); border: 1px solid rgba(188,140,255,0.2); }
-.badge-eq  { background: var(--tag-eq);  color: var(--tag-eq-t);  border: 1px solid rgba(210,153,34,0.2); }
-.badge-net { background: var(--tag-net); color: var(--tag-net-t); border: 1px solid rgba(57,211,83,0.2); }
-.badge-trd { background: var(--tag-trd); color: var(--tag-trd-t); border: 1px solid rgba(248,81,73,0.2); }
-.badge-rnd { background: var(--tag-rnd); color: var(--tag-rnd-t); border: 1px solid rgba(86,211,100,0.2); }
-.badge-com { background: var(--tag-com); color: var(--tag-com-t); border: 1px solid rgba(231,157,255,0.2); }
-.badge-vsl { background: var(--tag-vsl); color: var(--tag-vsl-t); border: 1px solid rgba(121,192,255,0.2); }
-.badge-region { background: #21262d; color: var(--muted); border: 1px solid var(--border); }
-.card-summary { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
-.card-impact { font-size: 12px; background: rgba(63,185,80,0.06); border: 1px solid rgba(63,185,80,0.15); border-radius: 8px; padding: 8px 12px; margin-top: 6px; color: #8fe898; line-height: 1.5; }
-.card-impact strong { color: var(--green); }
-.card-bottom { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-.card-meta { font-size: 11px; color: var(--muted); }
-.card-actions { margin-left: auto; display: flex; gap: 8px; }
-.btn-sm { background: #21262d; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: var(--text); transition: all 0.15s; }
-.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-.expand-body { display: none; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
-.expand-body.open { display: block; }
-.expand-body p { font-size: 13px; color: var(--muted); line-height: 1.8; margin-bottom: 10px; }
-.expand-body ul { font-size: 13px; color: var(--muted); padding-left: 18px; line-height: 1.8; }
+    /* ── Main Layout ─────────────────────────────── */
+    .main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 40px 60px;
+    }
 
-.data-tabs { max-width: 1200px; margin: 0 auto; padding: 0 24px 30px; }
-.tabs-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
-.tab-btn { background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-.data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
-.data-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-.dc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.dc-value { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-.dc-change { font-size: 12px; font-weight: 600; }
-.dc-change.up { color: var(--red); }
-.dc-change.down { color: var(--green); }
-.dc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-.data-table { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-.data-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table th { background: #21262d; color: var(--muted); padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
-.data-table td { padding: 10px 14px; border-bottom: 1px solid #21262d; color: var(--text); }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: #1c2128; }
-.td-up { color: var(--red); font-weight: 600; }
-.td-dn { color: var(--green); font-weight: 600; }
-.td-pr { font-weight: 700; color: var(--text); }
-.section-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    /* ── Section Title ───────────────────────────── */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title .icon { font-size: 16px; }
 
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; }
-.sidebar-overlay.open { display: block; }
-.sidebar { position: fixed; right: -500px; top: 0; bottom: 0; width: 480px; background: #161b22; border-left: 1px solid #30363d; z-index: 210; overflow-y: auto; transition: right 0.3s ease; }
-.sidebar.open { right: 0; }
-.sidebar-header { background: #010409; border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; }
-.sidebar-header h3 { font-size: 14px; font-weight: 700; }
-.sidebar-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
-.sidebar-close:hover { color: var(--text); }
-.sidebar-body { padding: 20px; }
-.sidebar-section { margin-bottom: 20px; }
-.sidebar-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
-.sidebar-section p, .sidebar-section li { font-size: 13px; color: var(--text); line-height: 1.7; }
-.sidebar-section ul { padding-left: 16px; }
-.sidebar-section li { color: var(--muted); }
-.sidebar-section li strong { color: var(--text); }
-.impact-box { background: rgba(63,185,80,0.07); border: 1px solid rgba(63,185,80,0.2); border-radius: 8px; padding: 12px; }
-.impact-box p { color: #8fe898; font-size: 13px; line-height: 1.6; }
+    /* ── KPI Cards ───────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      transition: border-color 0.2s;
+    }
+    .kpi-card:hover { border-color: var(--accent-blue); }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+    .kpi-change {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kpi-change.up { color: var(--up); }
+    .kpi-change.down { color: var(--down); }
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .kpi-card.highlight { border-color: rgba(255,215,0,0.4); }
+    .kpi-card.highlight .kpi-value { color: var(--cul-gold); }
 
-footer { border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 11px; color: var(--muted); }
+    /* ── Two-col layout ──────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+    @media(max-width:900px) { .two-col,.three-col { grid-template-columns:1fr; } }
 
-.zh { display: none; }
-.en { display: block; }
-body.lang-zh .zh { display: block; }
-body.lang-zh .en { display: none; }
-</style>
+    /* ── Card ────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── Table ───────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .data-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+      color: var(--text-primary);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--bg-hover); }
+    .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .data-table td.route { color: var(--text-secondary); font-size: 12px; }
+
+    .tag-up {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: rgba(63,185,80,0.15);
+      color: var(--up);
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 600;
+    }
+    .tag-down {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: rgba(248,81,73,0.15);
+      color: var(--down);
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 600;
+    }
+    .tag-neutral {
+      background: rgba(139,148,158,0.15);
+      color: var(--neutral);
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 600;
+    }
+    .cul-star {
+      color: var(--cul-gold);
+      font-size: 11px;
+      background: rgba(255,215,0,0.1);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-left: 4px;
+    }
+
+    /* ── News items ──────────────────────────────── */
+    .news-list { display: flex; flex-direction: column; gap: 12px; }
+    .news-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      transition: border-left-color 0.2s;
+    }
+    .news-item:hover { border-left-color: var(--accent-blue); }
+    .news-item.hot { border-left-color: var(--accent-orange); }
+    .news-item.warn { border-left-color: var(--warning); }
+    .news-item.positive { border-left-color: var(--up); }
+    .news-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 6px;
+    }
+    .news-tag.supply { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+    .news-tag.demand { background: rgba(63,185,80,0.15); color: var(--up); }
+    .news-tag.gri { background: rgba(248,81,73,0.15); color: var(--down); }
+    .news-tag.geopolitics { background: rgba(210,153,34,0.15); color: var(--warning); }
+    .news-tag.fleet { background: rgba(188,140,255,0.15); color: var(--accent-purple); }
+    .news-tag.market { background: rgba(86,211,100,0.15); color: var(--accent-cyan); }
+    .news-headline {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .news-body {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── Top100 badges ───────────────────────────── */
+    .carrier-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .carrier-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .carrier-rank {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1f6feb22, #388bfd22);
+      border: 1px solid rgba(88,166,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      color: var(--accent-blue);
+    }
+    .carrier-info { flex: 1; }
+    .carrier-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .carrier-teu { font-size: 12px; color: var(--text-secondary); }
+    .carrier-share { font-size: 11px; color: var(--text-muted); }
+
+    /* ── Blank Sailings bar ──────────────────────── */
+    .blank-bar-wrap { margin: 8px 0; }
+    .blank-bar-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .blank-bar-track {
+      height: 8px; background: var(--bg-primary);
+      border-radius: 4px; overflow: hidden;
+    }
+    .blank-bar-fill {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, #f85149, #ff8c00);
+      transition: width 0.8s ease;
+    }
+
+    /* ── Route spotlight ─────────────────────────── */
+    .route-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .route-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      transition: border-color 0.2s;
+    }
+    .route-card:hover { border-color: rgba(88,166,255,0.5); }
+    .route-card.cul { border-color: rgba(255,215,0,0.3); }
+    .route-name { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .route-price { font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 4px 0; }
+    .route-card.cul .route-price { color: var(--cul-gold); }
+    .route-unit { font-size: 11px; color: var(--text-muted); }
+    .route-chg { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .route-chg.up { color: var(--up); }
+    .route-chg.down { color: var(--down); }
+
+    /* ── Hormuz special ──────────────────────────── */
+    .hormuz-box {
+      background: linear-gradient(135deg, rgba(210,153,34,0.08), rgba(248,81,73,0.06));
+      border: 1px solid rgba(210,153,34,0.35);
+      border-left: 4px solid var(--warning);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 28px;
+    }
+    .hormuz-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .hormuz-title { font-size: 14px; font-weight: 700; color: var(--warning); }
+    .hormuz-body { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+    .hormuz-body strong { color: var(--text-primary); }
+
+    /* ── Footer ──────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+      padding-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+    .footer a { color: var(--accent-blue); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .disclaimer {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── pulse dot ───────────────────────────────── */
+    .live-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: var(--up);
+      border-radius: 50%;
+      margin-right: 4px;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.5; transform:scale(1.4); }
+    }
+
+    mb-20 { margin-bottom: 20px; }
+  </style>
 </head>
-<body id="pageBody">
+<body>
 
-<!-- TOP BAR -->
-<div class="top-bar">
-  <div class="logo">
-    <div class="logo-icon">&#x26F2;</div>
-    <div class="logo-text">
-      <h1>CUL &mdash; Alphaliner Intelligence Digest</h1>
-      <p>Week 23, 2026 (Jun 1&ndash;7) &middot; Powered by Alphaliner / Public Intelligence</p>
+<!-- ══ HEADER ══════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">🚢</div>
+      <div>
+        <div class="brand-name">CULines · Claw Intelligence</div>
+        <div class="brand-sub">Chartering &amp; Bunker Analytics</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="week-badge">Week 23 · 2026</div>
+      <div class="header-date"><span class="live-dot"></span>生成日期：2026-06-01 &nbsp;|&nbsp; 数据截至 2026-05-29/30</div>
     </div>
   </div>
-  <div class="lang-controls">
-    <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
-    <button class="lang-btn" id="btnZH" onclick="setLang('zh')">&#x4E2D;&#x6587;</button>
-  </div>
+  <div class="header-title">Alphaliner <span>Intelligence Digest</span></div>
+  <div class="header-desc">全球集运市场周报 · 运价指数 · 船公司动态 · 地缘风险跟踪</div>
 </div>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-inner">
-    <h2 class="en">Alphaliner <span class="hl">Weekly Intelligence</span> &mdash; Week 23</h2>
-    <h2 class="zh">Alphaliner <span class="hl">&#x6BCF;&#x5468;&#x60C5;&#x62A5;&#x6458;&#x8981;</span> &mdash; &#x7B2C;23&#x5468;</h2>
-    <p class="en">AI-curated shipping intelligence with CUL impact assessment | Jun 1&ndash;7, 2026 | Source: Alphaliner / Drewry WCI / Public Maritime Intelligence</p>
-    <p class="zh">AI&#x7CBE;&#x9009;&#x822A;&#x8FD0;&#x60C5;&#x62A5;&#xFF0C;&#x9644;CUL&#x5F71;&#x54CD;&#x8BC4;&#x4F30; | 2026&#x5E746&#x6708;1&ndash;7&#x65E5; | &#x6570;&#x636E;&#x6765;&#x6E90;&#xFF1A;Alphaliner / Drewry WCI / &#x516C;&#x5F00;&#x822A;&#x8FD0;&#x60C5;&#x62A5;</p>
-    <div class="hero-stats">
-      <div class="stat-pill"><span class="sv">9</span> <span class="en">Articles This Week</span><span class="zh">&#x672C;&#x5468;&#x6761;&#x76EE;</span></div>
-      <div class="stat-pill"><span class="sv">5</span> <span class="en">CUL Direct</span><span class="zh">CUL&#x76F4;&#x63A5;&#x76F8;&#x5173;</span></div>
-      <div class="stat-pill"><span class="sv">3</span> <span class="en">Featured Items</span><span class="zh">&#x91CD;&#x70B9;&#x9879;&#x76EE;</span></div>
-      <div class="stat-pill en"><span class="sv">Middle East / Asia / Europe / Americas</span> Regions</div>
-      <div class="stat-pill zh"><span class="sv">&#x4E2D;&#x4E1C; / &#x4E9A;&#x6D32; / &#x6B27;&#x6D32; / &#x7F8E;&#x6D32;</span> &#x8986;&#x76D6;&#x533A;&#x57DF;</div>
-      <div class="stat-pill" style="border-color: var(--orange);"><span class="sv" style="color:var(--orange);">&#x26A0;&#xFE0F; Hormuz</span> <span class="en">Deal Pending Final Sign-off</span><span class="zh">&#x534F;&#x8BAE;&#x5F85;&#x6700;&#x7EC8;&#x7B7E;&#x5B57;</span></div>
-      <div class="stat-pill" style="border-color: var(--red);"><span class="sv" style="color:var(--red);">WCI ~$2,850</span> <span class="en">est. +1.8% WoW &middot; 5th&#x2191;</span><span class="zh">&#x4F30;&#x8BA1;&#x5468;+1.8% &middot; &#x8FDE;&#x6DA85&#x5468;</span></div>
-    </div>
-  </div>
+<!-- ══ ALERT ════════════════════════════════════════════ -->
+<div class="alert-banner">
+  <span class="alert-icon">⚡</span>
+  <span><strong>本周重点：</strong>SCFI 单周暴涨 15.94%（+353点），美西+31.5%、美东+23.6%、欧洲+29.9%——旺季全面提前引爆；船司6月集体GRI；霍尔木兹海峡日均24船在护航下通行，波斯湾运价小幅走高。</span>
 </div>
 
-<!-- PENDING BANNER -->
-<div style="max-width:1200px;margin:16px auto;padding:0 24px;">
-  <div style="background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.35);border-radius:8px;padding:10px 16px;font-size:12px;color:#d29922;display:flex;align-items:center;gap:8px;">
-    &#x1F4CB; <span class="en"><strong>Week 23 (Jun 1, 2026):</strong> This report is generated at week-open based on public intelligence and Week 22 continuation analysis. Alphaliner email digest content will be incorporated upon receipt. Fixed link: <a href="https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html" style="color:#58a6ff;">alphaliner-digest.html</a></span>
-    <span class="zh"><strong>&#x7B2C;23&#x5468;&#xFF08;2026&#x5E746&#x6708;1&#x65E5;&#xFF09;&#xFF1A;</strong> &#x672C;&#x62A5;&#x544A;&#x57FA;&#x4E8E;&#x516C;&#x5F00;&#x60C5;&#x62A5;&#x53CA;&#x7B2C;22&#x5468;&#x5EF6;&#x4F38;&#x5206;&#x6790;&#x5728;&#x5468;&#x521D;&#x751F;&#x6210;&#x3002;Alphaliner&#x90AE;&#x4EF6;&#x6458;&#x8981;&#x5185;&#x5BB9;&#x6536;&#x5230;&#x540E;&#x5C06;&#x8865;&#x5145;&#x3002;</span>
-  </div>
-</div>
+<!-- ══ MAIN ══════════════════════════════════════════════ -->
+<div class="main">
 
-<!-- FILTER BAR -->
-<div class="filter-bar">
-  <div class="filter-inner">
-    <span class="filter-label en">Dept</span>
-    <span class="filter-label zh">&#x90E8;&#x95E8;</span>
-    <span class="ftag active" data-dept="all">All</span>
-    <span class="ftag" data-dept="ops"><span class="en">Ops</span><span class="zh">&#x8FD0;&#x8425;</span></span>
-    <span class="ftag" data-dept="fin"><span class="en">Finance</span><span class="zh">&#x8D22;&#x52A1;</span></span>
-    <span class="ftag" data-dept="legal"><span class="en">Legal</span><span class="zh">&#x6CD5;&#x52A1;</span></span>
-    <span class="ftag" data-dept="equip"><span class="en">Equipment</span><span class="zh">&#x8BBE;&#x5907;</span></span>
-    <span class="ftag" data-dept="network"><span class="en">Network</span><span class="zh">&#x822A;&#x7EBF;&#x89C4;&#x5212;</span></span>
-    <span class="ftag" data-dept="trade"><span class="en">Trade</span><span class="zh">&#x5546;&#x52A1;&#x8D38;&#x6613;</span></span>
-    <span class="ftag" data-dept="commercial"><span class="en">Commercial</span><span class="zh">&#x5546;&#x4E1A;</span></span>
-    <div class="result-count en">Showing <span id="countEN">9</span> of 9 items</div>
-    <div class="result-count zh">&#x663E;&#x793A; <span id="countZH">9</span> / 9 &#x6761;</div>
-  </div>
-</div>
-
-<!-- MAIN FEED -->
-<div class="feed" id="mainFeed">
-  <div class="week-label">&#x1F5D3; Week 23 &middot; Jun 1&ndash;7, 2026 &middot; Alphaliner / Public Maritime Intelligence</div>
-
-  <!-- ARTICLE 1 -->
-  <div class="article-card featured cul-direct" data-depts="ops,network,legal">
-    <div class="card-top">
-      <div class="card-title en">&#x2B50; US&ndash;Iran Deal: Trump Expected to Sign Framework This Week &mdash; Hormuz Reopening Clock Starts (Jun 1)</div>
-      <div class="card-title zh">&#x2B50; &#x7F8E;&#x4F0A;&#x534F;&#x8BAE;&#xFF1A;&#x7279;&#x6717;&#x666E;&#x9884;&#x8BA1;&#x672C;&#x5468;&#x7B7E;&#x7F72;&#x6846;&#x67B6;&#x2014;&#x2014;&#x970D;&#x5C14;&#x6728;&#x5179;&#x91CD;&#x5F00;&#x5012;&#x8BA1;&#x65F6;&#x5F00;&#x542F;&#xFF08;6&#x6708;1&#x65E5;&#xFF09;</div>
-      <div class="card-badges">
-        <span class="badge badge-star">&#x2B50; Featured</span>
-        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
-        <span class="badge badge-ops">Ops</span>
-        <span class="badge badge-net">Network</span>
-        <span class="badge badge-leg">Legal</span>
-        <span class="badge badge-region">Middle East / Global</span>
+  <!-- KPI行 -->
+  <div style="margin-bottom:28px;margin-top:24px;">
+    <div class="section-title"><span class="icon">📊</span> 本周核心指标（截至 2026-05-29）</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">SCFI 综合</div>
+        <div class="kpi-value">2,571.73</div>
+        <div class="kpi-change up">▲ +353.58 (+15.94%)</div>
+        <div class="kpi-sub">上周：2,218.15</div>
       </div>
-    </div>
-    <div class="card-summary en">As of June 1, 2026, the US&ndash;Iran draft framework agreed in principle on May 27 is awaiting Trump's formal signature. White House officials confirm final approval is expected this week. The agreement commits Iran to restoring commercial shipping through the Strait of Hormuz to pre-war levels within 30 days of signing. The Iranian PGSA (Persian Gulf Strait Authority) has confirmed it will begin preparing inspection and service-fee protocols for the corridor transition. Simultaneous 60-day ceasefire extension remains in place. Industry timeline: if signed by June 3, Hormuz could be commercially operational by early July 2026.</div>
-    <div class="card-summary zh">截至2026年6月1日，5月27日原则上达成的美伊草案框架正待特朗普正式签署。白宫官员确认预计本周完成最终批准。协议承诺伊朗将在签署后30天内将霍尔木兹海峡商业航运恢复至战前水平。伊朗PGSA确认将开始为走廊过渡准备检查和服务费协议。同步的60天停火延长继续有效。行业时间线：若6月3日前签署，霍尔木兹最早可能于2026年7月初恢复商业通航。</div>
-    <div class="card-impact">
-      <strong>&#x1F3AF; CUL Impact:</strong>
-      <span class="en"> CRITICAL WEEK for CUL Middle East positioning. If Trump signs this week: (1) COSCO likely lifts Middle East booking suspension within 48–72 hrs; (2) CUL JEA/Dammam/Sohar route planning should shift to ACTIVE status &mdash; prepare vessel rotation schedules; (3) War-risk surcharge will persist 4–8 weeks post-reopening per insurance market signals; (4) PGSA service fees ($3,000–8,000/transit) become effective &mdash; update voyage cost models immediately. Recommend CUL ops team convene a Hormuz readiness meeting THIS WEEK.</span>
-      <span class="zh"> CUL中东定位的关键一周。若特朗普本周签署：(1) 中远可能在48-72小时内解除中东订舱暂停；(2) CUL杰贝阿里/达曼/苏哈尔航线规划应转为ACTIVE状态——准备船舶轮班计划；(3) 根据保险市场信号，战争险附加费将在重开后持续4-8周；(4) PGSA服务费（每次过境$3,000-8,000）将生效——立即更新航次成本模型。建议CUL运营团队本周召开霍尔木兹准备就绪会议。</span>
-    </div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · Based on May 27 draft framework / Al-Monitor / White House statements</span>
+      <div class="kpi-card">
+        <div class="kpi-label">CCFI 综合</div>
+        <div class="kpi-value">1,366.76</div>
+        <div class="kpi-change up">▲ +49.40 (+3.75%)</div>
+        <div class="kpi-sub">上周：1,317.36</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Drewry WCI</div>
+        <div class="kpi-value">$2,800</div>
+        <div class="kpi-change up">▲ +3.24% WoW</div>
+        <div class="kpi-sub">月涨幅：+26.35%</div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="kpi-label">波斯湾(迪拜) ★CUL</div>
+        <div class="kpi-value">$4,462</div>
+        <div class="kpi-change up">▲ 小幅走高</div>
+        <div class="kpi-sub">单位：USD/TEU</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">美西（基本港）</div>
+        <div class="kpi-value">$4,419</div>
+        <div class="kpi-change up">▲ +31.5% WoW</div>
+        <div class="kpi-sub">单位：USD/FEU</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">美东（基本港）</div>
+        <div class="kpi-value">$5,333</div>
+        <div class="kpi-change up">▲ +23.6% WoW</div>
+        <div class="kpi-sub">单位：USD/FEU</div>
+      </div>
     </div>
   </div>
 
-  <!-- ARTICLE 2 -->
-  <div class="article-card featured cul-direct" data-depts="commercial,trade,fin">
-    <div class="card-top">
-      <div class="card-title en">&#x2B50; WCI Estimated ~$2,850 Week 23 &mdash; 5th Consecutive Weekly Gain; June FAK $4,700&ndash;5,700 Holds</div>
-      <div class="card-title zh">&#x2B50; WCI&#x7B2C;23&#x5468;&#x4F30;&#x8BA1;&#x7EA6;$2,850&#x2014;&#x2014;&#x8FDE;&#x6DA8;&#x7B2C;5&#x5468;&#xFF1B;6&#x6708;FAK $4,700&ndash;5,700&#x7EF4;&#x6301;</div>
-      <div class="card-badges">
-        <span class="badge badge-star">&#x2B50; Featured</span>
-        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
-        <span class="badge badge-fin">Finance</span>
-        <span class="badge badge-trd">Trade</span>
-        <span class="badge badge-region">Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">The Drewry WCI is estimated at approximately $2,850/FEU entering Week 23, extending the consecutive weekly gain streak to five weeks (Wk19: $2,216 &rarr; Wk20: $2,553 &rarr; Wk21: $2,712 &rarr; Wk22: $2,800 &rarr; Wk23 est: ~$2,850). June 1&ndash;14 FAK rates announced in Week 22 remain in force: Asia&ndash;North Europe ~$4,700/40ft; Asia&ndash;Mediterranean $5,500&ndash;5,700/40ft. The rate rally continues to be supported by effective fleet elongation (Cape routing) and Hormuz-driven capacity withdrawal. Analysts note that if Hormuz reopens in July, a rate correction of 10&ndash;20% could materialize in Q4. CMA CGM filed July FAK levels at similar ranges; MSC matched.</div>
-    <div class="card-summary zh">进入第23周，Drewry WCI估计约$2,850/FEU，将连涨周数延伸至5周（第19周: $2,216→第20周: $2,553→第21周: $2,712→第22周: $2,800→第23周估计: ~$2,850）。第22周公布的6月1-14日FAK运价继续有效：亚洲→北欧约$4,700/40尺；亚洲→地中海$5,500-5,700/40尺。运价上涨持续受好望角绕行（船队延伸）和霍尔木兹驱动的运力收缩支撑。分析师指出，若霍尔木兹7月重开，Q4可能出现10-20%的运价回调。CMA CGM申报7月FAK水平相近；MSC跟进。</div>
-    <div class="card-impact">
-      <strong>&#x1F3AF; CUL Impact:</strong>
-      <span class="en"> The 5-week rally trajectory puts WCI ~28% above Q1 lows. CUL commercial team: (1) Ensure June contract rates are aligned with FAK trajectory &mdash; if locked at $2,200&ndash;2,500 levels, significant market upside is being left on table; (2) Prepare Q3 contingency: if Hormuz reopens in July, model a scenario where WCI retreats to $2,200&ndash;2,400 by Q4 &mdash; this affects CUL revenue forecasts materially; (3) COSCO's Middle East suspension, once lifted, will add booking pressure to Asia&ndash;ME routes specifically.</span>
-      <span class="zh"> 5周上涨轨迹使WCI较Q1低点高出约28%。CUL商务团队：(1) 确保6月合同运价与FAK轨迹对齐——若锁定在$2,200-2,500水平，正在错失显著市场上行空间；(2) 准备Q3应急预案：若霍尔木兹7月重开，模拟WCI至Q4回落至$2,200-2,400的情景——这对CUL收入预测有重大影响；(3) 中远中东暂停解除后将对亚洲→中东航线产生特定订舱压力。</span>
-    </div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · Drewry WCI (Wk22 confirmed $2,800) / TradingEconomics / CMA CGM / MSC</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 3 -->
-  <div class="article-card featured cul-direct" data-depts="ops,legal,network">
-    <div class="card-top">
-      <div class="card-title en">&#x2B50; COSCO Middle East Booking Suspension: Lift Expected Immediately Post-Deal Signature</div>
-      <div class="card-title zh">&#x2B50; &#x4E2D;&#x8FDC;&#x4E2D;&#x4E1C;&#x8BA2;&#x4ED3;&#x6682;&#x505C;&#xFF1A;&#x9884;&#x8BA1;&#x534F;&#x8BAE;&#x7B7E;&#x5B57;&#x540E;&#x7ACB;&#x5373;&#x89E3;&#x9664;</div>
-      <div class="card-badges">
-        <span class="badge badge-star">&#x2B50; Featured</span>
-        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
-        <span class="badge badge-ops">Ops</span>
-        <span class="badge badge-leg">Legal</span>
-        <span class="badge badge-net">Network</span>
-        <span class="badge badge-region">Middle East</span>
-      </div>
-    </div>
-    <div class="card-summary en">COSCO SHIPPING Lines' May 19 suspension of all new bookings to/from Middle East ports remains in effect entering Week 23. Industry sources indicate COSCO is monitoring the Trump signature timeline closely and has prepared a rapid re-activation plan for JEA, Dammam, Sohar, and Abu Dhabi services. OOCL is expected to mirror COSCO's policy. When the suspension lifts, initial capacity deployment is expected to be limited (2&ndash;3 vessels on priority Gulf loops) while war-risk insurance protocols are confirmed. Full schedule restoration to pre-crisis levels estimated 4&ndash;6 weeks post-reopening.</div>
-    <div class="card-summary zh">进入第23周，中远海运5月19日对中东港口所有进出口新订舱的暂停仍在有效期。行业消息人士表示，中远正在密切关注特朗普签署时间线，并已准备了杰贝阿里、达曼、苏哈尔和阿布扎比服务的快速重启方案。预计东方海外将跟进中远政策。暂停解除后，初期运力投放预计将受限（海湾优先环线2-3艘船），同时确认战争险保险协议。恢复至危机前水平的完整航班预计需重开后4-6周。</div>
-    <div class="card-impact">
-      <strong>&#x1F3AF; CUL Impact:</strong>
-      <span class="en"> DIRECT. CUL must confirm with COSCO counterparts: (a) status of pre-booked slot positions during suspension &mdash; will they be honored at original rates?; (b) timeline for first available sailing post-lift; (c) whether CUL has accumulated any Middle East cargo backlog needing priority slots. Also: the post-suspension booking surge could create short-term slot scarcity on JEA/Gulf routes &mdash; CUL may need to pre-position with Maersk or CMA CGM AEX as backup.</span>
-      <span class="zh"> 直接影响。CUL必须向中远对接方确认：(a) 暂停期间预订舱位的状态——是否将以原价履行？；(b) 解除后首班可用航次时间线；(c) CUL是否积累了需要优先舱位的中东货物积压。另外：暂停解除后的订舱激增可能造成杰贝阿里/海湾航线短期舱位稀缺——CUL可能需要提前在马士基或CMA CGM AEX上备位。</span>
-    </div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · MarineLink / COSCO SHIPPING Lines / Industry Sources</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 4 -->
-  <div class="article-card cul-direct" data-depts="legal,fin">
-    <div class="card-top">
-      <div class="card-title en">Iran PGSA Service Fee Schedule: $4,200&ndash;7,500/Transit Confirmed for Container Vessels</div>
-      <div class="card-title zh">&#x4F0A;&#x6717;PGSA&#x670D;&#x52A1;&#x8D39;&#x6807;&#x51C6;&#xFF1A;&#x96C6;&#x88C5;&#x7B71;&#x8239;&#x6BCF;&#x6B21;&#x8FC7;&#x5883;$4,200&ndash;7,500&#x786E;&#x8BA4;</div>
-      <div class="card-badges">
-        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
-        <span class="badge badge-leg">Legal</span>
-        <span class="badge badge-fin">Finance</span>
-        <span class="badge badge-region">Middle East</span>
-      </div>
-    </div>
-    <div class="card-summary en">Iran's Persian Gulf Strait Authority (PGSA) has circulated a preliminary fee schedule for commercial vessels transiting the Hormuz corridor under the new deal framework. Container vessels are assessed at $4,200&ndash;7,500 per transit depending on vessel size (TEU capacity bands). Bulk carriers and tankers face separate tariffs. The fee is payable via designated Iranian banking intermediaries; P&I clubs are consulting on compliance pathways. Lloyd's Market Association (LMA) has confirmed war-risk cover will remain active for Hormuz transits even post-deal, though premium rates are expected to decrease 20&ndash;40% upon formal reopening.</div>
-    <div class="card-summary zh">伊朗波斯湾海峡管理局（PGSA）已向商业船舶发布在新协议框架下过境霍尔木兹走廊的初步收费标准。集装箱船按船舶规模（TEU容量段）收取$4,200-7,500每次过境。散货船和油轮面临单独关税。费用通过指定伊朗银行中介支付；P&I俱乐部正在就合规路径进行咨询。劳合社市场协会（LMA）确认即使协议生效后战争险保单将对霍尔木兹过境保持有效，但正式重开后保费率预计下降20-40%。</div>
-    <div class="card-impact">
-      <strong>&#x1F3AF; CUL Impact:</strong>
-      <span class="en"> New voyage cost element: for a CUL vessel (est. 2,000&ndash;3,000 TEU capacity on ME feeder loops), PGSA transit fee adds ~$4,200&ndash;5,500 per ONE-WAY Hormuz transit. Round-trip: ~$8,400&ndash;11,000 per voyage. Finance team: update Middle East voyage P&amp;L models to include this recurring cost. Legal: engage P&I club to confirm payment pathway and sanctions compliance. Brief charter team on the new cost structure before any voyage fixture that includes Hormuz transit.</span>
-      <span class="zh"> 新的航次成本项目：对于CUL船舶（估计中东支线的2,000-3,000 TEU），PGSA过境费单程增加约$4,200-5,500。往返：每航次约$8,400-11,000。财务团队：更新中东航次盈亏模型以纳入此项循环成本。法务：联系P&I俱乐部确认付款途径和制裁合规性。在含霍尔木兹过境的任何航次租约签订前，向租船团队简报新成本结构。</span>
-    </div>
-    <div class="card-bottom">
-      <span class="card-meta">May 30, 2026 · PGSA Circular / LMA / P&amp;I Club Industry Briefings</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 5 -->
-  <div class="article-card cul-direct" data-depts="legal,network,commercial">
-    <div class="card-top">
-      <div class="card-title en">Hapag-Lloyd/ZIM Merger: EU Regulatory Review Formally Opens &mdash; 6-Month Clock Running</div>
-      <div class="card-title zh">&#x8D6B;&#x4F2F;&#x7F57;&#x7279;/ZIM&#x5408;&#x5E76;&#xFF1A;&#x6B27;&#x76DF;&#x76D1;&#x7BA1;&#x5BA1;&#x67E5;&#x6B63;&#x5F0F;&#x5F00;&#x542F;&#x2014;&#x2014;6&#x4E2A;&#x6708;&#x5012;&#x8BA1;&#x65F6;&#x8FD0;&#x884C;</div>
-      <div class="card-badges">
-        <span class="badge badge-cul">&#x26A1; CUL Direct</span>
-        <span class="badge badge-leg">Legal</span>
-        <span class="badge badge-net">Network</span>
-        <span class="badge badge-region">Europe / Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">The European Commission formally opened its Phase 1 review of the Hapag-Lloyd/ZIM acquisition on approximately June 1, 2026, setting a 25-working-day initial review window (Phase 1 expected ~July 7; Phase 2 if extended to ~November 2026). The EU review is considered the most complex hurdle given ZIM's significant presence on intra-EU and Asia&ndash;Europe routes. Competitor carriers are expected to file observations. Hapag-Lloyd CEO Rolf Habben Jansen confirmed the company expects to clear all regulatory hurdles by Q4 2026. The new entity will become the #4 global carrier at ~3M TEU.</div>
-    <div class="card-summary zh">欧洲委员会于2026年6月1日前后正式启动对赫伯罗特/ZIM收购的第一阶段审查，设定25个工作日初审窗口（第一阶段预计约7月7日；若延伸则第二阶段约至2026年11月）。鉴于ZIM在欧盟内贸及亚欧航线的显著存在，欧盟审查被认为是最复杂的障碍。竞争船公司预计将提交意见。赫伯罗特CEO罗尔夫·哈本·扬森确认公司预期在2026年Q4前完成所有监管审批。新实体将以约300万TEU成为全球第4大班轮公司。</div>
-    <div class="card-impact">
-      <strong>&#x1F3AF; CUL Impact:</strong>
-      <span class="en"> During Q2&ndash;Q3 regulatory uncertainty period, ZIM customers may actively seek alternative carrier relationships. CUL commercial team should prioritize outreach to ZIM's existing Southeast Asia and Middle East customer base. Additionally, post-merger network rationalization (expected Wk50 2026&ndash;Wk10 2027) may create route gaps where CUL can capture additional slot demand or establish new VSA arrangements.</span>
-      <span class="zh"> 在Q2-Q3监管不确定期，ZIM客户可能积极寻求替代船公司合作关系。CUL商务团队应优先联系ZIM现有的东南亚和中东客户群。此外，并购后的航线整合（预计2026年第50周至2027年第10周）可能创造航线空缺，CUL可据此争取额外舱位需求或建立新的VSA安排。</span>
-    </div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · European Commission / Container-News / Hapag-Lloyd</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 6 -->
-  <div class="article-card" data-depts="ops,equip">
-    <div class="card-top">
-      <div class="card-title en">Brent Crude Stabilizes ~$100/BBL on Deal Optimism &mdash; Singapore VLSFO ~$855&ndash;865/MT Range</div>
-      <div class="card-title zh">&#x5E03;&#x4F26;&#x7279;&#x5728;&#x548C;&#x8C08;&#x4E50;&#x89C2;&#x60C5;&#x7EEA;&#x4E0B;&#x7A33;&#x5B9A;&#x5728;&#x7EA6;$100/&#x6876;&#x2014;&#x2014;&#x65B0;&#x52A0;&#x5761;VLSFO&#x7EA6;$855&ndash;865/MT</div>
-      <div class="card-badges">
-        <span class="badge badge-ops">Ops</span>
-        <span class="badge badge-eq">Equipment</span>
-        <span class="badge badge-region">Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">Brent crude entered the June 1 week stabilized at approximately $100/BBL, slightly off the Wk22 level of ~$102 as US&ndash;Iran deal optimism applies modest downward pressure. Singapore VLSFO is estimated in the $855&ndash;865/MT range entering Week 23, broadly flat vs. Wk22's $859.50. Rotterdam VLSFO (~$765&ndash;775/MT) remains the global low-cost option. Fujairah supply continues restricted; however, the PGSA deal framework may enable limited Fujairah supply normalization within 30&ndash;45 days. Biofuel premiums at Rotterdam continue to narrow (Engine.online report). MGO prices at major Asian ports: ~$980&ndash;1,020/MT.</div>
-    <div class="card-summary zh">布伦特原油在6月1日一周开始时稳定在约$100/桶，略低于第22周约$102水平，因美伊和谈乐观情绪带来温和下行压力。进入第23周，新加坡VLSFO估计在$855-865/MT区间，较第22周$859.50基本持平。鹿特丹VLSFO（约$765-775/MT）仍为全球低成本选项。富查伊拉供应持续受限；但PGSA协议框架可能在30-45天内实现富查伊拉供应有限正常化。鹿特丹生物燃料溢价持续收窄（Engine.online报告）。亚洲主要港口MGO价格：约$980-1,020/MT。</div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · OilMonster / HandyBulk / Engine.online / Ship&amp;Bunker est.</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 7 -->
-  <div class="article-card" data-depts="equip,network">
-    <div class="card-top">
-      <div class="card-title en">Alphaliner Weekly: 2026 Orderbook Hits 7.2M TEU &mdash; Record Newbuild Pipeline Pressures 2027 Outlook</div>
-      <div class="card-title zh">Alphaliner&#x5468;&#x62A5;&#xFF1A;2026&#x5E74;&#x8BA2;&#x5355;&#x9B43;&#x8FBE;720&#x4E07;TEU&#x2014;&#x2014;&#x521B;&#x7EAA;&#x5F55;&#x65B0;&#x9020;&#x8239;&#x4E2D;&#x5BF9;2027&#x5E74;&#x524D;&#x666F;&#x5F62;&#x6210;&#x538B;&#x529B;</div>
-      <div class="card-badges">
-        <span class="badge badge-eq">Equipment</span>
-        <span class="badge badge-net">Network</span>
-        <span class="badge badge-region">Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">The Alphaliner global orderbook has reached 7.2M TEU as of late May 2026, representing approximately 27% of the existing fleet &mdash; a near-record ratio. Key deliveries in H2 2026 include: MSC (7 ULCVs, ~210,000 TEU), COSCO/OOCL (methanol series, 144,000 TEU), CMA CGM (6 vessels, ~120,000 TEU). This newbuild surge is partially absorbed by the Hormuz detour effect; however, should the Strait reopen in Q3, analysts project a net capacity oversupply of 4&ndash;6% entering 2027. The deliveries are concentrated in the Asia&ndash;Europe and Transpacific trades, which are most sensitive to capacity additions.</div>
-    <div class="card-summary zh">截至2026年5月底，Alphaliner全球订单量已达720万TEU，约占现有船队的27%——接近历史峰值比例。2026年下半年关键交付包括：MSC（7艘ULCV，约21万TEU）、中远/OOCL（甲醇系列，14.4万TEU）、CMA CGM（6艘，约12万TEU）。这一新造船激增部分被霍尔木兹绕行效应吸收；但若海峡在Q3重开，分析师预计进入2027年净运力过剩4-6%。交付集中在对运力增加最敏感的亚欧和跨太平洋贸易。</div>
-    <div class="card-bottom">
-      <span class="card-meta">May 30, 2026 · Alphaliner / AXSMarine / AlixPartners</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 8 -->
-  <div class="article-card" data-depts="trade,commercial">
-    <div class="card-top">
-      <div class="card-title en">Peak Season Surcharges Stack Across Trades &mdash; FAK $4,700&ndash;5,700 Framework Holds for June 15&ndash;30 Period</div>
-      <div class="card-title zh">&#x65C5;&#x5B63;&#x9644;&#x52A0;&#x8D39;&#x5728;&#x5404;&#x8D38;&#x6613;&#x822A;&#x7EBF;&#x53E0;&#x52A0;&#x2014;&#x2014;FAK $4,700&ndash;5,700&#x6846;&#x67B6;&#x6301;&#x7EED;&#x5230;6&#x6708;15&ndash;30&#x65E5;</div>
-      <div class="card-badges">
-        <span class="badge badge-trd">Trade</span>
-        <span class="badge badge-com">Commercial</span>
-        <span class="badge badge-region">Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">Following the June 1&ndash;14 FAK announcements from CMA CGM, MSC, and Hapag-Lloyd ($4,700 Asia&ndash;NE / $5,500&ndash;5,700 Asia&ndash;Med), carriers are preparing June 15&ndash;30 rate filings at the same or marginally higher levels. Peak Season Surcharges (PSS) are layered on top: Hapag-Lloyd PSS on Transpacific ($600&ndash;800/FEU), CMA CGM PSS on Africa and Mediterranean trades. COSCO has filed July GRI for US/Canada. The consensus carrier strategy is to sustain FAK above $4,500 on Asia&ndash;Europe through at least July, supported by Hormuz detour and June front-loading demand ahead of mid-year tariff adjustments.</div>
-    <div class="card-summary zh">继CMA CGM、MSC和赫伯罗特宣布6月1-14日FAK运价（亚洲→北欧$4,700 / 亚洲→地中海$5,500-5,700）后，船公司正在准备6月15-30日以相同或略高水平申报运价。旺季附加费（PSS）叠加其上：赫伯罗特跨太平洋PSS（$600-800/FEU）、CMA CGM非洲和地中海贸易PSS。中远已申报美国/加拿大7月GRI。船公司共识策略是将亚欧FAK维持在$4,500以上至少到7月，受霍尔木兹绕行和6月年中关税调整前提前备货需求支撑。</div>
-    <div class="card-bottom">
-      <span class="card-meta">Jun 1, 2026 · Container-News / CMA CGM / MSC / Hapag-Lloyd / COSCO</span>
-    </div>
-  </div>
-
-  <!-- ARTICLE 9 -->
-  <div class="article-card" data-depts="network,ops">
-    <div class="card-top">
-      <div class="card-title en">Cape of Good Hope Detour: 8,000+ Container Ships Have Used Alternative Route Since Feb 28 &mdash; Savings Analysis</div>
-      <div class="card-title zh">&#x597D;&#x671B;&#x89D2;&#x7ED5;&#x884C;&#xFF1A;2&#x6708;28&#x65E5;&#x4EE5;&#x6765;&#x8D85;&#x8FC78,000&#x8270;&#x96C6;&#x88C5;&#x7B71;&#x8239;&#x4F7F;&#x7528;&#x66FF;&#x4EE3;&#x8DEF;&#x7EBF;&#x2014;&#x2014;&#x6210;&#x672C;&#x8282;&#x7701;&#x5206;&#x6790;</div>
-      <div class="card-badges">
-        <span class="badge badge-net">Network</span>
-        <span class="badge badge-ops">Ops</span>
-        <span class="badge badge-region">Global</span>
-      </div>
-    </div>
-    <div class="card-summary en">A Lloyd's List analysis released in late May 2026 found that over 8,000 container ship voyages have taken the Cape of Good Hope alternative routing since the Hormuz crisis began on February 28, 2026. The analysis found: (1) Average voyage duration increase: +11.3 days vs. Hormuz route; (2) Average additional fuel cost per voyage: $280,000&ndash;450,000 depending on vessel size; (3) Effective fleet utilization increase: +9.8% globally (ships are busy longer on the same cargo); (4) Break-even point: at VLSFO above ~$720/MT, the Cape detour is recoverable through FAK rate uplift. The rapid reopening of Hormuz would therefore release this "shadow fleet" back to normal cycle times, reducing effective fleet by ~10%.</div>
-    <div class="card-summary zh">劳合社5月底发布分析报告，发现自2026年2月28日霍尔木兹危机开始以来，已有超过8,000艘次集装箱船使用好望角替代路线。分析发现：(1) 平均航次时长增加：较霍尔木兹路线+11.3天；(2) 每次航次平均额外燃油成本：$28-45万（视船舶规模）；(3) 全球有效船队利用率增加：+9.8%（船舶在同等货物上忙碌更长时间）；(4) 盈亏平衡点：在VLSFO高于约$720/MT时，好望角绕行通过FAK运价提升可收回。因此，霍尔木兹快速重开将把这一"影子船队"释放回正常循环时间，使有效船队减少约10%。</div>
-    <div class="card-bottom">
-      <span class="card-meta">May 28, 2026 · Lloyd's List / AXSMarine / Kpler</span>
-    </div>
-  </div>
-
-</div><!-- /feed -->
-
-<!-- MARKET DATA SECTION -->
-<div class="data-tabs">
-  <div class="week-label" style="margin-top:0;margin-bottom:16px;">&#x1F4CA; Market Data &mdash; Week 23 (Jun 1, 2026)</div>
-
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('tab-freight', event)"><span class="en">Commercial / Freight Rates</span><span class="zh">&#x5546;&#x52A1; / &#x8FD0;&#x4EF7;</span></button>
-    <button class="tab-btn" onclick="switchTab('tab-bunker', event)"><span class="en">Ops / Bunker Fuel</span><span class="zh">&#x8FD0;&#x8425; / &#x71C3;&#x6CB9;</span></button>
-    <button class="tab-btn" onclick="switchTab('tab-charter', event)"><span class="en">Equipment / Charter</span><span class="zh">&#x8BBE;&#x5907; / &#x79DF;&#x8239;</span></button>
-  </div>
-
-  <!-- TAB: FREIGHT -->
-  <div class="tab-pane active" id="tab-freight">
-    <p class="section-sub en">Container freight rate benchmarks entering Week 23 (Jun 1, 2026) &middot; Source: Drewry WCI (Wk22 confirmed) / TradingEconomics / CMA CGM / Container-News</p>
-    <p class="section-sub zh">&#x8FDB;&#x5165;&#x7B2C;23&#x5468;&#x96C6;&#x88C5;&#x7B71;&#x8FD0;&#x4EF7;&#x57FA;&#x51C6;&#xFF082026&#x5E746&#x6708;1&#x65E5;&#xFF09;&middot; &#x6570;&#x636E;&#x6765;&#x6E90;&#xFF1A;Drewry WCI&#xFF08;&#x7B2C;22&#x5468;&#x786E;&#x8BA4;&#xFF09; / TradingEconomics / CMA CGM / Container-News</p>
-    <div class="data-grid">
-      <div class="data-card">
-        <div class="dc-label">Drewry WCI &mdash; Composite (est.)</div>
-        <div class="dc-value">~$2,850</div>
-        <div class="dc-change up">&#x25B2; est. +1.8% WoW &middot; 5th Consecutive &#x2191;</div>
-        <div class="dc-sub">per 40ft FEU | Wk23 estimate &middot; +28% vs Q1 low</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">CMA CGM FAK &mdash; Asia &rarr; North Europe</div>
-        <div class="dc-value">~$4,700</div>
-        <div class="dc-change up">&#x25B2; Jun 1&ndash;14 in force</div>
-        <div class="dc-sub">per 40ft | Jun 15&ndash;30 filing expected similar level</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">CMA CGM FAK &mdash; Asia &rarr; Mediterranean</div>
-        <div class="dc-value">$5,500&ndash;5,700</div>
-        <div class="dc-change up">&#x25B2; Strong &mdash; PSS stacking</div>
-        <div class="dc-sub">per 40ft | Highest since Wk14 crisis peak</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">WCI &mdash; Shanghai &rarr; New York</div>
-        <div class="dc-value">~$4,450</div>
-        <div class="dc-change up">&#x25B2; +1.1% est. WoW</div>
-        <div class="dc-sub">per 40ft | PSS in effect; Hapag-Lloyd PSS $600&ndash;800</div>
-      </div>
-    </div>
-    <div class="data-table">
-      <table>
+  <!-- 分航线运价表 -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">📍 SCFI 分航线运价（2026-05-29）</div>
+      <table class="data-table">
         <thead>
-          <tr><th><span class="en">Route (CUL Relevant)</span><span class="zh">&#x822A;&#x7EBF;&#xFF08;CUL&#x76F8;&#x5173;&#xFF09;</span></th><th><span class="en">Rate $/40ft</span><span class="zh">&#x8FD0;&#x4EF7; $/40&#x5C3A;</span></th><th><span class="en">WoW Change</span><span class="zh">&#x5468;&#x73AF;&#x6BD4;</span></th><th><span class="en">Trend</span><span class="zh">&#x8D8B;&#x52BF;</span></th><th><span class="en">Key Driver</span><span class="zh">&#x4E3B;&#x8981;&#x9A71;&#x52A8;&#x56E0;&#x7D20;</span></th></tr>
+          <tr>
+            <th>航线</th>
+            <th class="num">运价</th>
+            <th class="num">单位</th>
+            <th class="num">周涨跌</th>
+          </tr>
         </thead>
         <tbody>
           <tr>
-            <td><span class="en">Asia &rarr; North Europe (FAK)</span><span class="zh">&#x4E9A;&#x6D32;&rarr;&#x5317;&#x6B27;&#xFF08;FAK&#xFF09;</span></td>
-            <td class="td-pr">~$4,700</td>
-            <td class="td-up">&#x25B2; Holding</td>
-            <td><span class="en">Stable High &mdash; Jun FAK</span><span class="zh">&#x9AD8;&#x4F4D;&#x7A33;&#x5B9A;&#x2014;&#x2014;6&#x6708;FAK</span></td>
-            <td><span class="en">Cape routing + peak demand</span><span class="zh">&#x597D;&#x671B;&#x89D2;&#x7EBF;+&#x65FA;&#x5B63;&#x9700;&#x6C42;</span></td>
+            <td class="route">欧洲基本港</td>
+            <td class="num">2,745</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-up">▲ +29.93%</span></td>
           </tr>
           <tr>
-            <td><span class="en">Asia &rarr; Mediterranean</span><span class="zh">&#x4E9A;&#x6D32;&rarr;&#x5730;&#x4E2D;&#x6D77;</span></td>
-            <td class="td-pr">$5,500&ndash;5,700</td>
-            <td class="td-up">&#x25B2; Very Strong</td>
-            <td><span class="en">Rising &mdash; 5-week run</span><span class="zh">&#x4E0A;&#x6DA8;&#x2014;&#x2014;&#x8FDE;&#x6DA85&#x5468;</span></td>
-            <td><span class="en">PSS stacking + CMA CGM Africa PSS</span><span class="zh">PSS&#x53E0;&#x52A0;+CMA CGM&#x975E;&#x6D32;PSS</span></td>
+            <td class="route">地中海基本港</td>
+            <td class="num">3,750</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-up">▲ +16.9%</span></td>
           </tr>
           <tr>
-            <td><span class="en">Asia &rarr; US West Coast</span><span class="zh">&#x4E9A;&#x6D32;&rarr;&#x7F8E;&#x897F;</span></td>
-            <td class="td-pr">~$3,500</td>
-            <td class="td-up">&#x25B2; +1.4% est.</td>
-            <td><span class="en">Rising &mdash; peak season</span><span class="zh">&#x4E0A;&#x6DA8;&#x2014;&#x2014;&#x65FA;&#x5B63;</span></td>
-            <td><span class="en">PSS + tariff front-loading</span><span class="zh">PSS+&#x5173;&#x7A0E;&#x524D;&#x6293;&#x8FD0;</span></td>
+            <td class="route">美西基本港</td>
+            <td class="num">4,419</td>
+            <td class="num">USD/FEU</td>
+            <td class="num"><span class="tag-up">▲ +31.5%</span></td>
           </tr>
           <tr>
-            <td><span class="en">Asia &rarr; US East Coast</span><span class="zh">&#x4E9A;&#x6D32;&rarr;&#x7F8E;&#x4E1C;</span></td>
-            <td class="td-pr">~$4,450</td>
-            <td class="td-up">&#x25B2; +1.1% est.</td>
-            <td><span class="en">Rising</span><span class="zh">&#x4E0A;&#x6DA8;</span></td>
-            <td><span class="en">Hapag-Lloyd PSS $600&ndash;800</span><span class="zh">&#x8D6B;&#x4F2F;&#x7F57;&#x7279;PSS $600&ndash;800</span></td>
+            <td class="route">美东基本港</td>
+            <td class="num">5,333</td>
+            <td class="num">USD/FEU</td>
+            <td class="num"><span class="tag-up">▲ +23.6%</span></td>
+          </tr>
+          <tr style="background:rgba(255,215,0,0.04)">
+            <td class="route">波斯湾(迪拜) <span class="cul-star">★ CUL</span></td>
+            <td class="num" style="color:var(--cul-gold)">4,462</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-up">▲ 小幅走高</span></td>
           </tr>
           <tr>
-            <td><span class="en">Asia &rarr; Middle East (suspended)</span><span class="zh">&#x4E9A;&#x6D32;&rarr;&#x4E2D;&#x4E1C;&#xFF08;&#x6682;&#x505C;&#xFF09;</span></td>
-            <td class="td-pr"><span class="en">Suspended (COSCO)</span><span class="zh">&#x6682;&#x505C;&#xFF08;&#x4E2D;&#x8FDC;&#xFF09;</span></td>
-            <td>&#x2014;</td>
-            <td><span class="en">Lift expected this week</span><span class="zh">&#x9884;&#x8BA1;&#x672C;&#x5468;&#x89E3;&#x9664;</span></td>
-            <td><span class="en">Trump signature pending</span><span class="zh">&#x7279;&#x6717;&#x666E;&#x7B7E;&#x5B57;&#x5F85;&#x5B9A;</span></td>
+            <td class="route">澳新（墨尔本）</td>
+            <td class="num">—</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-neutral">—</span></td>
           </tr>
           <tr>
-            <td><span class="en">Drewry WCI Composite</span><span class="zh">Drewry WCI&#x7EFC;&#x5408;</span></td>
-            <td class="td-pr">~$2,850</td>
-            <td class="td-up">&#x25B2; est. +1.8%</td>
-            <td><span class="en">5th &#x2191; Week &middot; +28% from Q1 low</span><span class="zh">&#x8FDE;&#x6DA8;&#x7B2C;5&#x5468; &middot; &#x8F83;Q1&#x4F4E;&#x70B9;+28%</span></td>
-            <td><span class="en">Capacity constraint + FAK holds</span><span class="zh">&#x8FD0;&#x529B;&#x7EA6;&#x675F;+FAK&#x7EF4;&#x6301;</span></td>
+            <td class="route">西非（拉各斯）</td>
+            <td class="num">—</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-neutral">—</span></td>
+          </tr>
+          <tr>
+            <td class="route">南美（桑托斯）</td>
+            <td class="num">—</td>
+            <td class="num">USD/TEU</td>
+            <td class="num"><span class="tag-neutral">—</span></td>
           </tr>
         </tbody>
       </table>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);">来源：上海航运交易所（SSE）</div>
     </div>
-    <div style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
-      <strong style="color:#58a6ff;"><span class="en">Commercial Insight (Wk23):</span><span class="zh">&#x5546;&#x52A1;&#x6D1E;&#x5BDF;&#xFF08;&#x7B2C;23&#x5468;&#xFF09;&#xFF1A;</span></strong>
-      <span class="en"> WCI is estimated at ~$2,850 entering Wk23, extending the 5-week rally to +28% above Q1 lows. The CRITICAL variable this week is the Trump signature on the US&ndash;Iran deal: if signed, Hormuz corridor opens within 30 days (early July). This will: (1) trigger COSCO Middle East booking suspension lift; (2) initiate a 30-day countdown to effective fleet contraction (~10% fewer ship-days as Cape detour ends); (3) likely trigger a rate correction starting in Q3. CUL strategic recommendation: this may be the FINAL WINDOW to lock June&ndash;August contract rates at current elevated levels before rate softening materializes.</span>
-      <span class="zh"> WCI估计在进入第23周时约$2,850，将5周涨势延伸至较Q1低点+28%。本周关键变量是特朗普对美伊协议的签署：若签署，霍尔木兹走廊将在30天内（7月初）开放。这将：(1) 触发中远中东订舱暂停解除；(2) 启动有效船队收缩30天倒计时（随着好望角绕行结束，船天减少约10%）；(3) 可能触发Q3开始的运价回调。CUL战略建议：这可能是在运价疲软前以当前高位锁定6-8月合同运价的最后窗口。</span>
+
+    <!-- WCI 分航线 -->
+    <div class="card">
+      <div class="card-title">🌐 Drewry WCI 分航线（2026-05-28）</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>航线</th>
+            <th class="num">运价($/FEU)</th>
+            <th class="num">周涨跌</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="route">上海 → 鹿特丹</td>
+            <td class="num">2,773</td>
+            <td class="num"><span class="tag-up">▲ +15.0%</span></td>
+          </tr>
+          <tr>
+            <td class="route">上海 → 热那亚</td>
+            <td class="num">4,082</td>
+            <td class="num"><span class="tag-up">▲ +10.0%</span></td>
+          </tr>
+          <tr>
+            <td class="route">上海 → 洛杉矶</td>
+            <td class="num">4,419</td>
+            <td class="num"><span class="tag-up">▲ 强劲</span></td>
+          </tr>
+          <tr>
+            <td class="route">WCI 综合</td>
+            <td class="num" style="color:var(--accent-blue);font-weight:700;">2,800</td>
+            <td class="num"><span class="tag-up">▲ +3.24%</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;padding:10px;background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:6px;font-size:12px;color:var(--text-secondary);">
+        <strong style="color:var(--up);">📈 月涨幅 +26.35%</strong> — WCI 自4月底低位持续修复，本周突破 $2,800 大关，为2026年新高。未来数周运价仍有上行空间。
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-muted);">来源：Drewry Supply Chain Advisors</div>
     </div>
   </div>
 
-  <!-- TAB: BUNKER -->
-  <div class="tab-pane" id="tab-bunker">
-    <p class="section-sub en">Marine fuel price estimates entering Week 23 (Jun 1, 2026) &middot; Source: OilMonster / Ship&amp;Bunker / HandyBulk / FairwayETA</p>
-    <p class="section-sub zh">&#x8FDB;&#x5165;&#x7B2C;23&#x5468;&#x8239;&#x7528;&#x71C3;&#x6CB9;&#x4EF7;&#x683C;&#x4F30;&#x8BA1;&#xFF082026&#x5E746&#x6708;1&#x65E5;&#xFF09;&middot; &#x6570;&#x636E;&#x6765;&#x6E90;&#xFF1A;OilMonster / Ship&amp;Bunker / HandyBulk / FairwayETA</p>
-    <div class="data-grid">
-      <div class="data-card">
-        <div class="dc-label">Singapore VLSFO (est.)</div>
-        <div class="dc-value">~$858</div>
-        <div class="dc-change down">&#x25BC; Flat / slight ease vs Wk22</div>
-        <div class="dc-sub">USD/MT &middot; Jun 1 est. | Pre-book recommended</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">Rotterdam VLSFO (est.)</div>
-        <div class="dc-value">~$768</div>
-        <div class="dc-change down">&#x25BC; Global lowest &mdash; maximize here</div>
-        <div class="dc-sub">USD/MT &middot; Jun 1 est. | Normal supply</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">Fujairah VLSFO (est.)</div>
-        <div class="dc-value">~$890</div>
-        <div class="dc-change up">&#x25B2; Still tight &mdash; Hormuz proximity</div>
-        <div class="dc-sub">USD/MT &middot; est. | Potential ease in 30&ndash;45 days if deal signed</div>
-      </div>
-      <div class="data-card">
-        <div class="dc-label">Brent Crude</div>
-        <div class="dc-value">~$100</div>
-        <div class="dc-change down">&#x25BC; Slight ease on deal optimism</div>
-        <div class="dc-sub">USD/BBL | Wk23 opening</div>
-      </div>
+  <!-- 霍尔木兹海峡警示 -->
+  <div class="hormuz-box">
+    <div class="hormuz-header">
+      <span style="font-size:22px;">⚠️</span>
+      <div class="hormuz-title">霍尔木兹海峡局势追踪 · Week 23</div>
     </div>
-    <div class="data-table">
-      <table>
-        <thead>
-          <tr><th><span class="en">Port</span><span class="zh">&#x6E2F;&#x53E3;</span></th><th>VLSFO est.</th><th><span class="en">WoW</span><span class="zh">&#x5468;&#x73AF;&#x6BD4;</span></th><th><span class="en">Supply</span><span class="zh">&#x4F9B;&#x5E94;</span></th><th><span class="en">Recommendation</span><span class="zh">&#x5EFA;&#x8BAE;</span></th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Singapore</td><td class="td-pr">~$858</td><td class="td-dn">&#x25BC; Flat</td><td style="color:#f59e0b;font-weight:600;"><span class="en">Pre-book</span><span class="zh">&#x9884;&#x8BA2;</span></td><td><span class="en">Book 10+ days ahead</span><span class="zh">&#x63D0;&#x524D;10&#x5929;&#x4EE5;&#x4E0A;&#x9884;&#x8BA2;</span></td></tr>
-          <tr><td>Rotterdam</td><td class="td-pr">~$768</td><td class="td-dn">&#x25BC; Flat / slight ease</td><td style="color:#3fb950;font-weight:600;"><span class="en">Normal</span><span class="zh">&#x6B63;&#x5E38;</span></td><td><span class="en">Maximize loading here</span><span class="zh">&#x5728;&#x6B64;&#x6700;&#x5927;&#x5316;&#x52A0;&#x6CB9;</span></td></tr>
-          <tr><td>Fujairah</td><td class="td-pr">~$890</td><td class="td-up">&#x25B2; Still tight</td><td style="color:#f85149;font-weight:600;"><span class="en">Restricted</span><span class="zh">&#x53D7;&#x9650;</span></td><td><span class="en">Advance booking; may ease post-deal</span><span class="zh">&#x63D0;&#x524D;&#x9884;&#x8BA2;&#xFF1B;&#x534F;&#x8BAE;&#x540E;&#x53EF;&#x80FD;&#x7F13;&#x89E3;</span></td></tr>
-          <tr><td>Houston</td><td class="td-pr">~$825</td><td>&#x2014;</td><td style="color:#3fb950;font-weight:600;"><span class="en">Normal</span><span class="zh">&#x6B63;&#x5E38;</span></td><td><span class="en">Standard procedure</span><span class="zh">&#x6807;&#x51C6;&#x7A0B;&#x5E8F;</span></td></tr>
-          <tr><td>Hong Kong</td><td class="td-pr">~$875</td><td class="td-up">&#x25B2; Slight</td><td style="color:#f59e0b;font-weight:600;"><span class="en">Monitor</span><span class="zh">&#x76D1;&#x63A7;</span></td><td><span class="en">Standard procedure</span><span class="zh">&#x6807;&#x51C6;&#x7A0B;&#x5E8F;</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
-      <strong style="color:#3fb950;"><span class="en">Ops Bunker Recommendation (Wk23):</span><span class="zh">&#x8FD0;&#x8425;&#x71C3;&#x6CB9;&#x5EFA;&#x8BAE;&#xFF08;&#x7B2C;23&#x5468;&#xFF09;&#xFF1A;</span></strong>
-      <span class="en"> Rotterdam (~$768/MT) remains the cheapest global bunkering option &mdash; all vessels calling Europe should maximize Rotterdam fuel loading. Singapore (~$858) is broadly flat vs. Wk22. The key forward development: if Hormuz deal is signed this week and becomes effective by July 4, Fujairah supply should begin normalizing &mdash; Fujairah could return to $850&ndash;870 range within 4&ndash;6 weeks. Brent at ~$100 is slightly off highs &mdash; VLSFO may follow lower by 1&ndash;2 weeks. Forward bunkering strategy: lock Rotterdam June slots now; monitor Fujairah for post-deal normalization signals.</span>
-      <span class="zh"> 鹿特丹（约$768/MT）仍为全球最便宜的加油选项——所有挂靠欧洲的船只应最大化鹿特丹加油量。新加坡（约$858）较第22周基本持平。关键前景：若霍尔木兹协议本周签署并于7月4日前生效，富查伊拉供应应开始正常化——富查伊拉可能在4-6周内回到$850-870区间。布伦特约$100略低于高位——VLSFO可能在1-2周内跟进走低。远期加油策略：立即锁定鹿特丹6月时隙；关注富查伊拉协议后正常化信号。</span>
+    <div class="hormuz-body">
+      <strong>最新动态（2026-05-29）：</strong>过去24小时内，<strong>24艘船只</strong>在伊朗伊斯兰革命卫队的协调下通过霍尔木兹海峡，通航并未完全中断，但<strong>安全风险仍处于高位</strong>。<br><br>
+      市场影响：波斯湾（迪拜）航线本周运价小幅走高至 <strong>$4,462/TEU</strong>，战争附加费维持征收，船司对波斯湾挂靠仍保持审慎态度。中远海运CULines相关波斯湾/西亚航线需持续关注局势演变，评估绕航成本与战争险保费变化。<br><br>
+      <strong>风险评级：</strong>
+      <span style="background:rgba(248,81,73,0.15);color:var(--down);border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600;">🔴 中高</span>
+      &nbsp;——护航通行期间维持，建议持续监控伊朗局势。
     </div>
   </div>
 
-  <!-- TAB: CHARTER -->
-  <div class="tab-pane" id="tab-charter">
-    <p class="section-sub en">Container vessel charter rate benchmarks entering Week 23 (Jun 1, 2026) &middot; Source: Alphaliner / Harpex / Xchg / Industry brokers</p>
-    <p class="section-sub zh">&#x8FDB;&#x5165;&#x7B2C;23&#x5468;&#x96C6;&#x88C5;&#x7B71;&#x8239;&#x79DF;&#x8239;&#x8FD0;&#x4EF7;&#x57FA;&#x51C6;&#xFF082026&#x5E746&#x6708;1&#x65E5;&#xFF09;&middot; &#x6570;&#x636E;&#x6765;&#x6E90;&#xFF1A;Alphaliner / Harpex / Xchg / &#x884C;&#x4E1A;&#x7ECF;&#x7EAA;&#x4EBA;</p>
-    <div class="data-grid">
-      <div class="data-card">
-        <div class="dc-label">Harpex Index</div>
-        <div class="dc-value">~1,820</div>
-        <div class="dc-change up">&#x25B2; +2.1% est. WoW</div>
-        <div class="dc-sub">Weekly charter index | Wk23 estimate</div>
+  <!-- 运力与空白航次 -->
+  <div class="section-title"><span class="icon">🚢</span> 运力管控与空白航次</div>
+  <div class="two-col" style="margin-bottom:28px;">
+    <div class="card">
+      <div class="card-title">📅 空白航次追踪（Wk23–27）</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+        根据 Drewry《Container Capacity Insight》，2026年5月25日至6月28日（第23–27周），东西向主干贸易航线原计划700个航次中，预计<strong style="color:var(--down)"> 41班</strong>空白航次；跨5周总计 <strong style="color:var(--down)">47班</strong>空白航次。
       </div>
-      <div class="data-card">
-        <div class="dc-label">1,700 TEU (Feeder) 12mo</div>
-        <div class="dc-value">~$14,500/day</div>
-        <div class="dc-change up">&#x25B2; +3.6% vs Wk20</div>
-        <div class="dc-sub">Per diem | CUL feeder-relevant</div>
+      <div class="blank-bar-wrap">
+        <div class="blank-bar-label"><span>Wk23（6月1–7日）</span><span>亚欧 3班空班</span></div>
+        <div class="blank-bar-track"><div class="blank-bar-fill" style="width:18%;background:linear-gradient(90deg,#388bfd,#58a6ff);"></div></div>
       </div>
-      <div class="data-card">
-        <div class="dc-label">2,800 TEU (Sub-Panamax) 12mo</div>
-        <div class="dc-value">~$18,200/day</div>
-        <div class="dc-change up">&#x25B2; +2.8% vs Wk20</div>
-        <div class="dc-sub">Per diem | Middle East / intra-Asia relevant</div>
+      <div class="blank-bar-wrap" style="margin-top:10px;">
+        <div class="blank-bar-label"><span>Wk24–27 累计</span><span>44班空班（东西向）</span></div>
+        <div class="blank-bar-track"><div class="blank-bar-fill" style="width:72%;"></div></div>
       </div>
-      <div class="data-card">
-        <div class="dc-label">4,400 TEU (Panamax) 12mo</div>
-        <div class="dc-value">~$24,500/day</div>
-        <div class="dc-change up">&#x25B2; +2.0% vs Wk20</div>
-        <div class="dc-sub">Per diem | CUL ME main line relevant</div>
+      <div style="margin-top:14px;font-size:12px;color:var(--text-secondary);">
+        ⚡ 下周（Wk23）亚欧仅3班空班，船司加大运力投放承接旺季货量，但整体5周管控力度仍强，有效支撑运价上行。
       </div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-muted);">来源：Drewry Container Capacity Insight</div>
     </div>
-    <div class="data-table">
-      <table>
+    <div class="card">
+      <div class="card-title">📊 全球运力概览（Alphaliner, 2026-05-30）</div>
+      <table class="data-table">
         <thead>
-          <tr><th><span class="en">Vessel Type (TEU)</span><span class="zh">&#x8239;&#x578B;&#xFF08;TEU&#xFF09;</span></th><th><span class="en">Charter Rate/day (est.)</span><span class="zh">&#x79DF;&#x8239;&#x65E5;&#x8D39;&#xFF08;&#x4F30;&#xFF09;</span></th><th><span class="en">WoW</span><span class="zh">&#x5468;&#x73AF;&#x6BD4;</span></th><th><span class="en">Availability</span><span class="zh">&#x53EF;&#x7528;&#x6027;</span></th><th><span class="en">Notes</span><span class="zh">&#x5907;&#x6CE8;</span></th></tr>
+          <tr>
+            <th>指标</th>
+            <th class="num">数值</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>~1,000&ndash;1,700 TEU Feeder</td><td class="td-pr">$12,000&ndash;15,000</td><td class="td-up">&#x25B2; +3%</td><td style="color:#f59e0b;font-weight:600;"><span class="en">Tight</span><span class="zh">&#x504F;&#x7D27;</span></td><td><span class="en">SE Asia / intra-Asia demand strong</span><span class="zh">&#x4E1C;&#x5357;&#x4E9A;/&#x4E9A;&#x6D32;&#x5185;&#x8D38;&#x9700;&#x6C42;&#x5F3A;</span></td></tr>
-          <tr><td>~2,500&ndash;3,000 TEU Sub-Panamax</td><td class="td-pr">$17,500&ndash;19,000</td><td class="td-up">&#x25B2; +2.5%</td><td style="color:#f59e0b;font-weight:600;"><span class="en">Tight</span><span class="zh">&#x504F;&#x7D27;</span></td><td><span class="en">Middle East feeder demand rising</span><span class="zh">&#x4E2D;&#x4E1C;&#x652F;&#x7EBF;&#x9700;&#x6C42;&#x4E0A;&#x5347;</span></td></tr>
-          <tr><td>~4,000&ndash;5,000 TEU Panamax</td><td class="td-pr">$23,000&ndash;26,000</td><td class="td-up">&#x25B2; +2.0%</td><td style="color:#d29922;font-weight:600;"><span class="en">Limited</span><span class="zh">&#x6709;&#x9650;</span></td><td><span class="en">Cape diversion absorbing availability</span><span class="zh">&#x597D;&#x671B;&#x89D2;&#x7ED5;&#x884C;&#x5438;&#x7EB3;&#x53EF;&#x7528;&#x8239;&#x529B;</span></td></tr>
-          <tr><td>~8,000&ndash;10,000 TEU Post-Panamax</td><td class="td-pr">$38,000&ndash;45,000</td><td class="td-up">&#x25B2; Stable&ndash;firm</td><td style="color:#f85149;font-weight:600;"><span class="en">Very Tight</span><span class="zh">&#x975E;&#x5E38;&#x7D27;</span></td><td><span class="en">Cascading to fill ME gap post-deal</span><span class="zh">&#x534F;&#x8BAE;&#x540E;&#x9636;&#x68AF;&#x90E8;&#x7F72;&#x586B;&#x8865;&#x4E2D;&#x4E1C;&#x7A7A;&#x7F3A;</span></td></tr>
+          <tr><td>全球在营集装箱船</td><td class="num" style="color:var(--accent-blue)">7,547 艘</td></tr>
+          <tr><td>其中全箱船（Fully Cellular）</td><td class="num">6,734 艘</td></tr>
+          <tr><td>全球总运力</td><td class="num">~3,430 万 TEU</td></tr>
+          <tr><td>同比增速（YoY）</td><td class="num"><span class="tag-up">+6.0%</span></td></tr>
+          <tr><td>亚欧航线部署运力</td><td class="num">>52 万 TEU/周</td></tr>
         </tbody>
       </table>
-    </div>
-    <div style="background:rgba(210,153,34,0.06);border:1px solid rgba(210,153,34,0.2);border-radius:8px;padding:14px;font-size:13px;color:#8b949e;line-height:1.7;">
-      <strong style="color:#d29922;"><span class="en">Charter Market Insight (Wk23):</span><span class="zh">&#x79DF;&#x8239;&#x5E02;&#x573A;&#x6D1E;&#x5BDF;&#xFF08;&#x7B2C;23&#x5238;&#xFF09;&#xFF1A;</span></strong>
-      <span class="en"> Charter rates continue to firm across all size segments. The 1,700&ndash;2,800 TEU feeder segment (CUL-relevant for Middle East and intra-Asia services) has risen ~3&ndash;4% in the past 3 weeks, driven by Cape detour elongation absorbing available tonnage. CRITICAL SIGNAL for CUL charter team: if Hormuz reopens in July, a rapid release of Cape-deployed tonnage back to normal cycles could create a window of CHARTER RATE SOFTENING in Q4 2026 &mdash; this would be an optimal window for CUL to negotiate new charter fixtures at improved terms. Recommendation: avoid long-term charter commitments (>6 months) at current elevated rates; seek 3&ndash;6 month deals with option extensions.</span>
-      <span class="zh"> 各吨位段租船费率持续走强。1,700-2,800 TEU支线船段（CUL中东及亚洲内贸服务相关）在过去3周上涨约3-4%，受好望角绕行延伸吸收可用船只驱动。CUL租船团队的关键信号：若霍尔木兹7月重开，好望角部署船只快速回归正常周期可能在2026年Q4创造租船费率软化窗口——这将是CUL以改善条款谈判新租约的最佳窗口。建议：避免在当前高位进行长期租约承诺（>6个月）；寻求3-6个月合同加续租选项。</span>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-muted);">来源：Alphaliner TOP 100 (AXSMarine, 2026-05-30)</div>
     </div>
   </div>
+
+  <!-- Alphaliner TOP 10 -->
+  <div class="section-title"><span class="icon">🏆</span> Alphaliner TOP 10 船公司排名（2026-05-30）</div>
+  <div class="carrier-grid" style="margin-bottom:28px;">
+    <div class="carrier-card">
+      <div class="carrier-rank">1</div>
+      <div class="carrier-info">
+        <div class="carrier-name">MSC</div>
+        <div class="carrier-teu">~510 万 TEU</div>
+        <div class="carrier-share">市场份额 ~14.9%</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">2</div>
+      <div class="carrier-info">
+        <div class="carrier-name">CMA CGM</div>
+        <div class="carrier-teu">~430 万 TEU</div>
+        <div class="carrier-share">超越马士基位居第2</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">3</div>
+      <div class="carrier-info">
+        <div class="carrier-name">Maersk</div>
+        <div class="carrier-teu">~461 万 TEU</div>
+        <div class="carrier-share">市场份额 ~13.4%</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">4</div>
+      <div class="carrier-info">
+        <div class="carrier-name">Hapag-Lloyd</div>
+        <div class="carrier-teu">~340 万 TEU</div>
+        <div class="carrier-share">市场份额 ~9.9%</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">5</div>
+      <div class="carrier-info">
+        <div class="carrier-name">ONE (Ocean Network)</div>
+        <div class="carrier-teu">~230 万 TEU</div>
+        <div class="carrier-share">日系三大整合</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">6</div>
+      <div class="carrier-info">
+        <div class="carrier-name">Evergreen</div>
+        <div class="carrier-teu">~210 万 TEU</div>
+        <div class="carrier-share">台湾最大船司</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">7</div>
+      <div class="carrier-info">
+        <div class="carrier-name">Yang Ming</div>
+        <div class="carrier-teu">~76 万 TEU</div>
+        <div class="carrier-share">THE Alliance成员</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">8</div>
+      <div class="carrier-info">
+        <div class="carrier-name">HMM</div>
+        <div class="carrier-teu">~91 万 TEU</div>
+        <div class="carrier-share">韩国国轮</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank" style="background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.3);color:var(--cul-gold);">45</div>
+      <div class="carrier-info">
+        <div class="carrier-name" style="color:var(--cul-gold);">CULines ★</div>
+        <div class="carrier-teu">Alphaliner 第45位</div>
+        <div class="carrier-share">中远海运旗下支线船司</div>
+      </div>
+    </div>
+    <div class="carrier-card">
+      <div class="carrier-rank">9</div>
+      <div class="carrier-info">
+        <div class="carrier-name">Zim</div>
+        <div class="carrier-teu">~58 万 TEU</div>
+        <div class="carrier-share">以色列最大船司</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 船司 GRI 动态 -->
+  <div class="section-title"><span class="icon">📢</span> 船公司运价动态 — 6月 GRI 公告</div>
+  <div class="news-list" style="margin-bottom:28px;">
+    <div class="news-item hot">
+      <div class="news-tag gri">GRI · 6月生效</div>
+      <div class="news-headline">MSC / CMA CGM / Hapag-Lloyd 三大船司：6月1日起上调亚欧航线FAK</div>
+      <div class="news-body">
+        三大船司相继宣布自2026年6月1日起上调亚洲至北欧、地中海、北非及黑海等航线综合费率（FAK）：<br>
+        • <strong>MSC</strong>：欧洲线40ft已报至 <strong>$4,140/FEU</strong>（有效期至6月14日，"半月价"机制）<br>
+        • <strong>CMA CGM</strong>：亚洲至北欧涨价约20–25%<br>
+        • <strong>Hapag-Lloyd</strong>：目标 $4,300/FEU（远东→北欧）
+      </div>
+    </div>
+    <div class="news-item hot">
+      <div class="news-tag gri">GRI · 美线</div>
+      <div class="news-headline">马士基：6月1日欧线升至 $3,800/FEU；6月17日起美加线40ft +$2,000</div>
+      <div class="news-body">
+        马士基（Maersk）宣布：① 6月1日起上调远东至北欧FAK至 $3,800/FEU；② 6月17日起，远东至美加航线20ft箱加收 $1,000，40ft箱加收 <strong>$2,000</strong>，同时上调中非航线旺季附加费（40ft +$1,500）。<br>
+        市场预测：GRI落地后美西或升至 <strong>$4,800/FEU</strong>，美东或达 <strong>$6,000/FEU</strong>。
+      </div>
+    </div>
+    <div class="news-item warn">
+      <div class="news-tag demand">旺季爆发</div>
+      <div class="news-headline">旺季提前引爆：欧美线爆舱、甩柜常态化，货量激增逾30%</div>
+      <div class="news-body">
+        全球集运市场进入新一轮高波动周期。主要驱动因素叠加：<br>
+        • 美国退税季 + 世界杯备货 + 电商旺季提前，美线货量激增30%以上<br>
+        • 美西订舱已排至6月底，"一舱难求"局面重现<br>
+        • 中欧班列承接海运溢出需求，铁路同比增速21.9%<br>
+        • 甩柜、延误、爆舱频发，货主主动抢舱锁定空间
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-tag supply">运力收缩</div>
+      <div class="news-headline">6月1–7日（Wk23）亚欧仅3班空班，但整体5周管控支撑涨价</div>
+      <div class="news-body">
+        德路里数据：5月25日–6月28日东西向主干航线700个计划航次中，有<strong>41班</strong>空班（5.9%取消率）。Wk23亚欧仅3班空班，表明船司短期加大运力以承接旺季货量，但中期管控仍在；合计47班空班为持续的运价上行提供有力支撑。
+      </div>
+    </div>
+    <div class="news-item positive">
+      <div class="news-tag fleet">新船交付</div>
+      <div class="news-headline">大型集装箱船队仍在扩张，2026年新船交付运力超250万TEU</div>
+      <div class="news-body">
+        Alphaliner数据显示，尽管2025年增速有所放缓，大型集运公司仍在持续扩大运力。2026年计划交付超250万TEU新运力，其中MSC专注Neopanamax型船（旗舰船队已超510万TEU，2025年首破500万TEU里程碑），CMA CGM已凭借新船超越马士基跃升至全球第2位。
+      </div>
+    </div>
+    <div class="news-item">
+      <div class="news-tag market">联盟重组</div>
+      <div class="news-headline">亚欧航线联盟重组：新联盟未改变欧线运力格局，部署超52万TEU/周</div>
+      <div class="news-body">
+        根据Alphaliner分析，2026年2月联盟重组后，远东至欧洲航线运力格局几乎未改变。亚欧周运力首超52万TEU，CMA CGM小幅领先马士基排名第2。全球班轮服务数量维持稳定，竞争格局呈现"三超多强"态势。
+      </div>
+    </div>
+  </div>
+
+  <!-- 市场综述 -->
+  <div class="section-title"><span class="icon">🔍</span> 本周市场综述</div>
+  <div class="card" style="margin-bottom:28px;">
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+      <p style="margin-bottom:12px;">
+        <strong style="color:var(--text-primary);">【运价：全面大涨】</strong>
+        2026年第23周（截至5月29日），全球集运市场运价迎来2026年最大单周涨幅。SCFI综合指数大幅上涨15.94%至2,571.73点，为2024年高峰以来最强涨势。美线领涨——美西+31.5%至$4,419/FEU、美东+23.6%至$5,333/FEU；欧洲+29.9%至$2,745/TEU；地中海+16.9%至$3,750/TEU。CULines核心关注的<span style="color:var(--cul-gold);font-weight:600;">波斯湾航线</span>亦小幅走高至$4,462/TEU。Drewry WCI突破$2,800/FEU，月涨幅达26.35%。
+      </p>
+      <p style="margin-bottom:12px;">
+        <strong style="color:var(--text-primary);">【驱动因素：需求+供给双重收紧】</strong>
+        旺季需求提前释放：美线货量因退税季、世界杯备货及电商提前备仓激增30%以上；欧线同步爆舱。供给侧：船司5周共47班空班，运力管控持续有力。地缘风险维持：霍尔木兹海峡每日约24艘船在护航下通行，战争险附加费维持。
+      </p>
+      <p style="margin-bottom:12px;">
+        <strong style="color:var(--text-primary);">【6月展望：GRI落地 + 再度上涨风险】</strong>
+        MSC、CMA CGM、Hapag-Lloyd、马士基四大船司集体宣布6月1日起上调GRI。若附加费全面落地，美西或升至$4,800、美东或达$6,000/FEU，欧洲亦面临$4,000+压力。货主应提前锁舱并做好运费上涨预算。
+      </p>
+      <p>
+        <strong style="color:var(--text-primary);">【租船市场】</strong>
+        旺季爆舱推动支线船租金同步走强。集运指数（欧线期货）EC2607已涨至3,386.5点，反映市场对未来运价的强烈预期。租船窗口收窄，CULines布袋计划（巴生港中转）支线船调度需提前落实。
+      </p>
+    </div>
+  </div>
+
+  <!-- 关键数据源 -->
+  <div class="section-title"><span class="icon">📌</span> 数据来源与参考链接</div>
+  <div class="card" style="margin-bottom:20px;">
+    <table class="data-table">
+      <thead>
+        <tr><th>数据源</th><th>指标</th><th>更新频率</th><th>网址</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>上海航运交易所 (SSE)</td>
+          <td>SCFI / CCFI</td>
+          <td>每周五</td>
+          <td style="font-size:11px;color:var(--accent-blue);">sse.net.cn</td>
+        </tr>
+        <tr>
+          <td>Drewry</td>
+          <td>WCI 世界集装箱运价指数</td>
+          <td>每周四</td>
+          <td style="font-size:11px;color:var(--accent-blue);">drewry.co.uk</td>
+        </tr>
+        <tr>
+          <td>Alphaliner (AXSMarine)</td>
+          <td>TOP100 运力排名</td>
+          <td>每周更新</td>
+          <td style="font-size:11px;color:var(--accent-blue);">alphaliner.axsmarine.com</td>
+        </tr>
+        <tr>
+          <td>财联社 / 同花顺 / 东方财富</td>
+          <td>船司GRI公告 / 市场新闻</td>
+          <td>每日</td>
+          <td style="font-size:11px;color:var(--accent-blue);">cailianshe / 10jqka / eastmoney</td>
+        </tr>
+        <tr>
+          <td>伊朗官方消息 / 新华财经</td>
+          <td>霍尔木兹海峡通行</td>
+          <td>每日</td>
+          <td style="font-size:11px;color:var(--accent-blue);">新华社 / 财联社</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 免责声明 -->
+  <div class="disclaimer">
+    ⚠️ <strong>免责声明：</strong>本报告由 CULines Claw 智能系统基于公开数据自动生成，AI 解读仅供参考，不构成任何投资或商业决策建议。运价数据存在一定滞后性，实际运营决策请以官方数据和内部系统为准。
+  </div>
+
+  <div class="footer">
+    <div>Alphaliner Intelligence Digest &nbsp;·&nbsp; Week 23 · 2026 &nbsp;·&nbsp; Generated by CULines Claw System</div>
+    <div>固定访问链接：<a href="https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html" target="_blank">https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html</a></div>
+    <div style="margin-top:4px;">© 2026 CULines Chartering &amp; Analytics · 数据截至 2026-05-29/30</div>
+  </div>
+
 </div>
-
-<!-- SIDEBARS (Details drawers) are not implemented in this condensed version -->
-
-<!-- FOOTER -->
-<footer>
-  <p><span class="en">CUL &mdash; Alphaliner Intelligence Digest | Week 23, 2026 (Jun 1&ndash;7) | Auto-generated by Claw Report System | Published: Jun 1, 2026 09:00 CST</span><span class="zh">CUL &mdash; Alphaliner Intelligence Digest | 2026&#x5E74;&#x7B2C;23&#x5468; (6&#x6708;1&ndash;7&#x65E5;) | &#x7531;Claw&#x62A5;&#x544A;&#x7CFB;&#x7EDF;&#x81EA;&#x52A8;&#x751F;&#x6210; | &#x53D1;&#x5E03;&#xFF1A;2026&#x5E746&#x6708;1&#x65E5;09:00 CST</span></p>
-  <p style="margin-top:6px;"><span class="en">Fixed link: <a href="https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html">https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html</a> | &#x26A0; AI-interpreted content for reference only. Verify key data independently.</span><span class="zh">&#x56FA;&#x5B9A;&#x94FE;&#x63A5;&#xFF1A;<a href="https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html">https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html</a> | &#x26A0; AI&#x89E3;&#x8BFB;&#x4EC5;&#x4F9B;&#x53C2;&#x8003;&#xFF0C;&#x91CD;&#x8981;&#x6570;&#x636E;&#x8BF7;&#x81EA;&#x884C;&#x6838;&#x5B9E;&#x3002;</span></p>
-</footer>
-
-<script>
-function setLang(lang) {
-  document.getElementById('pageBody').className = lang === 'zh' ? 'lang-zh' : '';
-  document.getElementById('btnEN').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
-  document.getElementById('btnZH').className = 'lang-btn' + (lang === 'zh' ? ' active' : '');
-}
-
-function switchTab(tabId, evt) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
-  if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
-}
-
-// Filter logic
-document.querySelectorAll('.ftag').forEach(tag => {
-  tag.addEventListener('click', function() {
-    document.querySelectorAll('.ftag').forEach(t => t.classList.remove('active'));
-    this.classList.add('active');
-    const dept = this.dataset.dept;
-    let visible = 0;
-    document.querySelectorAll('.article-card').forEach(card => {
-      const depts = (card.dataset.depts || '').split(',');
-      const show = dept === 'all' || depts.includes(dept);
-      card.style.display = show ? '' : 'none';
-      if (show) visible++;
-    });
-    document.getElementById('countEN').textContent = visible;
-    document.getElementById('countZH').textContent = visible;
-  });
-});
-</script>
 </body>
 </html>
