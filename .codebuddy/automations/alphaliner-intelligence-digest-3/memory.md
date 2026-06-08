@@ -20,6 +20,45 @@
 - **Outlook status**: COM接口在自动化环境下超时（Outlook进程未在用户会话前台运行），邮件通知未发出
 - **Email workaround**: 下次可考虑用 PowerShell Send-MailMessage 或 SMTP 方式替代 win32com 发送邮件
 
+### 2026-06-01 (Week 23) — 09:00 CST
+- **Status**: ✅ HTML生成 + Git推送成功；⚠ 邮件通知跳过
+- **HTML file**: `reports/alphaliner-digest.html` 已更新为 Week 23 (May 26 – Jun 1, 2026)
+- **Git commit**: `480112d` — "Update Alphaliner Digest - Week 23 2026"
+- **GitHub Pages**: Push 成功 `9a2c63a..480112d main -> main`
+- **GitHub URL**: https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html
+- **Data sources used**: SSE SCFI, Drewry WCI, Alphaliner Top100, 财联社, 东方财富, 同花顺, 新华财经
+- **Key data (2026-05-29)**:
+  - SCFI: 2,571.73 (+353.58, +15.94% WoW) — 2026年最大单周涨幅
+  - Drewry WCI: $2,800/FEU (+3.24% WoW, 月涨+26.35%)
+  - CCFI: 1,366.76 (+3.75%)
+  - Europe: $2,745/TEU (+29.93%)
+  - Mediterranean: $3,750/TEU (+16.9%)
+  - US West Coast: $4,419/FEU (+31.5%)
+  - US East Coast: $5,333/FEU (+23.6%)
+  - Persian Gulf: $4,462/TEU (小幅走高) [★ CUL core route]
+- **Notable items**: 旺季全面提前引爆，欧美线爆舱甩柜常态化；四大船司6月1日集体GRI；霍尔木兹24艘/日护航通行；Drewry Wk23-27共47班空白航次
+- **Email status**: 未配置SMTP，Outlook COM不可用，通知跳过
+
+### 2026-06-08 (Week 24) — 09:00 CST
+- **Status**: ✅ HTML生成 + Git推送成功 + Outlook邮件发送成功
+- **HTML file**: `reports/alphaliner-intelligence-digest-wk24-2026.html` — Week 24 (Jun 2–8, 2026)
+- **Git commit**: `77f5b8b` — "Add Alphaliner Intelligence Digest - Week 24 2026 (Jun 2-8)"
+- **GitHub Pages**: Push 成功 `1afaee5..77f5b8b main -> main`
+- **GitHub URL**: https://leahliul.github.io/Claw-Report/reports/alphaliner-intelligence-digest-wk24-2026.html
+- **Data sources used**: Alphaliner Top100, Drewry WCI, SSE SCFI, Kuehne+Nagel Hormuz Update, HandyBulk, 财联社, 雪球
+- **Key data (2026-06-05/07)**:
+  - SCFI: 2,726.48 (+154.75, +6.0% WoW) — 五连涨，5月以来累计+23%
+  - Drewry WCI: $3,433/FEU (+23% WoW) — 2026年最大单周涨幅
+  - WCI Shanghai→LA: $4,565/FEU (+31%)
+  - WCI Shanghai→NY: $5,505/FEU (+20%)
+  - WCI Shanghai→Rotterdam: ~$3,050/FEU (+22%)
+  - WCI Shanghai→Genoa: ~$4,100/FEU (+18%)
+  - SCFIS Europe: 2,038.09 (+9.4%)
+  - Alphaliner: 全球7,545艘/3,421万TEU
+  - Hormuz: 日通行10艘(11%)，船公司仍绕航
+- **Notable items**: 旺季全面爆发提前4-6周；Drewry WCI单周暴涨23%创年度纪录；6月GRI成功落地$1,450-1,500/FEU；MSC追加6月中PSS $600-800/FEU；跨太平洋舱位利用率98-100%；甩柜率上升；缺箱蔓延；霍尔木兹危机100天+无缓解
+- **Outlook status**: COM接口本次成功发送邮件至leahliu@culines.com（含附件）
+
 ### 2026-05-19 (Week 21) — Prior run reference
 - Week 21 report had been generated and deployed before this run
 - This run successfully overwritten with Week 22 content
