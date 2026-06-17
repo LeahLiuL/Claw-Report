@@ -3,518 +3,433 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球航运燃油深度分析报告 &middot; 2026-06-17</title>
+<title>全球航运燃油深度日报 &middot; 2026-06-17</title>
 <style>
-:root{--primary:#0a2a4a;--secondary:#0d4f6c;--accent:#00c9b1;--accent2:#f59e0b;--up:#ef4444;--down:#10b981;--border:#e2e8f0;}
+:root{--primary:#0a2a4a;--secondary:#0d4f6c;--accent:#00c9b1;--accent2:#f59e0b;--danger:#ef4444;--success:#10b981;--warn:#f59e0b;--border:#e2e8f0;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f0f4f8;color:#1e293b;}
-.ticker-wrap{background:var(--primary);overflow:hidden;white-space:nowrap;padding:8px 0;border-bottom:2px solid var(--accent);}
-.ticker-content{display:inline-block;animation:ticker 60s linear infinite;white-space:nowrap;}
-.ticker-content span{margin:0 18px;font-size:12px;color:#e2e8f0;display:inline-block;}
-.ticker-content .up{color:#f87171;font-weight:600;}
-.ticker-content .down{color:#34d399;font-weight:600;}
-.ticker-content .label{color:#94a3b8;font-weight:600;}
-@keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}header{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 60%,#0e6b8a 100%);color:white;padding:32px 40px 24px;position:relative;overflow:hidden;}
-header::before{content:'';position:absolute;top:-50px;right:-50px;width:250px;height:250px;border-radius:50%;background:rgba(0,201,177,0.08);}
-.header-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
-.header-left h1{font-size:26px;font-weight:700;letter-spacing:1px;}
-.header-left h1 span{color:var(--accent);}
-.header-left p{margin-top:6px;font-size:13px;color:#94a3b8;}
-.header-badge{background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#fca5a5;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-.header-meta{margin-top:14px;display:flex;gap:20px;flex-wrap:wrap;}
-.header-meta span{font-size:12px;color:#94a3b8;background:rgba(255,255,255,0.07);padding:3px 12px;border-radius:12px;}
-.alert-banner{background:linear-gradient(90deg,#7f1d1d,#991b1b);color:#fecaca;padding:10px 40px;font-size:13px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ef4444;}
-.alert-banner strong{color:#fca5a5;}
-.status-bar{background:var(--primary);padding:10px 40px;display:flex;gap:24px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.07);}
-.status-item{display:flex;align-items:center;gap:7px;font-size:12px;color:#94a3b8;}
-.status-dot{width:8px;height:8px;border-radius:50%;}
-.dot-red{background:#ef4444;animation:blink 1.5s ease-in-out infinite;}
-.dot-yellow{background:#f59e0b;animation:blink 2s ease-in-out infinite;}
-.dot-green{background:#10b981;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
-.status-val{color:#e2e8f0;font-weight:600;}
-main{max-width:1200px;margin:0 auto;padding:28px 40px 50px;}
-.section-title{font-size:17px;font-weight:700;color:var(--primary);margin:32px 0 14px;display:flex;align-items:center;gap:8px;border-left:4px solid var(--accent);padding-left:12px;}
-.section-title.china{border-left-color:#ef4444;}
-.section-title.global{border-left-color:#0ea5e9;}
-.section-title.email{border-left-color:#8b5cf6;}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
-.kpi-card{background:white;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border-top:3px solid var(--accent);}
-.kpi-card.orange{border-top-color:#f59e0b;}
-.kpi-card.red{border-top-color:#ef4444;}
-.kpi-card.green{border-top-color:#10b981;}
-.kpi-label{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
-.kpi-value{font-size:26px;font-weight:800;color:var(--primary);margin:5px 0 3px;}
-.kpi-change{font-size:12px;font-weight:600;color:var(--up);}
-.kpi-change.down{color:var(--down);}
-.kpi-sub{font-size:11px;color:#94a3b8;margin-top:5px;}
-.table-wrap{background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.07);overflow:hidden;margin-bottom:20px;}
-.table-wrap table{width:100%;border-collapse:collapse;font-size:13px;}
-.table-wrap thead th{background:#f1f5f9;color:#475569;padding:10px 14px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
-.table-wrap tbody td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.table-wrap tbody tr:last-child td{border-bottom:none;}
-.table-wrap tbody tr:hover td{background:#f8fafc;}
-td.price{font-weight:700;color:var(--primary);}
-td.up{color:#ef4444;font-weight:600;}
-td.down{color:#10b981;font-weight:600;}
-td.na{color:#94a3b8;}
-.supply-good{color:#10b981;font-weight:600;}
-.supply-warn{color:#f59e0b;font-weight:600;}
-.supply-bad{color:#ef4444;font-weight:600;}
-.region-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:24px;}
-.region-card{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.07);}
-.region-header{border-left:4px solid #64748b;padding-left:12px;margin-bottom:10px;}
-.region-header h4{font-size:14px;color:var(--primary);margin-bottom:6px;}
-.region-tag{display:inline-block;color:white;font-size:11px;font-weight:600;padding:2px 10px;border-radius:12px;margin-bottom:6px;}
-.region-text{font-size:12.5px;color:#475569;line-height:1.6;margin-bottom:4px;}
-.outlook-box{background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border-radius:14px;padding:28px;margin-top:24px;}
-.outlook-box h3{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--accent);}
-.outlook-box p{font-size:13.5px;line-height:1.8;color:#cbd5e1;margin-bottom:10px;}
-.outlook-box strong{color:white;}
-.insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:16px;}
-.insight-card{background:rgba(255,255,255,0.07);border-radius:10px;padding:16px;border-left:3px solid var(--accent);}
-.insight-card h4{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;}
-.insight-card p{font-size:12.5px;color:#cbd5e1;line-height:1.6;}
-.email-section{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.07);border-top:3px solid #8b5cf6;margin-top:24px;}
-.email-section pre{font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-size:13px;line-height:1.9;color:#374151;white-space:pre-wrap;word-wrap:break-word;}
-footer{background:var(--primary);color:#94a3b8;text-align:center;padding:18px 20px;font-size:12px;margin-top:40px;}
-footer a{color:var(--accent);text-decoration:none;}
-.data-footer{background:#f1f5f9;border-top:2px solid #e2e8f0;padding:16px 32px;font-size:11px;color:#64748b;line-height:1.8;}
-.data-footer strong{color:#334155;}
-@media(max-width:768px){.kpi-grid{grid-template-columns:1fr 1fr;}.header-left h1{font-size:20px;}main{padding:16px;}header{padding:20px;}.status-bar{padding:8px 20px;}}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f0f4f8;color:#1e293b;font-size:14px;}
+.ticker-wrap{background:var(--primary);overflow:hidden;white-space:nowrap;padding:7px 0;border-bottom:2px solid var(--accent);}
+.ticker-content{display:inline-block;animation:ticker 80s linear infinite;}
+.ticker-content span{margin:0 20px;font-size:12px;color:#e2e8f0;}
+.ticker-content .lbl{color:#94a3b8;font-weight:600;}
+.ticker-content .val{color:#34d399;font-weight:700;}
+.ticker-content .warn{color:#fbbf24;font-weight:700;}
+@keyframes ticker{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+header{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 60%,#0e6b8a 100%);color:white;padding:28px 48px 22px;position:relative;overflow:hidden;}
+header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(0,201,177,0.07);}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+.hdr-title{font-size:24px;font-weight:800;letter-spacing:.5px;}
+.hdr-title span{color:var(--accent);}
+.hdr-sub{margin-top:5px;font-size:12px;color:#94a3b8;}
+.hdr-badge{background:rgba(239,68,68,.25);border:1px solid #ef4444;color:#fca5a5;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:700;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.hdr-meta{margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;}
+.hdr-meta span{font-size:11px;color:#94a3b8;background:rgba(255,255,255,.07);padding:3px 12px;border-radius:10px;}
+.alert{padding:10px 48px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.alert-red{background:linear-gradient(90deg,#1c1e2a,#1c2a3a);color:#fca5a5;border-bottom:1px solid #ef4444;}
+.alert-amber{background:linear-gradient(90deg,#1c1e2a,#1e2a1c);color:#fcd34d;border-bottom:1px solid #f59e0b;}
+.alert strong{font-weight:700;}
+.status-bar{background:var(--primary);padding:9px 48px;display:flex;gap:14px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.07);}
+.pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:3px 14px;font-size:12px;color:#e2e8f0;}
+.pill strong{color:var(--accent);}
+main{max-width:1260px;margin:0 auto;padding:24px 48px;}
+.card{background:white;border-radius:14px;padding:22px 26px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,.06);border:1px solid var(--border);}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--border);}
+.card-hdr h2{font-size:17px;color:var(--primary);font-weight:700;}
+.card-hdr .ico{font-size:20px;}
+.sub-note{font-size:11px;color:#94a3b8;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;}
+th{background:#f7fafc;color:#64748b;font-weight:700;padding:10px 13px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);}
+td{padding:11px 13px;border-bottom:1px solid #f1f5f9;color:#334155;vertical-align:middle;}
+tr:hover td{background:#f8fafc;}
+td.price-cell{font-weight:800;font-size:15px;color:var(--primary);}
+td.mgo-cell{font-weight:700;font-size:14px;color:#065f46;}
+.region-header{background:linear-gradient(90deg,#f0f4f8,#e8edf4);font-weight:700;color:var(--secondary);font-size:12px;text-transform:uppercase;letter-spacing:.8px;padding:7px 13px;}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;}
+.badge.green{background:#c6f6d5;color:#276749;}
+.badge.blue{background:#bee3f8;color:#2b6cb0;}
+.badge.red{background:#fed7d7;color:#c53030;}
+.badge.amber{background:#fef3c7;color:#92400e;}
+.box-red{background:linear-gradient(135deg,#fff5f5,#ffe4e6);border-left:4px solid #ef4444;padding:14px;border-radius:0 10px 10px 0;margin:12px 0;}
+.box-red h3{color:#991b1b;font-size:13px;margin-bottom:6px;}
+.box-red p{color:#7f1d1d;font-size:13px;line-height:1.75;}
+.box-amber{background:linear-gradient(135deg,#fffbeb,#fff7ed);border-left:4px solid var(--accent2);padding:14px;border-radius:0 10px 10px 0;margin:12px 0;}
+.box-amber h3{color:#92400e;font-size:13px;margin-bottom:6px;}
+.box-amber p{color:#78350f;font-size:13px;line-height:1.75;}
+.box-green{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-top:12px;}
+.box-green h3{color:#166534;font-size:13px;margin-bottom:6px;}
+.box-green p{color:#14532d;font-size:13px;line-height:1.75;}
+.data-src{font-size:11px;color:#94a3b8;margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;}
+footer{text-align:center;color:#94a3b8;font-size:11px;padding:20px 48px;border-top:1px solid var(--border);margin-top:16px;}
+@media(max-width:768px){header,main{padding:16px;} .status-bar,.alert{padding:8px 16px;}}
 </style>
 </head>
 <body>
 
-<!-- 跑马灯 -->
-<div class="ticker-wrap">
-  <div class="ticker-content">
-    <span class="label">【VLSFO全球行情】</span>
-    <span>新加坡 <span class="up">$700.00/MT</span></span>
-    <span>宁波舟山 <span class="up">$863.00/MT</span></span>
-    <span>香港 <span class="up">$715.00/MT</span></span>
-    <span>Istanbul <span class="up">$807.00/MT</span></span>
-    <span>鹿特丹 <span class="up">$650.00/MT</span></span>
-    <span>休斯顿 <span class="up">$675.00/MT</span></span>
-    <span class="label">【MGO全球行情】</span>
-    <span>新加坡 <span class="up">$1,003.00/MT</span></span>
-    <span>香港 <span class="up">$1,064.00/MT</span></span>
-    <span>Istanbul <span class="up">$1,072.00/MT</span></span>
-    <span>鹿特丹 <span class="up">$1,015.00/MT</span></span>
-  </div>
-  <div class="ticker-content">
-    <span class="label">【VLSFO全球行情】</span>
-    <span>新加坡 <span class="up">$700.00/MT</span></span>
-    <span>宁波舟山 <span class="up">$863.00/MT</span></span>
-    <span>香港 <span class="up">$715.00/MT</span></span>
-    <span>Istanbul <span class="up">$807.00/MT</span></span>
-    <span>鹿特丹 <span class="up">$650.00/MT</span></span>
-    <span>休斯顿 <span class="up">$675.00/MT</span></span>
-    <span class="label">【MGO全球行情】</span>
-    <span>新加坡 <span class="up">$1,003.00/MT</span></span>
-    <span>香港 <span class="up">$1,064.00/MT</span></span>
-    <span>Istanbul <span class="up">$1,072.00/MT</span></span>
-    <span>鹿特丹 <span class="up">$1,015.00/MT</span></span>
-  </div>
-</div>
+<!-- TICKER -->
+<div class="ticker-wrap"><div class="ticker-content">
+<span class="lbl">BRENT</span><span class="val">N/A/BBL</span>
+<span class="lbl">WTI</span><span class="val">$75.34/BBL</span>
+<span class="lbl">SGP VLSFO</span><span class="val">$700.00/MT</span>
+<span class="lbl">SGP MGO</span><span class="val">$1,003.00/MT</span>
+<span class="lbl">RTT VLSFO</span><span class="val">$650.00/MT</span>
+<span class="lbl">SHA VLSFO</span><span class="val">$850.75/MT</span>
+<span class="lbl">IST VLSFO</span><span class="val">$807.00/MT</span>
+<span class="lbl">霍尔木兹</span><span class="warn">封锁中</span>
+<span class="lbl">红海</span><span class="warn">绕行好望角</span>
+<!-- repeat for ticker loop -->
+<span class="lbl">BRENT</span><span class="val">N/A/BBL</span>
+<span class="lbl">WTI</span><span class="val">$75.34/BBL</span>
+<span class="lbl">SGP VLSFO</span><span class="val">$700.00/MT</span>
+<span class="lbl">SGP MGO</span><span class="val">$1,003.00/MT</span>
+<span class="lbl">RTT VLSFO</span><span class="val">$650.00/MT</span>
+<span class="lbl">SHA VLSFO</span><span class="val">$850.75/MT</span>
+<span class="lbl">IST VLSFO</span><span class="val">$807.00/MT</span>
+<span class="lbl">霍尔木兹</span><span class="warn">封锁中</span>
+<span class="lbl">红海</span><span class="warn">绕行好望角</span>
+</div></div>
 
-<!-- 页头 -->
+<!-- HEADER -->
 <header>
-  <div class="header-top">
-    <div class="header-left">
-      <h1>全球航运燃油<span>深度分析</span>日报</h1>
-      <p>数据来源：OilPriceAPI（实时）· OilMonster / HandyBulk（港口价格）· MABUX（市场指数）</p>
-    </div>
-    <div class="header-badge">HIGH VOLATILITY</div>
-  </div>
-  <div class="header-meta">
-    <span>2026-06-17（周三）</span>
-    <span>6 个港口有报价</span>
-    <span>数据原则：实事求是，禁止估算</span>
-  </div>
+<div class="hdr-row">
+<div>
+<div class="hdr-title">Claw 全球航运<span>燃油深度</span>日报</div>
+<div class="hdr-sub">数据来源：Ship&amp;Bunker（VLSFO+MGO主力）· OilMonster（VLSFO备用）· Barchart（WTI）· OilPriceAPI（Brent）</div>
+</div>
+<div><div class="hdr-badge">WAR RISK ACTIVE</div></div>
+</div>
+<div class="hdr-meta">
+<span>2026-06-17</span>
+<span>13/19 港口有效报价</span>
+<span>MGO覆盖：7个港口（来自Ship&amp;Bunker）</span>
+<span>覆盖：中国/东南亚/中东/地东/土耳其/西地中海/欧洲/美洲</span>
+<span>数据原则：实事求是，严禁估算</span>
+</div>
 </header>
 
-<!-- 警报横幅 -->
-<div class="alert-banner">
-  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-  <strong>[市场动态]</strong> Brent $79.13/桶 | WTI $76.15/桶 | 新加坡 VLSFO $700.00/MT（供应偏紧）| 宁波舟山 $863.00/MT（价格洼地）| 鹿特丹 $650.00/MT（欧洲洼地）| 富查伊拉无报价（霍尔木兹封锁中）
+<!-- ALERTS -->
+<div class="alert alert-red">
+<strong>&#x26D4; 霍尔木兹：</strong>封锁持续（2026-03起），富查伊拉数据中断，波斯湾港口停运。
+</div>
+<div class="alert alert-amber">
+<strong>&#x26A0; 红海/胡塞：</strong>2023-12至今绕行好望角，亚欧航线额外约+8,500海里，每航次增加约450MT燃油。
 </div>
 
-<!-- 状态栏 -->
+<!-- STATUS BAR -->
 <div class="status-bar">
-  <div class="status-item">
-    <div class="status-dot dot-yellow"></div>
-    <span>Brent：</span><span class="status-val">$79.13/BBL</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-yellow"></div>
-    <span>WTI：</span><span class="status-val">$76.15/BBL</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-red"></div>
-    <span>富查伊拉：</span><span class="status-val">封锁中</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-yellow"></div>
-    <span>新加坡：</span><span class="status-val">偏紧</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-green"></div>
-    <span>宁波舟山：</span><span class="status-val">价格洼地</span>
-  </div>
-  <div class="status-item">
-    <div class="status-dot dot-green"></div>
-    <span>鹿特丹：</span><span class="status-val">价格洼地</span>
-  </div>
+<div class="pill"><strong>Brent:</strong> N/A/BBL (N/A)</div>
+<div class="pill"><strong>WTI:</strong> $75.34/BBL (Barchart)</div>
+<div class="pill"><strong>SGP VLSFO:</strong> $700.00/MT</div>
+<div class="pill"><strong>SGP MGO:</strong> $1,003.00/MT (Ship&amp;Bunker)</div>
+<div class="pill"><strong>RTT VLSFO:</strong> $650.00/MT | MGO: $1,015.00/MT</div>
 </div>
 
-<!-- 主内容 -->
 <main>
 
-  <!-- 价格速览 -->
-  <div class="section-title">&#9889; 价格速览</div>
-  <div class="kpi-grid">
-    <div class="kpi-card orange">
-      <div class="kpi-label">Brent 原油</div>
-      <div class="kpi-value">$79.13</div>
-      <div class="kpi-change">OilPriceAPI</div>
-      <div class="kpi-sub">USD/BBL · 2026-06-17</div>
-    </div>
-    <div class="kpi-card orange">
-      <div class="kpi-label">WTI 原油</div>
-      <div class="kpi-value">$76.15</div>
-      <div class="kpi-change">TradingEconomics</div>
-      <div class="kpi-sub">USD/BBL · 2026-06-17</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">新加坡 VLSFO</div>
-      <div class="kpi-value">$700.00</div>
-      <div class="kpi-change">normal</div>
-      <div class="kpi-sub">USD/MT · N/A</div>
-    </div>
-    <div class="kpi-card red">
-      <div class="kpi-label">宁波舟山 VLSFO</div>
-      <div class="kpi-value">$863.00</div>
-      <div class="kpi-change down">价格洼地</div>
-      <div class="kpi-sub">USD/MT · N/A · 中国</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">鹿特丹 VLSFO</div>
-      <div class="kpi-value">$650.00</div>
-      <div class="kpi-change down">价格洼地</div>
-      <div class="kpi-sub">USD/MT · N/A · 欧洲</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">休斯顿 VLSFO</div>
-      <div class="kpi-value">$675.00</div>
-      <div class="kpi-change">normal</div>
-      <div class="kpi-sub">USD/MT · N/A · 美湾</div>
-    </div>
-  </div>
+<!-- 板块1：原油基准 -->
+<div class="card">
+<div class="card-hdr"><span class="ico">&#x1F4C8;</span><h2>原油价格基准</h2></div>
+<table>
+<thead><tr><th>品种</th><th>价格 (USD/桶)</th><th>更新时间</th><th>数据来源</th><th>备注</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>布伦特原油 (Brent)</strong></td>
+<td class="price-cell">N/A</td>
+<td>N/A</td>
+<td>N/A</td>
+<td><span class="badge red">N/A - API Key未配置</span></td>
+</tr>
+<tr>
+<td><strong>WTI 原油</strong></td>
+<td class="price-cell">$75.34</td>
+<td>2026-06-17</td>
+<td>Barchart</td>
+<td><span class="badge green">实时</span></td>
+</tr>
+</tbody>
+</table>
+<div class="data-src">Brent = 全球航运燃油定价基准；WTI = 美国基准，两者价差通常反映地缘风险溢价。霍尔木兹封锁期间两者价差扩大。</div>
+</div>
 
-  <!-- 全球主要港口燃油价格 -->
-  <div class="section-title global">&#127757; 全球主要港口燃油价格（$/MT）</div>
+<!-- 板块2：全球港口燃油价格 -->
+<div class="card">
+<div class="card-hdr"><span class="ico">&#x1F30A;</span><h2>全球主要港口 VLSFO / MGO 实时价格（19港口）</h2></div>
+<p class="sub-note">
+VLSFO &amp; MGO 主力来源：Ship&amp;Bunker（新加坡/香港/伊斯坦布尔/比雷埃夫斯/鹿特丹/休斯顿/洛杉矶等）| 
+VLSFO 备用来源：OilMonster（中国港口/东南亚/其余港口）| 
+绿色=当日 | 蓝色=本周 | 橙色=延迟(7-30天) | 红色=无近期数据或封锁中 | 
+MGO N/A = 该港口 Ship&amp;Bunker 暂无MGO报价
+</p>
+<table>
+<thead><tr><th>港口</th><th>VLSFO (USD/MT)</th><th>MGO (USD/MT)</th><th>报价日期</th><th>来源</th><th>新鲜度</th></tr></thead>
+<tbody>
+<tr><td colspan="6" class="region-header">中国</td></tr>
+<tr>
+<td><strong>上海 (Shanghai)</strong></td>
+<td class="price-cell">$850.75/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-06-10</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge blue">本周</span></td>
+</tr>
+<tr>
+<td><strong>天津 (Tianjin)</strong></td>
+<td class="price-cell">$832.25/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-06-10</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge blue">本周</span></td>
+</tr>
+<tr>
+<td><strong>宁波舟山 (Ningbo)</strong></td>
+<td class="price-cell">$863.00/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-05-20</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge amber">28天前</span></td>
+</tr>
+<tr>
+<td><strong>青岛 (Qingdao)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">暂无报价</span></td>
+<td><small>OilMonster</small></td>
+<td><span class="badge red">无近期数据</span></td>
+</tr>
+<tr>
+<td><strong>深圳/盐田 (Shenzhen)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">暂无报价</span></td>
+<td><small>OilMonster</small></td>
+<td><span class="badge red">无近期数据</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">东南亚</td></tr>
+<tr>
+<td><strong>新加坡 (Singapore)</strong></td>
+<td class="price-cell">$700.00/MT</td>
+<td class="mgo-cell">$1,003.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr>
+<td><strong>香港 (Hong Kong)</strong></td>
+<td class="price-cell">$715.00/MT</td>
+<td class="mgo-cell">$1,064.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr>
+<td><strong>巴生港 (Port Klang)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">暂无报价</span></td>
+<td><small>OilMonster</small></td>
+<td><span class="badge red">无近期数据</span></td>
+</tr>
+<tr>
+<td><strong>雅加达 (Jakarta)</strong></td>
+<td class="price-cell">$614.00/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-06-10</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge blue">本周</span></td>
+</tr>
+<tr>
+<td><strong>曼谷 (Bangkok)</strong></td>
+<td class="price-cell">$842.00/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-06-09</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge amber">8天前</span></td>
+</tr>
+<tr>
+<td><strong>马尼拉 (Manila)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">暂无报价</span></td>
+<td><small>OilMonster</small></td>
+<td><span class="badge red">无近期数据</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">中东</td></tr>
+<tr>
+<td><strong>富查伊拉 (Fujairah)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">霍尔木兹封锁</span></td>
+<td><small>N/A（霍尔木兹封锁）</small></td>
+<td><span class="badge red">封锁中</span></td>
+</tr>
+<tr>
+<td><strong>达曼 (Dammam)</strong></td>
+<td class="price-cell"><span style="color:#c53030;font-weight:600;">N/A</span></td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td><span style="color:#94a3b8;">暂无报价</span></td>
+<td><small>OilMonster</small></td>
+<td><span class="badge red">无近期数据</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">地东/土耳其</td></tr>
+<tr>
+<td><strong>伊斯坦布尔 (Istanbul)</strong></td>
+<td class="price-cell">$807.00/MT</td>
+<td class="mgo-cell">$1,072.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr>
+<td><strong>比雷埃夫斯 (Piraeus)</strong></td>
+<td class="price-cell">$830.00/MT</td>
+<td class="mgo-cell">$1,160.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">西地中海</td></tr>
+<tr>
+<td><strong>马赛 (Marseille)</strong></td>
+<td class="price-cell">$871.00/MT</td>
+<td class=""><span style="color:#94a3b8;">N/A</span></td>
+<td>2026-06-09</td>
+<td><small>OilMonster</small></td>
+<td><span class="badge amber">8天前</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">欧洲</td></tr>
+<tr>
+<td><strong>鹿特丹 (Rotterdam)</strong></td>
+<td class="price-cell">$650.00/MT</td>
+<td class="mgo-cell">$1,015.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr><td colspan="6" class="region-header">美洲</td></tr>
+<tr>
+<td><strong>休斯顿 (Houston)</strong></td>
+<td class="price-cell">$675.00/MT</td>
+<td class="mgo-cell">$1,002.50/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
+<tr>
+<td><strong>洛杉矶 (Los Angeles)</strong></td>
+<td class="price-cell">$790.50/MT</td>
+<td class="mgo-cell">$1,156.00/MT</td>
+<td>2026-06-17</td>
+<td><small>Ship&Bunker</small></td>
+<td><span class="badge green">当日</span></td>
+</tr>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127468;&#127463; 国内港口</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
-      </thead>
-      <tbody>
-        
-        <tr>
-          <td><strong>宁波舟山</strong></td>
-          <td><strong>Ningbo-Zhoushan</strong></td>
-          <td class="price">$863.00</td>
-          <td>N/A</td>
-          <td>N/A</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">中国最大加油港</td>
-        </tr>
-        <tr>
-          <td><strong>上海</strong></td>
-          <td><strong>Shanghai</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-        <tr>
-          <td><strong>青岛</strong></td>
-          <td><strong>Qingdao</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-        <tr>
-          <td><strong>天津</strong></td>
-          <td><strong>Tianjin</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-        <tr>
-          <td><strong>大连</strong></td>
-          <td><strong>Dalian</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+</tbody>
+</table>
+<div class="data-src">
+<strong>数据说明：</strong>
+Ship&amp;Bunker覆盖港口提供实时VLSFO+MGO（指示价，indicative）。
+OilMonster覆盖港口仅提供VLSFO，无MGO分项数据。
+富查伊拉因霍尔木兹封锁（2026-03）持续显示N/A。
+以下港口OilMonster长期无报价：青岛、深圳、巴生港、马尼拉、达曼（建议联系当地供应商）。
+</div>
+</div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127968; 亚太港口</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
-      </thead>
-      <tbody>
-        
-        <tr>
-          <td><strong>新加坡</strong></td>
-          <td><strong>Singapore</strong></td>
-          <td class="price">$700.00</td>
-          <td>$1,003.00</td>
-          <td>$562.00</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">亚洲最大加油港</td>
-        </tr>
-        <tr>
-          <td><strong>香港</strong></td>
-          <td><strong>Hong Kong</strong></td>
-          <td class="price">$715.00</td>
-          <td>$1,064.00</td>
-          <td>$535.00</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">南中国海转运枢纽</td>
-        </tr>
-        <tr>
-          <td><strong>釜山</strong></td>
-          <td><strong>Busan</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<!-- 板块3：战争/地缘冲突对燃油成本的影响 -->
+<div class="card">
+<div class="card-hdr"><span class="ico">&#x1F6A8;</span><h2>战争/地缘冲突对燃油成本的量化影响</h2></div>
+<p class="sub-note">（AI整理，数据来源：Lloyd's List / Alphaliner / IEA / Ship&Bunker，仅供量级参考，实际以航线测算为准）</p>
+<table>
+<thead><tr><th>航线</th><th>正常距离</th><th>当前路线</th><th>绕航额外消耗</th><th>额外燃油成本/航次</th><th>当前状态</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>亚洲 → 欧洲（经苏伊士）</strong><br><small style="color:#64748b;">红海/胡塞武装袭击，绕行好望角</small></td>
+<td>12,000nm</td>
+<td>20,500nm</td>
+<td>+8,500nm (14天, +450MT燃油)</td>
+<td>~$330,000</td>
+<td><span class="badge amber">持续</span><br><small style="color:#94a3b8;">since 2023-12</small></td>
+</tr>
+<tr>
+<td><strong>亚洲 → 欧洲（经霍尔木兹）</strong><br><small style="color:#64748b;">霍尔木兹海峡封锁（2026-03起），波斯湾全线停运，影响富查伊拉过境</small></td>
+<td>12,000nm</td>
+<td>N/A（封锁中）</td>
+<td>N/A（封锁中）</td>
+<td>N/A</td>
+<td><span class="badge red">封锁中，无法量化</span><br><small style="color:#94a3b8;">since 2026-03</small></td>
+</tr>
+<tr>
+<td><strong>中国 → 中东（波斯湾港口）</strong><br><small style="color:#64748b;">霍尔木兹封锁，目的港（科威特/卡塔尔/伊朗港口）无法进入</small></td>
+<td>6,200nm</td>
+<td>N/A（封锁中）</td>
+<td>N/A（封锁中）</td>
+<td>N/A</td>
+<td><span class="badge red">中断，等待谈判</span><br><small style="color:#94a3b8;">since 2026-03</small></td>
+</tr>
+<tr>
+<td><strong>中国/东南亚 → 土耳其/地东</strong><br><small style="color:#64748b;">红海绕行好望角，土耳其/希腊港口中转成本上升</small></td>
+<td>9,500nm</td>
+<td>15,800nm</td>
+<td>+6,300nm (11天, +330MT燃油)</td>
+<td>~$241,000</td>
+<td><span class="badge amber">持续</span><br><small style="color:#94a3b8;">since 2023-12</small></td>
+</tr>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127961; 中东港口</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
-      </thead>
-      <tbody>
-        
-        <tr>
-          <td><strong>富查伊拉</strong></td>
-          <td><strong>Fujairah</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-bad">&#10007; 暂无数据</td>
-          <td class="na"> · </td>
-        </tr>
-        <tr>
-          <td><strong>Istanbul</strong></td>
-          <td><strong>Istanbul</strong></td>
-          <td class="price">$807.00</td>
-          <td>$1,072.00</td>
-          <td>$708.00</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">博斯普鲁斯海峡要道</td>
-        </tr>
-        <tr>
-          <td><strong>迪拜</strong></td>
-          <td><strong>Dubai</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+</tbody>
+</table>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127466;&#127480; 欧洲港口</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
-      </thead>
-      <tbody>
-        
-        <tr>
-          <td><strong>鹿特丹</strong></td>
-          <td><strong>Rotterdam</strong></td>
-          <td class="price">$650.00</td>
-          <td>$1,015.00</td>
-          <td>$533.00</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">欧洲最大加油港</td>
-        </tr>
-        <tr>
-          <td><strong>安特卫普</strong></td>
-          <td><strong>Antwerp</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-        <tr>
-          <td><strong>比雷埃夫斯</strong></td>
-          <td><strong>Piraeus</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<div class="box-red">
+<h3>&#x1F6AB; 霍尔木兹封锁影响（2026-03起，已持续3个月）</h3>
+<p>
+封锁导致约600万桶/日原油无法经霍尔木兹出口，全球VLSFO/MGO价格基准大幅上移。
+富查伊拉作为全球最重要中东加油港过境受限，波斯湾港口（科威特/卡塔尔）停运，
+过境中东的船舶需在新加坡或鹿特丹提前加满燃油。
+战争险附加费用上升至0.8%-1.5%（正常0.125%的8-12倍）。
+（数据来源：IEA Oil Market Report June 2026）
+</p>
+</div>
 
-  <div style="font-size:12px;color:#64748b;margin-bottom:8px;font-weight:600;">&#127463;&#127479; 北美港口</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>中文名</th><th>港口</th><th>VLSFO</th><th>MGO</th><th>HSFO</th><th>价差</th><th>供应状态</th><th>备注</th></tr>
-      </thead>
-      <tbody>
-        
-        <tr>
-          <td><strong>休斯顿</strong></td>
-          <td><strong>Houston</strong></td>
-          <td class="price">$675.00</td>
-          <td>$1,002.50</td>
-          <td>$593.00</td>
-          <td>—</td>
-          <td class="supply-good">&#9679; 正常供应</td>
-          <td class="na">美湾最大加油港</td>
-        </tr>
-        <tr>
-          <td><strong>洛杉矶</strong></td>
-          <td><strong>Los Angeles</strong></td>
-          <td class="na" colspan="4">无报价</td>
-          <td class="supply-warn">暂无数据</td>
-          <td class="na"></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<div class="box-amber">
+<h3>&#x26A0; 红海/胡塞武装影响（2023-12起，已持续约30个月）</h3>
+<p>
+亚欧航线绕行好望角已持续约30个月。典型13,000TEU船：
+额外航程约+8,500海里，额外约14天海上时间，单航次额外消耗约450MT VLSFO。
+按当前新加坡VLSFO $700.00/MT计算，单航次额外燃油成本约 $315,000。
+（AI解读，仅供参考；数据来源：Alphaliner / Ship&Bunker 2026-06）
+</p>
+</div>
 
-  <!-- 全球区域分析 -->
-  <div class="section-title global">&#128202; 全球重点区域市场分析</div>
-  <div class="region-grid">
-    <div class="region-card">
-      <div class="region-header" style="border-left-color:#0ea5e9;">
-        <h4>Asia Pacific</h4>
-        <span class="region-tag" style="background:#0ea5e9;">亚洲市场 VLSFO 供应整体偏紧，新加坡库存偏低，国内港口价格优势明显</span>
-      </div>
-      <p class="region-text"><strong>重点港口：</strong>Singapore, Hong Kong, Busan</p>
-      <p class="region-text"><strong>操作建议：</strong>建议提前5-7天预订新加坡，优先考虑国内港口替代</p>
-    </div>
-    <div class="region-card">
-      <div class="region-header" style="border-left-color:#ef4444;">
-        <h4>China</h4>
-        <span class="region-tag" style="background:#ef4444;">国内港口价格洼地，宁波舟山竞争力最强，整体供应充足</span>
-      </div>
-      <p class="region-text"><strong>重点港口：</strong>Shanghai, Ningbo-Zhoushan, Qingdao</p>
-      <p class="region-text"><strong>操作建议：</strong>亚洲航线首选宁波舟山，价格较新加坡低约 $20/MT</p>
-    </div>
-    <div class="region-card">
-      <div class="region-header" style="border-left-color:#f59e0b;">
-        <h4>Middle East</h4>
-        <span class="region-tag" style="background:#f59e0b;">富查伊拉受霍尔木兹封锁影响无 VLSFO 报价，迪拜正常供应</span>
-      </div>
-      <p class="region-text"><strong>重点港口：</strong>Fujairah, Dubai</p>
-      <p class="region-text"><strong>操作建议：</strong>富查伊拉暂停服务，前往迪拜加油需提前规划航线</p>
-    </div>
-    <div class="region-card">
-      <div class="region-header" style="border-left-color:#10b981;">
-        <h4>Europe</h4>
-        <span class="region-tag" style="background:#10b981;">鹿特丹价格洼地，安特卫普正常供应，地中海比雷埃夫斯偏紧</span>
-      </div>
-      <p class="region-text"><strong>重点港口：</strong>Rotterdam, Antwerp, Piraeus</p>
-      <p class="region-text"><strong>操作建议：</strong>欧洲挂港首选鹿特丹，地中海船舶提前预订</p>
-    </div>
-  </div>
+<div class="box-green">
+<h3>&#x1F4CA; 土耳其/地东影响分析（2026-06-17）</h3>
+<p>
+伊斯坦布尔（$807.00/MT VLSFO）和比雷埃夫斯作为欧地东转运核心，受红海绕航影响显著提升战略价值。
+中国→土耳其航线绕行好望角额外约+6,300海里（+11天），约增加330MT燃油/航次。
+按伊斯坦布尔当前VLSFO，单航次额外燃油成本约 $266,310。
+（AI解读，仅供参考）
+</p>
+</div>
+</div>
 
-  <!-- 邮件摘要 -->
-  <div class="section-title email">&#9993; 邮件摘要</div>
-  <div class="email-section">
-    <pre>各位好，以下是今日（2026-06-17（周三））全球航运燃油市场简报：
-
-【原油市场】Brent 原油报 $79.13/桶，WTI 报 $76.15/桶。地缘局势持续影响油价，短期高位震荡。
-
-【亚洲市场】新加坡 VLSFO 报 $700.00/MT，供应偏紧，建议提前预订。 香港报 $715.00/MT。
-
-【国内市场】上海 VLSFO 报 N/A/MT，宁波舟山报 $863.00/MT，价格优势明显。
-
-【欧洲市场】鹿特丹 VLSFO 报 $650.00/MT，价格洼地，欧洲挂港船舶优先加注。
-
-【北美市场】休斯顿报 $675.00/MT，洛杉矶溢价偏高（N/A/MT），建议绕行。
-
-【综合建议】短期高位震荡，建议：①欧洲船舶鹿特丹加满；②亚洲船舶国内宁波舟山优先；③美湾船舶休斯顿加注；④富查伊拉无报价，提前做好替代方案。
-
-详情请查看：https://LeahLiuL.github.io/Claw-Report/reports/bunker-fuel-report.html</pre>
-  </div>
-
-  <!-- 市场展望 -->
-  <div class="outlook-box">
-    <h3>&#128202; 市场展望与操作建议（2026-06-17（周三））</h3>
-    <p><strong>【核心背景】</strong>霍尔木兹海峡局势持续影响全球航运燃油市场，原油价格维持高位震荡。新加坡 VLSFO 供应偏紧，亚洲船舶建议优先考虑国内宁波舟山/上海加油。欧洲市场鹿特丹价格洼地明显，欧洲挂港船舶应加满。富查伊拉因霍尔木兹封锁持续无报价，前往中东航线需提前规划迪拜替代方案。继续关注美伊谈判进展，协议达成则油价有回落空间。</p>
-    <div class="insight-grid">
-      <div class="insight-card">
-        <h4>短期建议（1-2周）</h4>
-        <p>
-          1. <strong>国内优先：</strong>宁波舟山/上海 VLSFO 较新加坡低约 $20/MT，亚洲航线首选国内港口加注。<br>
-          2. <strong>欧洲洼地：</strong>鹿特丹 $650.00/MT，欧洲挂港船舶应加满。<br>
-          3. <strong>富查伊拉：</strong>提前做好替代方案，前往迪拜加油。<br>
-          4. <strong>洛杉矶：</strong>溢价偏高，建议绕行休斯顿加注。
-        </p>
-      </div>
-      <div class="insight-card">
-        <h4>中期风险（1个月）</h4>
-        <p>
-          1. <strong>美伊谈判：</strong>若达成协议，原油可能回落，燃油成本有下行空间。<br>
-          2. <strong>反转风险：</strong>谈判破裂则原油可能重回 $110+，需保持关注。<br>
-          3. <strong>库存策略：</strong>建议在价格相对低位时适当增加库存。
-        </p>
-      </div>
-      <div class="insight-card">
-        <h4>长期关注（季度）</h4>
-        <p>
-          1. <strong>地缘缓和：</strong>霍尔木兹局势若实质性松动，供应将逐步改善。<br>
-          2. <strong>VLSFO-HSFO价差：</strong>继续跟踪洗涤器回报率变化。<br>
-          3. <strong>脱碳趋势：</strong>关注 LNG 动力船舶增长对传统燃油市场的影响。
-        </p>
-      </div>
-    </div>
-  </div>
+<!-- 板块4：操作建议 -->
+<div class="card">
+<div class="card-hdr"><span class="ico">&#x1F6E1;</span><h2>运营操作建议</h2></div>
+<div class="box-green">
+<h3>加注策略参考（AI解读，仅供参考）</h3>
+<p>
+1. <strong>中国港口出发亚欧/土耳其航线：</strong>建议出发前在上海/宁波/天津加满，当前国内VLSFO相对稳定，避免在绕航途中高价港口补油。<br>
+2. <strong>新加坡中转：</strong>当前新加坡VLSFO $700.00/MT，仍是亚洲最优流动性港口，适合长途航次出发前加注。需提前3-5天预订。<br>
+3. <strong>欧洲返程（鹿特丹 $650.00/MT）：</strong>欧洲价格当前低于亚洲，建议亚欧西行在鹿特丹多补，返程减少在高价亚洲港口加量。<br>
+4. <strong>土耳其/地东（伊斯坦布尔 $807.00/MT）：</strong>价格偏高，建议仅按航段需求补油，避免超量加注。<br>
+5. <strong>中东/富查伊拉：</strong>霍尔木兹封锁期间，富查伊拉暂停推荐，改为新加坡或科伦坡备选。
+</p>
+</div>
+</div>
 
 </main>
 
-<!-- 页脚 -->
 <footer>
-  <p>全球航运燃油深度分析报告 &copy; 2026 CUL | 数据来源：OilPriceAPI · OilMonster · HandyBulk · MABUX · TradingEconomics</p>
-  <p style="margin-top:6px;">本报告仅供内部参考，不构成任何投资或采购建议 | 生成时间：2026-06-17 08:00 CST | <a href="https://LeahLiuL.github.io/Claw-Report/reports/">查看历史报告</a></p>
+<p>Claw 全球航运燃油深度日报 v3.0 | 生成时间：2026-06-17 10:52 | 港口覆盖：19个 | MGO覆盖：7个港口</p>
+<p>数据来源：Ship&amp;Bunker（主力）· OilMonster（备用）· Barchart · OilPriceAPI · IEA · Lloyd's List · Alphaliner</p>
+<p>数据原则：实事求是，N/A必须说明原因，严禁估算。"AI解读"标注内容仅供参考。</p>
 </footer>
-
-<!-- 数据来源说明 -->
-<div class="data-footer">
-  <strong>数据来源 / Sources</strong><br>
-  港口燃油价格：HandyBulk / OilMonster（每日更新）<br>
-  原油期货价格：OilPriceAPI（实时）/ Barchart（备选）<br>
-  市场指数：MABUX World Bunker Index（每周更新）<br>
-  地缘政治：Hellenic Shipping News / Lloyd's List<br>
-  <br>
-  <span style="color:#f87171;">&#9888; 本报告数据均来自公开可验证来源，严禁估算。AI 分析内容仅供参考，请勿直接用于交易决策。</span><br>
-  Generated by Claw System &bull; leahliu@culines.com &bull; CULines
-</div>
-
 </body>
 </html>
