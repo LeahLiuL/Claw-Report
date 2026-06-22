@@ -84,6 +84,17 @@
 - Week 21 report had been generated and deployed before this run
 - This run successfully overwritten with Week 22 content
 
+### 2026-06-22 (Week 26) — 09:53 CST
+- **Status**: ✅ HTML覆盖 + Git推送成功；⚠ 邮件通知跳过；⚠ 本周无新 Alphaliner 邮件
+- **HTML file**: `reports/alphaliner-digest.html` 已更新为 Week 26 (Jun 16–22, 2026)，与周四 wk26 周报同步
+- **Git commit**: `77dc69c` — "Update Alphaliner Digest - Week 26 2026 (Mon refresh, no new Alphaliner email)"
+- **GitHub Pages**: Push 成功 `e10542e..77dc69c main -> main`
+- **GitHub URL**: https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html
+- **Outlook status**: 收件箱扫描 500+ 封，命中 5 封"Internal/Circulation/Newsletter/Alphaliner/Mabel"邮件 — 全部为内部租船/会议议程（**AEM/FMS/CEX service PFS**, **BAMSI BEYREK 2500TEU SOHAR**, **Ten Venus charter-in**, **WEST ASIA Weekly Meeting**），未发现 Alphaliner 周报邮件
+- **Data carried forward**: 沿用周四（6/18）wk26 周报内容（SCFI 3,122 / Drewry WCI $3,969 / Alphaliner TOP100 7,548 艘/34.27M TEU / 12 articles / 7 CUL Direct）
+- **Header annotation**: 已添加 ⚠️ "本周未收到新的 Alphaliner 周报邮件"提示，区别于常规自动版
+- **Email status**: Outlook COM 不可用，无 SMTP，跳过
+
 ## Known Issues / Notes
 - Outlook win32com: 在自动化执行上下文（无用户交互会话）中，COM接口调用通常会超时。不适合用于定时任务中的邮件发送。
 - 建议改用 SMTP / PowerShell `Send-MailMessage` 或 Exchange Web Services 替代 Outlook COM
