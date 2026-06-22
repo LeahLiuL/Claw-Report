@@ -59,6 +59,27 @@
 - **Notable items**: 旺季全面爆发提前4-6周；Drewry WCI单周暴涨23%创年度纪录；6月GRI成功落地$1,450-1,500/FEU；MSC追加6月中PSS $600-800/FEU；跨太平洋舱位利用率98-100%；甩柜率上升；缺箱蔓延；霍尔木兹危机100天+无缓解
 - **Outlook status**: COM接口本次成功发送邮件至leahliu@culines.com（含附件）
 
+### 2026-06-17 (Week 25) — 10:38 CST
+- **Status**: ✅ HTML生成 + Git推送成功；⚠ 邮件通知跳过
+- **HTML file**: `reports/alphaliner-digest.html` 已更新为 Week 25 (Jun 9–16, 2026)
+- **Git commit**: `933c327` — "Update Alphaliner Digest - Week 25 2026"
+- **GitHub Pages**: Push 成功 `34516d0..933c327 main -> main`
+- **GitHub URL**: https://leahliul.github.io/Claw-Report/reports/alphaliner-digest.html
+- **Data sources used**: Alphaliner Top100, Drewry WCI, SSE SCFI/CCFI/SCFIS, 财联社, 东方财富, 新浪财经, AJOT, VesselsLink
+- **Key data (2026-06-12)**:
+  - SCFI: 2,985.22 (+9.5% WoW) — 七连涨逼近3000点
+  - CCFI: 1,480.11 (+4.85%)
+  - Drewry WCI: $3,549/FEU (+3% WoW)
+  - SCFIS Europe: 2,821.72 (+12.8%)
+  - SCFIS USWC: 2,650.01 (+8.4%)
+  - Europe: $3,064/TEU (+17.6%) — 领涨
+  - US West Coast: $5,101/FEU (+12.1%)
+  - US East Coast: $6,321/FEU (+10.1%)
+  - Persian Gulf: $4,816/TEU (+4.4%) [★ CUL core route]
+  - Alphaliner: 全球7,547艘/3,421万TEU，MSC 21.6%创纪录
+- **Notable items**: SCFI七连涨；MSC市占率21.6%改写历史；马士基6/17起征跨太平洋PSS $1,000-2,000；MSC亚欧FAK涨至$6,000/40ft；霍尔木兹第110天+通航接近零；美伊和谈进行中无突破；旺季提前4-6周；NRF预警秋季进口量回落
+- **Email status**: 未配置SMTP，Outlook COM不可用，通知跳过
+
 ### 2026-05-19 (Week 21) — Prior run reference
 - Week 21 report had been generated and deployed before this run
 - This run successfully overwritten with Week 22 content
