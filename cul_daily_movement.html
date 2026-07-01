@@ -202,6 +202,10 @@ function _loadXlsx(cb){
       <div class="filter-dropdown col-dropdown" id="filterDropdownRoute1"></div>
     </div>
     <div style="position:relative;">
+      <button class="filter-btn" id="filterVesselBtn1" onclick="toggleFilterDropdown('vessel','1')">All Vessels</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownVessel1"></div>
+    </div>
+    <div style="position:relative;">
       <button class="filter-btn" id="filterPicBtn1" onclick="toggleFilterDropdown('pic','1')">All PIC</button>
       <div class="filter-dropdown col-dropdown" id="filterDropdownPic1"></div>
     </div>
@@ -236,7 +240,10 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="filterRouteBtn2" onclick="toggleFilterDropdown('route','2')">All Routes</button>
       <div class="filter-dropdown col-dropdown" id="filterDropdownRoute2"></div>
     </div>
-    <select id="filterVessel2" onchange="renderFullSchedule()"><option value="">All Vessels</option></select>
+    <div style="position:relative;">
+      <button class="filter-btn" id="filterVesselBtn2" onclick="toggleFilterDropdown('vessel','2')">All Vessels</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownVessel2"></div>
+    </div>
     <div style="position:relative;">
       <button class="filter-btn" id="filterPicBtn2" onclick="toggleFilterDropdown('pic','2')">All PIC</button>
       <div class="filter-dropdown col-dropdown" id="filterDropdownPic2"></div>
@@ -366,7 +373,7 @@ function updateFilterButton(type, viewId){
   var dataArr = viewId==='1' ? summaryData : fullData;
   var totalValues = new Set(dataArr.map(function(r){return r[type];})).size;
   if(sel===null || sel.size===totalValues){
-    btn.textContent = type==='route' ? 'All Routes' : 'All PIC';
+    btn.textContent = type==='route' ? 'All Routes' : type==='vessel' ? 'All Vessels' : 'All PIC';
     btn.classList.remove('has-selection');
   } else {
     btn.textContent = sel.size + ' selected';
@@ -470,6 +477,7 @@ function initSummary(){
   summaryData = TODAY_DATA.vessels;
   buildColDropdown('1');
   updateFilterButton('route', '1');
+  updateFilterButton('vessel', '1');
   updateFilterButton('pic', '1');
   renderSummary();
 }
@@ -477,10 +485,12 @@ function initSummary(){
 function getFilteredSummary(){
   const q=document.getElementById('searchBox').value.toLowerCase();
   const selRoute = getFilterSelected('route', '1');
+  const selVessel = getFilterSelected('vessel', '1');
   const selPic = getFilterSelected('pic', '1');
   const delay=document.getElementById('filterDelay').value;
   let data=summaryData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
+    if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.remark}`.toLowerCase().includes(q)) return false;
     if(delay==='delay') return r.etaDelay.toLowerCase().includes('delay');
@@ -567,12 +577,9 @@ function initFullSchedule(){
   });
   vesselGroupMap = seen;
 
-  // Populate vessel single-select (kept as <select>)
-  const vessels=[...new Set(fullData.map(r=>r.vessel))].sort();
-  const vSel=document.getElementById('filterVessel2');
-  vessels.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;vSel.appendChild(o);});
   buildColDropdown('2');
   updateFilterButton('route', '2');
+  updateFilterButton('vessel', '2');
   updateFilterButton('pic', '2');
   renderFullSchedule();
 }
@@ -580,11 +587,11 @@ function initFullSchedule(){
 function getFilteredFull(){
   const q=document.getElementById('searchBox2').value.toLowerCase();
   const selRoute = getFilterSelected('route', '2');
-  const vessel=document.getElementById('filterVessel2').value;
+  const selVessel = getFilterSelected('vessel', '2');
   const selPic = getFilterSelected('pic', '2');
   let data=fullData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
-    if(vessel && r.vessel!==vessel) return false;
+    if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date}`.toLowerCase().includes(q)) return false;
     return true;
