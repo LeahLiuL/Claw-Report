@@ -353,7 +353,7 @@ function getFilteredSummary(){
     const defs = COLUMN_DEFS_SUMMARY;
     const colDef = defs[summarySortCol];
     if(colDef && visibleCols['1'].has(colDef.key)){
-      data.sort((a,b)=>((a[colDef.key]||'')).localeCompare((b[colDef.key]||'')*summarySortDir);
+      data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*summarySortDir);
     }
   }
   return data;
@@ -455,7 +455,7 @@ function getFilteredFull(){
     const defs = COLUMN_DEFS_FULL;
     const colDef = defs[fullSortCol];
     if(colDef && visibleCols['2'].has(colDef.key)){
-      data.sort((a,b)=>((a[colDef.key]||'')).localeCompare((b[colDef.key]||'')*fullSortDir);
+      data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*fullSortDir);
     }
   }
   return data;
