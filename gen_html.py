@@ -538,8 +538,8 @@ function buildFilterDropdown(type, viewId){
   selAll.textContent = 'Select All';
   selAll.onclick = function(e){ e.stopPropagation(); setAllFilterOptions(type, viewId); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
   var clrAll = document.createElement('button');
-  clrAll.textContent = 'Clear';
-  clrAll.onclick = function(e){ e.stopPropagation(); filterSelections[type+viewId]=new Set(); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
+  clrAll.textContent = '全不选';
+  clrAll.onclick = function(e){ e.stopPropagation(); filterSelections[type+viewId]=new Set(['\x00NONE\x00']); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
   actions.appendChild(selAll);
   actions.appendChild(clrAll);
   dd.appendChild(actions);
@@ -562,8 +562,8 @@ function buildFilterDropdown(type, viewId){
       }
       if(this.checked) filterSelections[type+viewId].add(v);
       else filterSelections[type+viewId].delete(v);
-      // If all are deselected, go back to null (show all)
-      if(filterSelections[type+viewId].size===0) filterSelections[type+viewId]=null;
+      // If all are deselected, show nothing (not "show all")
+      if(filterSelections[type+viewId].size===0) filterSelections[type+viewId]=new Set(['\x00NONE\x00']);
       updateFilterButton(type, viewId);
       rerender(viewId);
     };
@@ -575,14 +575,19 @@ function buildFilterDropdown(type, viewId){
 
 function updateFilterButton(type, viewId){
   var btn = document.getElementById('filter'+type.charAt(0).toUpperCase()+type.slice(1)+'Btn'+viewId);
-  var sel = getFilterSelected(type, viewId);
+  var key = type + viewId;
+  var fs = filterSelections[key];
   var dataArr = viewId==='1' ? summaryData : fullData;
   var totalValues = new Set(dataArr.map(function(r){return r[type];})).size;
-  if(sel===null || sel.size===totalValues){
+  var isNone = fs && fs.has('\x00NONE\x00');
+  if(fs===null || (!isNone && fs.size===totalValues)){
     btn.textContent = type==='route' ? 'All Routes' : type==='vessel' ? 'All Vessels' : 'All PIC';
     btn.classList.remove('has-selection');
+  } else if(isNone){
+    btn.textContent = 'None';
+    btn.classList.add('has-selection');
   } else {
-    btn.textContent = sel.size + ' selected';
+    btn.textContent = fs.size + ' selected';
     btn.classList.add('has-selection');
   }
 }
