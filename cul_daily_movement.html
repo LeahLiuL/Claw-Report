@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUL Daily Movement</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
+  .header {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: #fff; padding: 18px 28px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 3px 12px rgba(31,78,121,.35);
+  }
+  .header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  .header-left .sub { font-size: 12px; opacity: .75; margin-top: 3px; }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .btn { padding: 7px 16px; border: none; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .btn-export { background: #F6A623; color: #fff; }
+  .btn-export:hover { background: #d4891a; }
+  .btn-history { background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.4); }
+  .btn-history:hover { background: rgba(255,255,255,.30); }
+  .controls {
+    padding: 14px 28px; background: #fff; border-bottom: 1px solid #dde4ed;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  .controls input, .controls select {
+    padding: 6px 12px; border: 1px solid #c9d5e2; border-radius: 5px;
+    font-size: 13px; outline: none; height: 34px;
+  }
+  .controls input:focus, .controls select:focus { border-color: #2E75B6; box-shadow: 0 0 0 2px rgba(46,117,182,.15); }
+  .controls input { width: 200px; }
+  .controls select { min-width: 130px; }
+  .stat-chip { margin-left: auto; background: #EBF3FB; border: 1px solid #c3d9f0; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #1F4E79; font-weight: 600; }
+  .delay-chip { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #c00000; font-weight: 600; }
+  .table-wrap { overflow-x: auto; padding: 0 28px 28px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12.5px; min-width: 1100px; }
+  th { background: #1F4E79; color: #fff; font-weight: 600; padding: 10px; text-align: center; white-space: nowrap; position: sticky; top: 0; z-index: 2; cursor: pointer; user-select: none; }
+  th:hover { background: #163b5f; }
+  th .sort-arrow { display: inline-block; margin-left: 4px; opacity: .5; font-size: 10px; }
+  th.sort-asc .sort-arrow::after { content: '\25b2'; opacity: 1; }
+  th.sort-desc .sort-arrow::after { content: '\25bc'; opacity: 1; }
+  th:not(.sort-asc):not(.sort-desc) .sort-arrow::after { content: '\21c5'; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e4ecf5; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f5f9fe; }
+  tr:nth-child(odd) td { background: #fff; }
+  tr:hover td { background: #dcedf9 !important; }
+  .td-center { text-align: center; }
+  .td-mono { font-family: 'Consolas', monospace; }
+  .badge-route { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; background: #1F4E79; color: #fff; letter-spacing: .5px; }
+  .badge-code { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #E8F4FD; color: #1F4E79; border: 1px solid #a8cfe8; }
+  .delay-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: #fff0f0; color: #c00000; border: 1px solid #f5c6c6; }
+  .ahead-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: #f0fff4; color: #1a7340; border: 1px solid #b7dfca; }
+  .no-data { text-align: center; padding: 40px; color: #8a9bb0; font-size: 14px; }
+  .remark-cell { max-width: 280px; white-space: normal; line-height: 1.4; color: #5a6e82; font-size: 11.5px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 10px; width: 92%; max-width: 980px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal-header { padding: 16px 22px; background: #1F4E79; color: #fff; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 15px; }
+  .modal-close { cursor: pointer; font-size: 20px; opacity: .7; background: none; border: none; color: #fff; }
+  .modal-close:hover { opacity: 1; }
+  .modal-body { overflow-y: auto; padding: 16px 22px; }
+  .history-date-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .history-date-btn { padding: 5px 14px; border: 1px solid #c9d5e2; border-radius: 20px; font-size: 12px; cursor: pointer; background: #fff; transition: .15s; }
+  .history-date-btn:hover, .history-date-btn.active { background: #1F4E79; color: #fff; border-color: #1F4E79; }
+  .history-table-wrap { overflow-x: auto; }
+  .history-table-wrap table { font-size: 11.5px; min-width: 900px; }
+  .footer { text-align: center; padding: 12px; color: #8a9bb0; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <h1>&#9875; CUL VESSEL DAILY MOVEMENT</h1>
+    <div class="sub" id="headerDate">Loading&hellip;</div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-history" onclick="openHistory()">&#128203; History</button>
+    <button class="btn btn-export" onclick="exportExcel()">&#8595; Export Excel</button>
+  </div>
+</div>
+<div class="controls">
+  <input type="text" id="searchBox" placeholder="&#128269; Search vessel / port / PIC&hellip;" oninput="renderTable()">
+  <select id="filterRoute" onchange="renderTable()"><option value="">All Routes</option></select>
+  <select id="filterPic" onchange="renderTable()"><option value="">All PIC</option></select>
+  <select id="filterDelay" onchange="renderTable()">
+    <option value="">All Status</option>
+    <option value="delay">Delay Only</option>
+    <option value="ahead">Ahead Only</option>
+    <option value="normal">No Delay</option>
+  </select>
+  <span class="stat-chip" id="statTotal">&#8212; vessels</span>
+  <span class="delay-chip" id="statDelay">&#8212; delayed</span>
+</div>
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead><tr>
+      <th onclick="sortBy(0)">Route<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(1)">Vessel<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(2)">Code<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(3)">PIC<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(4)">Port<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(5)">Voy. No<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(6)">ETA<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(7)">ETB<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(8)">ETD<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(9)">Port Stay(hr)<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(10)">ETA Delay<span class="sort-arrow"></span></th>
+      <th onclick="sortBy(11)">ETD Delay<span class="sort-arrow"></span></th>
+      <th>Remark</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>&#128203; Historical Records</h3>
+      <button class="modal-close" onclick="closeHistory()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div class="history-date-list" id="historyDateList"></div>
+      <div class="history-table-wrap" id="historyTableWrap"></div>
+    </div>
+  </div>
+</div>
+<div class="footer">CUL Daily Movement Dashboard &nbsp;|&nbsp; Data from CUL DAILY MOVEMENT.xlsx &nbsp;|&nbsp; <span id="footerTs"></span></div>
+<script>
+const SNAPSHOTS = {};
+const TODAY_DATA = {"date": "2026-07-01", "vessels": [{"route": "SCT3", "vessel": "CUL HAIPHONG", "code": "CUHP", "pic": "Leah Liu", "port": "TWTXG", "voy": "", "eta": "07/01 00:06", "etb": "07/01 00:48", "etd": "07/01 10:00", "portStay": "9.2", "etaDelay": "Delay 130.1h", "etdDelay": "Delay 98.5h", "remark": ""}, {"route": "NSCT1", "vessel": "CUL HUANGPU", "code": "CUHA", "pic": "Simon Shi", "port": "TWKEL", "voy": "2625W", "eta": "07/01 12:00", "etb": "07/01 13:00", "etd": "07/02 00:00", "portStay": "11", "etaDelay": "Delay 78h", "etdDelay": "Delay 55h", "remark": "2624E CNSHK 单航次改靠CCT"}, {"route": "HDT", "vessel": "CUL XIAMEN", "code": "CUXM", "pic": "Simon Shi", "port": "TWTPE", "voy": "2620W", "eta": "07/01 08:00", "etb": "07/01 09:00", "etd": "07/01 14:30", "portStay": "5.5", "etaDelay": "Delay 104h", "etdDelay": "Delay 72h", "remark": "2620E Slide one week,CNSHA Port Congestion."}, {"route": "NSX", "vessel": "M. ODYSSEY", "code": "MODS", "pic": "Frankie Huang", "port": "THSCS", "voy": "", "eta": "07/01 05:30", "etb": "07/01 06:00", "etd": "07/01 17:00", "portStay": "11", "etaDelay": "", "etdDelay": "", "remark": "2625S THBKK Port Congestion."}, {"route": "CST", "vessel": "M. MARINER", "code": "MMRN", "pic": "Lex Yang", "port": "THBKK", "voy": "2624N", "eta": "07/01 08:30", "etb": "07/01 20:00", "etd": "07/02 06:00", "portStay": "10", "etaDelay": "Delay 174h", "etdDelay": "Delay 108.5h", "remark": "2624S THLCH Port Congestion."}, {"route": "CCT", "vessel": "CUL NANSHA", "code": "CUNS", "pic": "Frankie Huang", "port": "THBKK", "voy": "2626N", "eta": "07/01 05:00", "etb": "07/01 20:00", "etd": "07/02 12:00", "portStay": "16", "etaDelay": "Delay 68h", "etdDelay": "Delay 45h", "remark": "2623S THLCH Port Congestion."}, {"route": "NP2", "vessel": "CHANG SHENG JI 7", "code": "CSJ7", "pic": "Han Yang", "port": "PHMNL", "voy": "2623N", "eta": "07/01 13:00", "etb": "07/01 16:00", "etd": "07/02 14:00", "portStay": "22", "etaDelay": "Delay 432h", "etdDelay": "Delay 396.5h", "remark": "2630W P/O NP2 Service at CNSHA."}, {"route": "NP2", "vessel": "HUA DONG 811", "code": "H811", "pic": "Bob Hu", "port": "CNTAO", "voy": "2625S", "eta": "07/06 20:00", "etb": "07/06 23:00", "etd": "07/07 14:00", "portStay": "15", "etaDelay": "Delay 428h", "etdDelay": "", "remark": "2625W P/I NP2 Service at CNTAO"}, {"route": "REX", "vessel": "HAIAN MIND", "code": "HAMD", "pic": "Bob Hu", "port": "MYPKG", "voy": "2627W", "eta": "07/06 22:00", "etb": "07/07 00:00", "etd": "07/08 00:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2622E EGSOK OMIT, SAJED Serious Congestion."}, {"route": "REX", "vessel": "TIGER LONGKOU", "code": "TGLK", "pic": "Han Yang", "port": "SAJED", "voy": "2625E", "eta": "07/04 19:00", "etb": "07/10 20:00", "etd": "07/14 20:00", "portStay": "96", "etaDelay": "", "etdDelay": "", "remark": "SAJED port congestion."}, {"route": "REX", "vessel": "MAOGANG SHANG HAI", "code": "MGSH", "pic": "Hardy Hou", "port": "EGSOK", "voy": "2624E", "eta": "07/06 02:00", "etb": "07/06 03:00", "etd": "07/07 03:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": ""}, {"route": "REX", "vessel": "CUL YANGPU", "code": "CUYP", "pic": "Frankie Huang", "port": "SAGIZ", "voy": "2626E", "eta": "07/11 11:00", "etb": "07/11 13:00", "etd": "07/12 13:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": ""}, {"route": "REX", "vessel": "BZ CHONGFU", "code": "BZCF", "pic": "Simon Shi", "port": "CNTAO", "voy": "2627W", "eta": "07/21 23:00", "etb": "07/22 01:00", "etd": "07/23 01:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2621E SAJED Port Congestion."}, {"route": "REX", "vessel": "Ten Venus", "code": "TNVN", "pic": "Bob Hu", "port": "MYPKG", "voy": "2628W", "eta": "07/10 15:00", "etb": "07/10 17:00", "etd": "07/11 17:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2628W P/I REX Service at MYPKG."}, {"route": "REX", "vessel": "HONG DA XIN 728", "code": "H728", "pic": "Leah Liu", "port": "EGSOK", "voy": "2620E", "eta": "07/04 14:00", "etb": "07/04 17:00", "etd": "07/05 19:00", "portStay": "26", "etaDelay": "", "etdDelay": "", "remark": "2620W SGSIN only for bunker, SAJED Port congestion."}, {"route": "REX", "vessel": "CUL HUMEN", "code": "CUHM", "pic": "Javier Tao", "port": "EGSOK", "voy": "2623E", "eta": "07/06 08:00", "etb": "07/06 10:00", "etd": "07/06 22:00", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "2623W CNNGB Port Congestion, SGSIN only for bunker, 2623E SAJED Port Congestion."}, {"route": "REX", "vessel": "WAN FU DA", "code": "WNFD", "pic": "Kevin Du", "port": "CNNAS", "voy": "", "eta": "07/02 01:00", "etb": "07/02 04:00", "etd": "07/03 04:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2624W HKHKG for bunker only"}, {"route": "REX", "vessel": "EVERLASTING HARVEST", "code": "EVHA", "pic": "Khoo Li", "port": "MYPKG", "voy": "", "eta": "07/07 19:00", "etb": "07/07 22:00", "etd": "07/08 10:00", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "2626W CNSHA Port Congestion 2626E SGSIN Bunker call"}, {"route": "REX", "vessel": "CHANG SHENG JI 7", "code": "CSJ7", "pic": "Han Yang", "port": "CNSHA", "voy": "2630W", "eta": "07/08 05:00", "etb": "07/08 10:00", "etd": "07/09 08:00", "portStay": "22", "etaDelay": "", "etdDelay": "", "remark": "2630W P/I REX Service at CNSHA."}, {"route": "REX", "vessel": "BAMSI BEYREK", "code": "BIBK", "pic": "Lex Yang", "port": "MYPKG", "voy": "2626W", "eta": "07/02 06:00", "etb": "07/02 09:00", "etd": "07/03 09:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2626W P/I REX Service at MYPKG."}, {"route": "REX", "vessel": "CHANG SHENG JI 8", "code": "CSJ8", "pic": "Frankie Huang", "port": "EGSOK", "voy": "2624E", "eta": "07/14 18:00", "etb": "07/14 20:00", "etd": "07/15 20:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2624E SAJED Port Congestion, MYPKG Only for bunker."}, {"route": "REX", "vessel": "ZHONG GU YIN CHUAN", "code": "ZGYC", "pic": "Kelvin Tan", "port": "CNSHA", "voy": "2627W", "eta": "07/03 07:00", "etb": "07/03 21:00", "etd": "07/04 09:00", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "2627W CNSHA Port Congestion."}, {"route": "SGX", "vessel": "KAI DA HONG ZHOU", "code": "KDHZ", "pic": "Simon Shi", "port": "SAJED", "voy": "", "eta": "07/13 14:00", "etb": "07/19 16:00", "etd": "07/23 16:00", "portStay": "96", "etaDelay": "", "etdDelay": "", "remark": ""}, {"route": "SGX", "vessel": "ZHI YING HE SHUN", "code": "ZYHS", "pic": "Leah Liu", "port": "MYPKG", "voy": "2625E", "eta": "07/07 12:00", "etb": "07/07 14:00", "etd": "07/08 02:00", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "CNTAO Port Congestion, Change of ship registration."}, {"route": "SGX", "vessel": "HUA DONG 811", "code": "H811", "pic": "Bob Hu", "port": "CNNAS", "voy": "", "eta": "07/01 17:00", "etb": "07/01 20:00", "etd": "07/02 07:00", "portStay": "11", "etaDelay": "", "etdDelay": "", "remark": "2622E P/O SGX Service at CNNAS."}, {"route": "SGX", "vessel": "FU YU", "code": "FUYU", "pic": "Bob Hu", "port": "MYPKG", "voy": "2626E", "eta": "07/06 04:00", "etb": "07/06 06:00", "etd": "07/06 21:00", "portStay": "15", "etaDelay": "", "etdDelay": "", "remark": "2626W HKHKG Only for bunker."}, {"route": "SGX", "vessel": "RACINE", "code": "RACE", "pic": "Lex Yang", "port": "MYPKG", "voy": "", "eta": "07/01 21:00", "etb": "07/02 00:00", "etd": "07/03 00:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2623E Only for bunker."}, {"route": "RES", "vessel": "ZHONG GU ZHU HAI", "code": "ZGZH", "pic": "Han Yang", "port": "SGSIN", "voy": "", "eta": "07/05 16:00", "etb": "07/05 18:00", "etd": "07/06 06:00", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "2619E SAJED Port Congestion, SGSIN Only for bunker.2627E SAJED OMIT."}, {"route": "CGX", "vessel": "EXPRESS BERLIN", "code": "XPBL", "pic": "Javier Tao", "port": "CNSHA", "voy": "", "eta": "07/01 00:30", "etb": "07/03 05:30", "etd": "07/03 17:30", "portStay": "12", "etaDelay": "", "etdDelay": "", "remark": "2625W CNTAO & CNSHA Port Congestion."}, {"route": "HLX", "vessel": "CUL HOCHIMINH", "code": "CUHC", "pic": "Khoo Li", "port": "SGSIN", "voy": "", "eta": "07/01 10:00", "etb": "07/01 13:00", "etd": "07/02 01:00", "portStay": "12", "etaDelay": "Ahead 14h", "etdDelay": "", "remark": ""}, {"route": "CGS", "vessel": "XING DONG 88", "code": "XD88", "pic": "Han Yang", "port": "CNNAS", "voy": "2628W", "eta": "07/27 10:00", "etb": "07/27 13:00", "etd": "07/28 00:00", "portStay": "11", "etaDelay": "", "etdDelay": "", "remark": "2622E AEKLF Port Congestion."}, {"route": "AEM", "vessel": "CUL KLANG", "code": "CUKL", "pic": "Kelvin Tan", "port": "SAJED", "voy": "", "eta": "07/07 09:30", "etb": "07/07 11:30", "etd": "07/08 09:30", "portStay": "22", "etaDelay": "Delay 19.5h", "etdDelay": "Delay 55h", "remark": "2625W COR CNSHA-CNTAO, CNSHA Port Congestion."}, {"route": "AEM", "vessel": "CUL SHEKOU", "code": "CUSK", "pic": "Javier Tao", "port": "EGSUE", "voy": "", "eta": "07/05 23:00", "etb": "07/06 04:00", "etd": "07/06 16:00", "portStay": "12", "etaDelay": "Delay 74h", "etdDelay": "", "remark": ""}, {"route": "AEM", "vessel": "ZHONG GU NAN CHANG", "code": "ZGNC", "pic": "Khoo Li", "port": "MYPKG", "voy": "", "eta": "07/10 19:00", "etb": "07/10 22:00", "etd": "07/11 12:00", "portStay": "14", "etaDelay": "Delay 635h", "etdDelay": "Delay 639h", "remark": "SAJED Port Congestion"}, {"route": "AEM", "vessel": "ZHONG GU CHENG DU", "code": "ZGCD", "pic": "Simon Shi", "port": "EGSUE", "voy": "", "eta": "07/04 23:00", "etb": "07/05 11:00", "etd": "07/05 23:00", "portStay": "12", "etaDelay": "Delay 386h", "etdDelay": "Delay 466h", "remark": "CNTAO & CNSHA & CNNGB port congestion due to dense fog."}, {"route": "AEM", "vessel": "SHENG TANG", "code": "SHTG", "pic": "Kelvin Tan", "port": "TRIST", "voy": "", "eta": "07/03 01:00", "etb": "07/03 03:00", "etd": "07/04 14:00", "portStay": "35", "etaDelay": "Delay 184h", "etdDelay": "Delay 127h", "remark": ""}, {"route": "IMR", "vessel": "STAR BLESSING", "code": "STBE", "pic": "Kevin Du", "port": "DJJIB(SGTD)", "voy": "", "eta": "07/06 11:00", "etb": "07/06 13:00", "etd": "07/07 13:00", "portStay": "24", "etaDelay": "Delay 519h", "etdDelay": "Delay 419h", "remark": "2619E SAJED Port Congestion."}, {"route": "SJA", "vessel": "SUNNY 68", "code": "SY68", "pic": "Hardy Hou", "port": "SAGIZ", "voy": "", "eta": "07/01 06:00", "etb": "07/01 08:00", "etd": "07/02 02:00", "portStay": "18", "etaDelay": "", "etdDelay": "", "remark": "SAGIZ add call."}, {"route": "JPS", "vessel": "ZHONG LIAN SHAN TOU", "code": "ZLST", "pic": "Kevin Du", "port": "SDPZU", "voy": "2627E", "eta": "07/03 11:00", "etb": "07/04 01:00", "etd": "07/05 13:00", "portStay": "36", "etaDelay": "", "etdDelay": "", "remark": "2626W SAJED Port Congestion."}, {"route": "NAF", "vessel": "ASR", "code": "ASRR", "pic": "SHAHIM P.A", "port": "TRIZT", "voy": "2622W", "eta": "07/06 20:00", "etb": "07/06 22:00", "etd": "07/07 13:00", "portStay": "15", "etaDelay": "", "etdDelay": "", "remark": ""}, {"route": "MES", "vessel": "MEDKON LIA", "code": "MKLA", "pic": "SHAHIM P.A", "port": "LYMRA", "voy": "", "eta": "07/01 19:55", "etb": "07/01 21:55", "etd": "07/02 12:55", "portStay": "15", "etaDelay": "", "etdDelay": "", "remark": ""}, {"route": "RTS", "vessel": "TB FENGZE", "code": "TBFZ", "pic": "Hardy Hou", "port": "CNSHK", "voy": "", "eta": "07/17 08:30", "etb": "07/17 10:30", "etd": "07/18 10:30", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "SAJED port congestion."}, {"route": "RTS", "vessel": "KR TASMAN", "code": "KRTM", "pic": "Hardy Hou", "port": "PKKHI", "voy": "2626W", "eta": "07/07 05:00", "etb": "07/07 07:00", "etd": "07/08 07:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2621W P/I RTS Service at OMSOH."}, {"route": "RTS", "vessel": "CUL LAEMCHABANG", "code": "CULC", "pic": "Hardy Hou", "port": "PKKHI", "voy": "", "eta": "07/01 19:00", "etb": "07/03 21:00", "etd": "07/04 21:00", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": "2622E SAJED Port Congestion."}, {"route": "RTS", "vessel": "NEW THINKER", "code": "NWTR", "pic": "SHAHIM P.A", "port": "OMSOH", "voy": "", "eta": "07/04 11:30", "etb": "07/04 15:30", "etd": "07/05 15:30", "portStay": "24", "etaDelay": "", "etdDelay": "", "remark": ""}]};
+
+function loadSnapshots(){try{const s=localStorage.getItem('cul_movement_history');if(s)Object.assign(SNAPSHOTS,JSON.parse(s));}catch(e){}}
+function saveSnapshot(d){SNAPSHOTS[d.date]=d.vessels;try{localStorage.setItem('cul_movement_history',JSON.stringify(SNAPSHOTS));}catch(e){}}
+
+let allData=[],sortCol=-1,sortDir=1;
+function init(){
+  loadSnapshots(); saveSnapshot(TODAY_DATA);
+  allData=TODAY_DATA.vessels;
+  document.getElementById('headerDate').textContent='As of '+TODAY_DATA.date+'  |  '+allData.length+' vessels';
+  document.getElementById('footerTs').textContent='Generated: '+TODAY_DATA.date;
+  const routes=[...new Set(allData.map(r=>r.route))].sort();
+  const pics=[...new Set(allData.map(r=>r.pic))].sort();
+  const rSel=document.getElementById('filterRoute'),pSel=document.getElementById('filterPic');
+  routes.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rSel.appendChild(o);});
+  pics.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+  renderTable();
+}
+function getFilteredData(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  const route=document.getElementById('filterRoute').value;
+  const pic=document.getElementById('filterPic').value;
+  const delay=document.getElementById('filterDelay').value;
+  let data=allData.filter(r=>{
+    if(route&&r.route!==route)return false;
+    if(pic&&r.pic!==pic)return false;
+    if(q&&!`${r.vessel} ${r.port} ${r.pic} ${r.code} ${r.remark}`.toLowerCase().includes(q))return false;
+    if(delay==='delay')return r.etaDelay.toLowerCase().includes('delay');
+    if(delay==='ahead')return r.etaDelay.toLowerCase().includes('ahead');
+    if(delay==='normal')return!r.etaDelay;
+    return true;
+  });
+  if(sortCol>=0){
+    const keys=['route','vessel','code','pic','port','voy','eta','etb','etd','portStay','etaDelay','etdDelay'];
+    data.sort((a,b)=>(a[keys[sortCol]]||'').localeCompare(b[keys[sortCol]]||'')*sortDir);
+  }
+  return data;
+}
+function delayTag(v){
+  if(!v)return'';
+  if(v.toLowerCase().startsWith('ahead'))return`<span class="ahead-tag">${v}</span>`;
+  if(v.toLowerCase().startsWith('delay'))return`<span class="delay-tag">${v}</span>`;
+  return v;
+}
+function renderTable(){
+  const data=getFilteredData();
+  const tbody=document.getElementById('tbody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="13" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal').textContent='0 vessels';document.getElementById('statDelay').textContent='0 delayed';return;}
+  const dc=data.filter(r=>r.etaDelay.toLowerCase().includes('delay')).length;
+  document.getElementById('statTotal').textContent=data.length+' vessels';
+  document.getElementById('statDelay').textContent=dc+' delayed';
+  tbody.innerHTML=data.map(r=>`<tr>
+    <td class="td-center"><span class="badge-route">${r.route}</span></td>
+    <td><strong>${r.vessel}</strong></td>
+    <td class="td-center"><span class="badge-code">${r.code}</span></td>
+    <td>${r.pic}</td>
+    <td class="td-center td-mono"><strong>${r.port}</strong></td>
+    <td class="td-center td-mono">${r.voy}</td>
+    <td class="td-center td-mono">${r.eta}</td>
+    <td class="td-center td-mono">${r.etb}</td>
+    <td class="td-center td-mono">${r.etd}</td>
+    <td class="td-center">${r.portStay}</td>
+    <td class="td-center">${delayTag(r.etaDelay)}</td>
+    <td class="td-center">${delayTag(r.etdDelay)}</td>
+    <td class="remark-cell">${r.remark}</td>
+  </tr>`).join('');
+}
+function sortBy(col){
+  const ths=document.querySelectorAll('#mainTable thead th');
+  ths.forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+  if(sortCol===col){sortDir*=-1;}else{sortCol=col;sortDir=1;}
+  ths[col].classList.add(sortDir===1?'sort-asc':'sort-desc');
+  renderTable();
+}
+function exportExcel(){
+  const data=getFilteredData();
+  const headers=['Route','Vessel Name','Code','PIC','Port','Voy. No','ETA','ETB','ETD','Port Stay (hr)','ETA Delay','ETD Delay','Remark'];
+  const rows=data.map(r=>[r.route,r.vessel,r.code,r.pic,r.port,r.voy,r.eta,r.etb,r.etd,r.portStay,r.etaDelay,r.etdDelay,r.remark]);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+  ws['!cols']=[8,22,8,14,10,10,14,14,14,13,14,14,40].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Daily Movement');
+  XLSX.writeFile(wb,'CUL Daily Movement '+TODAY_DATA.date+'.xlsx');
+}
+function openHistory(){
+  const dates=Object.keys(SNAPSHOTS).sort().reverse();
+  const listEl=document.getElementById('historyDateList');
+  listEl.innerHTML='';
+  dates.forEach((d,i)=>{
+    const btn=document.createElement('button');
+    btn.className='history-date-btn'+(i===0?' active':'');
+    btn.textContent=d;
+    btn.onclick=()=>{document.querySelectorAll('.history-date-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHistoryTable(d);};
+    listEl.appendChild(btn);
+  });
+  if(dates.length)renderHistoryTable(dates[0]);
+  document.getElementById('historyModal').classList.add('open');
+}
+function renderHistoryTable(date){
+  const vessels=SNAPSHOTS[date]||[];
+  if(!vessels.length){document.getElementById('historyTableWrap').innerHTML='<p style="color:#8a9bb0;padding:20px">No data.</p>';return;}
+  const headers=['Route','Vessel','Code','PIC','Port','Voy','ETA','ETB','ETD','Port Stay','ETA Delay','ETD Delay','Remark'];
+  const keys=['route','vessel','code','pic','port','voy','eta','etb','etd','portStay','etaDelay','etdDelay','remark'];
+  document.getElementById('historyTableWrap').innerHTML=`<table><thead><tr>${headers.map(h=>`<th style="font-size:11px;padding:7px 8px">${h}</th>`).join('')}</tr></thead><tbody>${vessels.map(r=>`<tr>${keys.map(k=>`<td style="padding:6px 8px;border-bottom:1px solid #eee;font-size:11px">${r[k]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function closeHistory(){document.getElementById('historyModal').classList.remove('open');}
+document.getElementById('historyModal').addEventListener('click',e=>{if(e.target===document.getElementById('historyModal'))closeHistory();});
+init();
+<\/script>
+</body>
+</html>
