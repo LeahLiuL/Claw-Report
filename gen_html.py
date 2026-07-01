@@ -284,6 +284,25 @@ function _loadXlsx(cb){
     font-weight: 600; transition: .15s; height: 34px;
   }
   .col-toggle-btn:hover { background: #EBF3FB; border-color: #2E75B6; }
+  .filter-btn {
+    padding: 6px 14px; border: 1px solid #c9d5e2; border-radius: 5px;
+    font-size: 12px; cursor: pointer; background: #fff; color: #1F4E79;
+    font-weight: 600; transition: .15s; min-width: 130px; text-align: left;
+    height: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
+  }
+  .filter-btn:hover { background: #EBF3FB; border-color: #2E75B6; }
+  .filter-btn.has-selection { background: #EBF3FB; border-color: #2E75B6; color: #0d3b5e; }
+  .filter-dropdown { min-width: 200px; }
+  .filter-dropdown .filter-actions {
+    display: flex; gap: 0; border-bottom: 1px solid #e4ecf5; padding: 4px 8px;
+    margin-bottom: 4px;
+  }
+  .filter-dropdown .filter-actions button {
+    flex: 1; padding: 4px 8px; border: none; background: none; font-size: 11px;
+    color: #2E75B6; cursor: pointer; font-weight: 600; border-radius: 3px; transition:.1s;
+  }
+  .filter-dropdown .filter-actions button:hover { background: #EBF3FB; }
+  .filter-dropdown label { font-size: 12px; }
   .col-dropdown {
     display: none; position: absolute; background: #fff; border: 1px solid #c9d5e2;
     border-radius: 8px; padding: 10px 0; min-width: 200px;
@@ -387,8 +406,14 @@ function _loadXlsx(cb){
 <div id="summaryView" class="tab-content active">
   <div class="controls">
     <input type="text" id="searchBox" placeholder="&#128269; Search vessel / port / PIC&hellip;" oninput="renderSummary()">
-    <select id="filterRoute" onchange="renderSummary()"><option value="">All Routes</option></select>
-    <select id="filterPic" onchange="renderSummary()"><option value="">All PIC</option></select>
+    <div style="position:relative;">
+      <button class="filter-btn" id="filterRouteBtn1" onclick="toggleFilterDropdown('route','1')">All Routes</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownRoute1"></div>
+    </div>
+    <div style="position:relative;">
+      <button class="filter-btn" id="filterPicBtn1" onclick="toggleFilterDropdown('pic','1')">All PIC</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownPic1"></div>
+    </div>
     <select id="filterDelay" onchange="renderSummary()">
       <option value="">All Status</option>
       <option value="delay">Delay Only</option>
@@ -416,9 +441,15 @@ function _loadXlsx(cb){
 <div id="fullScheduleView" class="tab-content">
   <div class="controls">
     <input type="text" id="searchBox2" placeholder="&#128269; Search vessel / port / PIC / voyage&hellip;" oninput="renderFullSchedule()">
-    <select id="filterRoute2" onchange="renderFullSchedule()"><option value="">All Routes</option></select>
+    <div style="position:relative;">
+      <button class="filter-btn" id="filterRouteBtn2" onclick="toggleFilterDropdown('route','2')">All Routes</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownRoute2"></div>
+    </div>
     <select id="filterVessel2" onchange="renderFullSchedule()"><option value="">All Vessels</option></select>
-    <select id="filterPic2" onchange="renderFullSchedule()"><option value="">All PIC</option></select>
+    <div style="position:relative;">
+      <button class="filter-btn" id="filterPicBtn2" onclick="toggleFilterDropdown('pic','2')">All PIC</button>
+      <div class="filter-dropdown col-dropdown" id="filterDropdownPic2"></div>
+    </div>
     <div style="position:relative;">
       <button class="col-toggle-btn" id="colToggleBtn2" onclick="toggleColDropdown('2')">&#9881; Columns</button>
       <div class="col-dropdown" id="colDropdown2"></div>
@@ -462,6 +493,111 @@ var visibleCols = {
   '2': new Set(COLUMN_DEFS_FULL.filter(c=>c.defaultVisible).map(c=>c.key)),
 };
 
+// Multi-select filter state: {route1: Set, pic1: Set, route2: Set, pic2: Set}
+// Default: null means "show all" (empty Set also means show all, used after init)
+var filterSelections = {route1: null, pic1: null, route2: null, pic2: null};
+
+function setAllFilterOptions(type, viewId){
+  var key = type + viewId;
+  // Build set of all possible values
+  var allValues;
+  if(viewId==='1'){
+    allValues = new Set(summaryData.map(function(r){return r[type];}));
+  } else {
+    allValues = new Set(fullData.map(function(r){return r[type];}));
+  }
+  filterSelections[key] = new Set(allValues);
+}
+
+function getFilterSelected(type, viewId){
+  var key = type + viewId;
+  var sel = filterSelections[key];
+  // null means "all" (not yet initialized or explicitly set to all)
+  if(sel===null) return null;
+  // Empty set also means "show all"
+  if(sel.size===0) return null;
+  return sel;
+}
+
+function buildFilterDropdown(type, viewId){
+  var dd = document.getElementById('filterDropdown'+type.charAt(0).toUpperCase()+type.slice(1)+viewId);
+  dd.innerHTML = '';
+
+  // Get all unique values
+  var dataArr = viewId==='1' ? summaryData : fullData;
+  var values = [...new Set(dataArr.map(function(r){return r[type];}))].sort();
+
+  // Select All / Clear All actions
+  var actions = document.createElement('div');
+  actions.className = 'filter-actions';
+  var selAll = document.createElement('button');
+  selAll.textContent = 'Select All';
+  selAll.onclick = function(e){ e.stopPropagation(); setAllFilterOptions(type, viewId); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
+  var clrAll = document.createElement('button');
+  clrAll.textContent = 'Clear';
+  clrAll.onclick = function(e){ e.stopPropagation(); filterSelections[type+viewId]=new Set(); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
+  actions.appendChild(selAll);
+  actions.appendChild(clrAll);
+  dd.appendChild(actions);
+
+  var sel = getFilterSelected(type, viewId);
+  var isAll = sel===null;
+  values.forEach(function(v){
+    var label = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = isAll || sel.has(v);
+    cb.onchange = function(e){
+      e.stopPropagation();
+      if(!filterSelections[type+viewId]) filterSelections[type+viewId] = new Set();
+      if(isAll){
+        // Transition from "all" to explicit set
+        filterSelections[type+viewId] = new Set(values);
+        isAll = false;
+        sel = filterSelections[type+viewId];
+      }
+      if(this.checked) filterSelections[type+viewId].add(v);
+      else filterSelections[type+viewId].delete(v);
+      // If all are deselected, go back to null (show all)
+      if(filterSelections[type+viewId].size===0) filterSelections[type+viewId]=null;
+      updateFilterButton(type, viewId);
+      rerender(viewId);
+    };
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' '+v));
+    dd.appendChild(label);
+  });
+}
+
+function updateFilterButton(type, viewId){
+  var btn = document.getElementById('filter'+type.charAt(0).toUpperCase()+type.slice(1)+'Btn'+viewId);
+  var sel = getFilterSelected(type, viewId);
+  var dataArr = viewId==='1' ? summaryData : fullData;
+  var totalValues = new Set(dataArr.map(function(r){return r[type];})).size;
+  if(sel===null || sel.size===totalValues){
+    btn.textContent = type==='route' ? 'All Routes' : 'All PIC';
+    btn.classList.remove('has-selection');
+  } else {
+    btn.textContent = sel.size + ' selected';
+    btn.classList.add('has-selection');
+  }
+}
+
+function toggleFilterDropdown(type, viewId){
+  var ddId = 'filterDropdown'+type.charAt(0).toUpperCase()+type.slice(1)+viewId;
+  var dd = document.getElementById(ddId);
+  // Rebuild to ensure checkboxes reflect current state
+  buildFilterDropdown(type, viewId);
+  var isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
+  if(!isOpen) dd.classList.add('open');
+}
+
+function rerender(viewId){
+  if(viewId==='1') renderSummary();
+  else renderFullSchedule();
+}
+
 function loadSnapshots(){try{const s=localStorage.getItem('cul_movement_history');if(s)Object.assign(SNAPSHOTS,JSON.parse(s));}catch(e){}}
 function saveSnapshot(d){SNAPSHOTS[d.date]=d.vessels;try{localStorage.setItem('cul_movement_history',JSON.stringify(SNAPSHOTS));}catch(e){}}
 
@@ -495,8 +631,8 @@ function toggleColDropdown(viewId){
 }
 // Close dropdowns when clicking outside
 document.addEventListener('click', function(e){
-  if(!e.target.closest('.col-toggle-btn') && !e.target.closest('.col-dropdown')){
-    document.querySelectorAll('.col-dropdown').forEach(function(d){d.classList.remove('open');});
+  if(!e.target.closest('.col-toggle-btn') && !e.target.closest('.col-dropdown') && !e.target.closest('.filter-btn') && !e.target.closest('.filter-dropdown')){
+    document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
   }
 });
 
@@ -530,8 +666,8 @@ function switchTab(viewId, btn){
   btn.classList.add('active');
   document.getElementById('btnExport').textContent =
     viewId==='fullScheduleView' ? '\u2193 Export Full Schedule' : '\u2193 Export Excel';
-  // Close any open column dropdown
-  document.querySelectorAll('.col-dropdown').forEach(function(d){d.classList.remove('open');});
+  // Close any open column/filter dropdown
+  document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -541,23 +677,20 @@ let summaryData=[], summarySortCol=-1, summarySortDir=1;
 
 function initSummary(){
   summaryData = TODAY_DATA.vessels;
-  const routes=[...new Set(summaryData.map(r=>r.route))].sort();
-  const pics=[...new Set(summaryData.map(r=>r.pic))].sort();
-  const rSel=document.getElementById('filterRoute'), pSel=document.getElementById('filterPic');
-  routes.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rSel.appendChild(o);});
-  pics.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
   buildColDropdown('1');
+  updateFilterButton('route', '1');
+  updateFilterButton('pic', '1');
   renderSummary();
 }
 
 function getFilteredSummary(){
   const q=document.getElementById('searchBox').value.toLowerCase();
-  const route=document.getElementById('filterRoute').value;
-  const pic=document.getElementById('filterPic').value;
+  const selRoute = getFilterSelected('route', '1');
+  const selPic = getFilterSelected('pic', '1');
   const delay=document.getElementById('filterDelay').value;
   let data=summaryData.filter(r=>{
-    if(route && r.route!==route) return false;
-    if(pic && r.pic!==pic) return false;
+    if(selRoute && !selRoute.has(r.route)) return false;
+    if(selPic && !selPic.has(r.pic)) return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.remark}`.toLowerCase().includes(q)) return false;
     if(delay==='delay') return r.etaDelay.toLowerCase().includes('delay');
     if(delay==='ahead') return r.etaDelay.toLowerCase().includes('ahead');
@@ -643,26 +776,25 @@ function initFullSchedule(){
   });
   vesselGroupMap = seen;
 
-  const routes=[...new Set(fullData.map(r=>r.route))].sort();
+  // Populate vessel single-select (kept as <select>)
   const vessels=[...new Set(fullData.map(r=>r.vessel))].sort();
-  const pics=[...new Set(fullData.map(r=>r.pic))].sort();
-  const rSel=document.getElementById('filterRoute2'), vSel=document.getElementById('filterVessel2'), pSel=document.getElementById('filterPic2');
-  routes.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rSel.appendChild(o);});
+  const vSel=document.getElementById('filterVessel2');
   vessels.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;vSel.appendChild(o);});
-  pics.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
   buildColDropdown('2');
+  updateFilterButton('route', '2');
+  updateFilterButton('pic', '2');
   renderFullSchedule();
 }
 
 function getFilteredFull(){
   const q=document.getElementById('searchBox2').value.toLowerCase();
-  const route=document.getElementById('filterRoute2').value;
+  const selRoute = getFilterSelected('route', '2');
   const vessel=document.getElementById('filterVessel2').value;
-  const pic=document.getElementById('filterPic2').value;
+  const selPic = getFilterSelected('pic', '2');
   let data=fullData.filter(r=>{
-    if(route && r.route!==route) return false;
+    if(selRoute && !selRoute.has(r.route)) return false;
     if(vessel && r.vessel!==vessel) return false;
-    if(pic && r.pic!==pic) return false;
+    if(selPic && !selPic.has(r.pic)) return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date}`.toLowerCase().includes(q)) return false;
     return true;
   });
