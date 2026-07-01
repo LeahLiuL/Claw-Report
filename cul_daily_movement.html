@@ -4,17 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CUL Daily Movement</title>
-<!-- Lazy-load SheetJS only when Export is clicked (avoids CDN block in China) -->
+<!-- Lazy-load xlsx-js-style (supports cell fonts/fills/borders/alignment for formatted Excel export) -->
 <script>
-var _xlsxReady=false;
+var _xlsxReady=false,_xlsxStyled=true;
 function _loadXlsx(cb){
   if(window.XLSX){cb();return;}
   var s=document.createElement('script');
-  // Try multiple CDNs for reliability
-  s.src='https://cdn.bootcdn.net/ajax/libs/SheetJS/xlsx.full.min.js';
+  // xlsx-js-style supports full formatting (fonts, fills, borders, alignment)
+  s.src='https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
   s.onerror=function(){
-    s.src='https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onerror=function(){alert('Failed to load Excel library. Please check your network.');};
+    // Fallback: basic SheetJS without styling
+    _xlsxStyled=false;
+    s.src='https://cdn.bootcdn.net/ajax/libs/SheetJS/xlsx.full.min.js';
+    s.onerror=function(){
+      s.src='https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onerror=function(){alert('Failed to load Excel library. Please check your network.');};
+      document.head.appendChild(s);
+    };
     document.head.appendChild(s);
   };
   s.onload=cb;
@@ -222,14 +228,71 @@ function sortBy(col){
 }
 function exportExcel(){
   _loadXlsx(function(){
-    var data=getFilteredData();
+    var data=getFilteredData(),todayStr=TODAY_DATA.date;
     var headers=['Route','Vessel Name','Code','PIC','Port','Voy. No','ETA','ETB','ETD','Port Stay (hr)','ETA Delay','ETD Delay','Remark'];
-    var rows=data.map(function(r){return[r.route,r.vessel,r.code,r.pic,r.port,r.voy,r.eta,r.etb,r.etd,r.portStay,r.etaDelay,r.etdDelay,r.remark];});
+
+    // ── Style factories ───────────────────────────────────────────────
+    function thinBorder(){
+      var s={style:'thin',color:{rgb:'BFBFBF'}};
+      return{top:s,bottom:s,left:s,right:s};
+    }
+    var B=thinBorder();
+    function F(rgb){return{patternType:'solid',fgColor:{rgb:rgb}};}
+    function A(h,v,wrap){var o={horizontal:h,vertical:v};if(wrap)o.wrapText=true;return o;}
+
+    // Title style: blue fill, white bold Arial 14, center
+    var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
+    // Header style: dark blue fill, white bold Arial 10, center+wrap
+    var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
+
+    var sheetData=[];
+
+    // Row 0 — Title (merged A1:N1)
+    var tr=[];for(var c=0;c<13;c++)tr[c]={v:(c===0?'CUL VESSEL DAILY MOVEMENT SUMMARY  --  As of '+todayStr:''),s:tS};
+    sheetData.push(tr);
+
+    // Row 1 — Headers
+    sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
+
+    // ── Data rows ─────────────────────────────────────────────────────
+    for(var i=0;i<data.length;i++){
+      var r=data[i],fc=(i%2===0)?'EBF3FB':'FFFFFF';
+      var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};          // normal (left)
+      var bS={font:{name:'Arial',bold:true,sz:9},fill:F(fc),border:B,alignment:A('left','center')}; // vessel name (bold)
+      var cS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')};         // ETA/ETB/ETD/delay cols
+      var rS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center',true)};      // remark (left+wrap)
+      var dS={font:{name:'Arial',bold:true,color:{rgb:'C00000'},sz:9},fill:F(fc),border:B,alignment:A('center','center')}; // delay red
+
+      function ds(v){if(!v)return cS;return(v.toLowerCase().indexOf('delay')>=0)?dS:cS;}
+
+      sheetData.push([
+        {v:r.route,     s:nS},   // Route
+        {v:r.vessel,    s:bS},   // Vessel Name (bold)
+        {v:r.code,      s:nS},   // Code
+        {v:r.pic,       s:nS},   // PIC
+        {v:r.port,      s:nS},   // Port
+        {v:r.voy,       s:nS},   // Voy. No
+        {v:r.eta,       s:cS},   // ETA
+        {v:r.etb,       s:cS},   // ETB
+        {v:r.etd,       s:cS},   // ETD
+        {v:r.portStay,  s:cS},   // Port Stay
+        {v:r.etaDelay,  s:ds(r.etaDelay)},  // ETA Delay (red if "Delay")
+        {v:r.etdDelay,  s:ds(r.etdDelay)},  // ETD Delay (red if "Delay")
+        {v:r.remark,    s:rS}    // Remark
+      ]);
+    }
+
+    // ── Build workbook ────────────────────────────────────────────────
+    var ws=XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:12}}];
+    ws['!cols']=[8,22,8,14,10,10,14,14,14,13,14,14,45].map(function(w){return{wch:w};});
+    ws['!rows']=[{hpt:28},{hpt:30}];for(var j=0;j<data.length;j++)ws['!rows'].push({hpt:18});
+    ws['!autofilter']={ref:'A2:M'+(data.length+2)};
+    try{ws['!freeze']='A3';}catch(e){}  // freeze panes (best-effort)
+
     var wb=XLSX.utils.book_new();
-    var ws=XLSX.utils.aoa_to_sheet([headers].concat(rows));
-    ws['!cols']=[8,22,8,14,10,10,14,14,14,13,14,14,40].map(function(w){return{wch:w};});
-    XLSX.utils.book_append_sheet(wb,ws,'Daily Movement');
-    XLSX.writeFile(wb,'CUL Daily Movement '+TODAY_DATA.date+'.xlsx');
+    XLSX.utils.book_append_sheet(wb,ws,'Daily Movement Summary');
+    XLSX.writeFile(wb,'CUL Daily Movement '+todayStr+'.xlsx');
   });
 }
 function openHistory(){
