@@ -19,8 +19,8 @@ import openpyxl, json, re, sys, os, argparse
 from datetime import datetime, date
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DEFAULT_EXCEL = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
-DEFAULT_HTML  = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\cul_daily_movement.html"
+DEFAULT_EXCEL = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
+DEFAULT_HTML  = r"C:\Users\culadmin\Claw-Report\cul_daily_movement.html"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ── Column definitions ─────────────────────────────────────────────────────
