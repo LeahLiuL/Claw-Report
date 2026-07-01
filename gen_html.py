@@ -519,10 +519,7 @@ function setAllFilterOptions(type, viewId){
 function getFilterSelected(type, viewId){
   var key = type + viewId;
   var sel = filterSelections[key];
-  // null means "all" (not yet initialized or explicitly set to all)
-  if(sel===null) return null;
-  // Empty set also means "show all"
-  if(sel.size===0) return null;
+  if(sel == null || sel.size === 0) return null;             // null / undefined / empty = show all
   return sel;
 }
 
