@@ -329,7 +329,7 @@ function buildFilterDropdown(type, viewId){
   selAll.textContent = 'Select All';
   selAll.onclick = function(e){ e.stopPropagation(); setAllFilterOptions(type, viewId); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
   var clrAll = document.createElement('button');
-  clrAll.textContent = '全不选';
+  clrAll.textContent = 'None';
   clrAll.onclick = function(e){ e.stopPropagation(); filterSelections[type+viewId]=new Set(['\x00NONE\x00']); buildFilterDropdown(type, viewId); updateFilterButton(type, viewId); rerender(viewId); };
   actions.appendChild(selAll);
   actions.appendChild(clrAll);
