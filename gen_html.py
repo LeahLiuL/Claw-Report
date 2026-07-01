@@ -121,19 +121,19 @@ def extract(excel_path):
         else:
             i += 1
 
-    # ── Summary: nearest ETA per vessel ──
+    # ── Summary: nearest ETB per vessel ──
     results = []
     for vb in vessel_blocks:
-        best_row, best_eta = None, None
+        best_row, best_etb = None, None
         for r in vb['schedule_rows']:
-            eta_v = ws_src.cell(r, 9).value
-            if isinstance(eta_v, datetime):
-                eta_d = eta_v.date()
-                if eta_d >= today and (best_eta is None or eta_d < best_eta):
-                    best_eta, best_row = eta_d, r
+            etb_v = ws_src.cell(r, 10).value
+            if isinstance(etb_v, datetime):
+                etb_d = etb_v.date()
+                if etb_d >= today and (best_etb is None or etb_d < best_etb):
+                    best_etb, best_row = etb_d, r
         if best_row is None and vb['schedule_rows']:
             for r in reversed(vb['schedule_rows']):
-                if isinstance(ws_src.cell(r, 9).value, datetime):
+                if isinstance(ws_src.cell(r, 10).value, datetime):
                     best_row = r; break
 
         if best_row:
