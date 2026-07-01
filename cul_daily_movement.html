@@ -4,7 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CUL Daily Movement</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>
+<!-- Lazy-load SheetJS only when Export is clicked (avoids CDN block in China) -->
+<script>
+var _xlsxReady=false;
+function _loadXlsx(cb){
+  if(window.XLSX){cb();return;}
+  var s=document.createElement('script');
+  // Try multiple CDNs for reliability
+  s.src='https://cdn.bootcdn.net/ajax/libs/SheetJS/xlsx.full.min.js';
+  s.onerror=function(){
+    s.src='https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onerror=function(){alert('Failed to load Excel library. Please check your network.');};
+    document.head.appendChild(s);
+  };
+  s.onload=cb;
+  document.head.appendChild(s);
+}
+<\/script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
@@ -205,14 +221,16 @@ function sortBy(col){
   renderTable();
 }
 function exportExcel(){
-  const data=getFilteredData();
-  const headers=['Route','Vessel Name','Code','PIC','Port','Voy. No','ETA','ETB','ETD','Port Stay (hr)','ETA Delay','ETD Delay','Remark'];
-  const rows=data.map(r=>[r.route,r.vessel,r.code,r.pic,r.port,r.voy,r.eta,r.etb,r.etd,r.portStay,r.etaDelay,r.etdDelay,r.remark]);
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
-  ws['!cols']=[8,22,8,14,10,10,14,14,14,13,14,14,40].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb,ws,'Daily Movement');
-  XLSX.writeFile(wb,'CUL Daily Movement '+TODAY_DATA.date+'.xlsx');
+  _loadXlsx(function(){
+    var data=getFilteredData();
+    var headers=['Route','Vessel Name','Code','PIC','Port','Voy. No','ETA','ETB','ETD','Port Stay (hr)','ETA Delay','ETD Delay','Remark'];
+    var rows=data.map(function(r){return[r.route,r.vessel,r.code,r.pic,r.port,r.voy,r.eta,r.etb,r.etd,r.portStay,r.etaDelay,r.etdDelay,r.remark];});
+    var wb=XLSX.utils.book_new();
+    var ws=XLSX.utils.aoa_to_sheet([headers].concat(rows));
+    ws['!cols']=[8,22,8,14,10,10,14,14,14,13,14,14,40].map(function(w){return{wch:w};});
+    XLSX.utils.book_append_sheet(wb,ws,'Daily Movement');
+    XLSX.writeFile(wb,'CUL Daily Movement '+TODAY_DATA.date+'.xlsx');
+  });
 }
 function openHistory(){
   const dates=Object.keys(SNAPSHOTS).sort().reverse();
