@@ -502,7 +502,7 @@ var visibleCols = {
 
 // Multi-select filter state: {route1: Set, pic1: Set, route2: Set, pic2: Set}
 // Default: null means "show all" (empty Set also means show all, used after init)
-var filterSelections = {route1: null, pic1: null, route2: null, pic2: null};
+var filterSelections = {route1: null, vessel1: null, pic1: null, route2: null, vessel2: null, pic2: null};
 
 function setAllFilterOptions(type, viewId){
   var key = type + viewId;
