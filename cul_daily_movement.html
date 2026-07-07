@@ -293,7 +293,7 @@ function dateWithWeekday(dateStr){
     if(!m) return dateStr;
     var d = new Date(new Date().getFullYear(), parseInt(m[1])-1, parseInt(m[2]), parseInt(m[3].split(':')[0]), parseInt(m[3].split(':')[1]));
     var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return dateStr + ' <span class="weekday-tag">' + days[d.getDay()] + '</span>';
+    return '<span class="weekday-tag">' + days[d.getDay()] + '</span>';
   } catch(e){ return dateStr; }
 }
 
