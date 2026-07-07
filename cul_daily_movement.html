@@ -287,21 +287,26 @@ const COLUMN_DEFS_SUMMARY = [{"key": "_idx", "label": "#", "defaultVisible": tru
 const COLUMN_DEFS_FULL    = [{"key": "route", "label": "Route", "defaultVisible": true}, {"key": "vessel", "label": "Vessel", "defaultVisible": true}, {"key": "code", "label": "Code", "defaultVisible": true}, {"key": "pic", "label": "PIC", "defaultVisible": true}, {"key": "port", "label": "Port", "defaultVisible": true}, {"key": "manIn", "label": "Man In", "defaultVisible": true}, {"key": "wait", "label": "Wait", "defaultVisible": true}, {"key": "proforma", "label": "Proforma", "defaultVisible": true}, {"key": "ltmEta", "label": "LTM ETA / LTS ETB", "defaultVisible": false}, {"key": "ltmEtd", "label": "LTM ETD / LTS ETD", "defaultVisible": false}, {"key": "voy", "label": "Voy. No", "defaultVisible": true}, {"key": "date", "label": "Date", "defaultVisible": true}, {"key": "eta", "label": "ETA", "defaultVisible": true}, {"key": "etb", "label": "ETB", "defaultVisible": true}, {"key": "etd", "label": "ETD", "defaultVisible": true}, {"key": "run", "label": "Run", "defaultVisible": true}, {"key": "portStay", "label": "Port Stay(hr)", "defaultVisible": true}, {"key": "fspDistance", "label": "FSP Distance", "defaultVisible": true}, {"key": "speed", "label": "Speed", "defaultVisible": true}, {"key": "etaDelay", "label": "ETA Delay", "defaultVisible": true}, {"key": "etdDelay", "label": "ETD Delay", "defaultVisible": false}];
 
 function dateWithWeekday(dateStr){
-  if(!dateStr) return '';
+  if(dateStr == null || dateStr === '') return '';
   var s = String(dateStr).trim();
-  // Match formats: "07/07 09:48" or "THU0800" / "TUE 1300"
-  var m = s.match(/(\d{1,2})\/(\d{1,2})\s+(\d{2}:\d{2})/) || s.match(/(MON|TUE|WED|THU|FRI|SAT|SUN)/i);
-  if(!m) return '';
-  // If already has weekday name, just wrap it
-  if(m[1] && m[1].length === 3 && isNaN(parseInt(m[1]))) {
-    return '<span class="weekday-tag">' + m[1].toUpperCase() + '</span>';
+  // Excel serial number (e.g. 46210.2291666667)
+  var num = parseFloat(s);
+  if(!isNaN(num) && num > 40000 && num < 100000) {
+    var d = new Date((num - 25569) * 86400000);
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return '<span class="weekday-tag">' + days[d.getUTCDay()] + '</span>';
   }
-  // Parse MM/DD HH:MM to weekday
-  try {
+  // Format: "07/07 09:48"
+  var m = s.match(/(\d{1,2})\/(\d{1,2})\s+(\d{2}:\d{2})/);
+  if(m) {
     var d = new Date(new Date().getFullYear(), parseInt(m[1])-1, parseInt(m[2]), parseInt(m[3].split(':')[0]), parseInt(m[3].split(':')[1]));
     var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     return '<span class="weekday-tag">' + days[d.getDay()] + '</span>';
-  } catch(e){ return ''; }
+  }
+  // Already weekday name: "Mon", "Thu", "TUE0800"
+  var wd = s.match(/^(MON|TUE|WED|THU|FRI|SAT|SUN)/i);
+  if(wd) return '<span class="weekday-tag">' + wd[1].toUpperCase() + '</span>';
+  return '';
 }
 
 // Visible columns state (key = viewId '1' or '2', value = Set of colKeys)
