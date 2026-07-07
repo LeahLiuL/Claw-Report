@@ -288,13 +288,20 @@ const COLUMN_DEFS_FULL    = [{"key": "route", "label": "Route", "defaultVisible"
 
 function dateWithWeekday(dateStr){
   if(!dateStr) return '';
+  var s = String(dateStr).trim();
+  // Match formats: "07/07 09:48" or "THU0800" / "TUE 1300"
+  var m = s.match(/(\d{1,2})\/(\d{1,2})\s+(\d{2}:\d{2})/) || s.match(/(MON|TUE|WED|THU|FRI|SAT|SUN)/i);
+  if(!m) return '';
+  // If already has weekday name, just wrap it
+  if(m[1] && m[1].length === 3 && isNaN(parseInt(m[1]))) {
+    return '<span class="weekday-tag">' + m[1].toUpperCase() + '</span>';
+  }
+  // Parse MM/DD HH:MM to weekday
   try {
-    var m = dateStr.match(/(\d{1,2})\/(\d{1,2})\s+(\d{2}:\d{2})/);
-    if(!m) return dateStr;
     var d = new Date(new Date().getFullYear(), parseInt(m[1])-1, parseInt(m[2]), parseInt(m[3].split(':')[0]), parseInt(m[3].split(':')[1]));
     var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     return '<span class="weekday-tag">' + days[d.getDay()] + '</span>';
-  } catch(e){ return dateStr; }
+  } catch(e){ return ''; }
 }
 
 // Visible columns state (key = viewId '1' or '2', value = Set of colKeys)
