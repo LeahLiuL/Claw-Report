@@ -672,7 +672,7 @@ function renderFullSchedule(){
       if(col.key==='proforma')   return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')        return '<td class="td-center td-mono">'+v+'</td>';
       if(col.key==='ltmEta' || col.key==='ltmEtd') return '<td class="td-center td-mono" style="font-size:11px">'+v+'</td>';
-      if(col.key==='date') return '<td class="td-center td-mono" style="font-size:11px">'+dateWithWeekday(v)+'</td>';
+      if(col.key==='date') return '<td class="td-center td-mono" style="font-size:11px">'+dateWithWeekday(r.eta)+'</td>';
       if(col.key==='eta' || col.key==='etb' || col.key==='etd') return '<td class="td-center td-mono">'+v+'</td>';
       if(col.key==='portStay')   return '<td class="td-center">'+v+'</td>';
       if(col.key==='etaDelay')   return '<td class="td-center">'+delayTag(v)+'</td>';
