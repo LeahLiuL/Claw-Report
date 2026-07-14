@@ -19,8 +19,8 @@ import openpyxl, json, re, sys, os, argparse
 from datetime import datetime, date
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DEFAULT_EXCEL = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
-DEFAULT_HTML  = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\cul_daily_movement.html"
+DEFAULT_EXCEL = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
+DEFAULT_HTML  = r"C:\Users\culadmin\Claw-Report\cul_daily_movement.html"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ── Column definitions ─────────────────────────────────────────────────────
@@ -348,7 +348,6 @@ function _loadXlsx(cb){
   .td-center { text-align: center; }
   .td-idx { text-align: center; color: #8fa3b8; font-size: 11px; font-weight: 500; width: 40px; }
   .td-mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; }
-  .weekday-tag { display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; background: #E8F4FD; color: #1F4E79; vertical-align: middle; }
   .badge-route { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; background: #1F4E79; color: #fff; letter-spacing: .5px; }
   .badge-code { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #E8F4FD; color: #1F4E79; border: 1px solid #a8cfe8; }
   .delay-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: #fff0f0; color: #c00000; border: 1px solid #f5c6c6; }
@@ -494,29 +493,6 @@ const SNAPSHOTS = {};
 const TODAY_DATA = __TODAY_DATA__;
 const COLUMN_DEFS_SUMMARY = __COLUMN_DEFS_SUMMARY__;
 const COLUMN_DEFS_FULL    = __COLUMN_DEFS_FULL__;
-
-function dateWithWeekday(dateStr){
-  if(dateStr == null || dateStr === '') return '';
-  var s = String(dateStr).trim();
-  // Excel serial number (e.g. 46210.2291666667)
-  var num = parseFloat(s);
-  if(!isNaN(num) && num > 40000 && num < 100000) {
-    var d = new Date((num - 25569) * 86400000);
-    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return '<span class="weekday-tag">' + days[d.getUTCDay()] + '</span>';
-  }
-  // Format: "07/07 09:48"
-  var m = s.match(/(\d{1,2})\/(\d{1,2})\s+(\d{2}:\d{2})/);
-  if(m) {
-    var d = new Date(new Date().getFullYear(), parseInt(m[1])-1, parseInt(m[2]), parseInt(m[3].split(':')[0]), parseInt(m[3].split(':')[1]));
-    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return '<span class="weekday-tag">' + days[d.getDay()] + '</span>';
-  }
-  // Already weekday name: "Mon", "Thu", "TUE0800"
-  var wd = s.match(/^(MON|TUE|WED|THU|FRI|SAT|SUN)/i);
-  if(wd) return '<span class="weekday-tag">' + wd[1].toUpperCase() + '</span>';
-  return '';
-}
 
 // Visible columns state (key = viewId '1' or '2', value = Set of colKeys)
 var visibleCols = {
@@ -758,11 +734,9 @@ function renderSummary(){
 
   const tbody=document.getElementById('summaryTbody');
   if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['1'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal').textContent='0 vessels';document.getElementById('statDelay').textContent='0 delayed';return;}
-  const dc=data.filter(r=>r.etaDelay && r.etaDelay.toLowerCase().includes('delay'));
-  const uniqVessels = new Set(data.map(function(r){return r.vessel;}));
-  const uniqDelays = new Set(dc.map(function(r){return r.vessel;}));
-  document.getElementById('statTotal').textContent=uniqVessels.size+' vessels';
-  document.getElementById('statDelay').textContent=uniqDelays.size+' delayed';
+  const dc=data.filter(r=>r.etaDelay && r.etaDelay.toLowerCase().includes('delay')).length;
+  document.getElementById('statTotal').textContent=data.length+' vessels';
+  document.getElementById('statDelay').textContent=dc+' delayed';
 
   const defs = COLUMN_DEFS_SUMMARY;
   tbody.innerHTML = data.map(function(r, rowIdx){
@@ -880,8 +854,7 @@ function renderFullSchedule(){
       if(col.key==='manIn' || col.key==='wait' || col.key==='run' || col.key==='fspDistance' || col.key==='speed') return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')   return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')        return '<td class="td-center td-mono">'+v+'</td>';
-      if(col.key==='ltmEta' || col.key==='ltmEtd') return '<td class="td-center td-mono" style="font-size:11px">'+v+'</td>';
-      if(col.key==='date') return '<td class="td-center td-mono" style="font-size:11px">'+dateWithWeekday(r.eta)+'</td>';
+      if(col.key==='ltmEta' || col.key==='ltmEtd' || col.key==='date') return '<td class="td-center td-mono" style="font-size:11px">'+v+'</td>';
       if(col.key==='eta' || col.key==='etb' || col.key==='etd') return '<td class="td-center td-mono">'+v+'</td>';
       if(col.key==='portStay')   return '<td class="td-center">'+v+'</td>';
       if(col.key==='etaDelay')   return '<td class="td-center">'+delayTag(v)+'</td>';
