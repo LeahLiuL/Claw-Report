@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CULines Vessel Bapfile · Static Lookup</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+--blue:#2563eb;--teal:#0d9488;--amber:#d97706;--rose:#e11d48;--green:#059669;--slate:#64748b;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;}
+body{background:var(--bg);color:var(--ink);padding:20px;line-height:1.5;}
+h1{font-size:20px;margin-bottom:2px;}
+.sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+.tabs{display:flex;gap:8px;margin-bottom:14px;}
+.tab{background:#eef2f7;color:var(--ink);border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;height:38px;padding:0 20px;font-size:14px;font-weight:600;cursor:pointer;}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:16px;margin-bottom:16px;}
+.filters{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+.fgroup{display:flex;flex-direction:column;gap:4px;}
+.fgroup label{font-size:12px;color:var(--muted);}
+input,select{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13px;background:#fff;color:var(--ink);min-width:130px;}
+input:focus,select:focus{outline:none;border-color:var(--blue);}
+button{cursor:pointer;border:none;border-radius:8px;height:34px;padding:0 16px;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-ghost{background:#eef2f7;color:var(--ink);}
+.flags{display:flex;gap:10px;align-items:center;}
+.flags label{font-size:13px;display:flex;align-items:center;gap:4px;color:var(--ink);}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;flex-wrap:wrap;gap:10px;}
+.total{font-size:13px;color:var(--muted);}
+.total b{color:var(--blue);font-size:15px;}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff;max-height:62vh;}
+table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap;}
+th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;}
+thead th{position:sticky;top:0;background:#eef2f7;z-index:2;font-weight:600;}
+tbody tr:hover{background:#f0f6ff;}
+.flagY{color:var(--rose);font-weight:700;}
+textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--ink);width:100%;font-family:inherit;resize:vertical;line-height:1.5;}
+textarea:focus{outline:none;border-color:var(--blue);}
+.pager{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.pager .pg-btn{background:#eef2f7;color:var(--ink);}
+.pager .pg-btn:disabled{opacity:.45;cursor:not-allowed;}
+.note{font-size:12px;color:var(--muted);margin-top:8px;}
+.empty{padding:30px;text-align:center;color:var(--muted);}
+.badge-warn{background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.row-mismatch{background:#fff7f7;}
+.row-mismatch:hover{background:#ffe9e9;}
+</style>
+</head>
+<body>
+<h1>CULines · Vessel Bapfile (Static)</h1>
+<div class="sub">Static site — no server required. Source: Vessel Bapfile.xlsx. Rows are deduped by Target Port (VSL_SCH_PORT_CD): for each container the row whose POL equals its Target Port and is newest by Revenue Month is kept; if none matches, the newest row is shown and flagged "Target port is mismatched with POL".</div>
+
+<div class="tabs">
+  <button class="tab active" id="tabLookup">Container Lookup</button>
+  <button class="tab" id="tabBrowse">Browse by Month</button>
+</div>
+
+<div class="panel" id="panelLookup">
+  <div class="fgroup" style="flex:1 1 100%;">
+    <label>Container List (one per line, or comma / space separated)</label>
+    <textarea id="contlist" rows="5" placeholder="BMOU6486165&#10;SLVU5022179&#10;TGCU5034445"></textarea>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:8px;">
+    <button class="btn-primary" id="lookupBtn">Lookup</button>
+    <button class="btn-ghost" id="lookupClear">Clear</button>
+  </div>
+  <div class="note" id="lookupNote"></div>
+</div>
+
+<div class="panel" id="panelBrowse" style="display:none;">
+  <div class="filters">
+    <div class="fgroup"><label>Revenue Month (required)</label><select id="b_month"><option value="">Select…</option></select></div>
+    <div class="fgroup"><label>VVD (contains)</label><input id="b_vvd" placeholder="e.g. COSCO" style="min-width:180px;"></div>
+    <div class="fgroup"><label>Lane</label><select id="b_lane"><option value="">All</option></select></div>
+    <div class="fgroup"><label>Special Containers</label><div class="flags">
+      <label><input type="checkbox" name="b_flag" value="AWK">AWK</label>
+      <label><input type="checkbox" name="b_flag" value="DG">DG</label>
+      <label><input type="checkbox" name="b_flag" value="RF">RF</label>
+      <label><input type="checkbox" name="b_flag" value="BB">BB</label>
+    </div></div>
+    <div class="fgroup"><label>Deduplicate</label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:4px;color:var(--ink);"><input type="checkbox" id="b_dedup">By Target Port</label>
+    </div>
+    <div class="fgroup"><label>&nbsp;</label><button class="btn-primary" id="browseBtn">Browse</button></div>
+  </div>
+  <div class="note">Browse loads the full month shard (a few MB) into your browser, then filters locally. First load per month may take a moment; results are paginated. Tick "By Target Port" to keep one row per container within that month.</div>
+</div>
+
+<div class="toolbar">
+  <div class="total">Records: <b id="total">0</b></div>
+  <div class="total" id="pginfo"></div>
+</div>
+<div class="tablewrap">
+  <table><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table>
+</div>
+<div class="pager">
+  <button class="pg-btn" id="prev">Prev</button>
+  <span class="total" id="pageof"></span>
+  <button class="pg-btn" id="next">Next</button>
+  <span class="total">Rows/page <select id="psize" style="height:30px;min-width:auto;"><option>100</option><option>200</option><option>500</option><option>1000</option></select></span>
+</div>
+
+<script>
+const LABELS = {
+  vvd:"VVD", lane:"LANE", container_no:"CONTAINER No.", fe:"Full/Empty",
+  pol:"POL", pod:"POD", type_size:"Type/Size", weight:"Weight",
+  awk:"AWK", dg:"DG", rf:"RF", bb:"BB",
+  slot_opr:"SLOT_OPR", cont_opr:"CONT_OPR", rev_month:"Revenue Month",
+  target_port:"Target Port", mismatch:"Mismatch"
+};
+let MANIFEST=null, RESULTS=[], PAGE=1, PAGE_SIZE=100, MODE='lookup', CUR_COLS=[];
+
+// Fetch a shard. Shards are stored gzip-compressed; if a CDN auto-decompresses
+// them (Content-Encoding: gzip), the fallback path handles plain JSON.
+async function fetchJson(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP '+res.status+' '+url);
+  const buf = await res.arrayBuffer();
+  try{
+    const ds = new DecompressionStream('gzip');
+    const stream = new Response(buf).body.pipeThrough(ds);
+    return JSON.parse(await new Response(stream).text());
+  }catch(e){
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+}
+function fillSelect(id, arr){
+  const sel = document.getElementById(id);
+  arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+}
+async function init(){
+  try{
+    MANIFEST = await fetch('manifest.json').then(r=>r.json());
+    fillSelect('b_month', MANIFEST.rev_months);
+    fillSelect('b_lane', MANIFEST.lanes);
+  }catch(e){ alert('Failed to load manifest.json: '+e.message); }
+}
+function renderHead(cols){
+  document.getElementById('head').innerHTML = cols.map(c=>`<th>${LABELS[c]||c}</th>`).join('');
+}
+function fmtW(v){ const n=parseFloat(v); return isNaN(n)?(v||''):n.toLocaleString(undefined,{maximumFractionDigits:2}); }
+function flagCell(v){ return (v==='Y'||v==='y')?'<span class="flagY">Y</span>':(v||''); }
+function cellHtml(k,v){
+  if(k==='weight') return `<td>${fmtW(v)}</td>`;
+  if(['awk','dg','rf','bb'].includes(k)) return `<td>${flagCell(v)}</td>`;
+  if(k==='fe') return `<td>${v==='Full'?'F':(v==='Empty'?'E':v)}</td>`;
+  if(k==='mismatch') return v==='Y'?`<td><span class="badge-warn">&#9888; Target port is mismatched with POL</span></td>`:`<td></td>`;
+  return `<td>${v==null?'':v}</td>`;
+}
+function renderPage(){
+  const cols = CUR_COLS;
+  renderHead(cols);
+  const body = document.getElementById('body');
+  const start = (PAGE-1)*PAGE_SIZE;
+  const slice = RESULTS.slice(start, start+PAGE_SIZE);
+  if(!slice.length){
+    body.innerHTML = `<tr><td colspan="${cols.length}" class="empty">No matching records</td></tr>`;
+  } else {
+    body.innerHTML = slice.map(r=>{
+      const cells = cols.map(c=>cellHtml(c, r[c])).join('');
+      const mis = r.mismatch==='Y';
+      return `<tr${mis?' class="row-mismatch"':''}>` + cells + '</tr>';
+    }).join('');
+  }
+  const pages = Math.max(1, Math.ceil(RESULTS.length/PAGE_SIZE));
+  document.getElementById('total').textContent = RESULTS.length.toLocaleString();
+  document.getElementById('pageof').textContent = `Page ${PAGE} / ${pages}`;
+  document.getElementById('pginfo').textContent = `${RESULTS.length.toLocaleString()} records`;
+  document.getElementById('prev').disabled = PAGE<=1;
+  document.getElementById('next').disabled = PAGE>=pages;
+}
+function setBusy(msg){ document.getElementById('lookupNote').textContent = msg||''; }
+
+async function doLookup(){
+  MODE='lookup';
+  const raw = document.getElementById('contlist').value;
+  const nums = [...new Set(raw.split(/[\s,;]+/).map(s=>s.trim().toUpperCase()).filter(Boolean))];
+  if(!nums.length){ RESULTS=[]; renderPage(); setBusy(''); return; }
+  const byPrefix = {};
+  nums.forEach(n=>{ if(n.length>=4){ const p=n.slice(0,4); (byPrefix[p]=byPrefix[p]||[]).push(n); } });
+  const dict = {};
+  setBusy(`Loading ${Object.keys(byPrefix).length} shard(s) for ${nums.length} container(s)…`);
+  for(const p of Object.keys(byPrefix)){
+    const url = MANIFEST.cont_files[p];
+    if(!url) continue;
+    try{
+      const data = await fetchJson(url);
+      const ci = data.cols.indexOf('container_no');
+      data.rows.forEach(r=>{ const o={}; data.cols.forEach((c,i)=>o[c]=r[i]); dict[r[ci]] = o; });
+    }catch(e){ console.warn('shard fail', p, e); }
+  }
+  RESULTS = nums.filter(n=>dict[n]).map(n=>({...dict[n]}));
+  CUR_COLS = MANIFEST.cont_cols;
+  PAGE = 1;
+  const notFound = nums.filter(n=>!dict[n]);
+  let note = `Matched ${RESULTS.length} / ${nums.length}.`;
+  if(notFound.length) note += ` Not found: ${notFound.length} (e.g. ${notFound.slice(0,5).join(', ')}${notFound.length>5?'…':''})`;
+  setBusy(note);
+  renderPage();
+}
+
+function dedup(rows){
+  const map = new Map();
+  const pri = x => (x.target_port && x.pol===x.target_port) ? 0 : 1;
+  rows.forEach(r=>{
+    const ex = map.get(r.container_no);
+    if(!ex){ map.set(r.container_no, {...r}); return; }
+    const cp = pri(r), ep = pri(ex);
+    if(cp < ep) map.set(r.container_no, {...r});
+    else if(cp===ep && (r.rev_month||'') > (ex.rev_month||'')) map.set(r.container_no, {...r});
+  });
+  return [...map.values()].map(r=>{ r.mismatch = (r.target_port && r.pol!==r.target_port) ? 'Y' : ''; return r; });
+}
+
+async function doBrowse(){
+  MODE='browse';
+  const m = document.getElementById('b_month').value;
+  if(!m){ alert('Please select a Revenue Month first.'); return; }
+  setBusy('Loading month shard '+m+' …');
+  let data;
+  try{ data = await fetchJson(MANIFEST.month_files[m]); }
+  catch(e){ setBusy('Failed: '+e.message); return; }
+  let rows = data.rows.map(r=>{ const o={}; data.cols.forEach((c,i)=>o[c]=r[i]); return o; });
+  const vvd = document.getElementById('b_vvd').value.trim().toUpperCase();
+  const lane = document.getElementById('b_lane').value;
+  const flags = [...document.querySelectorAll('input[name=b_flag]:checked')].map(c=>c.value.toLowerCase());
+  rows = rows.filter(r=>{
+    if(vvd && !(r.vvd||'').toUpperCase().includes(vvd)) return false;
+    if(lane && r.lane!==lane) return false;
+    for(const fl of flags){ if((r[fl]||'')!=='Y') return false; }
+    return true;
+  });
+  const deduped = document.getElementById('b_dedup').checked;
+  if(deduped) rows = dedup(rows);
+  RESULTS = rows;
+  CUR_COLS = MANIFEST.month_cols.concat(deduped ? ['mismatch'] : []);
+  PAGE = 1;
+  setBusy(`Month ${m}: ${rows.length.toLocaleString()} record(s) after filter.`);
+  renderPage();
+}
+
+document.getElementById('tabLookup').onclick = ()=>{
+  document.getElementById('tabLookup').classList.add('active');
+  document.getElementById('tabBrowse').classList.remove('active');
+  document.getElementById('panelLookup').style.display='';
+  document.getElementById('panelBrowse').style.display='none';
+  MODE='lookup';
+};
+document.getElementById('tabBrowse').onclick = ()=>{
+  document.getElementById('tabBrowse').classList.add('active');
+  document.getElementById('tabLookup').classList.remove('active');
+  document.getElementById('panelBrowse').style.display='';
+  document.getElementById('panelLookup').style.display='none';
+  MODE='browse';
+};
+document.getElementById('lookupBtn').onclick = doLookup;
+document.getElementById('lookupClear').onclick = ()=>{ document.getElementById('contlist').value=''; RESULTS=[]; renderPage(); setBusy(''); };
+document.getElementById('browseBtn').onclick = doBrowse;
+document.getElementById('prev').onclick = ()=>{ if(PAGE>1){ PAGE--; renderPage(); } };
+document.getElementById('next').onclick = ()=>{ PAGE++; renderPage(); };
+document.getElementById('psize').onchange = e=>{ PAGE_SIZE=parseInt(e.target.value); PAGE=1; renderPage(); };
+
+init();
+renderPage();
+</script>
+</body></html>
