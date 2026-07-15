@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Full rebuild + deploy pipeline for the CULines Vessel Bapfile static site.
+"""Incremental rebuild + deploy pipeline for the CULines Vessel Bapfile static site.
+
+The FTP source is a ROLLING WINDOW that overlaps previous data, so we ACCUMULATE
+(new rows added, exact-duplicate rows skipped) — never a full replace.
 
 Steps:
   0) Download the latest Vessel Bapfile.xlsx from the company SFTP server
      (sftp_fetch.py) — the real data source, NOT a local copy. VPN required.
-  1) Rebuild bapfile.db from the downloaded xlsx (process_all.py)
+  1) Append the xlsx into bapfile.db, skipping exact-duplicate rows
+     (process_all.py --append). On first run it also de-duplicates the existing db.
   2) Generate static shards (gen_static.py)
   3) Deploy to GitHub Pages (deploy_site.py)
 
@@ -30,8 +34,8 @@ def main():
     print("[0/4] downloading latest Vessel Bapfile.xlsx from SFTP ...")
     run([PY, os.path.join(REPO, "sftp_fetch.py")])
 
-    print("[1/4] rebuilding bapfile.db from xlsx ...")
-    run([PY, os.path.join(REPO, "process_all.py")])
+    print("[1/4] appending latest xlsx into bapfile.db (dedup exact-duplicate rows) ...")
+    run([PY, os.path.join(REPO, "process_all.py"), "--append"])
 
     print("[2/4] generating static shards ...")
     run([PY, os.path.join(REPO, "gen_static.py"), "--db", DB, "--out", SITE])

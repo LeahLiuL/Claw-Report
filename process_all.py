@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Full processing for ALL 5 sheets of Vessel Bapfile.xlsx:
-  1) Streaming aggregation -> agg.json  (feeds the dashboard)
-  2) Build SQLite detail DB (bapfile.db) with the 14 display columns +
-     rev_month + sheet, indexed for fast VVD / LANE / time filtering.
+Full processing for ALL 5 sheets of Vessel Bapfile.xlsx.
+
+Two modes:
+  * Default (full rebuild): drops bapfile.db and reloads everything from the
+    xlsx. Used for initial setup / backfill.
+  * --append (incremental): keeps the existing cumulative db and only inserts
+    rows that are NOT an exact duplicate of an existing row. The FTP source is
+    a rolling window that overlaps previous data, so we ACCUMULATE, never
+    replace. "Exact duplicate" = all 17 data columns identical (any field
+    different is kept as a new row).
 
 Uses a chunked regex (C-backed) over the decompressed worksheet XML.
 """
-import json, os, re, sqlite3, datetime, zipfile
+import argparse
+import json
+import os
+import re
+import sqlite3
+import datetime
+import zipfile
 from collections import Counter
 
 SRC = r"C:\CULINES\Claw Report\Vessel Bapfile.xlsx"
@@ -21,11 +33,30 @@ COLS = ["VSL_CD","SCH_VOY_NR","SCH_DIR_CD","VVD","REVENUE_MONTH","LANE","CONT_NR
         "CONT_TP_SIZE_CD","CONT_WT","EDI_COC_SOC","BKG_COC_SOC","FIXED_FLG","AWK_FLG",
         "DG_FLG","RF_FLG","BB_FLG","TEU","BL_NO","UNIT","SLOT_OWN_PTR_ID","CONT_OPR_PTR_ID"]
 
+# The 17 columns actually stored in bapfile.db. An "exact duplicate" is judged
+# on ALL of these (any difference => keep as a new row).
+DB_COLS = ["vvd","lane","container_no","fe","pol","pod","type_size","weight",
+           "awk","dg","rf","bb","slot_opr","cont_opr","rev_month","sheet","target_port"]
+
+COL_DEFS = (
+    "id INTEGER PRIMARY KEY, vvd TEXT, lane TEXT, container_no TEXT, fe TEXT, "
+    "pol TEXT, pod TEXT, type_size TEXT, weight REAL, awk TEXT, dg TEXT, rf TEXT, "
+    "bb TEXT, slot_opr TEXT, cont_opr TEXT, rev_month TEXT, sheet INTEGER, target_port TEXT"
+)
+INSERT_SQL = (
+    "INSERT OR IGNORE INTO bapfile ("
+    + ",".join(DB_COLS)
+    + ") VALUES (" + ",".join(["?"] * len(DB_COLS)) + ")"
+)
+UNIQ_COLS = ",".join(DB_COLS)
+
+
 def col_to_idx(letters):
     idx = 0
     for ch in letters:
         idx = idx * 26 + (ord(ch) - ord('A') + 1)
     return idx - 1
+
 
 EXCEL_EPOCH = datetime.datetime(1899, 12, 30)
 _MONTH_RE = re.compile(r'^(\d{4})[-/](\d{1,2})')
@@ -42,7 +73,8 @@ def to_month(val):
     except Exception:
         return None
 
-# ---- aggregate accumulators ----
+
+# ---- aggregate accumulators (used by full mode) ----
 total_rows = 0
 rows_by_sheet = {}
 month_rows = Counter(); month_teu = Counter(); month_wt = Counter(); month_unit = Counter()
@@ -65,28 +97,54 @@ CELL_RE = re.compile(r'<c r="([A-Z]+)\d+"[^>]*?(?:>(?:<is><t>(.*?)</t></is>|<v>(
 ROW_SPLIT = b'</row>'
 
 # ---- SQLite ----
-con = sqlite3.connect(OUT_DB)
-con.execute("PRAGMA synchronous=OFF")
-con.execute("PRAGMA journal_mode=OFF")
-con.execute("""CREATE TABLE IF NOT EXISTS bapfile (
-    id INTEGER PRIMARY KEY,
-    vvd TEXT, lane TEXT, container_no TEXT, fe TEXT,
-    pol TEXT, pod TEXT, type_size TEXT, weight REAL,
-    awk TEXT, dg TEXT, rf TEXT, bb TEXT,
-    slot_opr TEXT, cont_opr TEXT, rev_month TEXT, sheet INTEGER,
-    target_port TEXT
-)""")
+con = None  # set in main
 batch = []
 BATCH_SIZE = 100000
+
 
 def flush_batch():
     global batch
     if batch:
-        con.executemany(
-            "INSERT INTO bapfile (vvd,lane,container_no,fe,pol,pod,type_size,weight,"
-            "awk,dg,rf,bb,slot_opr,cont_opr,rev_month,sheet,target_port) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            batch)
+        con.executemany(INSERT_SQL, batch)
         batch = []
+
+
+def ensure_schema(append):
+    global con
+    con.execute(f"CREATE TABLE IF NOT EXISTS bapfile ({COL_DEFS})")
+    if append:
+        has_uniq = con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='index' AND name='ix_row_uniq'"
+        ).fetchone()
+        if not has_uniq:
+            migrate_dedup_existing()
+        for sql in (
+            "CREATE INDEX IF NOT EXISTS ix_vvd ON bapfile(vvd)",
+            "CREATE INDEX IF NOT EXISTS ix_lane ON bapfile(lane)",
+            "CREATE INDEX IF NOT EXISTS ix_month ON bapfile(rev_month)",
+            "CREATE INDEX IF NOT EXISTS ix_lane_month ON bapfile(lane, rev_month)",
+        ):
+            con.execute(sql)
+        con.commit()
+
+
+def migrate_dedup_existing():
+    """One-time: remove exact-duplicate rows from an existing db that was built
+    before the unique index existed. Keeps the earliest id per duplicate group."""
+    global con
+    before = con.execute("SELECT COUNT(*) FROM bapfile").fetchone()[0]
+    con.execute(
+        "CREATE TABLE bapfile_tmp AS "
+        "SELECT * FROM ("
+        f"  SELECT *, ROW_NUMBER() OVER (PARTITION BY {UNIQ_COLS} ORDER BY id) rn "
+        "  FROM bapfile) WHERE rn = 1"
+    )
+    con.execute("DROP TABLE bapfile")
+    con.execute("ALTER TABLE bapfile_tmp RENAME TO bapfile")
+    con.execute(f"CREATE UNIQUE INDEX ix_row_uniq ON bapfile({UNIQ_COLS})")
+    after = con.execute("SELECT COUNT(*) FROM bapfile").fetchone()[0]
+    print(f"[DEDUP] removed {before - after} exact-duplicate rows ({before} -> {after})", flush=True)
+
 
 def process_row(d, sheet_idx, sheet_name):
     global total_rows, reefer_rows, dg_rows, awk_rows, bb_rows, tot_teu, tot_wt, tot_unit
@@ -152,6 +210,7 @@ def process_row(d, sheet_idx, sheet_name):
     if len(batch) >= BATCH_SIZE:
         flush_batch()
 
+
 def parse_sheet(stream, sheet_idx, sheet_name):
     global total_rows
     before = total_rows
@@ -206,9 +265,91 @@ def parse_sheet(stream, sheet_idx, sheet_name):
     rows_by_sheet[sheet_name] = {"data_rows": total_rows - before}
     print(f"[OK] {sheet_name}: {total_rows-before} data rows", flush=True)
 
+
+def build_agg_from_db():
+    """Recompute agg.json from the FULL cumulative db (used in append mode,
+    because the parsed xlsx is only a rolling window). Dimensions that are not
+    stored in the db (carrier / vessel / dir / teu / unit / coc_soc) are emitted
+    empty; run a full rebuild to refresh those."""
+    global con
+    total = con.execute("SELECT COUNT(*) FROM bapfile").fetchone()[0]
+    dvvd = con.execute("SELECT COUNT(DISTINCT vvd) FROM bapfile").fetchone()[0]
+    by_sheet = dict(con.execute("SELECT sheet, COUNT(*) FROM bapfile GROUP BY sheet").fetchall())
+    rows_by_sheet_local = {f"sheet{k}": {"data_rows": v} for k, v in sorted(by_sheet.items())}
+
+    month = dict(con.execute("SELECT rev_month, COUNT(*), COALESCE(SUM(weight),0) FROM bapfile GROUP BY rev_month").fetchall())
+    lane = dict(con.execute("SELECT lane, COUNT(*) FROM bapfile GROUP BY lane").fetchall())
+    ctype = dict(con.execute("SELECT type_size, COUNT(*) FROM bapfile GROUP BY type_size").fetchall())
+    fe = dict(con.execute("SELECT fe, COUNT(*) FROM bapfile GROUP BY fe").fetchall())
+    pol = dict(con.execute("SELECT pol, COUNT(*) FROM bapfile GROUP BY pol ORDER BY COUNT(*) DESC LIMIT 25").fetchall())
+    pod = dict(con.execute("SELECT pod, COUNT(*) FROM bapfile GROUP BY pod ORDER BY COUNT(*) DESC LIMIT 25").fetchall())
+    slot = dict(con.execute("SELECT slot_opr, COUNT(*) FROM bapfile GROUP BY slot_opr ORDER BY COUNT(*) DESC LIMIT 20").fetchall())
+    opr = dict(con.execute("SELECT cont_opr, COUNT(*) FROM bapfile GROUP BY cont_opr ORDER BY COUNT(*) DESC LIMIT 20").fetchall())
+    reefer = con.execute("SELECT COUNT(*) FROM bapfile WHERE rf='Y'").fetchone()[0]
+    dg = con.execute("SELECT COUNT(*) FROM bapfile WHERE dg='Y'").fetchone()[0]
+    awk = con.execute("SELECT COUNT(*) FROM bapfile WHERE awk='Y'").fetchone()[0]
+    bb = con.execute("SELECT COUNT(*) FROM bapfile WHERE bb='Y'").fetchone()[0]
+    n_full = con.execute("SELECT COUNT(*) FROM bapfile WHERE fe='Full'").fetchone()[0]
+    n_empty = con.execute("SELECT COUNT(*) FROM bapfile WHERE fe='Empty'").fetchone()[0]
+    total_wt = con.execute("SELECT COALESCE(SUM(weight),0) FROM bapfile").fetchone()[0]
+    samp = con.execute(
+        "SELECT vvd,lane,container_no,fe,pol,pod,type_size,weight,awk,dg,rf,bb,"
+        "slot_opr,cont_opr,rev_month,target_port FROM bapfile LIMIT 8"
+    ).fetchall()
+    samples_local = [
+        {"VVD": r[0],"LANE": r[1],"CONT_NR": r[2],"FE_FLG": r[3],"POL_CD": r[4],"POD_CD": r[5],
+         "CONT_TP_SIZE_CD": r[6],"CONT_WT": r[7],"AWK_FLG": r[8],"DG_FLG": r[9],"RF_FLG": r[10],
+         "BB_FLG": r[11],"SLOT_OWN_PTR_ID": r[12],"CONT_OPR_PTR_ID": r[13],"REVENUE_MONTH": r[14],
+         "VSL_SCH_PORT_CD": r[15]}
+        for r in samp
+    ]
+
+    result = {
+        "total_rows": total,
+        "distinct_vvd": dvvd,
+        "rows_by_sheet": rows_by_sheet_local,
+        "totals": {"teu": 0, "weight_tons": round(total_wt, 1),
+                   "unit": 0, "n_full": n_full, "n_empty": n_empty},
+        "month": {"rows": month, "teu": {}, "weight_tons": {k: round(v, 1) for k, v in month.items()}, "unit": {}},
+        "lane": {"rows": dict(Counter(lane).most_common()), "teu": {}, "weight_tons": {}},
+        "carrier": {"rows": {}, "teu": {}},
+        "vessel": {"rows": {}, "teu": {}},
+        "dir": {},
+        "cont_type": {"rows": dict(Counter(ctype).most_common()), "teu": {}},
+        "fe": {"rows": fe, "teu": {}},
+        "flags": {"reefer": reefer, "dg": dg, "awk": awk, "bb": bb},
+        "coc_soc": {"edi": {}, "bkg": {}},
+        "ports": {"pol_top": pol, "pod_top": pod},
+        "slot_owner": slot,
+        "cont_operator": opr,
+        "samples": samples_local,
+        "_note": "agg.json rebuilt from cumulative db in append mode; carrier/vessel/dir/teu/unit/coc_soc omitted (not stored in db). Run full rebuild to refresh.",
+    }
+    with open(OUT_AGG, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    print(f"[AGG] rebuilt agg.json from db: {total} rows", flush=True)
+
+
 def main():
-    zf = zipfile.ZipFile(SRC)
-    # sheet display names from workbook.xml
+    global con
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--append", action="store_true",
+                    help="incremental: keep existing db, INSERT OR IGNORE exact-duplicate rows")
+    ap.add_argument("--db", default=OUT_DB)
+    ap.add_argument("--src", default=SRC)
+    args = ap.parse_args()
+
+    con = sqlite3.connect(args.db)
+    con.execute("PRAGMA synchronous=OFF")
+
+    if args.append:
+        ensure_schema(append=True)
+    else:
+        con.execute("DROP TABLE IF EXISTS bapfile")
+        con.execute(f"CREATE TABLE bapfile ({COL_DEFS})")
+        con.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_row_uniq ON bapfile({UNIQ_COLS})")
+
+    zf = zipfile.ZipFile(args.src)
     wb = zf.read("xl/workbook.xml").decode("utf-8")
     names = re.findall(r'<sheet[^>]*name="([^"]+)"', wb)
     sheet_entries = [n for n in zf.namelist() if re.match(r"xl/worksheets/sheet\d+\.xml$", n)]
@@ -219,14 +360,26 @@ def main():
             parse_sheet(s, i, name)
     flush_batch()
     con.commit()
-    print("[INDEX] creating indexes ...", flush=True)
-    con.execute("CREATE INDEX IF NOT EXISTS ix_vvd ON bapfile(vvd)")
-    con.execute("CREATE INDEX IF NOT EXISTS ix_lane ON bapfile(lane)")
-    con.execute("CREATE INDEX IF NOT EXISTS ix_month ON bapfile(rev_month)")
-    con.execute("CREATE INDEX IF NOT EXISTS ix_lane_month ON bapfile(lane, rev_month)")
-    con.commit()
-    con.close()
 
+    if args.append:
+        build_agg_from_db()
+    else:
+        print("[INDEX] creating indexes ...", flush=True)
+        for sql in (
+            "CREATE INDEX IF NOT EXISTS ix_vvd ON bapfile(vvd)",
+            "CREATE INDEX IF NOT EXISTS ix_lane ON bapfile(lane)",
+            "CREATE INDEX IF NOT EXISTS ix_month ON bapfile(rev_month)",
+            "CREATE INDEX IF NOT EXISTS ix_lane_month ON bapfile(lane, rev_month)",
+        ):
+            con.execute(sql)
+        con.commit()
+        write_agg_from_accumulators()
+
+    con.close()
+    print(f"\n[DONE] total_rows={total_rows} distinct_vvd={len(distinct_vvd)} -> {args.db}", flush=True)
+
+
+def write_agg_from_accumulators():
     result = {
         "total_rows": total_rows,
         "distinct_vvd": len(distinct_vvd),
@@ -252,8 +405,8 @@ def main():
     }
     with open(OUT_AGG, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"\n[DONE] total_rows={total_rows} distinct_vvd={len(distinct_vvd)} -> {OUT_AGG}", flush=True)
-    print(f"[DONE] sqlite db -> {OUT_DB}", flush=True)
+    print(f"[DONE] agg.json -> {OUT_AGG}", flush=True)
+
 
 if __name__ == "__main__":
     main()

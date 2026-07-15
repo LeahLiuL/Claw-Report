@@ -17,7 +17,7 @@ No Python backend required at view time.
 """
 import os, json, gzip, sqlite3, time
 
-DB = r"C:/Users/leahliu/WorkBuddy/2026-07-13-14-14-54/bapfile.db"
+DB = r"C:/Users/leahliu/Claw-Report/bapfile.db"
 OUT = r"C:/Users/leahliu/Claw-Report/site"
 
 BASE_COLS = ["vvd", "lane", "container_no", "fe", "pol", "pod", "type_size",
