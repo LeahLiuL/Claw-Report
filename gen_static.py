@@ -22,7 +22,7 @@ DB = os.environ.get("BAPFILE_DB") or os.path.join(HERE, "bapfile.db")
 OUT = os.environ.get("BAPFILE_SITE") or os.path.join(HERE, "site")
 
 BASE_COLS = ["vvd", "lane", "container_no", "fe", "pol", "pod", "type_size",
-             "weight", "awk", "dg", "rf", "bb", "slot_opr", "cont_opr", "rev_month"]
+             "weight", "awk", "dg", "rf", "slot_opr", "cont_opr", "rev_month"]
 CONT_COLS = BASE_COLS + ["target_port", "mismatch"]
 MONTH_COLS = BASE_COLS + ["target_port"]
 
