@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Deploy Claw-Report/site to the gh-pages branch via an isolated git worktree.
+"""Deploy Claw-Report/site to the public GitHub Pages repo via an isolated clone.
 
-Why a worktree: the main working tree holds source (server.py, process_all.py, ...)
-and the 725 MB bapfile.db. We never touch it. Instead we create a separate worktree
-at C:/Users/leahliu/claw-pages checked out to gh-pages, copy the static site there,
-commit and push. Idempotent: safe to run again for updates.
+The public site lives in its OWN repo (LeahLiuL/cul-bapfile-site) so the Pages
+source branch is clean and under our control. We keep the heavy pipeline source
+(server.py, process_all.py, bapfile.db, ...) in the private Claw-Report repo and
+only publish the generated static site here.
+
+Why a separate working clone: the main working tree holds source + the 725 MB
+bapfile.db. We never touch it. Instead we keep a clone at C:/Users/leahliu/cul-bapfile-site
+checked out to `main`, copy the static site into it, commit and push. Idempotent.
 """
 import os, sys, shutil, time, subprocess
 
 REPO = r"C:/Users/leahliu/Claw-Report"
 SITE = os.path.join(REPO, "site")
-WT   = r"C:/Users/leahliu/claw-pages"
-BRANCH = "gh-pages"
-URL  = "https://github.com/LeahLiuL/Claw-Report.git"
+WT   = r"C:/Users/leahliu/cul-bapfile-site"
+BRANCH = "main"
+URL  = "https://github.com/LeahLiuL/cul-bapfile-site.git"
 
 
 def git(args, cwd):
@@ -25,25 +29,18 @@ def main():
     if not os.path.isdir(SITE):
         print("ERROR: site/ not found. Run gen_static.py first."); sys.exit(1)
 
-    # 1. ensure worktree exists
+    # 1. ensure working clone exists (cloned from the public repo)
     wt_git = os.path.join(WT, ".git")
     if os.path.exists(wt_git):
-        print("[deploy] reusing worktree", WT)
+        print("[deploy] reusing clone", WT)
         git(["fetch", "origin"], cwd=WT)
         git(["checkout", BRANCH], cwd=WT)
         git(["reset", "--hard", "origin/" + BRANCH], cwd=WT)
     else:
         if os.path.exists(WT):
             shutil.rmtree(WT)
-        git(["fetch", "origin"], cwd=REPO)
-        res = subprocess.run(["git", "ls-remote", "--heads", URL, BRANCH],
-                             capture_output=True, text=True)
-        if res.stdout.strip():
-            git(["worktree", "add", WT, BRANCH], cwd=REPO)
-        else:
-            git(["worktree", "add", "-b", BRANCH, WT], cwd=REPO)
-            git(["rm", "-rf", "."], cwd=WT)
-            git(["commit", "--allow-empty", "-m", "init gh-pages"], cwd=WT)
+        git(["clone", URL, WT], cwd=REPO)
+        git(["checkout", BRANCH], cwd=WT)
 
     # 2. copy fresh site content (skip generation log)
     for item in os.listdir(SITE):
@@ -68,6 +65,7 @@ def main():
     git(["commit", "-m", "deploy static bapfile site " + time.strftime("%Y-%m-%d %H:%M:%S")], cwd=WT)
     git(["push", "-u", "origin", BRANCH], cwd=WT)
     print("[deploy] DONE ->", URL.replace(".git", "") + "/tree/" + BRANCH)
+    print("[deploy] Pages  -> https://leahliul.github.io/cul-bapfile-site/")
 
 
 if __name__ == "__main__":
