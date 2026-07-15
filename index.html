@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Container Explorer · 箱量查询台</title>
+  <meta name="description" content="Upload / paste container numbers and filter shipment data by VVD and LANE." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#results">跳到结果</a>
+
+  <header class="app-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">📦</span>
+        <div>
+          <h1>Container Explorer</h1>
+          <p class="subtitle">箱量智能查询台 · 按 VVD / LANE 与箱号筛选</p>
+        </div>
+      </div>
+      <div class="header-meta" id="dataMeta" aria-live="polite">
+        <span class="pill" id="metaRows">数据加载中…</span>
+        <span class="pill pill-ghost" id="metaUpdated"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- 筛选面板 -->
+    <section class="card filters" aria-labelledby="filterTitle">
+      <h2 id="filterTitle" class="card-title">筛选条件</h2>
+      <form id="filterForm" class="filter-grid" autocomplete="off">
+        <div class="field">
+          <label for="vvd">VVD（船舶航次）</label>
+          <input type="text" id="vvd" name="vvd" placeholder="如 COSCO / 2607E" inputmode="text" />
+        </div>
+        <div class="field">
+          <label for="lane">LANE（航线）</label>
+          <input type="text" id="lane" name="lane" placeholder="如 AEX / TPE" />
+        </div>
+        <div class="field field-wide">
+          <label for="containers">Container No.（粘贴箱号，支持换行 / 逗号 / 空格分隔）</label>
+          <textarea id="containers" name="containers" rows="4"
+            placeholder="MSKU1234567&#10;CMAU7654321&#10;TGHU9988776"></textarea>
+          <p class="hint" id="contCount">已识别 0 个箱号</p>
+        </div>
+        <div class="field field-inline">
+          <label class="checkbox">
+            <input type="checkbox" id="dedup" name="dedup" checked />
+            <span>去重（Dedup）：优先 TARGET_PORT = POL，否则取 REVENUE MONTH 最大</span>
+          </label>
+        </div>
+        <div class="field field-actions">
+          <button type="submit" class="btn btn-primary" id="searchBtn">查询</button>
+          <button type="reset" class="btn btn-ghost" id="resetBtn">重置</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 结果区 -->
+    <section class="card results" id="results" aria-labelledby="resultTitle">
+      <div class="results-bar">
+        <h2 id="resultTitle" class="card-title">查询结果</h2>
+        <div class="results-actions">
+          <span class="count" id="resultCount" aria-live="polite">共 0 条</span>
+          <button type="button" class="btn btn-outline" id="exportBtn" disabled>导出 Excel</button>
+        </div>
+      </div>
+
+      <div class="table-scroll" role="region" aria-label="结果表格" tabindex="0">
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th>VVD</th>
+              <th>LANE</th>
+              <th>CONT NO.</th>
+              <th>FULL/EMPTY</th>
+              <th>TYPE/SIZE</th>
+              <th>POL</th>
+              <th>POD</th>
+              <th>CONT_Weight</th>
+              <th>AWK</th>
+              <th>DG</th>
+              <th>RF</th>
+              <th>BB</th>
+              <th>SLOT_OPR</th>
+              <th>CONT_OPR</th>
+              <th>REVENUE MONTH</th>
+              <th>TARGET_PORT</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr class="empty-row"><td colspan="16">请输入筛选条件后点击「查询」</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="pagination" hidden>
+        <button type="button" class="btn btn-ghost" id="prevPage">上一页</button>
+        <span id="pageInfo">第 1 / 1 页</span>
+        <button type="button" class="btn btn-ghost" id="nextPage">下一页</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="wrap">
+      <p>静态页面 · 浏览器端筛选与去重 · 数据每日通过 FTP 自动同步</p>
+    </div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
