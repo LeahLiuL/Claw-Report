@@ -19,8 +19,8 @@ stays in sync with the spreadsheet on the FTP server. Requires VPN to reach
 """
 import os, subprocess, sys
 
-REPO = r"C:/Users/leahliu/Claw-Report"
-PY   = r"C:/Users/leahliu/.workbuddy/binaries/python/versions/3.13.12/python.exe"
+REPO = os.path.dirname(os.path.abspath(__file__))
+PY   = sys.executable
 DB   = os.path.join(REPO, "bapfile.db")
 SITE = os.path.join(REPO, "site")
 

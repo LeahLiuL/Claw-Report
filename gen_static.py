@@ -17,8 +17,9 @@ No Python backend required at view time.
 """
 import os, json, gzip, sqlite3, time
 
-DB = r"C:/Users/leahliu/Claw-Report/bapfile.db"
-OUT = r"C:/Users/leahliu/Claw-Report/site"
+HERE = os.path.dirname(os.path.abspath(__file__))
+DB = os.environ.get("BAPFILE_DB") or os.path.join(HERE, "bapfile.db")
+OUT = os.environ.get("BAPFILE_SITE") or os.path.join(HERE, "site")
 
 BASE_COLS = ["vvd", "lane", "container_no", "fe", "pol", "pod", "type_size",
              "weight", "awk", "dg", "rf", "bb", "slot_opr", "cont_opr", "rev_month"]

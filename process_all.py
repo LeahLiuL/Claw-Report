@@ -23,7 +23,7 @@ import datetime
 import zipfile
 from collections import Counter
 
-SRC = r"C:\CULINES\Claw Report\Vessel Bapfile.xlsx"
+SRC = os.environ.get("BAPFILE_LOCAL") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "Vessel Bapfile.xlsx")
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_AGG = os.path.join(HERE, "agg.json")
 OUT_DB = os.path.join(HERE, "bapfile.db")
@@ -277,7 +277,7 @@ def build_agg_from_db():
     by_sheet = dict(con.execute("SELECT sheet, COUNT(*) FROM bapfile GROUP BY sheet").fetchall())
     rows_by_sheet_local = {f"sheet{k}": {"data_rows": v} for k, v in sorted(by_sheet.items())}
 
-    month = dict(con.execute("SELECT rev_month, COUNT(*), COALESCE(SUM(weight),0) FROM bapfile GROUP BY rev_month").fetchall())
+    month = dict(con.execute("SELECT rev_month, COUNT(*) FROM bapfile GROUP BY rev_month").fetchall())
     lane = dict(con.execute("SELECT lane, COUNT(*) FROM bapfile GROUP BY lane").fetchall())
     ctype = dict(con.execute("SELECT type_size, COUNT(*) FROM bapfile GROUP BY type_size").fetchall())
     fe = dict(con.execute("SELECT fe, COUNT(*) FROM bapfile GROUP BY fe").fetchall())
@@ -362,7 +362,11 @@ def main():
     con.commit()
 
     if args.append:
-        build_agg_from_db()
+        # Append mode only accumulates rows into the db; gen_static.py rebuilds
+        # the public shards from it. The dashboard agg.json is NOT served on
+        # GitHub Pages and its dimensions are incomplete in append mode, so we
+        # skip rebuilding it here (also avoids the legacy dict() crash).
+        pass
     else:
         print("[INDEX] creating indexes ...", flush=True)
         for sql in (

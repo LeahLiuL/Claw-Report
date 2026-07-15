@@ -25,7 +25,7 @@ DEFAULTS = {
     "user": "leah",
     "pass": "Fine@B!",
     "remote_path": "/finebi/Master Data - Leah/Vessel Bapfile.xlsx",
-    "local_path": r"C:\CULINES\Claw Report\Vessel Bapfile.xlsx",
+    "local_path": os.environ.get("BAPFILE_LOCAL") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "Vessel Bapfile.xlsx"),
 }
 
 ENV_MAP = {

@@ -13,9 +13,9 @@ checked out to `main`, copy the static site into it, commit and push. Idempotent
 """
 import os, sys, shutil, time, subprocess
 
-REPO = r"C:/Users/leahliu/Claw-Report"
+REPO = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(REPO, "site")
-WT   = r"C:/Users/leahliu/cul-bapfile-site"
+WT   = os.environ.get("DEPLOY_WT") or os.path.join(os.path.dirname(REPO), "cul-bapfile-site")
 BRANCH = "main"
 URL  = "https://github.com/LeahLiuL/cul-bapfile-site.git"
 
@@ -42,9 +42,9 @@ def main():
         git(["clone", URL, WT], cwd=REPO)
         git(["checkout", BRANCH], cwd=WT)
 
-    # 2. copy fresh site content (skip generation log)
+    # 2. copy fresh site content (skip generation/deploy logs)
     for item in os.listdir(SITE):
-        if item == "gen.log":
+        if item.endswith(".log"):
             continue
         s = os.path.join(SITE, item)
         d = os.path.join(WT, item)
