@@ -42,16 +42,16 @@ def main():
         git(["clone", URL, WT], cwd=REPO)
         git(["checkout", BRANCH], cwd=WT)
 
-    # 2. copy fresh site content (skip generation/deploy logs)
+    # 2. copy fresh site content (skip generation/deploy logs).
+    #    Use dirs_exist_ok=True instead of rmtree+copytree to avoid sandbox
+    #    restrictions on deleting directories inside the user home.
     for item in os.listdir(SITE):
         if item.endswith(".log"):
             continue
         s = os.path.join(SITE, item)
         d = os.path.join(WT, item)
         if os.path.isdir(s):
-            if os.path.exists(d):
-                shutil.rmtree(d)
-            shutil.copytree(s, d)
+            shutil.copytree(s, d, dirs_exist_ok=True)
         else:
             shutil.copy2(s, d)
 

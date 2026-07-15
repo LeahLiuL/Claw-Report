@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Full processing for ALL 5 sheets of Vessel Bapfile.xlsx.
+Full processing for ALL sheets of Vessel Bapfile.xlsx.
 
 Two modes:
   * Default (full rebuild): drops bapfile.db and reloads everything from the
@@ -13,6 +13,9 @@ Two modes:
     different is kept as a new row).
 
 Uses a chunked regex (C-backed) over the decompressed worksheet XML.
+Column mapping is dynamic: the header row (row 1) is read first to build a
+col_index -> col_name map, so files with different column layouts (e.g. SFTP
+source with POL_ETB between POL_CD and POD_CD) are handled correctly.
 """
 import argparse
 import json
@@ -29,7 +32,7 @@ OUT_AGG = os.path.join(HERE, "agg.json")
 OUT_DB = os.path.join(HERE, "bapfile.db")
 
 COLS = ["VSL_CD","SCH_VOY_NR","SCH_DIR_CD","VVD","REVENUE_MONTH","LANE","CONT_NR",
-        "VSL_SCH_PORT_CD","CARRIER_ID","FE_FLG","POR_CD","POL_CD","POD_CD","DEL_CD",
+        "TARGET_PORT","CARRIER_ID","FE_FLG","POR_CD","POL_CD","POD_CD","DEL_CD",
         "CONT_TP_SIZE_CD","CONT_WT","EDI_COC_SOC","BKG_COC_SOC","FIXED_FLG","AWK_FLG",
         "DG_FLG","RF_FLG","BB_FLG","TEU","BL_NO","UNIT","SLOT_OWN_PTR_ID","CONT_OPR_PTR_ID"]
 
@@ -60,6 +63,41 @@ def col_to_idx(letters):
 
 EXCEL_EPOCH = datetime.datetime(1899, 12, 30)
 _MONTH_RE = re.compile(r'^(\d{4})[-/](\d{1,2})')
+
+def build_column_maps(xlsx_path, sheet_names):
+    """Read header row (row 1) of each sheet and return a list of
+    {col_index: col_name} dicts plus the actual sheet names.
+
+    Uses openpyxl to read just the header row. This makes the parser
+    robust against column layout differences between source files
+    (e.g. SFTP file has POL_ETB between POL_CD and POD_CD, while the
+    local 近4月 file puts POL_ETB at the far right).
+
+    Header names are normalised so that source files with the same
+    meaning but different spelling/typos (e.g. TAGERT_PORT) map to a
+    canonical key (e.g. TARGET_PORT) used by process_row.
+    """
+    import openpyxl as _opxl
+    wb = _opxl.load_workbook(xlsx_path, read_only=True, data_only=True)
+    col_maps = []
+    actual_names = []
+    normalise = {
+        "TAGERT_PORT": "TARGET_PORT",
+    }
+    for i, sname in enumerate(sheet_names):
+        if i < len(wb.sheetnames):
+            actual_names.append(wb.sheetnames[i])
+        else:
+            actual_names.append(sname)
+        if i < len(wb.sheetnames):
+            ws = wb[wb.sheetnames[i]]
+            headers = [cell.value for cell in ws[1]]
+            col_map = {idx: normalise.get(str(h), str(h)) for idx, h in enumerate(headers) if h is not None}
+        else:
+            col_map = {}
+        col_maps.append(col_map)
+    wb.close()
+    return actual_names, col_maps
 def to_month(val):
     if not val:
         return None
@@ -200,18 +238,20 @@ def process_row(d, sheet_idx, sheet_name):
         samples.append({c: d.get(c,"") for c in COLS})
 
     # detail row
+    target_port = d.get("TARGET_PORT") or d.get("TAGERT_PORT") or d.get("VSL_SCH_PORT_CD") or ""
+
     batch.append((
         vvd, lane, d.get("CONT_NR") or "", fe,
         d.get("POL_CD") or "", d.get("POD_CD") or "", d.get("CONT_TP_SIZE_CD") or "", wt,
         d.get("AWK_FLG") or "", d.get("DG_FLG") or "", d.get("RF_FLG") or "", d.get("BB_FLG") or "",
         d.get("SLOT_OWN_PTR_ID") or "", d.get("CONT_OPR_PTR_ID") or "", mon, sheet_idx + 1,
-        d.get("VSL_SCH_PORT_CD") or ""
+        target_port
     ))
     if len(batch) >= BATCH_SIZE:
         flush_batch()
 
 
-def parse_sheet(stream, sheet_idx, sheet_name):
+def parse_sheet(stream, sheet_idx, sheet_name, col_map):
     global total_rows
     before = total_rows
     pending = b""
@@ -240,8 +280,9 @@ def parse_sheet(stream, sheet_idx, sheet_name):
                 d = {}
                 for col, val in cells:
                     idx = col_to_idx(col)
-                    if 0 <= idx < len(COLS):
-                        d[COLS[idx]] = val
+                    col_name = col_map.get(idx)
+                    if col_name:
+                        d[col_name] = val
                 process_row(d, sheet_idx, sheet_name)
     if pending.strip():
         seg = pending + ROW_SPLIT
@@ -259,8 +300,9 @@ def parse_sheet(stream, sheet_idx, sheet_name):
                 d = {}
                 for col, val in cells:
                     idx = col_to_idx(col)
-                    if 0 <= idx < len(COLS):
-                        d[COLS[idx]] = val
+                    col_name = col_map.get(idx)
+                    if col_name:
+                        d[col_name] = val
                 process_row(d, sheet_idx, sheet_name)
     rows_by_sheet[sheet_name] = {"data_rows": total_rows - before}
     print(f"[OK] {sheet_name}: {total_rows-before} data rows", flush=True)
@@ -300,7 +342,7 @@ def build_agg_from_db():
         {"VVD": r[0],"LANE": r[1],"CONT_NR": r[2],"FE_FLG": r[3],"POL_CD": r[4],"POD_CD": r[5],
          "CONT_TP_SIZE_CD": r[6],"CONT_WT": r[7],"AWK_FLG": r[8],"DG_FLG": r[9],"RF_FLG": r[10],
          "BB_FLG": r[11],"SLOT_OWN_PTR_ID": r[12],"CONT_OPR_PTR_ID": r[13],"REVENUE_MONTH": r[14],
-         "VSL_SCH_PORT_CD": r[15]}
+         "TARGET_PORT": r[15]}
         for r in samp
     ]
 
@@ -352,12 +394,16 @@ def main():
     zf = zipfile.ZipFile(args.src)
     wb = zf.read("xl/workbook.xml").decode("utf-8")
     names = re.findall(r'<sheet[^>]*name="([^"]+)"', wb)
+    # Read header row of every sheet to build dynamic column maps.
+    # This handles different column layouts between source files
+    # (e.g. SFTP file has POL_ETB between POL_CD and POD_CD).
+    actual_names, col_maps = build_column_maps(args.src, names)
     sheet_entries = [n for n in zf.namelist() if re.match(r"xl/worksheets/sheet\d+\.xml$", n)]
     sheet_entries.sort(key=lambda x: int(re.search(r"sheet(\d+)\.xml$", x).group(1)))
     for i, entry in enumerate(sheet_entries):
-        name = names[i] if i < len(names) else entry
+        name = actual_names[i] if i < len(actual_names) else entry
         with zf.open(entry) as s:
-            parse_sheet(s, i, name)
+            parse_sheet(s, i, name, col_maps[i])
     flush_batch()
     con.commit()
 
