@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CULines Vessel Bapfile · Lookup</title>
+<style>
+:root{
+  --bg:#eef2f7;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+  --brand:#0b3d91;--brand2:#1d4ed8;--accent:#0ea5e9;
+  --teal:#0d9488;--amber:#d97706;--rose:#e11d48;--green:#059669;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.08);
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",Roboto,sans-serif;}
+body{background:
+   radial-gradient(1200px 400px at 100% -10%,rgba(14,165,233,.10),transparent 60%),
+   radial-gradient(900px 400px at -10% 0%,rgba(11,61,145,.08),transparent 55%),
+   var(--bg);
+   color:var(--ink);line-height:1.55;min-height:100vh;}
+
+/* ---------- top header bar ---------- */
+.appbar{position:sticky;top:0;z-index:50;background:linear-gradient(120deg,var(--brand),var(--brand2));
+   color:#fff;box-shadow:0 4px 18px rgba(11,61,145,.28);}
+.appbar-in{max-width:1320px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand .logo{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.16);
+   display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.5px;
+   border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(4px);}
+.brand h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.2;}
+.brand .tagline{font-size:12px;color:rgba(255,255,255,.78);font-weight:400;}
+.appbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.updated{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.14);
+   border:1px solid rgba(255,255,255,.24);border-radius:12px;padding:7px 14px;}
+.updated .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;
+   box-shadow:0 0 0 4px rgba(74,222,128,.25);flex:none;}
+.updated .lbl{font-size:11px;color:rgba(255,255,255,.72);line-height:1.1;text-transform:uppercase;letter-spacing:.6px;}
+.updated .val{font-size:13px;font-weight:700;color:#fff;line-height:1.2;font-variant-numeric:tabular-nums;}
+
+/* ---------- page container ---------- */
+.wrap{max-width:1320px;margin:0 auto;padding:22px 24px 60px;}
+
+/* ---------- stat cards ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+   padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand2);}
+.stat.s2::before{background:var(--teal);} .stat.s3::before{background:var(--accent);} .stat.s4::before{background:var(--amber);}
+.stat .k{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px;}
+.stat .v{font-size:26px;font-weight:800;margin-top:4px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.5px;}
+.stat .u{font-size:12px;color:var(--muted);margin-top:2px;}
+
+.intro{color:var(--muted);font-size:12.5px;margin:-4px 0 18px;max-width:1000px;line-height:1.6;}
+.intro b{color:var(--ink);}
+
+/* ---------- tabs ---------- */
+.tabs{display:inline-flex;gap:4px;margin-bottom:16px;background:#e2e8f0;padding:4px;border-radius:12px;}
+.tab{background:transparent;color:var(--muted);border:none;border-radius:9px;height:38px;padding:0 22px;
+   font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;}
+.tab:hover{color:var(--ink);}
+.tab.active{background:#fff;color:var(--brand);box-shadow:var(--shadow-sm);}
+
+/* ---------- panels ---------- */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+   padding:20px;margin-bottom:18px;box-shadow:var(--shadow);}
+.panel-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.panel-title .ic{width:22px;height:22px;border-radius:7px;background:rgba(29,78,216,.1);color:var(--brand2);
+   display:grid;place-items:center;font-size:13px;}
+.filters{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;}
+.fgroup{display:flex;flex-direction:column;gap:6px;}
+.fgroup label{font-size:12px;color:var(--muted);font-weight:600;}
+input,select{height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:13px;
+   background:#fff;color:var(--ink);min-width:140px;transition:border .15s,box-shadow .15s;}
+input:focus,select:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+button{cursor:pointer;border:none;border-radius:10px;height:38px;padding:0 20px;font-size:13px;font-weight:600;transition:filter .15s,transform .05s;}
+button:active{transform:translateY(1px);}
+.btn-primary{background:linear-gradient(120deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 4px 12px rgba(29,78,216,.28);}
+.btn-primary:hover{filter:brightness(1.06);}
+.btn-ghost{background:#f1f5f9;color:var(--ink);border:1px solid var(--line);}
+.btn-ghost:hover{background:#e2e8f0;}
+.flags{display:flex;gap:14px;align-items:center;height:38px;}
+.flags label{font-size:13px;display:flex;align-items:center;gap:5px;color:var(--ink);cursor:pointer;}
+.flags input,.chk input{width:16px;height:16px;min-width:0;accent-color:var(--brand2);cursor:pointer;}
+.chk{font-size:13px;display:flex;align-items:center;gap:6px;color:var(--ink);height:38px;cursor:pointer;}
+textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink);
+   width:100%;font-family:ui-monospace,"SF Mono","Consolas",monospace;resize:vertical;line-height:1.6;background:#fff;}
+textarea:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+.note{font-size:12px;color:var(--muted);margin-top:10px;}
+.note.err{color:#b91c1c;font-weight:600;}
+.hint-line{font-size:12px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin:2px 0 12px;flex-wrap:wrap;gap:12px;}
+.total{font-size:13px;color:var(--muted);}
+.total b{color:var(--brand);font-size:16px;font-variant-numeric:tabular-nums;}
+.exptools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.exptools .btn-ghost{height:34px;padding:0 14px;font-size:12px;}
+.exptools .hint{font-size:11px;color:var(--muted);}
+
+/* ---------- table ---------- */
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;max-height:64vh;box-shadow:var(--shadow);}
+table{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap;}
+th,td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;}
+thead th{position:sticky;top:0;background:#f8fafc;z-index:2;font-weight:700;color:#334155;
+   text-transform:uppercase;font-size:11px;letter-spacing:.4px;border-bottom:2px solid var(--line);}
+tbody tr:nth-child(even){background:#fbfcfe;}
+tbody tr:hover{background:#eff6ff;}
+.flagY{color:var(--rose);font-weight:800;}
+.badge-warn{background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.row-mismatch{background:#fff7f7 !important;}
+.row-mismatch:hover{background:#ffe9e9 !important;}
+.badge-dq{background:#fde68a;color:#92400e;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.row-dirty{background:#fff7ed !important;}
+.row-dirty:hover{background:#ffedd5 !important;}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13px;}
+
+/* ---------- pager ---------- */
+.pager{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
+.pager .pg-btn{background:#f1f5f9;color:var(--ink);border:1px solid var(--line);}
+.pager .pg-btn:hover:not(:disabled){background:#e2e8f0;}
+.pager .pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ---------- progress ---------- */
+.progress{height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin:2px 0 12px;display:none;}
+.progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--brand2),var(--accent));transition:width .2s;}
+
+/* ---------- footer ---------- */
+.foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line);}
+
+@media(max-width:900px){ .stats{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:680px){
+  .appbar-in{padding:12px 16px;} .brand h1{font-size:16px;} .brand .tagline{display:none;}
+  .wrap{padding:16px 14px 48px;}
+  .stats{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .stat .v{font-size:21px;}
+  .filters{gap:12px;} .fgroup{width:100%;} input,select{min-width:0;width:100%;}
+  .toolbar{flex-direction:column;align-items:flex-start;} .exptools{width:100%;}
+  textarea{font-size:14px;}
+}
+
+/* ---------- browse extra filters (POL/POD multi-select) ---------- */
+.browse-filters{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.bf-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;}
+.bf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.mf{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fbfcfe;}
+.mf-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.mf-head > span:first-child{font-size:13px;font-weight:700;}
+.mf-count{font-size:11px;color:var(--muted);font-weight:500;margin-left:4px;}
+.mf-acts a{font-size:11.5px;color:var(--brand2);cursor:pointer;margin-left:10px;font-weight:600;}
+.mf-acts a:hover{text-decoration:underline;}
+.mf-search{width:100%;height:34px;margin-bottom:8px;}
+.mf-list{max-height:200px;overflow:auto;border-top:1px solid var(--line);padding-top:6px;}
+.mf-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 6px;border-radius:7px;cursor:pointer;}
+.mf-item:hover{background:#eff6ff;}
+.mf-item input{width:16px;height:16px;min-width:0;accent-color:var(--brand2);cursor:pointer;flex:none;}
+.mf-code{font-family:ui-monospace,Consolas,monospace;letter-spacing:.5px;font-weight:600;color:#334155;}
+
+/* ---------- sortable header ---------- */
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+th.sortable:hover{background:#eef2ff;color:var(--brand);}
+th.sortable.sorted{color:var(--brand);}
+th .arr{font-size:10px;margin-left:3px;opacity:.6;}
+th.sortable.sorted .arr{opacity:1;}
+@media(max-width:680px){ .bf-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brand">
+      <div class="logo">CUL</div>
+      <div>
+        <h1>Vessel Bapfile · Lookup</h1>
+        <div class="tagline">CULines &nbsp;·&nbsp; Container & Voyage Data Portal</div>
+      </div>
+    </div>
+    <div class="appbar-right">
+      <div class="updated">
+        <span class="dot"></span>
+        <div>
+          <div class="lbl">数据更新时间</div>
+          <div class="val" id="updatedAt">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="stats">
+    <div class="stat s1"><div class="k">总记录数 · Records</div><div class="v" id="stRows">—</div><div class="u">rows in database</div></div>
+    <div class="stat s2"><div class="k">集装箱数 · Containers</div><div class="v" id="stCont">—</div><div class="u">distinct container no.</div></div>
+    <div class="stat s3"><div class="k">航线数 · Lanes</div><div class="v" id="stLanes">—</div><div class="u">service lanes</div></div>
+    <div class="stat s4"><div class="k">覆盖月份 · Months</div><div class="v" id="stMonths">—</div><div class="u" id="stMonthRange">revenue months</div></div>
+  </div>
+
+  <div class="intro">
+    Static site — no server required. Source: <b>Vessel Bapfile.xlsx</b>.
+    <b>Container Lookup</b> returns one row per container, deduped by Target Port (VSL_SCH_PORT_CD): the row whose POL equals its Target Port and is newest by Revenue Month is kept; if none matches, the newest row is shown and flagged "Target port is mismatched with POL".
+    <b>Browse</b> filters by VVD (contains), Lane, and/or Revenue Month (all optional) — rows whose POD is not a valid 5-letter port code or whose Type/Size is not a valid container code are flagged <b>⚠ 源数据异常</b> (dirty source rows from the xlsx, not a parse error).
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabLookup">Container Lookup</button>
+    <button class="tab" id="tabBrowse">Browse · VVD / Lane</button>
+  </div>
+
+  <div class="panel" id="panelLookup">
+    <div class="panel-title"><span class="ic">&#128269;</span>Container Lookup</div>
+    <div class="fgroup" style="flex:1 1 100%;">
+      <label>Container List (one per line, or comma / space separated)</label>
+      <textarea id="contlist" rows="5" placeholder="BMOU6486165&#10;SLVU5022179&#10;TGCU5034445"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;">
+      <button class="btn-primary" id="lookupBtn">Lookup</button>
+      <button class="btn-ghost" id="lookupClear">Clear</button>
+    </div>
+    <div class="note" id="lookupNote"></div>
+  </div>
+
+  <div class="panel" id="panelBrowse" style="display:none;">
+    <div class="panel-title"><span class="ic">&#128202;</span>Browse by VVD / Lane / Month</div>
+    <div class="filters">
+      <div class="fgroup"><label>Lane (航线)</label><select id="b_lane"><option value="">All</option></select></div>
+      <div class="fgroup"><label>VVD (contains)</label><input id="b_vvd" placeholder="e.g. COSCO" style="min-width:180px;"></div>
+      <div class="fgroup"><label>Revenue Month</label><select id="b_month"><option value="">All</option></select></div>
+      <div class="fgroup"><label>Special Containers</label><div class="flags">
+        <label><input type="checkbox" name="b_flag" value="AWK">AWK</label>
+        <label><input type="checkbox" name="b_flag" value="DG">DG</label>
+        <label><input type="checkbox" name="b_flag" value="RF">RF</label>
+      </div></div>
+      <div class="fgroup"><label>Deduplicate</label>
+        <label class="chk"><input type="checkbox" id="b_dedup">By Target Port</label>
+      </div>
+      <div class="fgroup"><label>&nbsp;</label><button class="btn-primary" id="browseBtn">Browse</button></div>
+    </div>
+    <div class="hint-line">All filters are optional and combine: pick a Lane to load just that lane's data (one shard), then narrow by VVD / Revenue Month / special flag. If you enter a VVD or pick a month without a Lane, all lanes are loaded (a few MB) and filtered. Tick "By Target Port" to keep one row per container.</div>
+  </div>
+
+  <div class="progress" id="progress"><div class="bar" id="progressBar"></div></div>
+
+  <div id="browseFilters" class="browse-filters" style="display:none;">
+    <div class="bf-title">按 POL / POD 筛选展示（多选 · 在已加载结果内保留勾选的港口，未勾选的将被隐藏）</div>
+    <div class="bf-grid">
+      <div class="mf">
+        <div class="mf-head"><span>POL <span id="polCount" class="mf-count"></span></span>
+          <span class="mf-acts"><a id="polAll">全选</a><a id="polClear">清空</a></span></div>
+        <input id="polSearch" class="mf-search" placeholder="搜索 POL…">
+        <div id="polList" class="mf-list"></div>
+      </div>
+      <div class="mf">
+        <div class="mf-head"><span>POD <span id="podCount" class="mf-count"></span></span>
+          <span class="mf-acts"><a id="podAll">全选</a><a id="podClear">清空</a></span></div>
+        <input id="podSearch" class="mf-search" placeholder="搜索 POD…">
+        <div id="podList" class="mf-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="total">Records: <b id="total">0</b></div>
+    <div class="total" id="pginfo"></div>
+    <div class="exptools">
+      <button class="btn-ghost" id="expCsv">&#10515; CSV</button>
+      <button class="btn-ghost" id="expXls">&#10515; Excel</button>
+      <span class="hint">export current results</span>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table>
+  </div>
+  <div class="pager">
+    <button class="pg-btn" id="prev">Prev</button>
+    <span class="total" id="pageof"></span>
+    <button class="pg-btn" id="next">Next</button>
+    <span class="total">Rows/page <select id="psize" style="height:32px;min-width:auto;"><option>100</option><option>200</option><option>500</option><option>1000</option></select></span>
+  </div>
+
+  <div class="foot">CULines · Vessel Bapfile Static Portal · Data generated <span id="footTime">—</span></div>
+
+</div>
+
+<script>
+const LABELS = {
+  vvd:"VVD", lane:"LANE", container_no:"CONTAINER No.", fe:"Full/Empty",
+  pol:"POL", pod:"POD", type_size:"Type/Size", weight:"Weight",
+  awk:"AWK", dg:"DG", rf:"RF",
+  slot_opr:"SLOT_OPR", cont_opr:"CONT_OPR", rev_month:"Revenue Month",
+  target_port:"Target Port", mismatch:"Mismatch", dq:"DQ"
+};
+// Data-quality: flag rows whose source cells are obviously malformed
+// (POD not a 5-letter port code, or Type/Size not a real container code).
+// These are dirty rows in the source xlsx, not a parse error.
+const PORT_RE=/^[A-Z]{5}$/, TS_RE=/^[0-9]{2}[A-Z]/;
+function isDirty(r){
+  const p=(r.pod||'').toString(); if(p&&!PORT_RE.test(p)) return true;
+  const t=(r.type_size||'').toString(); if(t&&!TS_RE.test(t)) return true;
+  return false;
+}
+function markDQ(r){ r.dq=isDirty(r)?'Y':''; return r; }
+let MANIFEST=null, RESULTS=[], PAGE=1, PAGE_SIZE=100, MODE='lookup', CUR_COLS=[];
+// POL/POD multi-select + column sorting state
+let BASE_ROWS=[], POL_SEL=new Set(), POD_SEL=new Set(), POL_OPTS=[], POD_OPTS=[];
+let SORT={key:null, dir:1};
+
+// Fetch a shard. Shards are stored gzip-compressed; if a CDN auto-decompresses
+// them (Content-Encoding: gzip), the fallback path handles plain JSON.
+async function fetchJson(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP '+res.status+' '+url);
+  const buf = await res.arrayBuffer();
+  try{
+    const ds = new DecompressionStream('gzip');
+    const stream = new Response(buf).body.pipeThrough(ds);
+    return JSON.parse(await new Response(stream).text());
+  }catch(e){
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
+}
+function fillSelect(id, arr){
+  const sel = document.getElementById(id);
+  arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+}
+function fmtInt(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString(); }
+async function init(){
+  try{
+    MANIFEST = await fetch('manifest.json').then(r=>r.json());
+    fillSelect('b_lane', MANIFEST.lanes);
+    fillSelect('b_month', MANIFEST.rev_months);
+    // header: data update time + stat cards
+    const g = MANIFEST.generated_at || '';
+    document.getElementById('updatedAt').textContent = g || '—';
+    document.getElementById('footTime').textContent = g || '—';
+    document.getElementById('stRows').textContent   = fmtInt(MANIFEST.total_rows);
+    document.getElementById('stCont').textContent   = fmtInt(MANIFEST.total_containers);
+    document.getElementById('stLanes').textContent  = fmtInt((MANIFEST.lanes||[]).length);
+    const months = MANIFEST.rev_months||[];
+    document.getElementById('stMonths').textContent = fmtInt(months.length);
+    if(months.length) document.getElementById('stMonthRange').textContent = months[0]+' ~ '+months[months.length-1];
+  }catch(e){ alert('Failed to load manifest.json: '+e.message); }
+}
+function renderHead(cols){
+  document.getElementById('head').innerHTML = cols.map(c=>{
+    const sorted = SORT.key===c;
+    const arr = sorted ? (SORT.dir>0 ? ' ▲' : ' ▼') : '';
+    return `<th data-col="${c}" class="sortable${sorted?' sorted':''}">${LABELS[c]||c}<span class="arr">${arr}</span></th>`;
+  }).join('');
+  cols.forEach(c=>{
+    const th = document.querySelector('#head th[data-col="'+c+'"]');
+    if(th) th.onclick = ()=>sortBy(c);
+  });
+}
+function fmtW(v){ const n=parseFloat(v); return isNaN(n)?(v||''):n.toLocaleString(undefined,{maximumFractionDigits:2}); }
+function flagCell(v){ return (v==='Y'||v==='y')?'<span class="flagY">Y</span>':(v||''); }
+function cellHtml(k,v){
+  if(k==='weight') return `<td>${fmtW(v)}</td>`;
+  if(['awk','dg','rf'].includes(k)) return `<td>${flagCell(v)}</td>`;
+  if(k==='fe') return `<td>${v==='Full'?'F':(v==='Empty'?'E':v)}</td>`;
+  if(k==='mismatch') return v==='Y'?`<td><span class="badge-warn">&#9888; Target port is mismatched with POL</span></td>`:`<td></td>`;
+  if(k==='dq') return v==='Y'?`<td><span class="badge-dq">&#9888; 源数据异常</span></td>`:`<td></td>`;
+  return `<td>${v==null?'':v}</td>`;
+}
+function renderPage(){
+  const cols = CUR_COLS;
+  renderHead(cols);
+  const body = document.getElementById('body');
+  const start = (PAGE-1)*PAGE_SIZE;
+  const slice = RESULTS.slice(start, start+PAGE_SIZE);
+  if(!slice.length){
+    const msg = RESULTS.length===0 ? 'No records yet — run a Container Lookup or Browse by VVD / Lane.' : 'No matching records on this page.';
+    body.innerHTML = `<tr><td colspan="${cols.length}" class="empty">${msg}</td></tr>`;
+  } else {
+    body.innerHTML = slice.map(r=>{
+      const cells = cols.map(c=>cellHtml(c, r[c])).join('');
+      const mis = r.mismatch==='Y';
+      const dirty = r.dq==='Y';
+      let cls = '';
+      if(mis) cls += ' row-mismatch';
+      if(dirty) cls += ' row-dirty';
+      return `<tr${cls?' class="'+cls.trim()+'"':''}>` + cells + '</tr>';
+    }).join('');
+  }
+  const pages = Math.max(1, Math.ceil(RESULTS.length/PAGE_SIZE));
+  document.getElementById('total').textContent = RESULTS.length.toLocaleString();
+  document.getElementById('pageof').textContent = `Page ${PAGE} / ${pages}`;
+  document.getElementById('pginfo').textContent = `${RESULTS.length.toLocaleString()} records`;
+  document.getElementById('prev').disabled = PAGE<=1;
+  document.getElementById('next').disabled = PAGE>=pages;
+}
+function setBusy(msg, isErr){
+  const n = document.getElementById('lookupNote');
+  n.textContent = msg||'';
+  n.classList.toggle('err', !!isErr);
+}
+function showProgress(p){
+  const el = document.getElementById('progress');
+  if(p==null){ el.style.display='none'; document.getElementById('progressBar').style.width='0'; return; }
+  el.style.display='block';
+  document.getElementById('progressBar').style.width = Math.max(4, Math.round(p*100)) + '%';
+}
+
+async function doLookup(){
+  MODE='lookup';
+  const raw = document.getElementById('contlist').value;
+  const nums = [...new Set(raw.split(/[\s,;]+/).map(s=>s.trim().toUpperCase()).filter(Boolean))];
+  const byPrefix = {};
+  nums.forEach(n=>{ if(n.length>=4){ const p=n.slice(0,4); (byPrefix[p]=byPrefix[p]||[]).push(n); } });
+  const prefixes = Object.keys(byPrefix);
+  if(!nums.length){ RESULTS=[]; CUR_COLS=MANIFEST?MANIFEST.cont_cols:[]; renderPage(); setBusy(''); showProgress(null); return; }
+  if(!prefixes.length){ RESULTS=[]; CUR_COLS=MANIFEST.cont_cols; renderPage(); setBusy('No valid container numbers (each needs at least 4 characters).'); showProgress(null); return; }
+  const dict = {};
+  setBusy(`Loading ${prefixes.length} shard(s) for ${nums.length} container(s)…`);
+  showProgress(0);
+  let done = 0;
+  for(const p of prefixes){
+    const url = MANIFEST.cont_files[p];
+    if(!url){ done++; showProgress(done/prefixes.length); continue; }
+    try{
+      const data = await fetchJson(url);
+      const ci = data.cols.indexOf('container_no');
+      data.rows.forEach(r=>{ const o={}; data.cols.forEach((c,i)=>o[c]=r[i]); dict[r[ci]] = o; });
+    }catch(e){ console.warn('shard fail', p, e); }
+    done++; showProgress(done/prefixes.length);
+  }
+  showProgress(null);
+  RESULTS = nums.filter(n=>dict[n]).map(n=>{const o={...dict[n]}; markDQ(o); return o;});
+  CUR_COLS = MANIFEST.cont_cols.concat(['dq']);
+  PAGE = 1;
+  const notFound = nums.filter(n=>!dict[n]);
+  let note = `Matched ${RESULTS.length} / ${nums.length}.`;
+  if(notFound.length) note += ` Not found: ${notFound.length} (e.g. ${notFound.slice(0,5).join(', ')}${notFound.length>5?'…':''})`;
+  setBusy(note);
+  BASE_ROWS = RESULTS;
+  document.getElementById('browseFilters').style.display='none';
+  recompute();
+}
+
+function dedup(rows){
+  const map = new Map();
+  const pri = x => (x.target_port && x.pol===x.target_port) ? 0 : 1;
+  rows.forEach(r=>{
+    const ex = map.get(r.container_no);
+    if(!ex){ map.set(r.container_no, {...r}); return; }
+    const cp = pri(r), ep = pri(ex);
+    if(cp < ep) map.set(r.container_no, {...r});
+    else if(cp===ep && (r.rev_month||'') > (ex.rev_month||'')) map.set(r.container_no, {...r});
+  });
+  return [...map.values()].map(r=>{ r.mismatch = (r.target_port && r.pol!==r.target_port) ? 'Y' : ''; return r; });
+}
+
+async function doBrowse(){
+  MODE='browse';
+  const lane = document.getElementById('b_lane').value;
+  const vvd = document.getElementById('b_vvd').value.trim().toUpperCase();
+  const month = document.getElementById('b_month').value;
+  const flags = [...document.querySelectorAll('input[name=b_flag]:checked')].map(c=>c.value.toLowerCase());
+  if(!lane && !vvd && !month && !flags.length){
+    alert('Please select a Lane and/or enter a VVD / Revenue Month (or pick a special-flag) to browse.');
+    return;
+  }
+  const deduped = document.getElementById('b_dedup').checked;
+  let rows = [];
+  if(lane){
+    // Lane chosen -> load just that one lane shard (fast).
+    setBusy('Loading lane "'+lane+'" …');
+    showProgress(0.15);
+    let data;
+    try{ data = await fetchJson(MANIFEST.lane_files[lane]); }
+    catch(e){ showProgress(null); setBusy('Failed to load lane shard: '+e.message, true); return; }
+    showProgress(1);
+    rows = data.rows.map(r=>{ const o={}; data.cols.forEach((c,i)=>o[c]=r[i]); markDQ(o); return o; });
+  } else {
+    // VVD-only / month-only / flag-only -> load every lane shard, then filter locally.
+    setBusy('Loading all lanes for filter ('+MANIFEST.lanes.length+' shards)…');
+    showProgress(0);
+    let done = 0;
+    for(const ln of MANIFEST.lanes){
+      try{
+        const data = await fetchJson(MANIFEST.lane_files[ln]);
+        data.rows.forEach(r=>{ const o={}; data.cols.forEach((c,i)=>o[c]=r[i]); markDQ(o); rows.push(o); });
+      }catch(e){ console.warn('lane shard fail', ln, e); }
+      done++; showProgress(done/MANIFEST.lanes.length);
+    }
+    showProgress(1);
+  }
+  // Apply VVD / Revenue Month / special-flag filters (all optional).
+  rows = rows.filter(r=>{
+    if(vvd && !(r.vvd||'').toUpperCase().includes(vvd)) return false;
+    if(month && r.rev_month!==month) return false;
+    for(const fl of flags){ if((r[fl]||'')!=='Y') return false; }
+    return true;
+  });
+  if(deduped) rows = dedup(rows);
+  BASE_ROWS = rows;
+  CUR_COLS = MANIFEST.lane_cols.concat(deduped ? ['mismatch'] : []).concat(['dq']);
+  PAGE = 1;
+  showProgress(null);
+  if(rows.length){
+    buildPolPodOptions(rows);
+    setBusy(`${rows.length.toLocaleString()} record(s) loaded. Refine by POL / POD, or click a column header to sort.`);
+  } else {
+    document.getElementById('browseFilters').style.display='none';
+    setBusy('No records matched the current filters.');
+  }
+  recompute();
+}
+
+/* ---------- POL/POD multi-select + column sorting ---------- */
+function cmp(a,b,col){
+  let x=a[col], y=b[col];
+  if(col==='weight'){ x=parseFloat(x)||0; y=parseFloat(y)||0; return x-y; }
+  if(['awk','dg','rf','dq','mismatch'].includes(col)){ x=(x==='Y'||x==='y')?1:0; y=(y==='Y'||y==='y')?1:0; return x-y; }
+  x=(x==null?'':String(x)).toUpperCase();
+  y=(y==null?'':String(y)).toUpperCase();
+  return x<y ? -1 : (x>y ? 1 : 0);
+}
+function recompute(){
+  let rows = BASE_ROWS;
+  if(MODE==='browse'){
+    rows = rows.filter(r=>POL_SEL.has((r.pol||'').trim()) && POD_SEL.has((r.pod||'').trim()));
+  }
+  if(SORT.key){
+    const k=SORT.key, d=SORT.dir;
+    rows = rows.slice().sort((a,b)=>cmp(a,b,k)*d);
+  }
+  RESULTS = rows;
+  PAGE = 1;
+  renderPage();
+}
+function sortBy(col){
+  if(SORT.key===col) SORT.dir *= -1;
+  else { SORT.key=col; SORT.dir=1; }
+  recompute();
+}
+function buildPolPodOptions(rows){
+  const pc={}, dc={};
+  rows.forEach(r=>{
+    const p=(r.pol||'').trim(); if(p) pc[p]=(pc[p]||0)+1;
+    const q=(r.pod||'').trim(); if(q) dc[q]=(dc[q]||0)+1;
+  });
+  POL_OPTS = Object.keys(pc).sort((a,b)=>pc[b]-pc[a]||a.localeCompare(b));
+  POD_OPTS = Object.keys(dc).sort((a,b)=>dc[b]-dc[a]||a.localeCompare(b));
+  POL_SEL = new Set(POL_OPTS);
+  POD_SEL = new Set(POD_OPTS);
+  renderPolList(''); renderPodList('');
+  refreshPolCount(); refreshPodCount();
+  document.getElementById('browseFilters').style.display='';
+}
+function renderPolList(q){
+  const list=document.getElementById('polList');
+  const f=q?POL_OPTS.filter(p=>p.toLowerCase().includes(q.toLowerCase())):POL_OPTS;
+  list.innerHTML = f.length ? f.map(p=>`<label class="mf-item"><input type="checkbox" data-pol="${p}" ${POL_SEL.has(p)?'checked':''}> <span class="mf-code">${p}</span></label>`).join('')
+                        : '<div class="mf-item" style="color:var(--muted)">无匹配</div>';
+}
+function renderPodList(q){
+  const list=document.getElementById('podList');
+  const f=q?POD_OPTS.filter(p=>p.toLowerCase().includes(q.toLowerCase())):POD_OPTS;
+  list.innerHTML = f.length ? f.map(p=>`<label class="mf-item"><input type="checkbox" data-pod="${p}" ${POD_SEL.has(p)?'checked':''}> <span class="mf-code">${p}</span></label>`).join('')
+                        : '<div class="mf-item" style="color:var(--muted)">无匹配</div>';
+}
+function refreshPolCount(){ document.getElementById('polCount').textContent = `(${POL_OPTS.length} 个，已选 ${POL_SEL.size})`; }
+function refreshPodCount(){ document.getElementById('podCount').textContent = `(${POD_OPTS.length} 个，已选 ${POD_SEL.size})`; }
+
+/* ---------- export current results ---------- */
+function download(content, name, type){
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function exportData(kind){
+  if(!RESULTS.length){ alert('No data to export. Run a lookup or browse first.'); return; }
+  const cols = CUR_COLS;
+  const head = cols.map(c=>(LABELS[c]||c));
+  const rowsTxt = RESULTS.map(r=>cols.map(c=>{
+    let v = r[c];
+    if(c==='weight') v = fmtW(v);
+    else if(['awk','dg','rf'].includes(c)) v = (v==='Y'||v==='y') ? 'Y' : '';
+    else if(c==='fe') v = (v==='Full') ? 'F' : (v==='Empty') ? 'E' : v;
+    else if(c==='mismatch') v = (v==='Y') ? 'Target port is mismatched with POL' : '';
+    else if(c==='dq') v = (v==='Y') ? '源数据异常' : '';
+    return v==null ? '' : String(v);
+  }));
+  if(kind==='csv'){
+    const esc = s => '"' + String(s).replace(/"/g,'""') + '"';
+    const csv = '\ufeff' + [head.map(esc).join(',')]
+      .concat(rowsTxt.map(r=>r.map(esc).join(',')))
+      .join('\n');
+    download(csv, 'bapfile_export.csv', 'text/csv;charset=utf-8');
+  } else {
+    const escH = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const thead = '<tr>' + head.map(h=>`<th>${escH(h)}</th>`).join('') + '</tr>';
+    const tbody = rowsTxt.map(r=>'<tr>'+r.map(v=>`<td>${escH(v)}</td>`).join('')+'</tr>').join('');
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
+      + '<head><meta charset="utf-8"></head><body><table border="1">'+thead+tbody+'</table></body></html>';
+    download(html, 'bapfile_export.xls', 'application/vnd.ms-excel');
+  }
+}
+
+document.getElementById('tabLookup').onclick = ()=>{
+  document.getElementById('tabLookup').classList.add('active');
+  document.getElementById('tabBrowse').classList.remove('active');
+  document.getElementById('panelLookup').style.display='';
+  document.getElementById('panelBrowse').style.display='none';
+  MODE='lookup';
+  document.getElementById('browseFilters').style.display='none';
+};
+document.getElementById('tabBrowse').onclick = ()=>{
+  document.getElementById('tabBrowse').classList.add('active');
+  document.getElementById('tabLookup').classList.remove('active');
+  document.getElementById('panelBrowse').style.display='';
+  document.getElementById('panelLookup').style.display='none';
+  MODE='browse';
+  if(POL_OPTS.length) document.getElementById('browseFilters').style.display='';
+};
+document.getElementById('lookupBtn').onclick = doLookup;
+document.getElementById('lookupClear').onclick = ()=>{ document.getElementById('contlist').value=''; RESULTS=[]; renderPage(); setBusy(''); showProgress(null); };
+document.getElementById('browseBtn').onclick = doBrowse;
+document.getElementById('prev').onclick = ()=>{ if(PAGE>1){ PAGE--; renderPage(); } };
+document.getElementById('next').onclick = ()=>{ PAGE++; renderPage(); };
+document.getElementById('psize').onchange = e=>{ PAGE_SIZE=parseInt(e.target.value); PAGE=1; renderPage(); };
+document.getElementById('expCsv').onclick = ()=>exportData('csv');
+document.getElementById('expXls').onclick = ()=>exportData('xls');
+
+/* POL/POD multi-select events */
+document.getElementById('polList').addEventListener('change', e=>{
+  if(e.target && e.target.matches('input[type=checkbox]')){
+    const p=e.target.getAttribute('data-pol');
+    if(e.target.checked) POL_SEL.add(p); else POL_SEL.delete(p);
+    refreshPolCount(); recompute();
+  }
+});
+document.getElementById('podList').addEventListener('change', e=>{
+  if(e.target && e.target.matches('input[type=checkbox]')){
+    const p=e.target.getAttribute('data-pod');
+    if(e.target.checked) POD_SEL.add(p); else POD_SEL.delete(p);
+    refreshPodCount(); recompute();
+  }
+});
+document.getElementById('polSearch').addEventListener('input', e=>renderPolList(e.target.value));
+document.getElementById('podSearch').addEventListener('input', e=>renderPodList(e.target.value));
+document.getElementById('polAll').onclick = ()=>{ POL_SEL=new Set(POL_OPTS); renderPolList(document.getElementById('polSearch').value); refreshPolCount(); recompute(); };
+document.getElementById('polClear').onclick = ()=>{ POL_SEL=new Set(); renderPolList(document.getElementById('polSearch').value); refreshPolCount(); recompute(); };
+document.getElementById('podAll').onclick = ()=>{ POD_SEL=new Set(POD_OPTS); renderPodList(document.getElementById('podSearch').value); refreshPodCount(); recompute(); };
+document.getElementById('podClear').onclick = ()=>{ POD_SEL=new Set(); renderPodList(document.getElementById('podSearch').value); refreshPodCount(); recompute(); };
+
+init();
+renderPage();
+</script>
+</body></html>
