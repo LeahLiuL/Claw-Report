@@ -525,9 +525,9 @@ function renderSummary(){
 
   const tbody=document.getElementById('summaryTbody');
   if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['1'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal').textContent='0 vessels';document.getElementById('statDelay').textContent='0 delayed';return;}
-  const dc=data.filter(r=>r.etaDelay && r.etaDelay.toLowerCase().includes('delay')).length;
-  document.getElementById('statTotal').textContent=data.length+' vessels';
-  document.getElementById('statDelay').textContent=dc+' delayed';
+  const dc=data.filter(r=>r.etaDelay && r.etaDelay.toLowerCase().includes('delay'));
+  document.getElementById('statTotal').textContent=new Set(data.map(r=>r.vessel)).size+' vessels';
+  document.getElementById('statDelay').textContent=new Set(dc.map(r=>r.vessel)).size+' delayed';
 
   const defs = COLUMN_DEFS_SUMMARY;
   tbody.innerHTML = data.map(function(r, rowIdx){
