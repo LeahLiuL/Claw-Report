@@ -3,14 +3,14 @@
 """
 gen_pic.py —— 汇总/维护当前船队的 PIC 对照表(P盘大Excel同级)
 - 船代码: 从 GitHub vessel.csv 取(权威)。
-- PIC:    若 P盘 PIC汇总.csv 已存在, 保留其中手工维护的PIC(不覆盖);
-          仅缺失的船回退 旧大Excel 块头C16。
+- PIC:    若 P盘 PIC汇总.xlsx(人工编辑主文件)已存在, 保留其中手工维护的PIC(不覆盖);
+          仅缺失的船回退 旧大Excel 块头C16。.csv 为同步镜像。
 输出 PIC汇总.xlsx 与 PIC汇总.csv。
 """
 import os, glob, csv, argparse
 import openpyxl
 from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
-                                  canon_route, load_old_ref, load_vessel_csv, load_pic_table,
+                                  canon_route, load_old_ref, load_vessel_csv, load_pic,
                                   DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
 
 # 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。
@@ -32,7 +32,7 @@ def main():
     args = ap.parse_args()
     old_ref, _ = load_old_ref(args.old)
     vessel = load_vessel_csv(args.vessel)
-    existing_pic = load_pic_table(args.pic)   # 保留手工维护的PIC
+    existing_pic = load_pic(args.pic)   # 从 xlsx 主文件保留手工维护的PIC
     src = args.src
     folders = sorted([d for d in os.listdir(src)
                       if os.path.isdir(os.path.join(src, d)) and d != "已下线船舶"])

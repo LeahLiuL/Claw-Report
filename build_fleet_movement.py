@@ -43,8 +43,8 @@ DEFAULT_OLD = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.xlsx")
 DEFAULT_OUT = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 # 船名<->代码 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
 VESSEL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vessel.csv")
-# PIC 权威表: 大Excel同级的 PIC汇总.csv (用户在此手工维护); 与源数据同目录, 两机通用。
-DEFAULT_PIC = os.path.join(UPD_DIR, "PIC汇总.csv")
+# PIC 权威表: 大Excel同级的 PIC汇总.xlsx (人工编辑主文件); .csv 为镜像。与源数据同目录, 两机通用。
+DEFAULT_PIC = os.path.join(UPD_DIR, "PIC汇总.xlsx")
 
 # 当前航线码 默认顺序(仅当旧大Excel读不到块顺序时作回退)。
 # 实际分组顺序由 build_route_order() 按旧大Excel块顺序推导(更贴合你习惯的排法)。
@@ -231,8 +231,31 @@ def load_vessel_csv(path):
                 d[norm(ship)] = code
     return d
 
-def load_pic_table(path):
-    """P盘 PIC汇总.csv: 文件夹名->PIC。取不到返回空dict(回退旧大Excel)。"""
+def load_pic(path):
+    """PIC 权威表: 优先 xlsx(人工编辑主文件), 回退 csv(镜像)。按文件夹名取PIC。
+    取不到返回空dict(回退旧大Excel)。"""
+    if str(path).lower().endswith(".xlsx"):
+        return _load_pic_xlsx(path)
+    return _load_pic_csv(path)
+
+def _load_pic_xlsx(path):
+    d = {}
+    if not os.path.exists(path):
+        return d
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception:
+        return d
+    ws = wb[wb.sheetnames[0]]
+    # 表头: 航线|船名(显示)|文件夹名|船代码|PIC|状态 -> C3=文件夹名, C5=PIC
+    for r in range(2, ws.max_row + 1):
+        fol = ws.cell(r, 3).value
+        pic = ws.cell(r, 5).value
+        if fol is not None and str(fol).strip():
+            d[norm(str(fol).strip())] = str(pic or "").strip()
+    return d
+
+def _load_pic_csv(path):
     d = {}
     if not os.path.exists(path):
         return d
@@ -274,7 +297,7 @@ def main():
     ap.add_argument("--src", default=DEFAULT_SRC)
     ap.add_argument("--old", default=DEFAULT_OLD, help="旧大Excel(取显示名/块顺序, 仅回退用)")
     ap.add_argument("--vessel", default=VESSEL_CSV, help="GitHub vessel.csv (船名->代码)")
-    ap.add_argument("--pic", default=DEFAULT_PIC, help="P盘 PIC汇总.csv (文件夹名->PIC)")
+    ap.add_argument("--pic", default=DEFAULT_PIC, help="PIC 汇总.xlsx (人工编辑主文件, 文件夹名->PIC)")
     ap.add_argument("--output", default=DEFAULT_OUT)
     ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天")
     ap.add_argument("--window", type=int, default=WINDOW_DAYS)
@@ -289,7 +312,7 @@ def main():
     print("=== 1/4 读权威表(vessel.csv / P盘PIC) + 旧大Excel(显示名/块顺序) ===")
     old_ref, old_order = load_old_ref(args.old)
     vessel = load_vessel_csv(args.vessel)
-    pic_tbl = load_pic_table(args.pic)
+    pic_tbl = load_pic(args.pic)
     print(f"  旧船块数(参考): {len(old_ref)} | vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条")
 
     print("=== 2/4 扫描当前船队(2026/文件夹) ===")
