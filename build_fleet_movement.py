@@ -5,31 +5,40 @@ build_fleet_movement.py  —— 重建版 CUL DAILY MOVEMENT 大Excel
 =====================================================================
 按当前 2026/ 各船文件夹(=当前船队, 增删自动反映)重建大Excel, 不再把旧大Excel当模板。
 
-规则(用户2026-07-30确认):
+规则(用户2026-07-30确认, 2026-07-30补充):
   1. 港口行: 仅显示 ETB 在 今日±WINDOW天 窗口内的行 (默认±30)。
-  2. PIC:    从旧大Excel按"文件夹名(=船名)"取; 新船无PIC则留空(手动补)。
-  3. 船块顺序: 按 ROUTE_ORDER(由旧大Excel航线顺序推导, 可编辑) 分组;
-             组内按船名(文件夹名)排序; 一船多航线(多文件夹)则显示多块。
-  4. Remark: 取源第一个sheet中 ETB 最接近今日 那行的 C18,
-             重建成 "Remark:航次 港口 原文"。
+  2. 船名代码(code, 块头C9): 从 GitHub 仓库内 vessel.csv 取(船名->code权威表);
+     取不到才回退 旧大Excel块头C9, 再回退 源R1C9。
+  3. PIC(块头C16): 从 P盘大Excel同级的 PIC汇总.csv 取(按文件夹名);
+     取不到才回退 旧大Excel块头C16。
+  4. 船块顺序: 按旧大Excel航线顺序推导(可编辑) 分组; 组内按船名(文件夹名)排序。
+  5. Remark: 取源第一个sheet中 ETB 最接近今日 那行的 C18, 重建成 "Remark:航次 港口 原文";
+     若该行为空(无remark)则【整行不写】。
 
 重要事实(已核查):
   - 源 R1 C4(船名) 经常为空/错 -> 船名以【文件夹名】为准。
   - 源 R1 C1(航线码) 与旧块头航线码大量改名 -> 用源R1C1作"当前航线",
-    顺序用下方 ROUTE_ORDER 常量(旧位置推导, 可改)。
+    顺序用旧大Excel块顺序(可改)。
   - 源 R1 C1 可能为空(ZBM) -> 回退用旧航线码分组。
+  - 源 R1 C9(船代码) 布局不统一(ASR代码在C12、BZ CHONGFU C9是船名等)
+    -> 以 vessel.csv 为准。
+
 
 用法:
   python build_fleet_movement.py --src "P:\\...\\2026" --old "P:\\...\\CUL DAILY MOVEMENT.xlsx" --output "CUL DAILY MOVEMENT.rebuilt.xlsx"
   (culadmin 那台默认 Z: 盘, 直接 python build_fleet_movement.py)
 """
-import argparse, os, glob, shutil
+import argparse, os, glob, shutil, csv
 from datetime import datetime, date, timedelta
 import openpyxl
 
 DEFAULT_SRC = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\2026"
 DEFAULT_OLD = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
 DEFAULT_OUT = r"CUL DAILY MOVEMENT.rebuilt.xlsx"
+# 船名<->代码 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
+VESSEL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vessel.csv")
+# PIC 权威表: P盘大Excel同级的 PIC汇总.csv (用户在此手动维护)。
+DEFAULT_PIC = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\PIC汇总.csv"
 
 # 当前航线码 默认顺序(仅当旧大Excel读不到块顺序时作回退)。
 # 实际分组顺序由 build_route_order() 按旧大Excel块顺序推导(更贴合你习惯的排法)。
@@ -203,6 +212,32 @@ def load_old_ref(old_path):
         r += 2
     return ref, order
 
+def load_vessel_csv(path):
+    """GitHub 仓库内 vessel.csv: 船名(或文件夹名)->代码。用户手动维护。"""
+    d = {}
+    if not os.path.exists(path):
+        return d
+    with open(path, encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            ship = (row.get("ship") or "").strip()
+            code = (row.get("code") or "").strip()
+            if ship:
+                d[norm(ship)] = code
+    return d
+
+def load_pic_table(path):
+    """P盘 PIC汇总.csv: 文件夹名->PIC。取不到返回空dict(回退旧大Excel)。"""
+    d = {}
+    if not os.path.exists(path):
+        return d
+    with open(path, encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            fol = (row.get("文件夹名") or row.get("folder") or "").strip()
+            pic = (row.get("PIC") or row.get("pic") or "").strip()
+            if fol:
+                d[norm(fol)] = pic
+    return d
+
 def canon_route(folder, src_route):
     """算规范航线码: 先应用文件夹级覆盖, 再做同航线合并, 空则回退。"""
     if folder in ROUTE_OVERRIDE:
@@ -231,7 +266,9 @@ def build_route_order(old_order, folder_to_canon):
 def main():
     ap = argparse.ArgumentParser(description="按当前船队重建 CUL DAILY MOVEMENT 大Excel")
     ap.add_argument("--src", default=DEFAULT_SRC)
-    ap.add_argument("--old", default=DEFAULT_OLD, help="旧大Excel(取PIC/显示名)")
+    ap.add_argument("--old", default=DEFAULT_OLD, help="旧大Excel(取显示名/块顺序, 仅回退用)")
+    ap.add_argument("--vessel", default=VESSEL_CSV, help="GitHub vessel.csv (船名->代码)")
+    ap.add_argument("--pic", default=DEFAULT_PIC, help="P盘 PIC汇总.csv (文件夹名->PIC)")
     ap.add_argument("--output", default=DEFAULT_OUT)
     ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天")
     ap.add_argument("--window", type=int, default=WINDOW_DAYS)
@@ -243,9 +280,11 @@ def main():
     hi = today + timedelta(days=args.window)
 
     print(f"[基准日] {today}  窗口 ±{args.window}天 -> [{lo} ~ {hi}]")
-    print("=== 1/4 读旧大Excel(PIC/显示名/块顺序) ===")
+    print("=== 1/4 读权威表(vessel.csv / P盘PIC) + 旧大Excel(显示名/块顺序) ===")
     old_ref, old_order = load_old_ref(args.old)
-    print(f"  旧船块数(参考): {len(old_ref)}")
+    vessel = load_vessel_csv(args.vessel)
+    pic_tbl = load_pic_table(args.pic)
+    print(f"  旧船块数(参考): {len(old_ref)} | vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条")
 
     print("=== 2/4 扫描当前船队(2026/文件夹) ===")
     folders = sorted([d for d in os.listdir(args.src)
@@ -258,8 +297,12 @@ def main():
         d = read_source(p)
         route = canon_route(fol, d["route"])   # 应用覆盖+合并
         key = norm(FOLDER_ALIAS.get(fol, fol))
-        old_code = old_ref.get(key, {}).get("code")   # 旧大Excel块头C9=人工维护的船名代码(可靠)
-        code = old_code if old_code else d["code"]     # 新船(旧表无)才回退源R1C9
+        # 船名代码: vessel.csv(权威) -> 旧大Excel块头C9 -> 源R1C9
+        vcode = None
+        for c in (norm(fol), key):
+            if c in vessel:
+                vcode = vessel[c]; break
+        code = vcode or old_ref.get(key, {}).get("code") or d["code"]
         ships.append({"folder": fol, "route": route, "code": code, "rows": d["rows"]})
     print(f"  当前船文件夹数: {len(ships)}")
 
@@ -311,8 +354,9 @@ def main():
             fol = s["folder"]
             key = norm(FOLDER_ALIAS.get(fol, fol))
             disp = old_ref.get(key, {}).get("display") or fol
-            pic = old_ref.get(key, {}).get("pic") or ""
-            pic_clean = str(pic).replace("PIC:", "").replace("PIC :", "").strip()
+            # PIC: P盘PIC汇总.csv(权威) -> 旧大Excel块头C16
+            pic_raw = pic_tbl.get(norm(fol)) or old_ref.get(key, {}).get("pic") or ""
+            pic_clean = str(pic_raw).replace("PIC:", "").replace("PIC :", "").strip()
             # 块头
             setc(row, 1, route, font=bold)
             setc(row, 4, disp, font=bold)
@@ -346,9 +390,10 @@ def main():
                 best = s["rows"][best_idx]
                 voy = best["voy"] or nearest_voy_upward(s["rows"], best_idx)
                 rem = best["remark"]
-                txt = f"Remark:{voy} {best['port']}" + (f" {rem}" if rem else "")
-                setc(row, 1, txt)
-            row += 1
+                if rem:   # 仅当有 remark 内容才写; 否则整行不写
+                    txt = f"Remark:{voy} {best['port']} {rem}"
+                    setc(row, 1, txt)
+                    row += 1
             row += 1   # 块间空行
             blocks_written += 1
         row += 1   # 段间空行

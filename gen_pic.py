@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gen_pic.py —— 汇总当前船队的 PIC 对照表
-按当前 2026/ 各船文件夹(=当前船队)生成 航线|船名|船代码|PIC|状态 表,
-PIC 取自旧大Excel(按文件夹名=船名匹配); 旧表里没有的新船标 "⚠ 缺失待补"。
+gen_pic.py —— 汇总/维护当前船队的 PIC 对照表(P盘大Excel同级)
+- 船代码: 从 GitHub vessel.csv 取(权威)。
+- PIC:    若 P盘 PIC汇总.csv 已存在, 保留其中手工维护的PIC(不覆盖);
+          仅缺失的船回退 旧大Excel 块头C16。
 输出 PIC汇总.xlsx 与 PIC汇总.csv。
 """
 import os, glob, csv, argparse
 import openpyxl
 from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
-                                  canon_route, load_old_ref, DEFAULT_SRC, DEFAULT_OLD)
+                                  canon_route, load_old_ref, load_vessel_csv, load_pic_table,
+                                  DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC)
 
 OUT_XLSX = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.xlsx"
 OUT_CSV  = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.csv"
@@ -24,8 +26,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=DEFAULT_SRC)
     ap.add_argument("--old", default=DEFAULT_OLD)
+    ap.add_argument("--vessel", default=VESSEL_CSV)
+    ap.add_argument("--pic", default=DEFAULT_PIC, help="已有PIC表(保留手工PIC)")
     args = ap.parse_args()
     old_ref, _ = load_old_ref(args.old)
+    vessel = load_vessel_csv(args.vessel)
+    existing_pic = load_pic_table(args.pic)   # 保留手工维护的PIC
     src = args.src
     folders = sorted([d for d in os.listdir(src)
                       if os.path.isdir(os.path.join(src, d)) and d != "已下线船舶"])
@@ -39,9 +45,12 @@ def main():
         route = canon_route(fol, src_route)
         key = norm(FOLDER_ALIAS.get(fol, fol))
         ref = old_ref.get(key, {})
-        code = ref.get("code") or ws.cell(1, 9).value   # 优先旧大Excel块头C9(船名代码), 回退源R1C9
-        pic_raw = ref.get("pic") or ""
-        pic = str(pic_raw).replace("PIC:", "").replace("PIC :", "").strip()
+        # 船代码: vessel.csv(权威) -> 旧大ExcelC9 -> 源R1C9
+        code = vessel.get(norm(fol)) or vessel.get(key) or ref.get("code") or ws.cell(1, 9).value
+        # PIC: 已有PIC表(手工)优先; 缺失才回退旧大Excel
+        pic = existing_pic.get(norm(fol))
+        if pic is None:
+            pic = str(ref.get("pic") or "").replace("PIC:", "").replace("PIC :", "").strip()
         disp = ref.get("display") or fol
         status = "已有" if pic else "⚠ 缺失待补"
         rows.append((route, disp, fol, code or "", pic, status))
@@ -70,7 +79,13 @@ def main():
     widths = [10, 24, 22, 10, 18, 14]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
-    wb.save(OUT_XLSX)
+    try:
+        wb.save(OUT_XLSX)
+    except PermissionError:
+        # 文件可能被 Excel 打开而锁定 -> 落到 .new.xlsx 避免覆盖失败
+        alt = OUT_XLSX[:-5] + ".new.xlsx"
+        wb.save(alt)
+        print(f"  [WARN] {OUT_XLSX} 被占用(可能Excel打开), 已写入 {alt}")
 
     # 写 csv
     with open(OUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
