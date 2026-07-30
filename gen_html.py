@@ -210,6 +210,7 @@ def extract(excel_path):
 
     return {
         'date': today.strftime('%Y-%m-%d'),
+        'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'vessels': results,
         'fullSchedule': full_schedule,
     }
@@ -1057,8 +1058,8 @@ document.getElementById('historyModal').addEventListener('click',function(e){if(
    ═══════════════════════════════════════════════════════════════════ */
 function init(){
   loadSnapshots(); saveSnapshot(TODAY_DATA);
-  document.getElementById('headerDate').textContent='As of '+TODAY_DATA.date+'  |  '+TODAY_DATA.vessels.length+' vessels  |  '+TODAY_DATA.fullSchedule.length+' schedule rows';
-  document.getElementById('footerTs').textContent='Generated: '+TODAY_DATA.date;
+  document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+TODAY_DATA.vessels.length+' vessels  |  '+TODAY_DATA.fullSchedule.length+' schedule rows';
+  document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
   initFullSchedule();
 }
