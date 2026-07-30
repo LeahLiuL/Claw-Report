@@ -12,10 +12,10 @@ import os, glob, argparse
 import openpyxl
 from build_fleet_movement import (norm, ROUTE_OVERRIDE, ROUTE_ALIAS,
                                   canon_route, load_vessel_csv, load_pic,
-                                  DEFAULT_SRC, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
+                                  DEFAULT_SRC, VESSEL_CSV, DEFAULT_PIC, UPD_DIR, GEN_DIR)
 
-# 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。仅生成 xlsx(人工编辑主文件)。
-OUT_XLSX = os.path.join(UPD_DIR, "PIC汇总.xlsx")
+# 输出到 生成结果 子文件夹(随 UPD_DIR 自动切换 P:/Z:), 两机通用。仅生成 xlsx(人工编辑主文件)。
+OUT_XLSX = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 
 def latest_xlsx(folder):
     fs = [f for f in glob.glob(os.path.join(folder, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
@@ -77,6 +77,7 @@ def main():
     widths = [10, 24, 22, 10, 18, 14]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+    os.makedirs(os.path.dirname(OUT_XLSX), exist_ok=True)
     try:
         wb.save(OUT_XLSX)
     except PermissionError:

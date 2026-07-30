@@ -26,7 +26,8 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
-DEFAULT_EXCEL = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
+from build_fleet_movement import GEN_DIR
+DEFAULT_EXCEL = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
 
 # ── Column definitions ─────────────────────────────────────────────────────

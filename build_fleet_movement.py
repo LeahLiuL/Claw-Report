@@ -39,12 +39,15 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
+# 脚本生成的输出统一放这个子文件夹(本机P:/另一台Z: 自动切换), 与源数据 2026/ 分开。
+GEN_SUBDIR = "生成结果"
+GEN_DIR = os.path.join(UPD_DIR, GEN_SUBDIR)
 DEFAULT_SRC = os.path.join(UPD_DIR, "2026")
-DEFAULT_OUT = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
+DEFAULT_OUT = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 # 船名<->代码<->显示名 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
 VESSEL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vessel.csv")
-# PIC 权威表: 大Excel同级的 PIC汇总.xlsx (人工编辑主文件, 仅 xlsx)。与源数据同目录, 两机通用。
-DEFAULT_PIC = os.path.join(UPD_DIR, "PIC汇总.xlsx")
+# PIC 权威表: 生成结果子文件夹内的 PIC汇总.xlsx (人工编辑主文件, 仅 xlsx)。两机通用。
+DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 
 # 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
@@ -391,6 +394,7 @@ def main():
         row += 1   # 段间空行
 
     print("=== 4/4 保存 ===")
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
     if os.path.exists(args.output) and not args.no_backup:
         bak = args.output + ".bak_" + datetime.now().strftime("%Y%m%d_%H%M%S")
         shutil.copy2(args.output, bak)
