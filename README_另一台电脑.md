@@ -17,7 +17,8 @@
    ```
    Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\
    ```
-   里面需有原始的 `CUL DAILY MOVEMENT.xlsx`。
+   里面需有 `2026\` 各船文件夹（每个船一个文件夹、含最新 Excel）以及 `PIC汇总.xlsx`。
+   **注意：旧的 `CUL DAILY MOVEMENT.xlsx`（旧大Excel）已不再需要，不用管它。**
 
 ## 之后每天
 
@@ -37,3 +38,4 @@
 - 若本机早已 clone 并跑过，跳过"首次准备"1–3 步，直接双击 `daily_update.bat` 即可（内置 `git pull` 会自动拉到最新脚本与网页更新时间）。
 - `vessel.csv` 建议固定在一处维护（本机 / 另一台 / GitHub 网页），避免两边同时改同一行导致 pull 冲突。
 - GitHub Pages 发布源为 **main 分支根目录**，历史遗留的 `gh-pages` 分支已清理，无需关心。
+- 整条流水线（重建大 Excel / 网页 / PIC 表）**已完全不依赖旧大 Excel**：船名代码与显示名来自 `vessel.csv`，PIC 来自 `PIC汇总.xlsx`，航线顺序固化在脚本 `ROUTE_ORDER` 常量里。新船记得先补登 `vessel.csv`。

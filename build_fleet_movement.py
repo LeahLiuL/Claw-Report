@@ -3,29 +3,30 @@
 """
 build_fleet_movement.py  —— 重建版 CUL DAILY MOVEMENT 大Excel
 =====================================================================
-按当前 2026/ 各船文件夹(=当前船队, 增删自动反映)重建大Excel, 不再把旧大Excel当模板。
+按当前 2026/ 各船文件夹(=当前船队, 增删自动反映)重建大Excel。
+【完全不依赖旧大Excel】——所有权威信息来自:
+  - vessel.csv   (GitHub 仓库内, 船名<->代码<->显示名; 两机 git pull 同步, 用户手动维护)
+  - P盘 PIC汇总.xlsx (人工维护的 PIC 对照表)
 
-规则(用户2026-07-30确认, 2026-07-30补充):
+规则(用户2026-07-30确认):
   1. 港口行: 仅显示 ETB 在 今日±WINDOW天 窗口内的行 (默认±30)。
-  2. 船名代码(code, 块头C9): 从 GitHub 仓库内 vessel.csv 取(船名->code权威表);
-     取不到才回退 旧大Excel块头C9, 再回退 源R1C9。
-  3. PIC(块头C16): 从 P盘大Excel同级的 PIC汇总.csv 取(按文件夹名);
-     取不到才回退 旧大Excel块头C16。
-  4. 船块顺序: 按旧大Excel航线顺序推导(可编辑) 分组; 组内按船名(文件夹名)排序。
+  2. 船名代码(code, 块头C9) / 显示名(C4): 从 vessel.csv 取(权威);
+     仅当 vessel.csv 缺该船时, code 回退 源R1C9、显示名回退 文件夹名(并报警提示补登)。
+  3. PIC(块头C16): 从 P盘 PIC汇总.xlsx 取(按文件夹名); 取不到则留空待补。
+  4. 船块顺序: 按 ROUTE_ORDER 常量(固化20组, 可编辑) 分组; 组内按船名(文件夹名)排序;
+     新航线追加到末尾(字母序)。
   5. Remark: 取源第一个sheet中 ETB 最接近今日 那行的 C18, 重建成 "Remark:航次 港口 原文";
      若该行为空(无remark)则【整行不写】。
 
 重要事实(已核查):
-  - 源 R1 C4(船名) 经常为空/错 -> 船名以【文件夹名】为准。
-  - 源 R1 C1(航线码) 与旧块头航线码大量改名 -> 用源R1C1作"当前航线",
-    顺序用旧大Excel块顺序(可改)。
-  - 源 R1 C1 可能为空(ZBM) -> 回退用旧航线码分组。
-  - 源 R1 C9(船代码) 布局不统一(ASR代码在C12、BZ CHONGFU C9是船名等)
-    -> 以 vessel.csv 为准。
+  - 源 R1 C4(船名) 经常为空/错 -> 显示名以 vessel.csv 的 ship 列为准, 缺则文件夹名。
+  - 源 R1 C1(航线码) 与规范航线码大量改名 -> 用 ROUTE_OVERRIDE / ROUTE_ALIAS 校正。
+  - 源 R1 C1 可能为空(ZBM) -> 回退 ROUTE_FALLBACK。
+  - 源 R1 C9(船代码) 布局不统一(ASR代码在C12) -> 以 vessel.csv 为准。
 
 
 用法:
-  python build_fleet_movement.py --src "P:\\...\\2026" --old "P:\\...\\CUL DAILY MOVEMENT.xlsx" --output "CUL DAILY MOVEMENT.rebuilt.xlsx"
+  python build_fleet_movement.py --src "P:\\...\\2026" --output "CUL DAILY MOVEMENT.rebuilt.xlsx"
   (culadmin 那台默认 Z: 盘, 直接 python build_fleet_movement.py)
 """
 import argparse, os, glob, shutil, csv
@@ -39,22 +40,19 @@ _BASES = [
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
 DEFAULT_SRC = os.path.join(UPD_DIR, "2026")
-DEFAULT_OLD = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.xlsx")
 DEFAULT_OUT = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
-# 船名<->代码 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
+# 船名<->代码<->显示名 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
 VESSEL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vessel.csv")
-# PIC 权威表: 大Excel同级的 PIC汇总.xlsx (人工编辑主文件); .csv 为镜像。与源数据同目录, 两机通用。
+# PIC 权威表: 大Excel同级的 PIC汇总.xlsx (人工编辑主文件, 仅 xlsx)。与源数据同目录, 两机通用。
 DEFAULT_PIC = os.path.join(UPD_DIR, "PIC汇总.xlsx")
 
-# 当前航线码 默认顺序(仅当旧大Excel读不到块顺序时作回退)。
-# 实际分组顺序由 build_route_order() 按旧大Excel块顺序推导(更贴合你习惯的排法)。
-ROUTE_ORDER = ["ST3","CHT","HDT","CST","NSX","NP2","REX","RTS","SGX","SL1",
-               "CGX","HLX","CGS","AEM","AM1","ZGCD","IMR","NAX","CCT"]
+# 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
+# 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
+ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
+               "SGX","SHTG","RTS","NSX","SL1","CGX","HLX","ZGCD","IMR","NAX"]
 ROUTE_FALLBACK = "RTS"   # 源航线码为空时回退
 WINDOW_DAYS = 30
 
-# 文件夹名 -> 旧块头船名 别名(让文件夹能匹配旧PIC/显示名)
-FOLDER_ALIAS = {"HDX 728": "HONG DA XIN 728", "DONG FANG MING HAI": "DONG FANG MIN HAI"}
 # 航线修正(用户2026-07-30确认): 文件夹 -> 规范航线码(覆盖源R1C1的改名/错误)
 ROUTE_OVERRIDE = {"CUL NANSHA": "CCT"}     # 源R1C1误为HDT, 实为CCT
 # 航线合并: 源航线码 -> 规范航线码(同一条航线在源里有不同叫法)
@@ -71,7 +69,6 @@ def norm(s): return (s or "").strip().upper().replace(" ", "")
 def norm_voy(s):
     if s is None: return ""
     return str(s).strip().upper().replace(" ", "")
-REV_ALIAS = {norm(v): k for k, v in FOLDER_ALIAS.items()}   # 旧显示名(规范) -> 文件夹名
 
 # ── 表头对齐: 大Excel目标列 -> 源文件表头候选(归一化名) ──
 # 源文件列顺序不统一(如ASR多一列TERMINAL把VOY.NO推到C8), 故按"表头名"映射而非固定列位。
@@ -196,30 +193,9 @@ def read_source(path):
         rr["voy"] = rr["voy_raw"]
     return {"route": route, "code": code, "rows": raw}
 
-def load_old_ref(old_path):
-    """从旧大Excel取: 船名(文件夹别名化)->(显示名, PIC), 以及块出现顺序 old_order(规范后用于分组排序)。"""
-    wb = openpyxl.load_workbook(old_path, data_only=True)
-    ws = wb[wb.sheetnames[0]]
-    ref = {}
-    order = []
-    r = 1
-    while r <= ws.max_row:
-        if r >= ws.max_row: break
-        if norm(ws.cell(r + 1, 1).value) != "PORT":
-            r += 1; continue
-        c4 = ws.cell(r, 4).value
-        if not c4 or "VESSEL" in norm(c4):
-            r += 1; continue
-        ship = norm(c4)
-        ref[ship] = {"display": str(c4).strip(), "pic": ws.cell(r, 16).value,
-                     "code": ws.cell(r, 9).value}   # C9=船名代码(vessel code)
-        if ship not in order:
-            order.append(ship)
-        r += 2
-    return ref, order
-
 def load_vessel_csv(path):
-    """GitHub 仓库内 vessel.csv: 船名(或文件夹名)->代码。用户手动维护。"""
+    """GitHub 仓库内 vessel.csv: 船名(或文件夹名)-> {code, display}。用户手动维护。
+    显示名取 ship 列原始值; 代码取 code 列。两机 git pull 同步。"""
     d = {}
     if not os.path.exists(path):
         return d
@@ -228,7 +204,7 @@ def load_vessel_csv(path):
             ship = (row.get("ship") or "").strip()
             code = (row.get("code") or "").strip()
             if ship:
-                d[norm(ship)] = code
+                d[norm(ship)] = {"code": code, "display": ship}
     return d
 
 def load_pic(path):
@@ -278,25 +254,16 @@ def canon_route(folder, src_route):
         r = ROUTE_FALLBACK
     return r
 
-def build_route_order(old_order, folder_to_canon):
-    """分组顺序: 跟随旧大Excel块顺序(旧显示名->当前文件夹->规范航线码),
-    旧模板没有的新船文件夹追加到末尾。"""
-    seen = []
-    for ship_norm in old_order:
-        fol = REV_ALIAS.get(ship_norm, ship_norm)   # 旧显示名 -> 文件夹名
-        r = folder_to_canon.get(norm(fol))
-        if r and r not in seen:
-            seen.append(r)
-    for fol, r in folder_to_canon.items():           # 新船追加
-        if r not in seen:
-            seen.append(r)
-    return seen
+def build_route_order(groups):
+    """分组顺序: 跟随 ROUTE_ORDER 常量(固化, 可编辑); 常量里没有的新航线追加到末尾(按字母序)。"""
+    seen = [r for r in ROUTE_ORDER if norm(r) in groups]
+    extra = sorted([r for r in groups if norm(r) not in [norm(x) for x in ROUTE_ORDER]])
+    return seen + extra
 
 def main():
     ap = argparse.ArgumentParser(description="按当前船队重建 CUL DAILY MOVEMENT 大Excel")
     ap.add_argument("--src", default=DEFAULT_SRC)
-    ap.add_argument("--old", default=DEFAULT_OLD, help="旧大Excel(取显示名/块顺序, 仅回退用)")
-    ap.add_argument("--vessel", default=VESSEL_CSV, help="GitHub vessel.csv (船名->代码)")
+    ap.add_argument("--vessel", default=VESSEL_CSV, help="GitHub vessel.csv (船名->代码/显示名)")
     ap.add_argument("--pic", default=DEFAULT_PIC, help="PIC 汇总.xlsx (人工编辑主文件, 文件夹名->PIC)")
     ap.add_argument("--output", default=DEFAULT_OUT)
     ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天")
@@ -309,44 +276,41 @@ def main():
     hi = today + timedelta(days=args.window)
 
     print(f"[基准日] {today}  窗口 ±{args.window}天 -> [{lo} ~ {hi}]")
-    print("=== 1/4 读权威表(vessel.csv / P盘PIC) + 旧大Excel(显示名/块顺序) ===")
-    old_ref, old_order = load_old_ref(args.old)
+    print("=== 1/4 读权威表(vessel.csv / P盘PIC) ===")
     vessel = load_vessel_csv(args.vessel)
     pic_tbl = load_pic(args.pic)
-    print(f"  旧船块数(参考): {len(old_ref)} | vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条")
+    print(f"  vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条")
 
     print("=== 2/4 扫描当前船队(2026/文件夹) ===")
     folders = sorted([d for d in os.listdir(args.src)
                       if os.path.isdir(os.path.join(args.src, d)) and d != "已下线船舶"])
-    ships = []   # {folder, route, code, rows}
+    ships = []   # {folder, route, code, display, rows}
     for fol in folders:
         p = latest_xlsx(os.path.join(args.src, fol))
         if not p:
             print(f"  [WARN] 无xlsx跳过: {fol}"); continue
         d = read_source(p)
         route = canon_route(fol, d["route"])   # 应用覆盖+合并
-        key = norm(FOLDER_ALIAS.get(fol, fol))
-        # 船名代码: vessel.csv(权威) -> 旧大Excel块头C9 -> 源R1C9
-        vcode = None
-        for c in (norm(fol), key):
-            if c in vessel:
-                vcode = vessel[c]; break
-        code = vcode or old_ref.get(key, {}).get("code") or d["code"]
-        ships.append({"folder": fol, "route": route, "code": code, "rows": d["rows"]})
+        key = norm(fol)
+        # 船名代码 & 显示名: vessel.csv(权威) -> 源R1C9 / 文件夹名
+        vent = vessel.get(key)
+        if vent:
+            code = vent.get("code") or d["code"]
+            disp = vent.get("display") or fol
+        else:
+            code = d["code"]
+            disp = fol
+            print(f"  [WARN] 船未在 vessel.csv 登记: {fol} (code/PIC 回退 源R1C9/文件夹名, 建议补登)")
+        ships.append({"folder": fol, "route": route, "code": code, "display": disp, "rows": d["rows"]})
     print(f"  当前船文件夹数: {len(ships)}")
 
     print("=== 3/4 分组排序 + 写表 ===")
     # 分组
     groups = {}
-    folder_to_canon = {}
     for s in ships:
         groups.setdefault(norm(s["route"]), []).append(s)
-        folder_to_canon[norm(s["folder"])] = s["route"]
-    # 顺序: 跟随旧大Excel块顺序(映射当前航线码), 新船追加末尾
-    ordered_routes = build_route_order(old_order, folder_to_canon)
-    if not ordered_routes:   # 旧模板读不到时回退到 ROUTE_ORDER
-        ordered_routes = [r for r in ROUTE_ORDER if norm(r) in groups]
-        ordered_routes += sorted([r for r in groups if norm(r) not in [norm(x) for x in ROUTE_ORDER]])
+    # 顺序: 跟随 ROUTE_ORDER 常量(固化), 新航线追加末尾
+    ordered_routes = build_route_order(groups)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -381,11 +345,10 @@ def main():
         row += 1
         for s in grp:
             fol = s["folder"]
-            key = norm(FOLDER_ALIAS.get(fol, fol))
-            disp = old_ref.get(key, {}).get("display") or fol
-            # PIC: P盘PIC汇总.csv(权威) -> 旧大Excel块头C16
-            pic_raw = pic_tbl.get(norm(fol)) or old_ref.get(key, {}).get("pic") or ""
-            pic_clean = str(pic_raw).replace("PIC:", "").replace("PIC :", "").strip()
+            disp = s["display"]
+            # PIC: P盘PIC汇总.xlsx(权威); 取不到则留空待补
+            pic_raw = pic_tbl.get(norm(fol))
+            pic_clean = str(pic_raw).replace("PIC:", "").replace("PIC :", "").strip() if pic_raw else ""
             # 块头
             setc(row, 1, route, font=bold)
             setc(row, 4, disp, font=bold)

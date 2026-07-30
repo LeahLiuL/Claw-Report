@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 gen_pic.py —— 汇总/维护当前船队的 PIC 对照表(P盘大Excel同级)
-- 船代码: 从 GitHub vessel.csv 取(权威)。
+- 船代码 / 显示名: 从 GitHub vessel.csv 取(权威)。
 - PIC:    若 P盘 PIC汇总.xlsx(人工编辑主文件)已存在, 保留其中手工维护的PIC(不覆盖);
-          仅缺失的船回退 旧大Excel 块头C16。
+          缺失的船留空待补。
 仅输出 PIC汇总.xlsx(人工编辑主文件); 不再生成 .csv 镜像。
+【完全不依赖旧大Excel】。
 """
 import os, glob, argparse
 import openpyxl
-from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
-                                  canon_route, load_old_ref, load_vessel_csv, load_pic,
-                                  DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
+from build_fleet_movement import (norm, ROUTE_OVERRIDE, ROUTE_ALIAS,
+                                  canon_route, load_vessel_csv, load_pic,
+                                  DEFAULT_SRC, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
 
 # 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。仅生成 xlsx(人工编辑主文件)。
 OUT_XLSX = os.path.join(UPD_DIR, "PIC汇总.xlsx")
@@ -25,11 +26,9 @@ def latest_xlsx(folder):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=DEFAULT_SRC)
-    ap.add_argument("--old", default=DEFAULT_OLD)
     ap.add_argument("--vessel", default=VESSEL_CSV)
     ap.add_argument("--pic", default=DEFAULT_PIC, help="已有PIC表(保留手工PIC)")
     args = ap.parse_args()
-    old_ref, _ = load_old_ref(args.old)
     vessel = load_vessel_csv(args.vessel)
     existing_pic = load_pic(args.pic)   # 从 xlsx 主文件保留手工维护的PIC
     src = args.src
@@ -43,15 +42,14 @@ def main():
         ws = wb[wb.sheetnames[0]]
         src_route = ws.cell(1, 1).value
         route = canon_route(fol, src_route)
-        key = norm(FOLDER_ALIAS.get(fol, fol))
-        ref = old_ref.get(key, {})
-        # 船代码: vessel.csv(权威) -> 旧大ExcelC9 -> 源R1C9
-        code = vessel.get(norm(fol)) or vessel.get(key) or ref.get("code") or ws.cell(1, 9).value
-        # PIC: 已有PIC表(手工)优先; 缺失才回退旧大Excel
-        pic = existing_pic.get(norm(fol))
-        if pic is None:
-            pic = str(ref.get("pic") or "").replace("PIC:", "").replace("PIC :", "").strip()
-        disp = ref.get("display") or fol
+        key = norm(fol)
+        vent = vessel.get(key)
+        # 船代码: vessel.csv(权威) -> 源R1C9
+        code = (vent or {}).get("code") or ws.cell(1, 9).value
+        # 显示名: vessel.csv(权威) -> 文件夹名
+        disp = ((vent or {}).get("display") or fol) if vent else fol
+        # PIC: 已有PIC表(手工)优先; 缺失则留空待补
+        pic = existing_pic.get(norm(fol)) or ""
         status = "已有" if pic else "⚠ 缺失待补"
         rows.append((route, disp, fol, code or "", pic, status))
 
