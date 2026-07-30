@@ -4,18 +4,17 @@
 gen_pic.py —— 汇总/维护当前船队的 PIC 对照表(P盘大Excel同级)
 - 船代码: 从 GitHub vessel.csv 取(权威)。
 - PIC:    若 P盘 PIC汇总.xlsx(人工编辑主文件)已存在, 保留其中手工维护的PIC(不覆盖);
-          仅缺失的船回退 旧大Excel 块头C16。.csv 为同步镜像。
-输出 PIC汇总.xlsx 与 PIC汇总.csv。
+          仅缺失的船回退 旧大Excel 块头C16。
+仅输出 PIC汇总.xlsx(人工编辑主文件); 不再生成 .csv 镜像。
 """
-import os, glob, csv, argparse
+import os, glob, argparse
 import openpyxl
 from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
                                   canon_route, load_old_ref, load_vessel_csv, load_pic,
                                   DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
 
-# 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。
+# 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。仅生成 xlsx(人工编辑主文件)。
 OUT_XLSX = os.path.join(UPD_DIR, "PIC汇总.xlsx")
-OUT_CSV  = os.path.join(UPD_DIR, "PIC汇总.csv")
 
 def latest_xlsx(folder):
     fs = [f for f in glob.glob(os.path.join(folder, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
@@ -88,18 +87,10 @@ def main():
         wb.save(alt)
         print(f"  [WARN] {OUT_XLSX} 被占用(可能Excel打开), 已写入 {alt}")
 
-    # 写 csv
-    with open(OUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.writer(f)
-        w.writerow(hdr)
-        for r in rows:
-            w.writerow(r)
-
     total = len(rows)
     miss = sum(1 for r in rows if r[5].startswith("⚠"))
     print(f"当前船队: {total} 艘 | 有PIC: {total-miss} | 缺失待补: {miss}")
     print(f"  -> {OUT_XLSX}")
-    print(f"  -> {OUT_CSV}")
     if miss:
         print("缺失PIC的船:")
         for r in rows:
