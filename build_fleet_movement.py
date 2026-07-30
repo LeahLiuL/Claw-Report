@@ -58,6 +58,52 @@ def norm_voy(s):
     return str(s).strip().upper().replace(" ", "")
 REV_ALIAS = {norm(v): k for k, v in FOLDER_ALIAS.items()}   # 旧显示名(规范) -> 文件夹名
 
+# ── 表头对齐: 大Excel目标列 -> 源文件表头候选(归一化名) ──
+# 源文件列顺序不统一(如ASR多一列TERMINAL把VOY.NO推到C8), 故按"表头名"映射而非固定列位。
+def norm_h(s):
+    return (s or "").strip().upper().replace(" ", "")
+
+def excel_serial_to_dt(v):
+    try:
+        return datetime(1899, 12, 30) + timedelta(days=float(v))
+    except Exception:
+        return None
+
+def norm_date_value(v):
+    """真实日期 -> datetime(统一); 文本标记(OMIT/Mon/...) -> 原字符串; 空 -> None。"""
+    if v is None: return None
+    if isinstance(v, datetime): return v
+    if isinstance(v, (int, float)):
+        d = excel_serial_to_dt(v)
+        return d if d else None
+    s = str(v).strip()
+    if s == "": return None
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d", "%m/%d %H:%M", "%m/%d", "%d/%m %H:%M", "%d/%m"):
+        try:
+            return datetime.strptime(s, fmt)
+        except Exception:
+            pass
+    return s
+
+TARGET_HEADERS = {
+    1:  ["PORT"],
+    2:  ["MANIN", "MAN IN"],
+    3:  ["WAIT"],
+    4:  ["PROFORMA"],
+    5:  ["LTS ETB", "LTM ETB"],          # 源LTS/LTM ETB -> 大Excel C5(ltm eta位置)
+    6:  ["LTS ETD", "LTM ETD"],
+    7:  ["VOY.NO", "VOYNO.", "VOYNO", "VOY. NO"],
+    8:  ["DATE"],
+    9:  ["ETA"],
+    10: ["ETB"],
+    11: ["ETD"],
+    12: ["RUN"],
+    13: ["PORTSTAY(HR)", "PORTSTAY"],
+    14: ["FSPDISTANCE", "FSP DISTANCE"],
+    15: ["SPEED"],
+    16: ["ETADELAY/AHEAD", "ETA DELAY/AHEAD"],
+}
+
 def nearest_voy_upward(rows, idx):
     """ETB最近行航次号为空时, 向上(行号更小=表中更靠上)找最近的、有航次号的行。"""
     for j in range(idx - 1, -1, -1):
@@ -72,35 +118,68 @@ def latest_xlsx(folder):
     return files[0]
 
 def read_source(path):
-    """读源第一个sheet。返回 dict: route, code, rows[(c1..c16), etb, voy, port, remark]。"""
+    """读源第一个sheet。按表头名(非固定列位)映射到大Excel列, 兼容源列序差异(如ASR多TERMINAL列)。
+    返回 dict: route, code, rows[ {display:{col:val}, etb:datetime|None, voy, port, remark} ]。
+    - 日期列(C5/C6/C8/C9/C10/C11)统一为 datetime(真实日期) 或 文本标记(OMIT/Mon..)。
+    - Voy.No 若空, 向上就近取最近的有航次号的行。
+    """
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
     route = ws.cell(1, 1).value
     code = ws.cell(1, 9).value
-    # 找列头行
     hr = None
-    for r in range(1, min(ws.max_row, 80) + 1):
+    for r in range(1, min(ws.max_row, 200) + 1):
         if norm(ws.cell(r, 1).value) == "PORT":
             hr = r; break
-    rows = []
     if hr is None:
-        return {"route": route, "code": code, "rows": rows}
+        return {"route": route, "code": code, "rows": []}
+    # 源表头归一名 -> 源列号
+    src_hdr = {}
+    for c in range(1, ws.max_column + 1):
+        h = norm_h(ws.cell(hr, c).value)
+        if h and h not in src_hdr:
+            src_hdr[h] = c
+    # 目标列 -> 源列号
+    col_map = {}
+    for tcol, cands in TARGET_HEADERS.items():
+        for cand in cands:
+            sc = src_hdr.get(norm_h(cand))
+            if sc:
+                col_map[tcol] = sc; break
+    raw = []
     for r in range(hr + 1, ws.max_row + 1):
         c1 = ws.cell(r, 1).value
         if c1 is None: continue
         s1 = norm(c1)
         if s1 == "PORT": continue          # 多段航次表, 跳过重复列头继续读
         if s1 == "" or s1.startswith("REMARK"): continue
-        vals = [ws.cell(r, c).value for c in range(1, 17)]   # C1..C16
-        etb = ws.cell(r, 10).value
-        rows.append({
-            "vals": vals,
-            "etb": etb if isinstance(etb, datetime) else None,
-            "voy": norm_voy(ws.cell(r, 7).value),
+        display = {}
+        for tcol in range(1, 17):
+            sc = col_map.get(tcol)
+            display[tcol] = ws.cell(r, sc).value if sc else None
+        etb = display.get(10)
+        etb = etb if isinstance(etb, datetime) else None
+        raw.append({
+            "display": display,
+            "etb": etb,
+            "voy_raw": norm_voy(display.get(7)),
             "port": s1,
             "remark": ws.cell(r, 18).value,
         })
-    return {"route": route, "code": code, "rows": rows}
+    # Voy.No 向上就近: 每行若空, 向上(表中更靠上)找最近的有航次号的行
+    for i, rr in enumerate(raw):
+        if rr["voy_raw"]:
+            continue
+        for j in range(i - 1, -1, -1):
+            if raw[j]["voy_raw"]:
+                rr["voy_raw"] = raw[j]["voy_raw"]; break
+    # 统一日期格式 + 写入display
+    for rr in raw:
+        for tcol in (5, 6, 8, 9, 10, 11):
+            rr["display"][tcol] = norm_date_value(rr["display"].get(tcol))
+        rr["display"][7] = rr["voy_raw"]
+        rr["voy"] = rr["voy_raw"]
+    return {"route": route, "code": code, "rows": raw}
 
 def load_old_ref(old_path):
     """从旧大Excel取: 船名(文件夹别名化)->(显示名, PIC), 以及块出现顺序 old_order(规范后用于分组排序)。"""
@@ -229,12 +308,13 @@ def main():
             key = norm(FOLDER_ALIAS.get(fol, fol))
             disp = old_ref.get(key, {}).get("display") or fol
             pic = old_ref.get(key, {}).get("pic") or ""
+            pic_clean = str(pic).replace("PIC:", "").replace("PIC :", "").strip()
             # 块头
             setc(row, 1, route, font=bold)
             setc(row, 4, disp, font=bold)
             setc(row, 8, "DATE")
             setc(row, 9, s["code"])
-            setc(row, 16, pic)
+            setc(row, 16, "PIC: " + pic_clean)   # 始终带PIC:前缀, 保证网页解析识别块(含无PIC新船)
             row += 1
             # 列头
             for c, h in enumerate(COL_HEADERS, 1):
@@ -248,8 +328,8 @@ def main():
                 d = rr["etb"].date()
                 if not (lo <= d <= hi):
                     continue
-                for c, v in enumerate(rr["vals"], 1):
-                    setc(row, c, v, bd=True)
+                for c in range(1, 17):
+                    setc(row, c, rr["display"].get(c), bd=True)
                 row += 1; shown += 1
             # Remark: ETB 最接近今日 那行; 航次号为空则向上找最近的有航次号的行
             best_idx = None; best_diff = None

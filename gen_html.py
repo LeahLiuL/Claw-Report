@@ -71,7 +71,10 @@ SUMMARY_COLUMNS = [
 # ── Helpers ────────────────────────────────────────────────────────────────
 def fmt_dt(v):
     if v is None: return ''
-    if isinstance(v, datetime): return v.strftime('%m/%d %H:%M')
+    if isinstance(v, datetime):
+        if v.hour == 0 and v.minute == 0:
+            return v.strftime('%m/%d')      # 纯日期(如Date列)不显示 00:00
+        return v.strftime('%m/%d %H:%M')
     return str(v).strip()
 
 def get_str(v):
