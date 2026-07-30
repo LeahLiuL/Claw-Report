@@ -32,13 +32,19 @@ import argparse, os, glob, shutil, csv
 from datetime import datetime, date, timedelta
 import openpyxl
 
-DEFAULT_SRC = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\2026"
-DEFAULT_OLD = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
-DEFAULT_OUT = r"CUL DAILY MOVEMENT.rebuilt.xlsx"
+# 数据更新目录: 本机(leahliu)=P:, 另一台(culadmin)=Z:。自动探测存在的盘符, 两机通用, 无需传参。
+_BASES = [
+    r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
+    r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
+]
+UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
+DEFAULT_SRC = os.path.join(UPD_DIR, "2026")
+DEFAULT_OLD = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.xlsx")
+DEFAULT_OUT = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 # 船名<->代码 权威表(GitHub 仓库内, 两机 git pull 同步); 用户在此手动维护。
 VESSEL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vessel.csv")
-# PIC 权威表: P盘大Excel同级的 PIC汇总.csv (用户在此手动维护)。
-DEFAULT_PIC = r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\PIC汇总.csv"
+# PIC 权威表: 大Excel同级的 PIC汇总.csv (用户在此手工维护); 与源数据同目录, 两机通用。
+DEFAULT_PIC = os.path.join(UPD_DIR, "PIC汇总.csv")
 
 # 当前航线码 默认顺序(仅当旧大Excel读不到块顺序时作回退)。
 # 实际分组顺序由 build_route_order() 按旧大Excel块顺序推导(更贴合你习惯的排法)。

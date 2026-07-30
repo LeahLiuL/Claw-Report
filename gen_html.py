@@ -19,9 +19,15 @@ import openpyxl, json, re, sys, os, argparse
 from datetime import datetime, date
 
 # ── Defaults ──────────────────────────────────────────────────────────────
-DEFAULT_EXCEL = r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新\CUL DAILY MOVEMENT.xlsx"
-DEFAULT_HTML  = r"C:\Users\culadmin\Claw-Report\cul_daily_movement.html"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# 数据更新目录: 本机(leahliu)=P:, 另一台(culadmin)=Z:。自动探测, 两机通用, 无需传参。
+_BASES = [
+    r"Z:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
+    r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
+]
+UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
+DEFAULT_EXCEL = os.path.join(UPD_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
+DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
 
 # ── Column definitions ─────────────────────────────────────────────────────
 # Full column list (all columns in the Excel schedule rows)

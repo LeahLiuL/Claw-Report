@@ -11,10 +11,11 @@ import os, glob, csv, argparse
 import openpyxl
 from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
                                   canon_route, load_old_ref, load_vessel_csv, load_pic_table,
-                                  DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC)
+                                  DEFAULT_SRC, DEFAULT_OLD, VESSEL_CSV, DEFAULT_PIC, UPD_DIR)
 
-OUT_XLSX = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.xlsx"
-OUT_CSV  = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.csv"
+# 输出与源数据同目录(随 UPD_DIR 自动切换 P:/Z:), 两机通用。
+OUT_XLSX = os.path.join(UPD_DIR, "PIC汇总.xlsx")
+OUT_CSV  = os.path.join(UPD_DIR, "PIC汇总.csv")
 
 def latest_xlsx(folder):
     fs = [f for f in glob.glob(os.path.join(folder, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
