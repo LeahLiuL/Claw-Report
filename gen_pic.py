@@ -11,8 +11,8 @@ import openpyxl
 from build_fleet_movement import (norm, FOLDER_ALIAS, ROUTE_OVERRIDE, ROUTE_ALIAS,
                                   canon_route, load_old_ref, DEFAULT_SRC, DEFAULT_OLD)
 
-OUT_XLSX = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新\PIC汇总.xlsx"
-OUT_CSV  = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement\更新\PIC汇总.csv"
+OUT_XLSX = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.xlsx"
+OUT_CSV  = r"P:/04 上海操作中心/01 船期管理科/船期管理/VSL Daily Movement/更新/PIC汇总.csv"
 
 def latest_xlsx(folder):
     fs = [f for f in glob.glob(os.path.join(folder, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
@@ -36,10 +36,10 @@ def main():
         wb = openpyxl.load_workbook(p, data_only=True)
         ws = wb[wb.sheetnames[0]]
         src_route = ws.cell(1, 1).value
-        code = ws.cell(1, 9).value
         route = canon_route(fol, src_route)
         key = norm(FOLDER_ALIAS.get(fol, fol))
         ref = old_ref.get(key, {})
+        code = ref.get("code") or ws.cell(1, 9).value   # 优先旧大Excel块头C9(船名代码), 回退源R1C9
         pic_raw = ref.get("pic") or ""
         pic = str(pic_raw).replace("PIC:", "").replace("PIC :", "").strip()
         disp = ref.get("display") or fol

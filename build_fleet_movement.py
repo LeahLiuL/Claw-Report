@@ -196,7 +196,8 @@ def load_old_ref(old_path):
         if not c4 or "VESSEL" in norm(c4):
             r += 1; continue
         ship = norm(c4)
-        ref[ship] = {"display": str(c4).strip(), "pic": ws.cell(r, 16).value}
+        ref[ship] = {"display": str(c4).strip(), "pic": ws.cell(r, 16).value,
+                     "code": ws.cell(r, 9).value}   # C9=船名代码(vessel code)
         if ship not in order:
             order.append(ship)
         r += 2
@@ -256,7 +257,10 @@ def main():
             print(f"  [WARN] 无xlsx跳过: {fol}"); continue
         d = read_source(p)
         route = canon_route(fol, d["route"])   # 应用覆盖+合并
-        ships.append({"folder": fol, "route": route, "code": d["code"], "rows": d["rows"]})
+        key = norm(FOLDER_ALIAS.get(fol, fol))
+        old_code = old_ref.get(key, {}).get("code")   # 旧大Excel块头C9=人工维护的船名代码(可靠)
+        code = old_code if old_code else d["code"]     # 新船(旧表无)才回退源R1C9
+        ships.append({"folder": fol, "route": route, "code": code, "rows": d["rows"]})
     print(f"  当前船文件夹数: {len(ships)}")
 
     print("=== 3/4 分组排序 + 写表 ===")
