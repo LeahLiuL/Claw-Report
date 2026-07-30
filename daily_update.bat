@@ -38,7 +38,7 @@ if errorlevel 1 (
 )
 
 echo ============================================================
-echo DONE. Webpage updated in local repo.
-echo (If GitHub Pages publishes from gh-pages branch, one extra push step is needed - see notes)
+echo DONE. Webpage pushed to main branch.
+echo GitHub Pages publishes from main branch root, so the page is now live.
 echo ============================================================
 pause
