@@ -58,6 +58,13 @@ def norm_voy(s):
     return str(s).strip().upper().replace(" ", "")
 REV_ALIAS = {norm(v): k for k, v in FOLDER_ALIAS.items()}   # 旧显示名(规范) -> 文件夹名
 
+def nearest_voy_upward(rows, idx):
+    """ETB最近行航次号为空时, 向上(行号更小=表中更靠上)找最近的、有航次号的行。"""
+    for j in range(idx - 1, -1, -1):
+        if rows[j]["voy"]:
+            return rows[j]["voy"]
+    return ""
+
 def latest_xlsx(folder):
     files = [f for f in glob.glob(os.path.join(folder, "*.xlsx")) if not os.path.basename(f).startswith("~$")]
     if not files: return None
@@ -244,16 +251,18 @@ def main():
                 for c, v in enumerate(rr["vals"], 1):
                     setc(row, c, v, bd=True)
                 row += 1; shown += 1
-            # Remark: ETB 最接近今日 那行
-            best = None; best_diff = None
-            for rr in s["rows"]:
+            # Remark: ETB 最接近今日 那行; 航次号为空则向上找最近的有航次号的行
+            best_idx = None; best_diff = None
+            for i, rr in enumerate(s["rows"]):
                 if rr["etb"] is None: continue
                 diff = abs((rr["etb"].date() - today).days)
                 if best_diff is None or diff < best_diff:
-                    best_diff = diff; best = rr
-            if best:
+                    best_diff = diff; best_idx = i
+            if best_idx is not None:
+                best = s["rows"][best_idx]
+                voy = best["voy"] or nearest_voy_upward(s["rows"], best_idx)
                 rem = best["remark"]
-                txt = f"Remark:{best['voy']} {best['port']}" + (f" {rem}" if rem else "")
+                txt = f"Remark:{voy} {best['port']}" + (f" {rem}" if rem else "")
                 setc(row, 1, txt)
             row += 1
             row += 1   # 块间空行
