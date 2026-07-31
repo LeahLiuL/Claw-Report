@@ -61,9 +61,6 @@ ROUTE_OVERRIDE = {"CUL NANSHA": "CCT"}     # 源R1C1误为HDT, 实为CCT
 # 航线合并: 源航线码 -> 规范航线码(同一条航线在源里有不同叫法)
 ROUTE_ALIAS = {"AM1": "AEM"}                # AEM 与 AM1 是同一航线
 
-# 不拆分的船文件夹名(源文件有多段标题行, 但船并未换航线, 如不同航次周期)
-NO_SPLIT_FOLDERS = {"CUL HUANGPU"}
-
 # 大Excel列头(沿用旧文件标签, 与源C1..C16位置一一对应)
 COL_HEADERS = ["PORT","man in","wait","Proforma","ltm eta","ltm etd","VOY. NO",
                "date","ETA","ETB","ETD","run","Port Stay(hr)","fsp distance",
@@ -172,9 +169,12 @@ def read_source(path):
         s1 = norm(c1)
         if s1 == "PORT": continue          # 多段航次表, 跳过重复列头继续读
         # ── 检测中间段标题行(如 R33: C1="NP2", C4="ZHI YING HE SHUN", C9="ZYHS") ──
-        # 特征: C4 有文本值(船名) 且 C1 不是港口名(非纯大写英文港口码或含空格/中文)
+        # 特征: C4 有文本值(船代码) 且 C9 也是文本(船显示名) — NOT datetime
+        # 数据行 C4 可能是 proforma 时间窗口(如"SUN0600-SUN1200"), 需要用 C9 类型区分
         c4_val = ws.cell(r, 4).value
-        if c4_val and isinstance(c4_val, str) and c4_val.strip():
+        c9_val = ws.cell(r, 9).value
+        if (c4_val and isinstance(c4_val, str) and c4_val.strip() and
+            c9_val and isinstance(c9_val, str) and not isinstance(c9_val, datetime)):
             # 这是一个段标题行(换航线了), 更新后续行的航线
             current_route = str(c1).strip()
             continue    # 段标题行本身不作为数据行
@@ -315,19 +315,27 @@ def main():
             code = d["code"]
             disp = fol
             print(f"  [WARN] 船未在 vessel.csv 登记: {fol} (code/PIC 回退 源R1C9/文件夹名, 建议补登)")
-        # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2) ──
-        # NO_SPLIT_FOLDERS 里的船即使源文件有多段标题, 也不拆分(船并未换航线)
-        if fol in NO_SPLIT_FOLDERS:
-            ships.append({"folder": fol, "route": route, "code": code, "display": disp, "rows": list(d["rows"])})
-        else:
-            sub_routes = {}
-            for rr in d["rows"]:
-                sr = canon_route(fol, rr.get("row_route", route))   # 每行实际航线(应用覆盖+合并)
-                sub_routes.setdefault(sr, []).append(rr)
-            if len(sub_routes) > 1:
-                print(f"  [{fol}] 拆为 {len(sub_routes)} 个航线段: {', '.join(sub_routes.keys())}")
-            for sub_r, sub_rows in sub_routes.items():
-                ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
+        # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2)
+        #     但拆之前先用 ±30天窗口过滤: 只有多段同时有窗口内数据才拆;
+        #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
+        sub_routes = {}   # route -> [rows with row_route]
+        for rr in d["rows"]:
+            sr = canon_route(fol, rr.get("row_route", route))
+            sub_routes.setdefault(sr, []).append(rr)
+        # 对每段检查是否有 窗口内数据
+        active_segments = {}
+        for sub_r, sub_rows in sub_routes.items():
+            has_data = any(rr.get("etb") is not None and lo <= rr["etb"].date() <= hi for rr in sub_rows)
+            if has_data:
+                active_segments[sub_r] = sub_rows
+        if len(active_segments) > 1:
+            print(f"  [{fol}] 拆为 {len(active_segments)} 个航线段(仅窗口内有数据): {', '.join(active_segments.keys())}")
+        elif len(active_segments) == 0:
+            # 整个文件都没有窗口内数据 — 保留第一段(船仍显示, 只是无港口行)
+            first_r = next(iter(sub_routes))
+            active_segments = {first_r: sub_routes[first_r]}
+        for sub_r, sub_rows in active_segments.items():
+            ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
     print(f"  当前船文件夹数: {len(ships)}")
 
     print("=== 3/4 分组排序 + 写表 ===")
