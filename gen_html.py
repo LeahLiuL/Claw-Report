@@ -54,7 +54,7 @@ FULL_COLUMNS = [
     ('speed',       'Speed',            True,   True),   # C15
     ('etaDelay',    'ETA Delay',        True,   True),   # C16
     ('etdDelay',    'ETD Delay',        True,   False),  # C17
-    ('remark',      'Remark',           True,   True),
+    ('remark',      'Remark',           True,   False),
     ('pic',         'PIC',              True,   True),
 ]
 # Summary view columns (subset)
