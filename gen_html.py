@@ -54,7 +54,6 @@ FULL_COLUMNS = [
     ('speed',       'Speed',            True,   True),   # C15
     ('etaDelay',    'ETA Delay',        True,   True),   # C16
     ('etdDelay',    'ETD Delay',        True,   False),  # C17
-    ('remark',      'Remark',           True,   False),
     ('pic',         'PIC',              True,   True),
 ]
 # Summary view columns (subset)
@@ -73,7 +72,6 @@ SUMMARY_COLUMNS = [
     ('etaDelay',   'ETA Delay',        True),
     ('etdDelay',   'ETD Delay',        True),
     ('pic',        'PIC',              True),
-    ('remark',     'Remark',           True),
 ]
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -107,11 +105,32 @@ def extract(excel_path):
 
             schedule_rows = []
             remark = ''
+            remarks_by_row = {}  # row_number -> remark for per-row association
             j = i + 2
             while j <= rows_total:
                 c1_j = ws_src.cell(j, 1).value
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
-                    remark = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
+                    remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
+                    if remark_text:
+                        # Parse remark to find target row: first two tokens = voyage + port
+                        parts = remark_text.split()
+                        if len(parts) >= 2 and schedule_rows:
+                            target_voy, target_port = parts[0], parts[1]
+                            matched = False
+                            for sr in schedule_rows:
+                                sr_voy = get_str(ws_src.cell(sr, 7).value)
+                                sr_port = get_str(ws_src.cell(sr, 1).value)
+                                if sr_voy == target_voy and sr_port == target_port:
+                                    remarks_by_row[sr] = remark_text
+                                    matched = True
+                                    break
+                            if not matched:
+                                # Fallback: assign to last schedule row
+                                remarks_by_row[schedule_rows[-1]] = remark_text
+                        elif schedule_rows:
+                            remarks_by_row[schedule_rows[-1]] = remark_text
+                        else:
+                            remark = remark_text  # fallback: no schedule rows yet
                     i = j + 1
                     break
                 c16_j = ws_src.cell(j, 16).value
@@ -126,7 +145,8 @@ def extract(excel_path):
 
             vessel_blocks.append({'route': route, 'vessel_full': vessel_full,
                                    'vessel_code': vessel_code, 'pic': pic,
-                                   'schedule_rows': schedule_rows, 'remark': remark})
+                                   'schedule_rows': schedule_rows,
+                                   'remarks_by_row': remarks_by_row})
         else:
             i += 1
 
@@ -169,14 +189,14 @@ def extract(excel_path):
                 'speed':       get_str(ws_src.cell(r, 15).value),
                 'etaDelay':    get_str(ws_src.cell(r, 16).value),
                 'etdDelay':    get_str(ws_src.cell(r, 17).value),
-                'remark':      vb['remark'],
+                'remark':      vb['remarks_by_row'].get(r, ''),
             }
         else:
             rec = {'route': vb['route'], 'vessel': vb['vessel_full'],
                    'code': vb['vessel_code'], 'pic': vb['pic'],
                    'port':'','manIn':'','wait':'','proforma':'','voy':'','ltmEta':'','ltmEtd':'',
                    'date':'','eta':'','etb':'','etd':'','run':'',
-                   'portStay':'','fspDistance':'','speed':'','etaDelay':'','etdDelay':'','remark': vb['remark']}
+                   'portStay':'','fspDistance':'','speed':'','etaDelay':'','etdDelay':'','remark': ''}
         results.append(rec)
 
     # ── Full Schedule: ALL port rows for ALL vessels ──
@@ -205,7 +225,7 @@ def extract(excel_path):
                 'speed':       get_str(ws_src.cell(r, 15).value),
                 'etaDelay':    get_str(ws_src.cell(r, 16).value),
                 'etdDelay':    get_str(ws_src.cell(r, 17).value),
-                'remark':      vb['remark'],
+                'remark':      vb['remarks_by_row'].get(r, ''),
             })
 
     return {
@@ -365,6 +385,7 @@ function _loadXlsx(cb){
   .ahead-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: #f0fff4; color: #1a7340; border: 1px solid #b7dfca; }
   .no-data { text-align: center; padding: 40px; color: #8a9bb0; font-size: 14px; }
   .remark-cell { max-width: 260px; white-space: normal; line-height: 1.4; color: #5a6e82; font-size: 11.5px; }
+  .remark-note { display: block; max-width: 200px; white-space: normal; line-height: 1.3; color: #e67e22; font-size: 10.5px; font-weight: normal; margin-top: 2px; }
   .vessel-label {
     font-weight: 700; color: #1F4E79; font-size: 12px;
     display: inline-block; padding: 1px 6px; border-radius: 3px;
@@ -784,7 +805,11 @@ function renderSummary(){
       if(col.key==='vessel')    return '<td><strong>'+v+'</strong></td>';
       if(col.key==='code')      return '<td class="td-center"><span class="badge-code">'+v+'</span></td>';
       if(col.key==='pic')       return '<td>'+v+'</td>';
-      if(col.key==='port')      return '<td class="td-center td-mono"><strong>'+v+'</strong></td>';
+      if(col.key==='port') {
+        var sPortHtml = '<strong>'+v+'</strong>';
+        if(r.remark) sPortHtml += '<br><span class="remark-note">'+r.remark+'</span>';
+        return '<td class="td-center td-mono">'+sPortHtml+'</td>';
+      }
       if(col.key==='wait')      return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')  return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')       return '<td class="td-center td-mono">'+v+'</td>';
@@ -793,7 +818,6 @@ function renderSummary(){
       if(col.key==='portStay')  return '<td class="td-center">'+v+'</td>';
       if(col.key==='etaDelay')  return '<td class="td-center">'+delayTag(v)+'</td>';
       if(col.key==='etdDelay')  return '<td class="td-center">'+delayTag(v)+'</td>';
-      if(col.key==='remark')    return '<td class="remark-cell">'+v+'</td>';
       return '<td>'+v+'</td>';
     });
     return '<tr>'+cells.filter(c=>c!==null).join('')+'</tr>';
@@ -884,7 +908,11 @@ function renderFullSchedule(){
       if(col.key==='vessel')     return '<td><span class="vessel-label">'+v+'</span></td>';
       if(col.key==='code')       return '<td class="td-center"><span class="badge-code">'+v+'</span></td>';
       if(col.key==='pic')        return '<td>'+v+'</td>';
-      if(col.key==='port')       return '<td class="td-center td-mono"><strong>'+v+'</strong></td>';
+      if(col.key==='port') {
+        var portHtml = '<strong>'+v+'</strong>';
+        if(r.remark) portHtml += '<br><span class="remark-note">'+r.remark+'</span>';
+        return '<td class="td-center td-mono">'+portHtml+'</td>';
+      }
       if(col.key==='manIn' || col.key==='wait' || col.key==='run' || col.key==='fspDistance' || col.key==='speed') return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')   return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')        return '<td class="td-center td-mono">'+v+'</td>';
