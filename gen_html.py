@@ -154,6 +154,7 @@ def extract(excel_path):
 
     # ── Summary: nearest ETB per vessel ──
     results = []
+    summary_row_set = set()
     for vb in vessel_blocks:
         best_row, best_etb = None, None
         for r in vb['schedule_rows']:
@@ -168,6 +169,7 @@ def extract(excel_path):
                     best_row = r; break
 
         if best_row:
+            summary_row_set.add(best_row)
             r = best_row
             rec = {
                 'route':       vb['route'],
@@ -228,6 +230,7 @@ def extract(excel_path):
                 'etaDelay':    get_str(ws_src.cell(r, 16).value),
                 'etdDelay':    get_str(ws_src.cell(r, 17).value),
                 'remark':      vb['remarks_by_row'].get(r, ''),
+                'isSummary':   r in summary_row_set,
             })
 
     return {
@@ -374,6 +377,8 @@ function _loadXlsx(cb){
   .vessel-group-even td { background: #f5f9fe !important; }
   .vessel-group-odd  td { background: #fff !important; }
   .vessel-group-even:hover td, .vessel-group-odd:hover td { background: #dcedf9 !important; }
+  .summary-highlight td { background: #fff3cd !important; }
+  .summary-highlight:hover td { background: #ffe69c !important; }
   .vessel-group-first td { border-top: 3px solid #2E75B6; }
   .vessel-group-last  td { border-bottom: 2px solid #c3d9f0; }
 
@@ -898,6 +903,7 @@ function renderFullSchedule(){
       endCls = ' vessel-group-last';
     }
     var cls = gc+boundaryCls+endCls;
+    if(r.isSummary) cls += ' summary-highlight';
 
     var cells = defs.map(function(col){
       if(!visibleCols['2'].has(col.key)) return null;
