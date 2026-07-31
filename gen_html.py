@@ -16,7 +16,7 @@ gen_html.py  —  CUL Daily Movement HTML Generator
 """
 
 import openpyxl, json, re, sys, os, argparse
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # ── Defaults ──────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -91,6 +91,8 @@ def get_str(v):
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path):
     today = date.today()
+    data_eta_min = today - timedelta(days=60)   # capture ~2 months before
+    data_eta_max = today + timedelta(days=60)   # capture ~2 months after
     wb_src = openpyxl.load_workbook(excel_path)
     ws_src = wb_src.active
 
@@ -139,8 +141,11 @@ def extract(excel_path):
                 if c16_j and isinstance(c16_j, str) and 'PIC' in c16_j:
                     i = j
                     break
-                if isinstance(ws_src.cell(j, 9).value, datetime):
-                    schedule_rows.append(j)
+                eta_val = ws_src.cell(j, 9).value
+                if isinstance(eta_val, datetime):
+                    eta_d = eta_val.date()
+                    if data_eta_min <= eta_d <= data_eta_max:
+                        schedule_rows.append(j)
                 j += 1
             else:
                 i = rows_total + 1
@@ -185,6 +190,7 @@ def extract(excel_path):
                 'ltmEtd':      fmt_dt(ws_src.cell(r, 6).value),
                 'date':        fmt_dt(ws_src.cell(r, 8).value),
                 'eta':         fmt_dt(ws_src.cell(r, 9).value),
+                'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
                 'etb':         fmt_dt(ws_src.cell(r, 10).value),
                 'etd':         fmt_dt(ws_src.cell(r, 11).value),
                 'run':         get_str(ws_src.cell(r, 12).value),
@@ -199,7 +205,7 @@ def extract(excel_path):
             rec = {'route': vb['route'], 'vessel': vb['vessel_full'],
                    'code': vb['vessel_code'], 'pic': vb['pic'],
                    'port':'','manIn':'','wait':'','proforma':'','voy':'','ltmEta':'','ltmEtd':'',
-                   'date':'','eta':'','etb':'','etd':'','run':'',
+                   'date':'','eta':'','etaRaw':'','etb':'','etd':'','run':'',
                    'portStay':'','fspDistance':'','speed':'','etaDelay':'','etdDelay':'','remark': ''}
         results.append(rec)
 
@@ -221,6 +227,7 @@ def extract(excel_path):
                 'ltmEtd':      fmt_dt(ws_src.cell(r, 6).value),
                 'date':        fmt_dt(ws_src.cell(r, 8).value),
                 'eta':         fmt_dt(ws_src.cell(r, 9).value),
+                'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
                 'etb':         fmt_dt(ws_src.cell(r, 10).value),
                 'etd':         fmt_dt(ws_src.cell(r, 11).value),
                 'run':         get_str(ws_src.cell(r, 12).value),
@@ -238,6 +245,10 @@ def extract(excel_path):
         'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'vessels': results,
         'fullSchedule': full_schedule,
+        'defaultEtaFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
+        'defaultEtaTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
+        'dataEtaMin':     data_eta_min.strftime('%Y-%m-%d'),
+        'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d'),
     }
 
 # ── HTML Template ────────────────────────────────────────────────────────
@@ -312,6 +323,12 @@ function _loadXlsx(cb){
   }
   .controls input:focus, .controls select:focus { border-color: #2E75B6; box-shadow: 0 0 0 2px rgba(46,117,182,.15); }
   .controls input { width: 220px; }
+  .controls input[type="date"] {
+    width: 138px; padding: 6px 10px; font-size: 12px;
+    color: #1F4E79; font-weight: 500; font-family: inherit;
+  }
+  .eta-label { font-size: 12px; color: #5a6e82; font-weight: 600; margin-right: -6px; }
+  .eta-sep { color: #a8b8c8; font-weight: 400; margin: 0 -2px; }
   .controls select { min-width: 130px; }
   .col-toggle-btn {
     padding: 6px 14px; border: 1px solid #c9d5e2; border-radius: 5px;
@@ -484,6 +501,10 @@ function _loadXlsx(cb){
 <div id="fullScheduleView" class="tab-content">
   <div class="controls">
     <input type="text" id="searchBox2" placeholder="&#128269; Search vessel / port / PIC / voyage&hellip;" oninput="renderFullSchedule()">
+    <label class="eta-label">ETA:</label>
+    <input type="date" id="etaFrom2" title="ETA from" onchange="renderFullSchedule()">
+    <span class="eta-sep">–</span>
+    <input type="date" id="etaTo2" title="ETA to" onchange="renderFullSchedule()">
     <div style="position:relative;">
       <button class="filter-btn" id="filterRouteBtn2" onclick="toggleFilterDropdown('route','2')">All Routes</button>
       <div class="filter-dropdown col-dropdown" id="filterDropdownRoute2"></div>
@@ -849,6 +870,10 @@ function initFullSchedule(){
   });
   vesselGroupMap = seen;
 
+  // Set default ETA date range
+  document.getElementById('etaFrom2').value = TODAY_DATA.defaultEtaFrom || '';
+  document.getElementById('etaTo2').value = TODAY_DATA.defaultEtaTo || '';
+
   buildColDropdown('2');
   updateFilterButton('route', '2');
   updateFilterButton('vessel', '2');
@@ -861,10 +886,14 @@ function getFilteredFull(){
   const selRoute = getFilterSelected('route', '2');
   const selVessel = getFilterSelected('vessel', '2');
   const selPic = getFilterSelected('pic', '2');
+  const etaFrom = document.getElementById('etaFrom2').value;
+  const etaTo   = document.getElementById('etaTo2').value;
   let data=fullData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
+    if(etaFrom && r.etaRaw < etaFrom) return false;
+    if(etaTo   && r.etaRaw > etaTo)   return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
