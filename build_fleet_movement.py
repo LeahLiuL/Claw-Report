@@ -162,12 +162,19 @@ def read_source(path):
             if sc:
                 col_map[tcol] = sc; break
     raw = []
+    current_route = route   # 初始航线=R1C1, 遇到中间段标题行会切换
     for r in range(hr + 1, ws.max_row + 1):
         c1 = ws.cell(r, 1).value
         if c1 is None: continue
         s1 = norm(c1)
         if s1 == "PORT": continue          # 多段航次表, 跳过重复列头继续读
-        if s1 == "" or s1.startswith("REMARK"): continue
+        # ── 检测中间段标题行(如 R33: C1="NP2", C4="ZHI YING HE SHUN", C9="ZYHS") ──
+        # 特征: C4 有文本值(船名) 且 C1 不是港口名(非纯大写英文港口码或含空格/中文)
+        c4_val = ws.cell(r, 4).value
+        if c4_val and isinstance(c4_val, str) and c4_val.strip():
+            # 这是一个段标题行(换航线了), 更新后续行的航线
+            current_route = str(c1).strip()
+            continue    # 段标题行本身不作为数据行
         display = {}
         for tcol in range(1, 17):
             sc = col_map.get(tcol)
@@ -180,6 +187,7 @@ def read_source(path):
             "voy_raw": norm_voy(display.get(7)),
             "port": s1,
             "remark": ws.cell(r, 18).value,
+            "row_route": current_route,      # ← 该行所属的实际航线(支持一船多段)
         })
     # Voy.No 向上就近: 每行若空, 向上(表中更靠上)找最近的有航次号的行
     for i, rr in enumerate(raw):
@@ -304,7 +312,15 @@ def main():
             code = d["code"]
             disp = fol
             print(f"  [WARN] 船未在 vessel.csv 登记: {fol} (code/PIC 回退 源R1C9/文件夹名, 建议补登)")
-        ships.append({"folder": fol, "route": route, "code": code, "display": disp, "rows": d["rows"]})
+        # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2) ──
+        sub_routes = {}
+        for rr in d["rows"]:
+            sr = canon_route(fol, rr.get("row_route", route))   # 每行实际航线(应用覆盖+合并)
+            sub_routes.setdefault(sr, []).append(rr)
+        if len(sub_routes) > 1:
+            print(f"  [{fol}] 拆为 {len(sub_routes)} 个航线段: {', '.join(sub_routes.keys())}")
+        for sub_r, sub_rows in sub_routes.items():
+            ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
     print(f"  当前船文件夹数: {len(ships)}")
 
     print("=== 3/4 分组排序 + 写表 ===")
