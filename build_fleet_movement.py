@@ -52,7 +52,7 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 # 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
 ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
-               "SGX","SHTG","RTS","NSX","SL1","CGX","HLX","ZGCD","IMR","NAX"]
+               "SGX","SJA","JPS","SHTG","RTS","NSX","SL1","CGX","HLX","ZGCD","IMR","NAX","RES","NSCT1"]
 ROUTE_FALLBACK = "RTS"   # 源航线码为空时回退
 WINDOW_DAYS = 30
 
@@ -68,7 +68,7 @@ COL_HEADERS = ["PORT","man in","wait","Proforma","ltm eta","ltm etd","VOY. NO",
 
 SEGMENT_TITLE = "CUL VESSEL DAILY MOVEMENT  "
 
-def norm(s): return (s or "").strip().upper().replace(" ", "")
+def norm(s): return str(s or "").strip().upper().replace(" ", "")
 def norm_voy(s):
     if s is None: return ""
     return str(s).strip().upper().replace(" ", "")
@@ -99,6 +99,39 @@ def norm_date_value(v):
         except Exception:
             pass
     return s
+
+# 已知航线码集合(用于段标题检测: C1 或 C9 匹配已知航线码 = 段标题行, 不是数据行)
+KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()}
+
+def detect_route(vessel_code, c1_val, c9_val):
+    """从段标题行检测真正的航线码。
+    源文件布局不统一: 有的航线在C1、代码在C9(正常), 有的反过来(如EVERLASTING HARVEST: C1=EVHA=代码, C9=REX=航线)。
+    - 优先检查C1: 若C1是已知航线码且不是本船代码 → C1是航线
+    - 若C1匹配本船代码 → C1是代码不是航线, 检查C9
+    - C1不是已知航线码 → 检查C9
+    返回航线码字符串, 或None(未检测到)。
+    """
+    vcode = norm(vessel_code) if vessel_code else None
+    # Check C1
+    if c1_val is not None:
+        n1 = norm(c1_val)
+        if n1 in KNOWN_LANES:
+            if not vcode or n1 != vcode:
+                return str(c1_val).strip()
+            # C1 matches vessel code -> C1 is the code, check C9 for Lane
+            if c9_val is not None:
+                n9 = norm(c9_val)
+                if n9 in KNOWN_LANES and (not vcode or n9 != vcode):
+                    return str(c9_val).strip()
+    # C1 not a known Lane -> check C9
+    if c9_val is not None:
+        n9 = norm(c9_val)
+        if n9 in KNOWN_LANES and (not vcode or n9 != vcode):
+            return str(c9_val).strip()
+    # Fallback: if C1 is a known Lane (even if it matches vessel code), use it
+    if c1_val is not None and norm(c1_val) in KNOWN_LANES:
+        return str(c1_val).strip()
+    return None
 
 TARGET_HEADERS = {
     1:  ["PORT"],
@@ -132,16 +165,23 @@ def latest_xlsx(folder):
     files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
     return files[0]
 
-def read_source(path):
+def read_source(path, vessel_code=None, folder_name=None):
     """读源第一个sheet。按表头名(非固定列位)映射到大Excel列, 兼容源列序差异(如ASR多TERMINAL列)。
     返回 dict: route, code, rows[ {display:{col:val}, etb:datetime|None, voy, port, remark} ]。
     - 日期列(C5/C6/C8/C9/C10/C11)统一为 datetime(真实日期) 或 文本标记(OMIT/Mon..)。
     - Voy.No 若空, 向上就近取最近的有航次号的行。
+    - 段标题检测(两层):
+      1. KNOWN_LANES 匹配 C1/C9 (已知航线码 → 段标题, 港口名不会误判)
+      2. 回退: C4 或 C9 匹配船代码/文件夹名 (未知航线码如 NSCT1, 但段标题行总有船名/代码)
     """
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
-    route = ws.cell(1, 1).value
-    code = ws.cell(1, 9).value
+    # 初始航线: 用 detect_route 从 R1 的 C1/C9 检测(处理反向布局)
+    c1_r1 = ws.cell(1, 1).value
+    c9_r1 = ws.cell(1, 9).value
+    detected = detect_route(vessel_code, c1_r1, c9_r1)
+    route = detected if detected else (str(c1_r1).strip() if c1_r1 else "")
+    code = c9_r1
     hr = None
     for r in range(1, min(ws.max_row, 200) + 1):
         if norm(ws.cell(r, 1).value) == "PORT":
@@ -161,23 +201,32 @@ def read_source(path):
             sc = src_hdr.get(norm_h(cand))
             if sc:
                 col_map[tcol] = sc; break
+    # 船名/代码归一化集合(用于段标题回退检测)
+    vessel_markers = set()
+    if vessel_code: vessel_markers.add(norm(vessel_code))
+    if folder_name: vessel_markers.add(norm(folder_name))
     raw = []
-    current_route = route   # 初始航线=R1C1, 遇到中间段标题行会切换
+    current_route = route   # 初始航线, 遇到中间段标题行会切换
     for r in range(hr + 1, ws.max_row + 1):
         c1 = ws.cell(r, 1).value
         if c1 is None: continue
         s1 = norm(c1)
         if s1 == "PORT": continue          # 多段航次表, 跳过重复列头继续读
-        # ── 检测中间段标题行(如 R33: C1="NP2", C4="ZHI YING HE SHUN", C9="ZYHS") ──
-        # 特征: C4 有文本值(船代码) 且 C9 也是文本(船显示名) — NOT datetime
-        # 数据行 C4 可能是 proforma 时间窗口(如"SUN0600-SUN1200"), 需要用 C9 类型区分
-        c4_val = ws.cell(r, 4).value
+        # ── 段标题检测(两层) ──
+        # 1. KNOWN_LANES 匹配 C1/C9 (已知航线码)
         c9_val = ws.cell(r, 9).value
-        if (c4_val and isinstance(c4_val, str) and c4_val.strip() and
-            c9_val and isinstance(c9_val, str) and not isinstance(c9_val, datetime)):
-            # 这是一个段标题行(换航线了), 更新后续行的航线
-            current_route = str(c1).strip()
+        seg_route = detect_route(vessel_code, c1, c9_val)
+        if seg_route:
+            current_route = seg_route
             continue    # 段标题行本身不作为数据行
+        # 2. 回退: C4 或 C9 匹配船代码/文件夹名 (未知航线码, 但段标题行总有船名)
+        c4_val = ws.cell(r, 4).value
+        c4_str = norm(c4_val) if isinstance(c4_val, str) else ""
+        c9_str = norm(c9_val) if isinstance(c9_val, str) and not isinstance(c9_val, datetime) else ""
+        if vessel_markers and (c4_str in vessel_markers or c9_str in vessel_markers):
+            # 段标题行(C4/C9 含船名/代码), 更新航线为 C1
+            current_route = str(c1).strip() if c1 else current_route
+            continue
         display = {}
         for tcol in range(1, 17):
             sc = col_map.get(tcol)
@@ -303,11 +352,13 @@ def main():
         p = latest_xlsx(os.path.join(args.src, fol))
         if not p:
             print(f"  [WARN] 无xlsx跳过: {fol}"); continue
-        d = read_source(p)
-        route = canon_route(fol, d["route"])   # 应用覆盖+合并
         key = norm(fol)
-        # 船名代码 & 显示名: vessel.csv(权威) -> 源R1C9 / 文件夹名
+        # 先查 vessel.csv 取船代码, 传给 read_source 做段标题检测(区分航线码 vs 船代码)
         vent = vessel.get(key)
+        vcode = vent.get("code") if vent else None
+        d = read_source(p, vessel_code=vcode, folder_name=fol)
+        route = canon_route(fol, d["route"])   # 应用覆盖+合并
+        # 船名代码 & 显示名: vessel.csv(权威) -> 源R1C9 / 文件夹名
         if vent:
             code = vent.get("code") or d["code"]
             disp = vent.get("display") or fol
