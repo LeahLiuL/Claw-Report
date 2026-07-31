@@ -37,9 +37,8 @@ FULL_COLUMNS = [
     ('route',       'Route',            True,   True),
     ('vessel',      'Vessel',           True,   True),
     ('code',        'Code',             True,   True),
-    ('pic',         'PIC',              True,   True),
     ('port',        'Port',             True,   True),
-    ('manIn',       'Man In',           True,   True),   # C2
+    ('manIn',       'Man In',           True,   False),  # C2 - default hidden
     ('wait',        'Wait',             True,   True),   # C3
     ('proforma',    'Proforma',         False,  True),   # C4
     ('ltmEta',      'LTM ETA / LTS ETB',False,  False),
@@ -51,10 +50,12 @@ FULL_COLUMNS = [
     ('etd',         'ETD',              True,   True),   # C11
     ('run',         'Run',              True,   True),   # C12
     ('portStay',    'Port Stay(hr)',    True,   True),   # C13
-    ('fspDistance', 'FSP Distance',     True,   True),   # C14
+    ('fspDistance', 'FSP Distance',     True,   False),  # C14 - default hidden
     ('speed',       'Speed',            True,   True),   # C15
     ('etaDelay',    'ETA Delay',        True,   True),   # C16
     ('etdDelay',    'ETD Delay',        True,   False),  # C17
+    ('remark',      'Remark',           True,   True),
+    ('pic',         'PIC',              True,   True),
 ]
 # Summary view columns (subset)
 SUMMARY_COLUMNS = [
@@ -837,7 +838,7 @@ function getFilteredFull(){
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date}`.toLowerCase().includes(q)) return false;
+    if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
   if(fullSortCol>=0){
