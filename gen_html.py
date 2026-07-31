@@ -54,6 +54,7 @@ FULL_COLUMNS = [
     ('speed',       'Speed',            True,   True),   # C15
     ('etaDelay',    'ETA Delay',        True,   True),   # C16
     ('etdDelay',    'ETD Delay',        True,   False),  # C17
+    ('remark',      'Remark',           True,   True),
     ('pic',         'PIC',              True,   True),
 ]
 # Summary view columns (subset)
@@ -71,6 +72,7 @@ SUMMARY_COLUMNS = [
     ('portStay',   'Port Stay(hr)',    True),
     ('etaDelay',   'ETA Delay',        True),
     ('etdDelay',   'ETD Delay',        True),
+    ('remark',     'Remark',           True),
     ('pic',        'PIC',              True),
 ]
 
@@ -805,11 +807,7 @@ function renderSummary(){
       if(col.key==='vessel')    return '<td><strong>'+v+'</strong></td>';
       if(col.key==='code')      return '<td class="td-center"><span class="badge-code">'+v+'</span></td>';
       if(col.key==='pic')       return '<td>'+v+'</td>';
-      if(col.key==='port') {
-        var sPortHtml = '<strong>'+v+'</strong>';
-        if(r.remark) sPortHtml += '<br><span class="remark-note">'+r.remark+'</span>';
-        return '<td class="td-center td-mono">'+sPortHtml+'</td>';
-      }
+      if(col.key==='port')      return '<td class="td-center td-mono"><strong>'+v+'</strong></td>';
       if(col.key==='wait')      return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')  return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')       return '<td class="td-center td-mono">'+v+'</td>';
@@ -908,11 +906,7 @@ function renderFullSchedule(){
       if(col.key==='vessel')     return '<td><span class="vessel-label">'+v+'</span></td>';
       if(col.key==='code')       return '<td class="td-center"><span class="badge-code">'+v+'</span></td>';
       if(col.key==='pic')        return '<td>'+v+'</td>';
-      if(col.key==='port') {
-        var portHtml = '<strong>'+v+'</strong>';
-        if(r.remark) portHtml += '<br><span class="remark-note">'+r.remark+'</span>';
-        return '<td class="td-center td-mono">'+portHtml+'</td>';
-      }
+      if(col.key==='port')       return '<td class="td-center td-mono"><strong>'+v+'</strong></td>';
       if(col.key==='manIn' || col.key==='wait' || col.key==='run' || col.key==='fspDistance' || col.key==='speed') return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')   return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')        return '<td class="td-center td-mono">'+v+'</td>';
