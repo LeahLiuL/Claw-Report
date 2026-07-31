@@ -191,6 +191,7 @@ def extract(excel_path):
                 'date':        fmt_dt(ws_src.cell(r, 8).value),
                 'eta':         fmt_dt(ws_src.cell(r, 9).value),
                 'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
+                'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
                 'etb':         fmt_dt(ws_src.cell(r, 10).value),
                 'etd':         fmt_dt(ws_src.cell(r, 11).value),
                 'run':         get_str(ws_src.cell(r, 12).value),
@@ -205,7 +206,7 @@ def extract(excel_path):
             rec = {'route': vb['route'], 'vessel': vb['vessel_full'],
                    'code': vb['vessel_code'], 'pic': vb['pic'],
                    'port':'','manIn':'','wait':'','proforma':'','voy':'','ltmEta':'','ltmEtd':'',
-                   'date':'','eta':'','etaRaw':'','etb':'','etd':'','run':'',
+                   'date':'','eta':'','etaRaw':'','etb':'','etbRaw':'','etd':'','run':'',
                    'portStay':'','fspDistance':'','speed':'','etaDelay':'','etdDelay':'','remark': ''}
         results.append(rec)
 
@@ -228,6 +229,7 @@ def extract(excel_path):
                 'date':        fmt_dt(ws_src.cell(r, 8).value),
                 'eta':         fmt_dt(ws_src.cell(r, 9).value),
                 'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
+                'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
                 'etb':         fmt_dt(ws_src.cell(r, 10).value),
                 'etd':         fmt_dt(ws_src.cell(r, 11).value),
                 'run':         get_str(ws_src.cell(r, 12).value),
@@ -247,6 +249,8 @@ def extract(excel_path):
         'fullSchedule': full_schedule,
         'defaultEtaFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
         'defaultEtaTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
+        'defaultEtbFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
+        'defaultEtbTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
         'dataEtaMin':     data_eta_min.strftime('%Y-%m-%d'),
         'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d'),
     }
@@ -328,6 +332,7 @@ function _loadXlsx(cb){
     color: #1F4E79; font-weight: 500; font-family: inherit;
   }
   .eta-label { font-size: 12px; color: #5a6e82; font-weight: 600; margin-right: -6px; }
+  .date-type-select { padding: 6px 8px; border: 1px solid #c8d6e5; border-radius: 6px; background: #fff; color: #333; font-size: 12px; font-weight: 600; cursor: pointer; }
   .eta-sep { color: #a8b8c8; font-weight: 400; margin: 0 -2px; }
   .controls select { min-width: 130px; }
   .col-toggle-btn {
@@ -501,7 +506,10 @@ function _loadXlsx(cb){
 <div id="fullScheduleView" class="tab-content">
   <div class="controls">
     <input type="text" id="searchBox2" placeholder="&#128269; Search vessel / port / PIC / voyage&hellip;" oninput="renderFullSchedule()">
-    <label class="eta-label">ETA:</label>
+    <select id="dateFilterType2" class="date-type-select" onchange="onDateFilterTypeChange()">
+      <option value="eta" selected>ETA</option>
+      <option value="etb">ETB</option>
+    </select>
     <input type="date" id="etaFrom2" title="ETA from" onchange="renderFullSchedule()">
     <span class="eta-sep">–</span>
     <input type="date" id="etaTo2" title="ETA to" onchange="renderFullSchedule()">
@@ -873,11 +881,21 @@ function initFullSchedule(){
   // Set default ETA date range
   document.getElementById('etaFrom2').value = TODAY_DATA.defaultEtaFrom || '';
   document.getElementById('etaTo2').value = TODAY_DATA.defaultEtaTo || '';
+  document.getElementById('dateFilterType2').value = 'eta';
 
   buildColDropdown('2');
   updateFilterButton('route', '2');
   updateFilterButton('vessel', '2');
   updateFilterButton('pic', '2');
+  renderFullSchedule();
+}
+
+function onDateFilterTypeChange(){
+  const mode = document.getElementById('dateFilterType2').value;
+  const key = mode === 'etb' ? 'defaultEtbFrom' : 'defaultEtaFrom';
+  const keyTo = mode === 'etb' ? 'defaultEtbTo' : 'defaultEtaTo';
+  document.getElementById('etaFrom2').value = TODAY_DATA[key] || '';
+  document.getElementById('etaTo2').value = TODAY_DATA[keyTo] || '';
   renderFullSchedule();
 }
 
@@ -888,12 +906,14 @@ function getFilteredFull(){
   const selPic = getFilterSelected('pic', '2');
   const etaFrom = document.getElementById('etaFrom2').value;
   const etaTo   = document.getElementById('etaTo2').value;
+  const dateMode = document.getElementById('dateFilterType2').value;
+  const dateKey = dateMode === 'etb' ? 'etbRaw' : 'etaRaw';
   let data=fullData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    if(etaFrom && r.etaRaw < etaFrom) return false;
-    if(etaTo   && r.etaRaw > etaTo)   return false;
+    if(etaFrom && r[dateKey] < etaFrom) return false;
+    if(etaTo   && r[dateKey] > etaTo)   return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
