@@ -61,6 +61,9 @@ ROUTE_OVERRIDE = {"CUL NANSHA": "CCT"}     # 源R1C1误为HDT, 实为CCT
 # 航线合并: 源航线码 -> 规范航线码(同一条航线在源里有不同叫法)
 ROUTE_ALIAS = {"AM1": "AEM"}                # AEM 与 AM1 是同一航线
 
+# 不拆分的船文件夹名(源文件有多段标题行, 但船并未换航线, 如不同航次周期)
+NO_SPLIT_FOLDERS = {"CUL HUANGPU"}
+
 # 大Excel列头(沿用旧文件标签, 与源C1..C16位置一一对应)
 COL_HEADERS = ["PORT","man in","wait","Proforma","ltm eta","ltm etd","VOY. NO",
                "date","ETA","ETB","ETD","run","Port Stay(hr)","fsp distance",
@@ -313,14 +316,18 @@ def main():
             disp = fol
             print(f"  [WARN] 船未在 vessel.csv 登记: {fol} (code/PIC 回退 源R1C9/文件夹名, 建议补登)")
         # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2) ──
-        sub_routes = {}
-        for rr in d["rows"]:
-            sr = canon_route(fol, rr.get("row_route", route))   # 每行实际航线(应用覆盖+合并)
-            sub_routes.setdefault(sr, []).append(rr)
-        if len(sub_routes) > 1:
-            print(f"  [{fol}] 拆为 {len(sub_routes)} 个航线段: {', '.join(sub_routes.keys())}")
-        for sub_r, sub_rows in sub_routes.items():
-            ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
+        # NO_SPLIT_FOLDERS 里的船即使源文件有多段标题, 也不拆分(船并未换航线)
+        if fol in NO_SPLIT_FOLDERS:
+            ships.append({"folder": fol, "route": route, "code": code, "display": disp, "rows": list(d["rows"])})
+        else:
+            sub_routes = {}
+            for rr in d["rows"]:
+                sr = canon_route(fol, rr.get("row_route", route))   # 每行实际航线(应用覆盖+合并)
+                sub_routes.setdefault(sr, []).append(rr)
+            if len(sub_routes) > 1:
+                print(f"  [{fol}] 拆为 {len(sub_routes)} 个航线段: {', '.join(sub_routes.keys())}")
+            for sub_r, sub_rows in sub_routes.items():
+                ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
     print(f"  当前船文件夹数: {len(ships)}")
 
     print("=== 3/4 分组排序 + 写表 ===")
