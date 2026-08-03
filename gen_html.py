@@ -1074,11 +1074,10 @@ function exportFullScheduleExcel(){
   sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
 
   var defs = COLUMN_DEFS_FULL;
-  var prevVessel='', rowGroup=0;
+  var prevVessel='';
   for(var i=0;i<exportData.length;i++){
     var r=exportData[i];
     if(r.vessel!==prevVessel){
-      rowGroup=(rowGroup+1)%2;
       // Insert separator row before new vessel group (skip for first vessel)
       if(prevVessel!==''){
         var sepRow = [];
@@ -1087,7 +1086,7 @@ function exportFullScheduleExcel(){
       }
       prevVessel=r.vessel;
     }
-    var fc=rowGroup===0?'EBF3FB':'FFFFFF';
+    var fc='FFFFFF';
     if(r.isSummary) fc='FFF3CD';
     var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
     var bS={font:{name:'Arial',bold:true,sz:9},fill:F(fc),border:B,alignment:A('left','center')};
