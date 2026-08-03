@@ -1088,6 +1088,7 @@ function exportFullScheduleExcel(){
       prevVessel=r.vessel;
     }
     var fc=rowGroup===0?'EBF3FB':'FFFFFF';
+    if(r.isSummary) fc='FFF3CD';
     var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
     var bS={font:{name:'Arial',bold:true,sz:9},fill:F(fc),border:B,alignment:A('left','center')};
     var cS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')};
