@@ -1061,6 +1061,10 @@ function exportFullScheduleExcel(){
 
   var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
   var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
+  var sepS={font:{name:'Arial',sz:6},fill:F('D9D9D9'),border:B};
+
+  // Sort by vessel for grouping (copy to avoid affecting UI sort state)
+  var exportData = data.slice().sort(function(a,b){return (a.vessel||'').localeCompare(b.vessel||'');});
 
   var sheetData=[];
   var tr=[];
@@ -1071,9 +1075,18 @@ function exportFullScheduleExcel(){
 
   var defs = COLUMN_DEFS_FULL;
   var prevVessel='', rowGroup=0;
-  for(var i=0;i<data.length;i++){
-    var r=data[i];
-    if(r.vessel!==prevVessel){rowGroup=(rowGroup+1)%2;prevVessel=r.vessel;}
+  for(var i=0;i<exportData.length;i++){
+    var r=exportData[i];
+    if(r.vessel!==prevVessel){
+      rowGroup=(rowGroup+1)%2;
+      // Insert separator row before new vessel group (skip for first vessel)
+      if(prevVessel!==''){
+        var sepRow = [];
+        for(var c=0;c<numCols;c++) sepRow[c]={v:'',s:sepS};
+        sheetData.push(sepRow);
+      }
+      prevVessel=r.vessel;
+    }
     var fc=rowGroup===0?'EBF3FB':'FFFFFF';
     var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
     var bS={font:{name:'Arial',bold:true,sz:9},fill:F(fc),border:B,alignment:A('left','center')};
@@ -1092,11 +1105,12 @@ function exportFullScheduleExcel(){
     sheetData.push(row);
   }
 
+  var totalRows = sheetData.length;
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
   ws['!cols'] = headers.map(function(h){return{wch:Math.max(h.length+4, 10)};});
-  ws['!rows']=[{hpt:28},{hpt:30}];for(var j=0;j<data.length;j++)ws['!rows'].push({hpt:16});
-  ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+(data.length+2)};
+  ws['!rows']=[{hpt:28},{hpt:30}];for(var j=2;j<totalRows;j++)ws['!rows'].push({hpt:16});
+  ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+(totalRows-1)};
 
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Full Schedule');
