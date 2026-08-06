@@ -562,6 +562,11 @@ const TODAY_DATA = __TODAY_DATA__;
 const COLUMN_DEFS_SUMMARY = __COLUMN_DEFS_SUMMARY__;
 const COLUMN_DEFS_FULL    = __COLUMN_DEFS_FULL__;
 
+// Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
+// Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
+var ROUTE_ORDER = ['ST3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
+function routeOrderKey(r){ var i = ROUTE_ORDER.indexOf(r); return i<0 ? 9999 : i; }
+
 // Visible columns state (key = viewId '1' or '2', value = Set of colKeys)
 var visibleCols = {
   '1': new Set(COLUMN_DEFS_SUMMARY.filter(c=>c.defaultVisible).map(c=>c.key)),
@@ -597,7 +602,12 @@ function buildFilterDropdown(type, viewId){
 
   // Get all unique values
   var dataArr = viewId==='1' ? summaryData : fullData;
-  var values = [...new Set(dataArr.map(function(r){return r[type];}))].sort();
+  var values = [...new Set(dataArr.map(function(r){return r[type];}))];
+  if(type==='route'){
+    values.sort(function(a,b){return routeOrderKey(a)-routeOrderKey(b);});
+  } else {
+    values.sort();
+  }
 
   // Select All / Clear All actions
   var actions = document.createElement('div');
@@ -781,8 +791,14 @@ function getFilteredSummary(){
     const defs = COLUMN_DEFS_SUMMARY;
     const colDef = defs[summarySortCol];
     if(colDef && colDef.key!=='_idx' && visibleCols['1'].has(colDef.key)){
-      data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*summarySortDir);
+      if(colDef.key==='route'){
+        data.sort((a,b)=>(routeOrderKey(a.route)-routeOrderKey(b.route))*summarySortDir);
+      } else {
+        data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*summarySortDir);
+      }
     }
+  } else {
+    data.sort((a,b)=>routeOrderKey(a.route)-routeOrderKey(b.route));
   }
   return data;
 }
@@ -921,8 +937,14 @@ function getFilteredFull(){
     const defs = COLUMN_DEFS_FULL;
     const colDef = defs[fullSortCol];
     if(colDef && visibleCols['2'].has(colDef.key)){
-      data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*fullSortDir);
+      if(colDef.key==='route'){
+        data.sort((a,b)=>(routeOrderKey(a.route)-routeOrderKey(b.route))*fullSortDir);
+      } else {
+        data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*fullSortDir);
+      }
     }
+  } else {
+    data.sort((a,b)=>routeOrderKey(a.route)-routeOrderKey(b.route));
   }
   return data;
 }
@@ -1063,8 +1085,12 @@ function exportFullScheduleExcel(){
   var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
   var sepS={font:{name:'Arial',sz:6},fill:F('D9D9D9'),border:B};
 
-  // Sort by vessel for grouping (copy to avoid affecting UI sort state)
-  var exportData = data.slice().sort(function(a,b){return (a.vessel||'').localeCompare(b.vessel||'');});
+  // Sort by route (custom order) then vessel for grouping (copy to avoid affecting UI sort state)
+  var exportData = data.slice().sort(function(a,b){
+    var dr = routeOrderKey(a.route)-routeOrderKey(b.route);
+    if(dr!==0) return dr;
+    return (a.vessel||'').localeCompare(b.vessel||'');
+  });
 
   var sheetData=[];
   var tr=[];
