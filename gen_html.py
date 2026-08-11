@@ -163,8 +163,8 @@ def extract(excel_path):
         else:
             i += 1
 
-    # ── Summary: nearest ETB per vessel ──
-    results = []
+    # ── Summary: nearest ETB per vessel (dedup by vessel across routes) ──
+    vessel_best = {}  # vessel_full -> (etb_d, best_row, vb)
     summary_row_set = set()
     for vb in vessel_blocks:
         best_row, best_etb = None, None
@@ -177,43 +177,46 @@ def extract(excel_path):
         if best_row is None and vb['schedule_rows']:
             for r in reversed(vb['schedule_rows']):
                 if isinstance(ws_src.cell(r, 10).value, datetime):
-                    best_row = r; break
+                    best_row = r; best_etb = ws_src.cell(r, 10).value.date(); break
 
         if best_row:
-            summary_row_set.add(best_row)
-            r = best_row
-            rec = {
-                'route':       vb['route'],
-                'vessel':      vb['vessel_full'],
-                'code':        vb['vessel_code'],
-                'pic':         vb['pic'],
-                'port':        get_str(ws_src.cell(r, 1).value),
-                'manIn':       get_str(ws_src.cell(r, 2).value),
-                'wait':        get_str(ws_src.cell(r, 3).value),
-                'proforma':    get_str(ws_src.cell(r, 4).value),
-                'voy':         get_str(ws_src.cell(r, 7).value),
-                'ltmEta':      fmt_dt(ws_src.cell(r, 5).value),
-                'ltmEtd':      fmt_dt(ws_src.cell(r, 6).value),
-                'date':        fmt_dt(ws_src.cell(r, 8).value),
-                'eta':         fmt_dt(ws_src.cell(r, 9).value),
-                'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
-                'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
-                'etb':         fmt_dt(ws_src.cell(r, 10).value),
-                'etd':         fmt_dt(ws_src.cell(r, 11).value),
-                'run':         get_str(ws_src.cell(r, 12).value),
-                'portStay':    get_str(ws_src.cell(r, 13).value),
-                'fspDistance': get_str(ws_src.cell(r, 14).value),
-                'speed':       get_str(ws_src.cell(r, 15).value),
-                'etaDelay':    get_str(ws_src.cell(r, 16).value),
-                'etdDelay':    get_str(ws_src.cell(r, 17).value),
-                'remark':      vb['remarks_by_row'].get(r, ''),
-            }
-        else:
-            rec = {'route': vb['route'], 'vessel': vb['vessel_full'],
-                   'code': vb['vessel_code'], 'pic': vb['pic'],
-                   'port':'','manIn':'','wait':'','proforma':'','voy':'','ltmEta':'','ltmEtd':'',
-                   'date':'','eta':'','etaRaw':'','etb':'','etbRaw':'','etd':'','run':'',
-                   'portStay':'','fspDistance':'','speed':'','etaDelay':'','etdDelay':'','remark': ''}
+            vname = vb['vessel_full']
+            # Dedup: keep only the row with ETB closest to today per vessel
+            if vname not in vessel_best or (best_etb and (
+                vessel_best[vname][0] is None or best_etb < vessel_best[vname][0]
+            )):
+                vessel_best[vname] = (best_etb, best_row, vb)
+
+    results = []
+    for vname, (best_etb, best_row, vb) in vessel_best.items():
+        summary_row_set.add(best_row)
+        r = best_row
+        rec = {
+            'route':       vb['route'],
+            'vessel':      vb['vessel_full'],
+            'code':        vb['vessel_code'],
+            'pic':         vb['pic'],
+            'port':        get_str(ws_src.cell(r, 1).value),
+            'manIn':       get_str(ws_src.cell(r, 2).value),
+            'wait':        get_str(ws_src.cell(r, 3).value),
+            'proforma':    get_str(ws_src.cell(r, 4).value),
+            'voy':         get_str(ws_src.cell(r, 7).value),
+            'ltmEta':      fmt_dt(ws_src.cell(r, 5).value),
+            'ltmEtd':      fmt_dt(ws_src.cell(r, 6).value),
+            'date':        fmt_dt(ws_src.cell(r, 8).value),
+            'eta':         fmt_dt(ws_src.cell(r, 9).value),
+            'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
+            'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
+            'etb':         fmt_dt(ws_src.cell(r, 10).value),
+            'etd':         fmt_dt(ws_src.cell(r, 11).value),
+            'run':         get_str(ws_src.cell(r, 12).value),
+            'portStay':    get_str(ws_src.cell(r, 13).value),
+            'fspDistance': get_str(ws_src.cell(r, 14).value),
+            'speed':       get_str(ws_src.cell(r, 15).value),
+            'etaDelay':    get_str(ws_src.cell(r, 16).value),
+            'etdDelay':    get_str(ws_src.cell(r, 17).value),
+            'remark':      vb['remarks_by_row'].get(r, ''),
+        }
         results.append(rec)
 
     # ── Full Schedule: ALL port rows for ALL vessels ──
