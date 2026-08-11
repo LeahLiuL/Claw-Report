@@ -1205,7 +1205,7 @@ var REMARK_CATEGORIES = [
   {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation']},
   {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','delay','regulatory']},
   {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call']},
-  {key:'cargo',       label:'Cargo Balance / 配货平衡',  keywords:['balance','load balance','connection']},
+  {key:'cargo',       label:'Cargo Balance / 配货平衡',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
   {key:'other',       label:'Other / 其他',              keywords:[]}  // fallback
 ];
 

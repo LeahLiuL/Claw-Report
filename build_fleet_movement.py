@@ -238,7 +238,7 @@ def read_source(path, vessel_code=None, folder_name=None):
             "etb": etb,
             "voy_raw": norm_voy(display.get(7)),
             "port": s1,
-            "remark": ws.cell(r, 18).value,
+            "remark": ws.cell(r, 18).value or ws.cell(r, 19).value,
             "row_route": current_route,      # ← 该行所属的实际航线(支持一船多段)
         })
     # Voy.No 向上就近: 每行若空, 向上(表中更靠上)找最近的有航次号的行
@@ -458,21 +458,14 @@ def main():
                 for c in range(1, 17):
                     setc(row, c, rr["display"].get(c), bd=True)
                 row += 1; shown += 1
-            # Remark: ETB 最接近今日 那行; 航次号为空则向上找最近的有航次号的行
-            best_idx = None; best_diff = None
+            # Remark: 源文件所有行 remark, 不限于最接近今天
             for i, rr in enumerate(s["rows"]):
-                if rr["etb"] is None: continue
-                diff = abs((rr["etb"].date() - today).days)
-                if best_diff is None or diff < best_diff:
-                    best_diff = diff; best_idx = i
-            if best_idx is not None:
-                best = s["rows"][best_idx]
-                voy = best["voy"] or nearest_voy_upward(s["rows"], best_idx)
-                rem = best["remark"]
-                if rem:   # 仅当有 remark 内容才写; 否则整行不写
-                    txt = f"Remark:{voy} {best['port']} {rem}"
-                    setc(row, 1, txt)
-                    row += 1
+                rem = rr["remark"]
+                if not rem: continue
+                voy = rr["voy"] or nearest_voy_upward(s["rows"], i)
+                txt = f"Remark:{voy} {rr['port']} {rem}"
+                setc(row, 1, txt)
+                row += 1
             row += 1   # 块间空行
             blocks_written += 1
         row += 1   # 段间空行
