@@ -2075,7 +2075,7 @@ function init(){
   initPortView();
   initSpeedView();
 }
-init();
+// init() only called after login success (see LOGIN section above)
 </script>
 </body>
 </html>"""
