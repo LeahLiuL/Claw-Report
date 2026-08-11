@@ -1434,6 +1434,7 @@ var totalExcludedByRemark=0;
 function buildPortWaitData(){
   var byPort={};
   totalExcludedByRemark=0;
+  var todayStr=TODAY_DATA.date; // snapshot date, e.g. "2026-08-11"
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
@@ -1441,6 +1442,9 @@ function buildPortWaitData(){
     if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
+
+    // Only include schedule rows on or before today
+    if(sr.etaRaw && sr.etaRaw > todayStr) return;
 
     // Apply port filter
     if(selPortFilter && selPortFilter.indexOf(port)<0) return;
