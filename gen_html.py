@@ -470,7 +470,8 @@ function _loadXlsx(cb){
 <div class="tabs">
   <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
   <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
-  <button class="tab-btn" data-tab="analyticsView" onclick="switchTab('analyticsView',this)">&#128200; Port &amp; Speed</button>
+  <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
+  <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -552,9 +553,9 @@ function _loadXlsx(cb){
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     VIEW 3: Port & Speed Analytics
+     VIEW 3: Port Wait Analytics
      ═══════════════════════════════════════════════════════════════════ -->
-<div id="analyticsView" class="tab-content">
+<div id="portView" class="tab-content">
   <div class="controls">
     <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Port Filter:</span>
     <div style="position:relative;">
@@ -584,14 +585,25 @@ function _loadXlsx(cb){
     <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128202; Wait Time by Remark Category</h4>
     <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
+</div>
 
-  <!-- Vessel Speed Analysis -->
-  <h3 style="margin:24px 0 8px;color:#1F4E79;">&#128168; Vessel Speed Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Speed values from source Excel column "SPEED" (calculated as leg distance &#247; sailing time). Min/Max = extreme values per vessel; values &#8804;0 or >30kn excluded as dirty data. Hover values to see raw source.</p>
-  <div class="controls" style="margin-bottom:8px;">
-    <span class="stat-chip" id="statSpeed">&#8212; vessels</span>
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 4: Speed Analytics
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="speedView" class="tab-content">
+  <div class="controls">
+    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Port Filter:</span>
+    <div style="position:relative;">
+      <button class="filter-btn" id="speedPortFilterBtn" onclick="toggleSpeedPortFilter()">All Ports</button>
+      <div class="filter-dropdown col-dropdown" id="speedPortFilterDropdown"></div>
+    </div>
+    <span class="stat-chip" id="statSpeed" style="margin-left:12px;">&#8212; vessels</span>
     <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
   </div>
+
+  <!-- Vessel Speed Analysis -->
+  <h3 style="margin:16px 0 8px;color:#1F4E79;">&#128168; Vessel Speed Analysis</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Speed values from source Excel column "SPEED" (calculated as leg distance &#247; sailing time). Min/Max = extreme values per vessel; values &#8804;0 or >20kn excluded as dirty data. Hover values to see raw source.</p>
   <div class="table-wrap">
     <table id="speedTable">
       <thead><tr id="speedThead"></tr></thead>
@@ -1288,10 +1300,9 @@ function onRemarkCatChange(){
     btn.style.background='#fff3e0';
     btn.style.borderColor='#e67e22';
   }
-  renderAnalytics();
+  renderPortWaitTable();
+  renderRemarkSummary();
 }
-
-// ── Port Filter ─────────────────────────────────────────────────────
 var selPortFilter = null;  // null = show all ports
 
 function buildPortFilterDropdown(){
@@ -1336,7 +1347,54 @@ function onPortFilterChange(){
     selPortFilter = sel.length===total ? null : sel;
   }
   if(allCb) allCb.checked = (selPortFilter===null);
-  renderAnalytics();
+  var btn=document.getElementById('portFilterBtn');
+  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+total+' ports';
+  renderPortWaitTable();
+  renderRemarkSummary();
+}
+
+// ── Speed Port Filter (independent filter, shares selPortFilter) ─────
+function buildSpeedPortFilterDropdown(){
+  var dd=document.getElementById('speedPortFilterDropdown');
+  var btn=document.getElementById('speedPortFilterBtn');
+  var html='<label><input type="checkbox" value="__all__" onchange="onSpeedPortFilterChange()"'+(selPortFilter===null?' checked':'')+'> All Ports</label>';
+  var ports=[]; var seen=new Set();
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var p=normalizePort(sr.port);
+    if(p && !isBunkeringPort(p) && !seen.has(p)){ seen.add(p); ports.push(p); }
+  });
+  var selArr=selPortFilter||[];
+  ports.sort();
+  ports.forEach(function(p){
+    html+='<label><input type="checkbox" value="'+p+'" onchange="onSpeedPortFilterChange()"'+(selPortFilter===null||selArr.indexOf(p)>=0?' checked':'')+'> '+p+'</label>';
+  });
+  dd.innerHTML=html;
+  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+ports.length+' ports';
+}
+
+function toggleSpeedPortFilter(){
+  var dd=document.getElementById('speedPortFilterDropdown');
+  if(!dd.classList.contains('open')){ buildSpeedPortFilterDropdown(); dd.classList.add('open'); }
+  else dd.classList.remove('open');
+  document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
+}
+
+function onSpeedPortFilterChange(){
+  var allCb=document.querySelector('#speedPortFilterDropdown input[value="__all__"]');
+  var checks=document.querySelectorAll('#speedPortFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  var sel=[];
+  var total=0;
+  checks.forEach(function(cb){total++; if(cb.checked) sel.push(cb.value);});
+  if(allCb && allCb.checked){
+    selPortFilter=null;
+    checks.forEach(function(cb){cb.checked=true;});
+  } else {
+    selPortFilter = sel.length===total ? null : sel;
+  }
+  if(allCb) allCb.checked = (selPortFilter===null);
+  var btn=document.getElementById('speedPortFilterBtn');
+  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+total+' ports';
+  renderSpeedTable();
 }
 
 // ── Port Wait Analysis ────────────────────────────────────────────────
@@ -1791,17 +1849,15 @@ function exportSpeedExcel(){
 
 // ── Init ──────────────────────────────────────────────────────────────
 
-function initAnalytics(){
+function initPortView(){
   buildPortFilterDropdown();
   buildRemarkFilterDropdown();
   renderPortWaitTable();
   renderRemarkSummary();
-  renderSpeedTable();
 }
 
-function renderAnalytics(){
-  renderPortWaitTable();
-  renderRemarkSummary();
+function initSpeedView(){
+  buildSpeedPortFilterDropdown();
   renderSpeedTable();
 }
 
@@ -1841,7 +1897,8 @@ function init(){
   document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
   initFullSchedule();
-  initAnalytics();
+  initPortView();
+  initSpeedView();
 }
 init();
 </script>
