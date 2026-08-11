@@ -1010,7 +1010,7 @@ function getFilteredFull(){
     if(selPic && !selPic.has(r.pic)) return false;
     if(etaFrom && r[dateKey] < etaFrom) return false;
     if(etaTo   && r[dateKey] > etaTo)   return false;
-    if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
+    if(q && !`${r.route} ${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
   if(fullSortCol>=0){
