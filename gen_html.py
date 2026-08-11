@@ -571,6 +571,12 @@ function _loadXlsx(cb){
     </table>
   </div>
 
+  <!-- Remark Category Wait Breakdown -->
+  <div class="table-wrap" style="max-width:900px;">
+    <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128202; Wait Time by Remark Category</h4>
+    <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
   <!-- Vessel Speed Analysis -->
   <h3 style="margin:24px 0 8px;color:#1F4E79;">&#128168; Vessel Speed Analysis</h3>
   <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Speed values from source Excel column "SPEED" (calculated as leg distance &#247; sailing time). Min/Max = extreme values per vessel; values &#8804;0 or >30kn excluded as dirty data. Hover values to see raw source.</p>
@@ -1271,6 +1277,7 @@ function onRemarkCatChange(){
 
 var portWaitData=[];
 var portWaitSortCol=-1, portWaitSortDir=1;
+var remarkCatTotals={};
 
 // Merge port name variants: AEJEA(T1)→AEJEA, CNSHK-CCT→CNSHK, DJJIB(DMP)→DJJIB,
 // MYPKG (1st CALL)→MYPKG, THLCH (ESCO)→THLCH, SGSIN(Bunkering)→SGSIN(bunker) etc.
@@ -1353,7 +1360,19 @@ function buildPortWaitData(){
     result.sort(function(a,b){return b.berthRate-a.berthRate || a.avgWait-b.avgWait;});
   }
 
+  // Aggregate wait time by remark category
+  var catTotals={};
+  result.forEach(function(rec){
+    rec.calls.forEach(function(cl){
+      var c=cl.cat||'other';
+      if(!catTotals[c]) catTotals[c]={wait:0, calls:0};
+      catTotals[c].wait+=cl.wait;
+      catTotals[c].calls++;
+    });
+  });
+
   portWaitData=result;
+  remarkCatTotals=catTotals;
 }
 
 var PORT_WAIT_COLS=[
@@ -1479,6 +1498,56 @@ function sortPortWait(col){
   if(portWaitSortCol===col) portWaitSortDir*=-1;
   else{portWaitSortCol=col;portWaitSortDir=1;}
   renderPortWaitTable();
+  renderRemarkSummary();
+}
+
+function renderRemarkSummary(){
+  var totals=remarkCatTotals;
+  var totalWait=0, totalCalls=0;
+  for(var k in totals){ totalWait+=totals[k].wait; totalCalls+=totals[k].calls; }
+
+  var cont=document.getElementById('remarkSummary');
+  if(totalWait===0){
+    cont.innerHTML='<div style=\"color:#8a9bb0;font-size:12px;padding:12px;\">No wait data matches the selected remark filter.</div>';
+    return;
+  }
+
+  // Build sorted list by wait desc
+  var items=[];
+  REMARK_CATEGORIES.forEach(function(cat){
+    var t=totals[cat.key]||{wait:0,calls:0};
+    if(t.calls>0 || cat.key==='other') items.push({key:cat.key, label:cat.label, wait:t.wait, calls:t.calls});
+  });
+  items.sort(function(a,b){return b.wait-a.wait;});
+
+  // Color palette per category
+  var colors={congestion:'#c0392b', weather:'#2980b9', bunker:'#8e44ad', phase:'#d35400', msa:'#e67e22', adhoc:'#f39c12', cargo:'#16a085', other:'#7f8c8d'};
+
+  var html='';
+  // Summary header
+  html+='<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;font-size:12px;">';
+  html+='<span style="font-weight:600;">Total Wait: <b style="color:#c00000;">'+totalWait.toFixed(1)+'h</b></span>';
+  html+='<span>Avg per call: <b>'+ (totalCalls>0?(totalWait/totalCalls).toFixed(1):'0') +'h</b></span>';
+  html+='<span>Calls: <b>'+totalCalls+'</b></span>';
+  html+='</div>';
+
+  // Bars
+  var maxW=totalWait||1;
+  items.forEach(function(it){
+    var pct=Math.round(it.wait/maxW*100);
+    var c=colors[it.key]||'#7f8c8d';
+    if(pct===0){ html+='<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8a9bb0;height:20px;">'+it.label+' <span>— 0h (0 calls)</span></div>'; return; }
+    html+='<div style="display:flex;align-items:center;gap:8px;font-size:12px;">';
+    html+='<span style="width:160px;text-align:right;font-weight:600;flex-shrink:0;">'+it.label+'</span>';
+    html+='<div style="flex:1;height:20px;background:#e8e8e8;border-radius:4px;overflow:hidden;min-width:80px;">';
+    html+='<div style="width:'+(pct||1)+'%;height:100%;background:'+c+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:600;min-width:'+(pct>0?pct*0.5:1)+'px;">'+(pct>=8?pct+'%':'')+'</div>';
+    html+='</div>';
+    html+='<span style="font-weight:700;color:'+c+';width:56px;text-align:right;flex-shrink:0;">'+it.wait.toFixed(1)+'h</span>';
+    html+='<span style="color:#8a9bb0;width:48px;text-align:right;flex-shrink:0;">'+it.calls+' call'+(it.calls>1?'s':'')+'</span>';
+    html+='</div>';
+  });
+
+  cont.innerHTML=html;
 }
 
 // ── Vessel Speed Analysis ─────────────────────────────────────────────
@@ -1612,11 +1681,13 @@ function exportSpeedExcel(){
 function initAnalytics(){
   buildRemarkFilterDropdown();
   renderPortWaitTable();
+  renderRemarkSummary();
   renderSpeedTable();
 }
 
 function renderAnalytics(){
   renderPortWaitTable();
+  renderRemarkSummary();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
