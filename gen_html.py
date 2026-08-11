@@ -378,6 +378,10 @@ function _loadXlsx(cb){
   .stat-chip { margin-left: auto; background: #EBF3FB; border: 1px solid #c3d9f0; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #1F4E79; font-weight: 600; }
   .delay-chip { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #c00000; font-weight: 600; }
   td.delay { background: #fff0f0 !important; color: #c00000; font-weight: 700; }
+  td.ontime { color: #27ae60; font-weight: 600; }
+  tr.port-row:hover { filter: brightness(0.96); }
+  tr.detail-wrap td { border-bottom: 2px solid #d4e0eb; }
+  tr.detail-row:hover { background: #f5f8fb !important; }
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
   .table-wrap { overflow-x: auto; padding: 0 28px 28px; position: relative; }
@@ -1197,6 +1201,11 @@ function exportFullScheduleExcel(){
    PORT & SPEED ANALYTICS
    ═══════════════════════════════════════════════════════════════════ */
 
+function escapeHtml(s){
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // Remark classification: keyword -> category mapping
 var REMARK_CATEGORIES = [
   {key:'congestion',  label:'Port Congestion / 塞港',    keywords:['congestion','塞港','congestion delay']},
@@ -1205,7 +1214,7 @@ var REMARK_CATEGORIES = [
   {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation']},
   {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','delay','regulatory']},
   {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call']},
-  {key:'cargo',       label:'Cargo Balance / 配货平衡',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
+  {key:'cargo',       label:'Trade / Cargo Balance / 备货配货',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
   {key:'other',       label:'Other / 其他',              keywords:[]}  // fallback
 ];
 
@@ -1299,33 +1308,37 @@ function buildPortWaitData(){
     if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
+    var wait=parseFloat(sr.wait)||0;
+    var remark=sr.remark||'';
+    var cat=classifyRemark(remark)||'other';
+
+    // If remark filter is active, ONLY include calls whose remark matches selected categories
+    if(selRemarkCats){
+      var match=false;
+      for(var i=0;i<selRemarkCats.length;i++){
+        if(cat===selRemarkCats[i]){match=true;break;}
+        // 'other' catches calls with no remark
+        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
+      }
+      if(!match) return;  // skip this call entirely
+    }
+
     if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}};
     var rec=byPort[port];
-    var wait=parseFloat(sr.wait)||0;
-    rec.calls.push({wait:wait, remark:sr.remark||'', vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw, rawPort:rawPort});
+    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw, rawPort:rawPort});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
-    if(wait<6) rec.berthCalls++;  // 到靠 = wait < 6 hours
-    if(sr.remark){
-      var cat=classifyRemark(sr.remark)||'other';
+    if(wait<6) rec.berthCalls++;
+    if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
-      rec.remarks[cat].push(sr.remark);
+      rec.remarks[cat].push(remark);
     }
   });
 
-  // Filter by remark category if selected
   var result=[];
   for(var p in byPort){
     var rec=byPort[p];
-    if(selRemarkCats){
-      var hasCat=false;
-      for(var i=0;i<selRemarkCats.length;i++){
-        if(rec.remarks[selRemarkCats[i]]){hasCat=true;break;}
-        if(selRemarkCats[i]==='other' && Object.keys(rec.remarks).length===0){hasCat=true;break;}
-      }
-      if(!hasCat) continue;
-    }
     rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
     rec.berthRate=rec.calls.length>0 ? Math.round(rec.berthCalls/rec.calls.length*100) : 0;
     rec.catLabels=Object.keys(rec.remarks).map(function(k){
@@ -1367,7 +1380,7 @@ function renderPortWaitTable(){
   var tbody=document.getElementById('portWaitTbody');
 
   // Header
-  var h='';
+  var h='<th style="width:22px;"></th>';
   PORT_WAIT_COLS.forEach(function(col,i){
     var arrow='';
     if(portWaitSortCol===i) arrow=portWaitSortDir===1?' \u25B2':' \u25BC';
@@ -1397,9 +1410,42 @@ function renderPortWaitTable(){
       '<div style="width:'+rate+'%;height:100%;background:'+c+';border-radius:7px;"></div></div>'+
       '<b style="color:'+c+';min-width:36px;">'+rate+'%</b></div>';
     var cat=(r.catLabels||'') ? '<span style="color:#C00000;font-size:11px;">'+r.catLabels+'</span>' : '<span style="color:#8a9bb0;">—</span>';
-    // Row background hint for worst ports
     var rowBg=rate<50 ? ' style="background:#fff5f5;"' : (rate>=80 ? ' style="background:#f0faf3;"' : '');
-    rows+='<tr'+rowBg+'>'+
+    var pid='pw'+idx;
+    // Build call detail rows (hidden by default)
+    var callRows='';
+    r.calls.forEach(function(cl,i2){
+      var w=cl.wait;
+      var wClass=w>=24?'delay':(w<6?'ontime':'');
+      var wDisp=w.toFixed(1);
+      if(wClass==='delay') wDisp='<b>'+wDisp+'</b>';
+      callRows+='<tr class="detail-row" style="background:#fff;">'+
+        '<td style="color:#8a9bb0;font-size:11px;">'+(i2+1)+'</td>'+
+        '<td style="font-size:12px;">'+escapeHtml(cl.vessel||'')+'</td>'+
+        '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.voy||'')+'</td>'+
+        '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.eta||'')+'</td>'+
+        '<td class="center '+wClass+'" style="font-size:12px;">'+wDisp+'</td>'+
+        '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':'color:#8a9bb0;')+'">'+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
+        '</tr>';
+    });
+    var detailHtml='';
+    if(callRows){
+      detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="8" style="padding:0;">'+
+        '<div style="padding:4px 0;">'+
+        '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
+        '<thead><tr style="background:#eef3f7;color:#5a697a;font-size:11px;">'+
+        '<th style="width:24px;padding:3px 6px;">#</th>'+
+        '<th style="padding:3px 6px;text-align:left;">Vessel</th>'+
+        '<th style="padding:3px 6px;text-align:left;">Voy</th>'+
+        '<th style="padding:3px 6px;text-align:left;">ETA</th>'+
+        '<th style="padding:3px 6px;text-align:center;">Wait (hrs)</th>'+
+        '<th style="padding:3px 6px;text-align:left;">Remark</th>'+
+        '</tr></thead>'+
+        '<tbody>'+callRows+'</tbody>'+
+        '</table></div></td></tr>';
+    }
+    rows+='<tr'+rowBg+' class="port-row" onclick="togglePortWaitDetail(\''+pid+'\')" style="cursor:pointer;">'+
+      '<td class="center" style="font-size:12px;color:#8a9bb0;">'+(callRows?'<span id="'+pid+'-icon">&#9654;</span>':'')+'</td>'+
       '<td class="center" style="color:#8a9bb0;font-size:12px;">'+(idx+1)+'</td>'+
       '<td><strong>'+r.port+'</strong></td>'+
       '<td class="center">'+r.calls.length+'</td>'+
@@ -1408,14 +1454,28 @@ function renderPortWaitTable(){
       '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
       '<td class="center'+(r.longWaitCalls>0?' delay':'')+'">'+(r.longWaitCalls>0?'<b>'+r.longWaitCalls+'</b>':'0')+'</td>'+
       '<td>'+cat+'</td>'+
-      '</tr>';
+      '</tr>'+detailHtml;
   });
   tbody.innerHTML=rows;
   document.getElementById('statPortWait').textContent=data.length+' ports · 到靠率 = wait < 6h';
 }
 
+function togglePortWaitDetail(pid){
+  var detail=document.getElementById(pid+'-detail');
+  var icon=document.getElementById(pid+'-icon');
+  if(!detail) return;
+  if(detail.style.display==='none'){
+    detail.style.display='';
+    if(icon) icon.innerHTML='&#9660;';
+  }else{
+    detail.style.display='none';
+    if(icon) icon.innerHTML='&#9654;';
+  }
+}
+
 function sortPortWait(col){
-  if(col===0) return;  // rank column not sortable
+  // col is PORT_WAIT_COLS index: 0=rank(not sortable), 1=port, 2=calls, ...
+  if(col===0) return;
   if(portWaitSortCol===col) portWaitSortDir*=-1;
   else{portWaitSortCol=col;portWaitSortDir=1;}
   renderPortWaitTable();
