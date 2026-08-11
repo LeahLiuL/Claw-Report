@@ -377,6 +377,7 @@ function _loadXlsx(cb){
   .col-dropdown input[type="checkbox"] { accent-color: #1F4E79; width: 15px; height: 15px; }
   .stat-chip { margin-left: auto; background: #EBF3FB; border: 1px solid #c3d9f0; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #1F4E79; font-weight: 600; }
   .delay-chip { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #c00000; font-weight: 600; }
+  td.delay { background: #fff0f0 !important; color: #c00000; font-weight: 700; }
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
   .table-wrap { overflow-x: auto; padding: 0 28px 28px; position: relative; }
@@ -462,6 +463,7 @@ function _loadXlsx(cb){
 <div class="tabs">
   <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
   <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
+  <button class="tab-btn" data-tab="analyticsView" onclick="switchTab('analyticsView',this)">&#128200; Port &amp; Speed</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -538,6 +540,42 @@ function _loadXlsx(cb){
     <table id="fullTable">
       <thead><tr id="fullThead"></tr></thead>
       <tbody id="fullTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 3: Port & Speed Analytics
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="analyticsView" class="tab-content">
+  <div class="controls">
+    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Wait Remark Filter:</span>
+    <div style="position:relative;">
+      <button class="filter-btn" id="remarkFilterBtn" onclick="toggleRemarkFilter()">All Remarks</button>
+      <div class="filter-dropdown col-dropdown" id="remarkFilterDropdown"></div>
+    </div>
+    <span class="stat-chip" id="statPortWait" style="margin-left:12px;">&#8212; port entries</span>
+  </div>
+
+  <!-- Port Wait Analysis -->
+  <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
+  <div class="table-wrap">
+    <table id="portWaitTable">
+      <thead><tr id="portWaitThead"></tr></thead>
+      <tbody id="portWaitTbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Vessel Speed Analysis -->
+  <h3 style="margin:24px 0 8px;color:#1F4E79;">&#128168; Vessel Speed Analysis</h3>
+  <div class="controls" style="margin-bottom:8px;">
+    <span class="stat-chip" id="statSpeed">&#8212; vessels</span>
+    <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
+  </div>
+  <div class="table-wrap">
+    <table id="speedTable">
+      <thead><tr id="speedThead"></tr></thead>
+      <tbody id="speedTbody"></tbody>
     </table>
   </div>
 </div>
@@ -754,8 +792,15 @@ function switchTab(viewId, btn){
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById(viewId).classList.add('active');
   btn.classList.add('active');
-  document.getElementById('btnExport').textContent =
-    viewId==='fullScheduleView' ? '\u2193 Export Full Schedule' : '\u2193 Export Excel';
+  if(viewId==='fullScheduleView'){
+    document.getElementById('btnExport').textContent='\u2193 Export Full Schedule';
+    document.getElementById('btnExport').style.display='';
+  } else if(viewId==='summaryView'){
+    document.getElementById('btnExport').textContent='\u2193 Export Excel';
+    document.getElementById('btnExport').style.display='';
+  } else {
+    document.getElementById('btnExport').style.display='none';
+  }
   // Close any open column/filter dropdown
   document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
 }
@@ -1147,6 +1192,316 @@ function exportFullScheduleExcel(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   PORT & SPEED ANALYTICS
+   ═══════════════════════════════════════════════════════════════════ */
+
+// Remark classification: keyword -> category mapping
+var REMARK_CATEGORIES = [
+  {key:'congestion',  label:'Port Congestion / 塞港',    keywords:['congestion','塞港','congestion delay']},
+  {key:'weather',     label:'Weather / 天气',            keywords:['typhoon','台风','避台','大风浪','weather','storm','swell']},
+  {key:'bunker',      label:'Bunker / 加油',             keywords:['bunker','加油','bunkering','fuel']},
+  {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation']},
+  {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','delay','regulatory']},
+  {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call']},
+  {key:'cargo',       label:'Cargo Balance / 配货平衡',  keywords:['balance','load balance','connection']},
+  {key:'other',       label:'Other / 其他',              keywords:[]}  // fallback
+];
+
+function classifyRemark(remark){
+  if(!remark) return null;
+  var r=remark.toLowerCase();
+  for(var i=0;i<REMARK_CATEGORIES.length-1;i++){
+    var kw=REMARK_CATEGORIES[i].keywords;
+    for(var j=0;j<kw.length;j++){
+      if(r.indexOf(kw[j])>=0) return REMARK_CATEGORIES[i].key;
+    }
+  }
+  return 'other';
+}
+
+// Selected remark categories filter (null = show all)
+var selRemarkCats = null;
+
+function buildRemarkFilterDropdown(){
+  var dd=document.getElementById('remarkFilterDropdown');
+  var usedCats={};
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var cat=classifyRemark(sr.remark);
+    if(cat) usedCats[cat]=true;
+  });
+
+  var html='';
+  REMARK_CATEGORIES.forEach(function(cat){
+    if(!usedCats[cat.key] && cat.key!=='other') return;
+    var checked = !selRemarkCats || selRemarkCats.indexOf(cat.key)>=0;
+    html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+    html+='<input type="checkbox" value="'+cat.key+'" '+(checked?'checked':'')+' onchange="onRemarkCatChange()">';
+    html+=cat.label+'</label>';
+  });
+  dd.innerHTML=html;
+}
+
+function toggleRemarkFilter(){
+  var dd=document.getElementById('remarkFilterDropdown');
+  if(!dd.classList.contains('open')){ buildRemarkFilterDropdown(); dd.classList.add('open'); }
+  else dd.classList.remove('open');
+  document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
+}
+
+function onRemarkCatChange(){
+  var checks=document.querySelectorAll('#remarkFilterDropdown input[type=checkbox]');
+  var sel=[];
+  checks.forEach(function(cb){if(cb.checked) sel.push(cb.value);});
+  selRemarkCats = sel.length===REMARK_CATEGORIES.length ? null : sel;
+  renderAnalytics();
+}
+
+// ── Port Wait Analysis ────────────────────────────────────────────────
+
+var portWaitData=[];
+var portWaitSortCol=-1, portWaitSortDir=1;
+
+function buildPortWaitData(){
+  var byPort={};
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var port=sr.port||'';
+    if(!port) return;
+    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, remarks:{}};
+    var rec=byPort[port];
+    var wait=parseFloat(sr.wait)||0;
+    rec.calls.push({wait:wait, remark:sr.remark||'', vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw});
+    rec.totalWait+=wait;
+    if(wait>rec.maxWait) rec.maxWait=wait;
+    if(wait>=24) rec.longWaitCalls++;
+    if(sr.remark){
+      var cat=classifyRemark(sr.remark)||'other';
+      if(!rec.remarks[cat]) rec.remarks[cat]=[];
+      rec.remarks[cat].push(sr.remark);
+    }
+  });
+
+  // Filter by remark category if selected
+  var result=[];
+  for(var p in byPort){
+    var rec=byPort[p];
+    if(selRemarkCats){
+      var hasCat=false;
+      for(var i=0;i<selRemarkCats.length;i++){
+        if(rec.remarks[selRemarkCats[i]]){hasCat=true;break;}
+        // Also check calls that don't have remarks but category is 'other'
+        if(selRemarkCats[i]==='other' && Object.keys(rec.remarks).length===0){hasCat=true;break;}
+      }
+      if(!hasCat) continue;
+    }
+    rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
+    rec.catLabels=Object.keys(rec.remarks).map(function(k){
+      var found=REMARK_CATEGORIES.find(function(c){return c.key===k;});
+      return found ? found.label : k;
+    }).join(', ');
+    result.push(rec);
+  }
+
+  portWaitData=result;
+}
+
+var PORT_WAIT_COLS=[
+  {key:'port',     label:'Port'},
+  {key:'calls',    label:'Calls'},
+  {key:'avgWait',  label:'Avg Wait (hrs)'},
+  {key:'maxWait',  label:'Max Wait (hrs)'},
+  {key:'longWaitCalls', label:'Calls > 24h'},
+  {key:'catLabels',label:'Remark Categories'},
+];
+
+function renderPortWaitTable(){
+  buildPortWaitData();
+  var data=portWaitData;
+  var thead=document.getElementById('portWaitThead');
+  var tbody=document.getElementById('portWaitTbody');
+
+  // Header
+  var h='';
+  PORT_WAIT_COLS.forEach(function(col,i){
+    var arrow='';
+    if(portWaitSortCol===i) arrow=portWaitSortDir===1?' \u25B2':' \u25BC';
+    h+='<th style="cursor:pointer" onclick="sortPortWait('+i+')">'+col.label+arrow+'</th>';
+  });
+  thead.innerHTML='<tr>'+h+'</tr>';
+
+  // Sort
+  if(portWaitSortCol>=0){
+    var def=PORT_WAIT_COLS[portWaitSortCol];
+    var k=def.key; var d=portWaitSortDir;
+    data=data.slice().sort(function(a,b){
+      if(k==='port') return (a.port||'').localeCompare(b.port||'')*d;
+      if(k==='catLabels') return (a.catLabels||'').localeCompare(b.catLabels||'')*d;
+      var va=a[k]||0, vb=b[k]||0;
+      return (va-vb)*d;
+    });
+  }
+
+  // Body
+  var rows='';
+  data.forEach(function(r){
+    var cat=(r.catLabels||'') ? '<span style="color:#C00000;font-size:11px;">'+r.catLabels+'</span>' : '<span style="color:#8a9bb0;">—</span>';
+    rows+='<tr>'+
+      '<td><strong>'+r.port+'</strong></td>'+
+      '<td class="center">'+r.calls.length+'</td>'+
+      '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
+      '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
+      '<td class="center'+(r.longWaitCalls>0?' delay':'')+'">'+(r.longWaitCalls>0?'<b>'+r.longWaitCalls+'</b>':'0')+'</td>'+
+      '<td>'+cat+'</td>'+
+      '</tr>';
+  });
+  tbody.innerHTML=rows;
+  document.getElementById('statPortWait').textContent=data.length+' port entries';
+}
+
+function sortPortWait(col){
+  if(portWaitSortCol===col) portWaitSortDir*=-1;
+  else{portWaitSortCol=col;portWaitSortDir=1;}
+  renderPortWaitTable();
+}
+
+// ── Vessel Speed Analysis ─────────────────────────────────────────────
+
+var vesselSpeedData=[];
+var speedSortCol=-1, speedSortDir=1;
+
+function buildVesselSpeedData(){
+  var byVessel={};
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var v=sr.vessel||'';
+    var spd=parseFloat(sr.speed);
+    if(!v || isNaN(spd) || spd<=0 || spd>30) return;  // exclude unrealistic: ≤0 or >30kn
+    if(!byVessel[v]) byVessel[v]={vessel:v, route:sr.route, speeds:[], sum:0, min:spd, max:spd};
+    var rec=byVessel[v];
+    rec.speeds.push(spd);
+    rec.sum+=spd;
+    if(spd<rec.min) rec.min=spd;
+    if(spd>rec.max) rec.max=spd;
+  });
+  var result=[];
+  for(var v in byVessel){
+    var rec=byVessel[v];
+    rec.avg=rec.speeds.length>0 ? rec.sum/rec.speeds.length : 0;
+    rec.legs=rec.speeds.length;
+    result.push(rec);
+  }
+  vesselSpeedData=result;
+}
+
+var SPEED_COLS=[
+  {key:'vessel', label:'Vessel'},
+  {key:'route',  label:'Route'},
+  {key:'legs',   label:'Legs'},
+  {key:'avg',    label:'Avg Speed (kn)'},
+  {key:'min',    label:'Min Speed (kn)'},
+  {key:'max',    label:'Max Speed (kn)'},
+];
+
+function renderSpeedTable(){
+  buildVesselSpeedData();
+  var data=vesselSpeedData;
+  var thead=document.getElementById('speedThead');
+  var tbody=document.getElementById('speedTbody');
+
+  var h='';
+  SPEED_COLS.forEach(function(col,i){
+    var arrow='';
+    if(speedSortCol===i) arrow=speedSortDir===1?' \u25B2':' \u25BC';
+    h+='<th style="cursor:pointer" onclick="sortSpeed('+i+')">'+col.label+arrow+'</th>';
+  });
+  thead.innerHTML='<tr>'+h+'</tr>';
+
+  if(speedSortCol>=0){
+    var def=SPEED_COLS[speedSortCol];
+    var k=def.key; var d=speedSortDir;
+    data=data.slice().sort(function(a,b){
+      if(k==='vessel' || k==='route') return (a[k]||'').localeCompare(b[k]||'')*d;
+      var va=a[k]||0, vb=b[k]||0;
+      return (va-vb)*d;
+    });
+  }
+
+  var rows='';
+  data.forEach(function(r){
+    rows+='<tr>'+
+      '<td><strong>'+r.vessel+'</strong></td>'+
+      '<td class="center">'+r.route+'</td>'+
+      '<td class="center">'+r.legs+'</td>'+
+      '<td class="center"><b>'+r.avg.toFixed(1)+'</b></td>'+
+      '<td class="center">'+r.min.toFixed(1)+'</td>'+
+      '<td class="center">'+r.max.toFixed(1)+'</td>'+
+      '</tr>';
+  });
+  tbody.innerHTML=rows;
+  document.getElementById('statSpeed').textContent=data.length+' vessels';
+}
+
+function sortSpeed(col){
+  if(speedSortCol===col) speedSortDir*=-1;
+  else{speedSortCol=col;speedSortDir=1;}
+  renderSpeedTable();
+}
+
+function exportSpeedExcel(){
+  buildVesselSpeedData();
+  var data=vesselSpeedData;
+  var todayStr=TODAY_DATA.date;
+  var headers=SPEED_COLS.map(function(c){return c.label;});
+  var numCols=headers.length;
+
+  function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
+  var B=thinBorder();
+  function F(rgb){return{patternType:'solid',fgColor:{rgb:rgb}};}
+  var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:{horizontal:'center',vertical:'center'},border:B};
+  var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:{horizontal:'center',vertical:'center',wrapText:true},border:B};
+
+  var sheetData=[];
+  var tr=[];
+  for(var c=0;c<numCols;c++) tr[c]={v:(c===0?'CUL VESSEL SPEED ANALYSIS  --  As of '+todayStr:''),s:tS};
+  sheetData.push(tr);
+  sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
+
+  data.forEach(function(r){
+    var nS={font:{name:'Arial',sz:9},fill:F('FFFFFF'),border:B,alignment:{horizontal:'left',vertical:'center'}};
+    var cS={font:{name:'Arial',sz:9},fill:F('FFFFFF'),border:B,alignment:{horizontal:'center',vertical:'center'}};
+    var bS={font:{name:'Arial',bold:true,sz:9},fill:F('FFFFFF'),border:B,alignment:{horizontal:'left',vertical:'center'}};
+    sheetData.push([
+      {v:r.vessel,s:bS},
+      {v:r.route,s:cS},
+      {v:r.legs,s:cS},
+      {v:r.avg.toFixed(1),s:{font:{name:'Arial',bold:true,sz:9},fill:F('FFFFFF'),border:B,alignment:{horizontal:'center',vertical:'center'}}},
+      {v:r.min.toFixed(1),s:cS},
+      {v:r.max.toFixed(1),s:cS},
+    ]);
+  });
+
+  var ws=XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
+  ws['!cols']=headers.map(function(h){return{wch:Math.max(h.length+4,10)};});
+  var totalRows=sheetData.length;
+  ws['!rows']=[{hpt:28},{hpt:30}];for(var j=2;j<totalRows;j++)ws['!rows'].push({hpt:16});
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Vessel Speed');
+  XLSX.writeFile(wb,'CUL Vessel Speed '+todayStr+'.xlsx');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+
+function initAnalytics(){
+  buildRemarkFilterDropdown();
+  renderPortWaitTable();
+  renderSpeedTable();
+}
+
+function renderAnalytics(){
+  renderPortWaitTable();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    HISTORY MODAL
    ═══════════════════════════════════════════════════════════════════ */
 function openHistory(){
@@ -1182,6 +1537,7 @@ function init(){
   document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
   initFullSchedule();
+  initAnalytics();
 }
 init();
 </script>
