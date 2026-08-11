@@ -1270,6 +1270,8 @@ function normalizePort(p){
   var s=p.trim();
   // UN/LOCODE alias: CNNSA same as CNNAS (Nansha)
   if(s==='CNNSA') s='CNNAS';
+  // UN/LOCODE alias: SAJED same as JED (Jeddah)
+  if(s==='SAJED') s='JED';
   // Strip anything in parentheses/brackets: (T1), (DMP), (SGTD), (RSGT), (ESCO), (TIPS), (1st CALL), (2nd CALL), (Bunkering)
   s=s.replace(/\s*[\(\（][^)\）]*[\)\）]/g,'');
   // Strip "-suffix": -Shipyard, -CCT, -MCT
@@ -1429,7 +1431,7 @@ function buildVesselSpeedData(){
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var v=sr.vessel||'';
     var spd=parseFloat(sr.speed);
-    if(!v || isNaN(spd) || spd<=0 || spd>30) return;  // exclude unrealistic: ≤0 or >30kn
+    if(!v || isNaN(spd) || spd<=0 || spd>20) return;  // exclude unrealistic: ≤0 or >20kn
     if(!byVessel[v]) byVessel[v]={vessel:v, route:sr.route, speeds:[], sum:0, min:spd, max:spd};
     var rec=byVessel[v];
     rec.speeds.push(spd);
