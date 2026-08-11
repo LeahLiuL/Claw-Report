@@ -556,13 +556,17 @@ function _loadXlsx(cb){
      VIEW 3: Port Wait Analytics
      ═══════════════════════════════════════════════════════════════════ -->
 <div id="portView" class="tab-content">
-  <div class="controls">
-    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Port Filter:</span>
+  <div class="controls" style="flex-wrap:wrap;">
+    <span style="font-weight:600;font-size:14px;margin-right:4px;">&#128197; Date:</span>
+    <input type="date" id="portDateFrom" title="From" onchange="onPortDateChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
+    <span style="margin:0 4px;font-size:13px;">to</span>
+    <input type="date" id="portDateTo" title="To" onchange="onPortDateChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
+    <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Port:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="portFilterBtn" onclick="togglePortFilter()">All Ports</button>
       <div class="filter-dropdown col-dropdown" id="portFilterDropdown"></div>
     </div>
-    <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Remark Filter:</span>
+    <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Remark:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="remarkFilterBtn" onclick="toggleRemarkFilter()">All Remarks</button>
       <div class="filter-dropdown col-dropdown" id="remarkFilterDropdown"></div>
@@ -572,7 +576,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate (到靠率) = % of calls with wait &lt; 6 hours. Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate (到靠率) = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
   <div class="table-wrap">
     <table id="portWaitTable">
       <thead><tr id="portWaitThead"></tr></thead>
@@ -584,6 +588,13 @@ function _loadXlsx(cb){
   <div class="table-wrap" style="max-width:900px;">
     <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128202; Wait Time by Remark Category</h4>
     <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- Monthly Trend -->
+  <div class="table-wrap" style="max-width:900px;margin-top:20px;">
+    <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128200; Monthly Port Wait Trend</h4>
+    <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters.</p>
+    <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 </div>
 
@@ -1302,6 +1313,7 @@ function onRemarkCatChange(){
   }
   renderPortWaitTable();
   renderRemarkSummary();
+  renderMonthlyTrend();
 }
 var selPortFilter = null;  // null = show all ports
 
@@ -1351,6 +1363,18 @@ function onPortFilterChange(){
   btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+total+' ports';
   renderPortWaitTable();
   renderRemarkSummary();
+  renderMonthlyTrend();
+}
+
+// ── Date Range Filter ───────────────────────────────────────────────
+var selPortDateFrom=null, selPortDateTo=null;
+
+function onPortDateChange(){
+  selPortDateFrom=document.getElementById('portDateFrom').value||null;
+  selPortDateTo=document.getElementById('portDateTo').value||null;
+  renderPortWaitTable();
+  renderRemarkSummary();
+  renderMonthlyTrend();
 }
 
 // ── Speed Port Filter (independent filter, shares selPortFilter) ─────
@@ -1402,6 +1426,7 @@ function onSpeedPortFilterChange(){
 var portWaitData=[];
 var portWaitSortCol=-1, portWaitSortDir=1;
 var remarkCatTotals={};
+var monthlyTrendData=[];
 
 // Merge port name variants: AEJEA(T1)→AEJEA, CNSHK-CCT→CNSHK, DJJIB(DMP)→DJJIB,
 // MYPKG (1st CALL)→MYPKG, THLCH (ESCO)→THLCH, SGSIN(Bunkering)→SGSIN(bunker) etc.
@@ -1434,7 +1459,11 @@ var totalExcludedByRemark=0;
 function buildPortWaitData(){
   var byPort={};
   totalExcludedByRemark=0;
-  var todayStr=TODAY_DATA.date; // snapshot date, e.g. "2026-08-11"
+  var todayStr=TODAY_DATA.date;
+
+  // Pre-compute date range bounds
+  var df=selPortDateFrom||'', dt=selPortDateTo||todayStr;
+
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
@@ -1443,8 +1472,11 @@ function buildPortWaitData(){
     var port=normalizePort(rawPort);
     if(!port) return;
 
-    // Only include schedule rows on or before today
-    if(sr.etaRaw && sr.etaRaw > todayStr) return;
+    // Date range filter
+    var era=sr.etaRaw||'';
+    if(!era) return;
+    if(df && era < df) return;
+    if(dt && era > dt) return;
 
     // Apply port filter
     if(selPortFilter && selPortFilter.indexOf(port)<0) return;
@@ -1453,26 +1485,34 @@ function buildPortWaitData(){
     var remark=sr.remark||'';
     var cat=classifyRemark(remark)||'other';
 
+    // Initialize port record if needed
+    if(!byPort[port]){
+      byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0,  // filtered stats
+                    allCalls:0, allBerthCalls:0,  // unfiltered (for berth rate)
+                    remarks:{}, excludedCalls:[]};
+    }
+    var rec=byPort[port];
+
+    // Track unfiltered (all calls within date range) for berth rate
+    rec.allCalls++;
+    if(wait<6) rec.allBerthCalls++;
+
     // If remark filter is active, ONLY include calls whose remark matches selected categories
     if(selRemarkCats){
       var match=false;
       for(var i=0;i<selRemarkCats.length;i++){
         if(cat===selRemarkCats[i]){match=true;break;}
-        // 'other' catches calls with no remark
         if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match){
-        // Track excluded call for UX feedback (show in port detail)
-        if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}, excludedCalls:[]};
-        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, rawPort:rawPort});
+        rec.excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, rawPort:rawPort});
         totalExcludedByRemark++;
-        return;  // skip this call
+        return;  // skip this call for wait/calls aggregation
       }
     }
 
-    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}, excludedCalls:[]};
-    var rec=byPort[port];
-    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw, rawPort:rawPort});
+    // Filtered call — add to stats
+    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:era, rawPort:rawPort});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
@@ -1484,15 +1524,20 @@ function buildPortWaitData(){
   });
 
   var result=[];
+  // Collect all calls for monthly aggregation
+  var allFilteredCalls=[];
   for(var p in byPort){
     var rec=byPort[p];
     rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
-    rec.berthRate=rec.calls.length>0 ? Math.round(rec.berthCalls/rec.calls.length*100) : 0;
+    // Berth rate = all berth calls / all total calls (unfiltered by remark)
+    rec.berthRate=rec.allCalls>0 ? Math.round(rec.allBerthCalls/rec.allCalls*100) : 0;
     rec.catLabels=Object.keys(rec.remarks).map(function(k){
       var found=REMARK_CATEGORIES.find(function(c){return c.key===k;});
       return found ? found.label : k;
     }).join(', ');
     result.push(rec);
+    // Collect for monthly trend
+    rec.calls.forEach(function(cl){ allFilteredCalls.push(cl); });
   }
 
   // Default sort: berth rate descending (best ports first)
@@ -1513,6 +1558,27 @@ function buildPortWaitData(){
 
   portWaitData=result;
   remarkCatTotals=catTotals;
+
+  // ── Monthly Trend Aggregation ──────────────────────────────────────
+  var byMonth={};
+  allFilteredCalls.forEach(function(cl){
+    // dateKey is etaRaw in "YYYY-MM-DD" format
+    var dk=cl.dateKey||'';
+    if(!dk || dk.length<7) return;
+    var m=dk.substring(0,7); // "YYYY-MM"
+    if(!byMonth[m]) byMonth[m]={month:m, totalWait:0, count:0, maxWait:0, calls:[]};
+    var mr=byMonth[m];
+    mr.totalWait+=cl.wait;
+    mr.count++;
+    if(cl.wait>mr.maxWait) mr.maxWait=cl.wait;
+    mr.calls.push(cl);
+  });
+  // Sort months
+  var months=Object.keys(byMonth).sort();
+  monthlyTrendData=months.map(function(m){
+    var mr=byMonth[m];
+    return {month:m, totalWait:mr.totalWait, count:mr.count, avgWait:mr.totalWait/mr.count, maxWait:mr.maxWait};
+  });
 }
 
 var PORT_WAIT_COLS=[
@@ -1626,7 +1692,7 @@ function renderPortWaitTable(){
       '<td class="center" style="font-size:12px;color:#8a9bb0;">'+(callRows?'<span id="'+pid+'-icon">&#9654;</span>':'')+'</td>'+
       '<td class="center" style="color:#8a9bb0;font-size:12px;">'+(idx+1)+'</td>'+
       '<td><strong>'+r.port+'</strong></td>'+
-      '<td class="center">'+r.calls.length+'</td>'+
+      '<td class="center">'+(selRemarkCats?r.calls.length+' <span style="font-size:10px;color:#999;">/ '+r.allCalls+'</span>':r.calls.length)+'</td>'+
       '<td>'+bar+'</td>'+
       '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
@@ -1636,10 +1702,16 @@ function renderPortWaitTable(){
   });
   tbody.innerHTML=rows;
   var statText=data.length+' ports';
+  // Compute total calls across all ports (unfiltered by remark)
+  var totalAllCalls=0;
+  data.forEach(function(r){totalAllCalls+=r.allCalls;});
   if(selRemarkCats && totalExcludedByRemark>0){
     statText+=' · <span style="color:#e67e22;">'+totalExcludedByRemark+' calls filtered</span>';
+    statText+=' · '+totalAllCalls+' total calls in range';
+  } else {
+    statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · 到靠率 = wait < 6h';
+  statText+=' · 到靠率 = wait < 6h / total calls';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -1663,6 +1735,7 @@ function sortPortWait(col){
   else{portWaitSortCol=col;portWaitSortDir=1;}
   renderPortWaitTable();
   renderRemarkSummary();
+  renderMonthlyTrend();
 }
 
 function renderRemarkSummary(){
@@ -1708,6 +1781,49 @@ function renderRemarkSummary(){
     html+='</div>';
     html+='<span style="font-weight:700;color:'+c+';width:56px;text-align:right;flex-shrink:0;">'+it.wait.toFixed(1)+'h</span>';
     html+='<span style="color:#8a9bb0;width:48px;text-align:right;flex-shrink:0;">'+it.calls+' call'+(it.calls>1?'s':'')+'</span>';
+    html+='</div>';
+  });
+
+  cont.innerHTML=html;
+}
+
+// ── Monthly Port Wait Trend ──────────────────────────────────────────
+function buildMonthlyTrend(){
+  // Called by buildPortWaitData — monthlyTrendData is already populated
+  // This is a no-op since data is built inline. Re-call buildPortWaitData if needed.
+}
+function renderMonthlyTrend(){
+  buildPortWaitData();
+  var data=monthlyTrendData;
+  var cont=document.getElementById('monthlyTrend');
+  if(!data || data.length===0){
+    cont.innerHTML='<div style="color:#8a9bb0;font-size:12px;padding:12px;">No monthly data available for the selected range.</div>';
+    return;
+  }
+
+  var maxW=0, totalCalls=0;
+  data.forEach(function(m){if(m.totalWait>maxW)maxW=m.totalWait; totalCalls+=m.count;});
+  maxW=maxW||1;
+
+  // Summary header
+  var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;font-size:12px;">';
+  html+='<span>Months: <b>'+data.length+'</b></span>';
+  html+='<span>Total Calls: <b>'+totalCalls+'</b></span>';
+  html+='<span>Total Wait: <b style="color:#c00000;">'+data.reduce(function(s,m){return s+m.totalWait;},0).toFixed(1)+'h</b></span>';
+  html+='</div>';
+
+  // Bars
+  data.forEach(function(m){
+    var pct=Math.round(m.totalWait/maxW*100);
+    var avg=m.avgWait.toFixed(1);
+    html+='<div style="display:flex;align-items:center;gap:8px;font-size:12px;">';
+    html+='<span style="width:80px;text-align:right;font-weight:600;flex-shrink:0;">'+m.month+'</span>';
+    html+='<div style="flex:1;height:22px;background:#e8e8e8;border-radius:4px;overflow:hidden;min-width:80px;">';
+    html+='<div style="width:'+(pct||1)+'%;height:100%;background:linear-gradient(90deg,#1F4E79,#2980b9);border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:600;min-width:'+(pct>0?pct*0.5:1)+'px;">'+(pct>=10?pct+'%':'')+'</div>';
+    html+='</div>';
+    html+='<span style="font-weight:700;color:#1F4E79;width:56px;text-align:right;flex-shrink:0;">'+m.totalWait.toFixed(1)+'h</span>';
+    html+='<span style="color:#8a9bb0;width:64px;text-align:right;flex-shrink:0;">'+m.count+' call'+(m.count>1?'s':'')+'</span>';
+    html+='<span style="color:#6a7b8d;width:64px;text-align:right;flex-shrink:0;">avg '+avg+'h</span>';
     html+='</div>';
   });
 
@@ -1854,10 +1970,21 @@ function exportSpeedExcel(){
 // ── Init ──────────────────────────────────────────────────────────────
 
 function initPortView(){
+  // Set default date range: earliest ETA in data → today
+  var minDate='', todayStr=TODAY_DATA.date;
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var d=sr.etaRaw||'';
+    if(d && (!minDate || d < minDate)) minDate=d;
+  });
+  document.getElementById('portDateFrom').value = selPortDateFrom || minDate;
+  document.getElementById('portDateTo').value = selPortDateTo || todayStr;
+  selPortDateFrom = selPortDateFrom || minDate;
+  selPortDateTo = selPortDateTo || todayStr;
   buildPortFilterDropdown();
   buildRemarkFilterDropdown();
   renderPortWaitTable();
   renderRemarkSummary();
+  renderMonthlyTrend();
 }
 
 function initSpeedView(){
