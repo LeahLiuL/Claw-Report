@@ -931,12 +931,8 @@ function getFilteredFull(){
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    // Date window is only the DEFAULT display filter. When a search term is
-    // entered, ignore the date range so retrieval spans the COMPLETE dataset.
-    if(!q){
-      if(etaFrom && r[dateKey] < etaFrom) return false;
-      if(etaTo   && r[dateKey] > etaTo)   return false;
-    }
+    if(etaFrom && r[dateKey] < etaFrom) return false;
+    if(etaTo   && r[dateKey] > etaTo)   return false;
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -964,8 +960,7 @@ function renderFullSchedule(){
 
   const tbody=document.getElementById('fullTbody');
   if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['2'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal2').textContent='0 rows';return;}
-  const qMode=document.getElementById('searchBox2').value.trim();
-  document.getElementById('statTotal2').textContent=data.length+' rows'+(qMode?'  · 检索模式：已忽略日期窗口':'');
+  document.getElementById('statTotal2').textContent=data.length+' rows';
 
   const defs = COLUMN_DEFS_FULL;
   let prevVessel = '';
