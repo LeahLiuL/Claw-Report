@@ -1352,8 +1352,8 @@ function normalizePort(p){
   var s=p.trim();
   // UN/LOCODE alias: CNNSA same as CNNAS (Nansha)
   if(s==='CNNSA') s='CNNAS';
-  // UN/LOCODE alias: SAJED same as JED (Jeddah)
-  if(s==='SAJED') s='JED';
+  // UN/LOCODE alias: JED same as SAJED (Jeddah)
+  if(s==='JED') s='SAJED';
   // Strip anything in parentheses/brackets: (T1), (DMP), (SGTD), (RSGT), (ESCO), (TIPS), (1st CALL), (2nd CALL), (Bunkering)
   s=s.replace(/\s*[\(\（][^)\）]*[\)\）]/g,'');
   // Strip "-suffix": -Shipyard, -CCT, -MCT
