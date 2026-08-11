@@ -448,9 +448,32 @@ function _loadXlsx(cb){
   .history-table-wrap { overflow-x: auto; }
   .history-table-wrap table { font-size: 11.5px; min-width: 900px; }
   .footer { text-align: center; padding: 12px; color: #8a9bb0; font-size: 11px; }
+
+  /* ── Login Overlay ──────────────────────────────────────────────── */
+  .login-overlay { display: flex; position: fixed; inset: 0; background: #0a1628; z-index: 9999; align-items: center; justify-content: center; }
+  .login-overlay.hidden { display: none; }
+  .login-box { background: #fff; border-radius: 10px; padding: 32px 40px; width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.5); text-align: center; }
+  .login-box h2 { margin: 0 0 6px; color: #1F4E79; font-size: 20px; }
+  .login-box .sub { color: #8a9bb0; font-size: 12px; margin-bottom: 24px; }
+  .login-box input { width: 100%; padding: 10px 14px; border: 1px solid #c9d5e2; border-radius: 6px; font-size: 14px; box-sizing: border-box; margin-bottom: 12px; outline: none; }
+  .login-box input:focus { border-color: #2E75B6; box-shadow: 0 0 0 2px rgba(46,117,182,.15); }
+  .login-box .login-err { color: #e74c3c; font-size: 12px; margin-bottom: 8px; min-height: 18px; }
+  .login-box button { width: 100%; padding: 10px; background: #1F4E79; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
+  .login-box button:hover { background: #2E75B6; }
 </style>
 </head>
 <body>
+
+<!-- ── Login Overlay ──────────────────────────────────────────────── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>&#128274; Access Restricted</h2>
+    <div class="sub">CUL Daily Movement Dashboard</div>
+    <input type="password" id="loginPwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" autofocus>
+    <div class="login-err" id="loginErr"></div>
+    <button onclick="doLogin()">Sign In</button>
+  </div>
+</div>
 
 <!-- ── Header ──────────────────────────────────────────────────────────── -->
 <div class="header">
@@ -2018,6 +2041,27 @@ function renderHistoryTable(date){
 }
 function closeHistory(){document.getElementById('historyModal').classList.remove('open');}
 document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===document.getElementById('historyModal'))closeHistory();});
+
+/* ═══════════════════════════════════════════════════════════════════
+   LOGIN
+   ═══════════════════════════════════════════════════════════════════ */
+var LOGIN_PWD='CUL1234';
+function doLogin(){
+  var v=document.getElementById('loginPwd').value.trim();
+  if(v===LOGIN_PWD){
+    sessionStorage.setItem('cul_auth','1');
+    document.getElementById('loginOverlay').classList.add('hidden');
+    init();
+  } else {
+    document.getElementById('loginErr').textContent='Incorrect password';
+    document.getElementById('loginPwd').value='';
+  }
+}
+// Check if already authenticated this session
+if(sessionStorage.getItem('cul_auth')==='1'){
+  document.getElementById('loginOverlay').classList.add('hidden');
+  init();
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    INIT
