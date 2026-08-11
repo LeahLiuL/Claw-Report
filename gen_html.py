@@ -1495,7 +1495,7 @@ function buildPortWaitData(){
 
     // Track unfiltered (all calls within date range) for berth rate
     rec.allCalls++;
-    if(wait<6) rec.allBerthCalls++;
+    if(port==='CNSHA' ? wait<12 : wait<6) rec.allBerthCalls++;
 
     // If remark filter is active, ONLY include calls whose remark matches selected categories
     if(selRemarkCats){
@@ -1516,7 +1516,7 @@ function buildPortWaitData(){
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
-    if(wait<6) rec.berthCalls++;
+    if(port==='CNSHA' ? wait<12 : wait<6) rec.berthCalls++;
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -1711,7 +1711,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · 到靠率 = wait < 6h / total calls';
+  statText+=' · 到靠率 = wait < 6h (CNSHA <12h) / total calls';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
