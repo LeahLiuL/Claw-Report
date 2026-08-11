@@ -91,8 +91,8 @@ def get_str(v):
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path):
     today = date.today()
-    data_eta_min = today - timedelta(days=60)   # capture ~2 months before
-    data_eta_max = today + timedelta(days=60)   # capture ~2 months after
+    data_eta_min = None   # capture ALL rows from Excel (no date window)
+    data_eta_max = None
     wb_src = openpyxl.load_workbook(excel_path)
     ws_src = wb_src.active
 
@@ -144,8 +144,11 @@ def extract(excel_path):
                 eta_val = ws_src.cell(j, 9).value
                 if isinstance(eta_val, datetime):
                     eta_d = eta_val.date()
-                    if data_eta_min <= eta_d <= data_eta_max:
-                        schedule_rows.append(j)
+                    if data_eta_min is None or eta_d < data_eta_min:
+                        data_eta_min = eta_d
+                    if data_eta_max is None or eta_d > data_eta_max:
+                        data_eta_max = eta_d
+                    schedule_rows.append(j)
                 j += 1
             else:
                 i = rows_total + 1
@@ -251,8 +254,8 @@ def extract(excel_path):
         'defaultEtaTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
         'defaultEtbFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
         'defaultEtbTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
-        'dataEtaMin':     data_eta_min.strftime('%Y-%m-%d'),
-        'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d'),
+        'dataEtaMin':     data_eta_min.strftime('%Y-%m-%d') if data_eta_min else '',
+        'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d') if data_eta_max else '',
     }
 
 # ── HTML Template ────────────────────────────────────────────────────────
@@ -928,8 +931,12 @@ function getFilteredFull(){
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    if(etaFrom && r[dateKey] < etaFrom) return false;
-    if(etaTo   && r[dateKey] > etaTo)   return false;
+    // Date window is only the DEFAULT display filter. When a search term is
+    // entered, ignore the date range so retrieval spans the COMPLETE dataset.
+    if(!q){
+      if(etaFrom && r[dateKey] < etaFrom) return false;
+      if(etaTo   && r[dateKey] > etaTo)   return false;
+    }
     if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -957,7 +964,8 @@ function renderFullSchedule(){
 
   const tbody=document.getElementById('fullTbody');
   if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['2'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal2').textContent='0 rows';return;}
-  document.getElementById('statTotal2').textContent=data.length+' rows';
+  const qMode=document.getElementById('searchBox2').value.trim();
+  document.getElementById('statTotal2').textContent=data.length+' rows'+(qMode?'  · 检索模式：已忽略日期窗口':'');
 
   const defs = COLUMN_DEFS_FULL;
   let prevVessel = '';

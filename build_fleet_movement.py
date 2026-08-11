@@ -329,16 +329,18 @@ def main():
     ap.add_argument("--vessel", default=VESSEL_CSV, help="GitHub vessel.csv (船名->代码/显示名)")
     ap.add_argument("--pic", default=DEFAULT_PIC, help="PIC 汇总.xlsx (人工编辑主文件, 文件夹名->PIC)")
     ap.add_argument("--output", default=DEFAULT_OUT)
-    ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天")
-    ap.add_argument("--window", type=int, default=WINDOW_DAYS)
+    ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天(用于选最近船期行)")
+    ap.add_argument("--window", type=int, default=WINDOW_DAYS, help="兼容旧参数, 已被 --year 取代")
+    ap.add_argument("--year", type=int, default=2026, help="船期年份窗口(默认2026): 加载该年第一个 sheet 的全部船期")
     ap.add_argument("--no-backup", action="store_true")
     args = ap.parse_args()
 
     today = datetime.strptime(args.today, "%Y-%m-%d").date() if args.today else date.today()
-    lo = today - timedelta(days=args.window)
-    hi = today + timedelta(days=args.window)
+    # 2026 全年窗口: 加载每个源表第一个 sheet 的全部 {year} 船期, 不再按 today±window 截断
+    lo = date(args.year, 1, 1)
+    hi = date(args.year, 12, 31)
 
-    print(f"[基准日] {today}  窗口 ±{args.window}天 -> [{lo} ~ {hi}]")
+    print(f"[基准日] {today}  年份窗口 {args.year} -> [{lo} ~ {hi}]")
     print("=== 1/4 读权威表(vessel.csv / P盘PIC) ===")
     vessel = load_vessel_csv(args.vessel)
     pic_tbl = load_pic(args.pic)
