@@ -861,7 +861,7 @@ function getFilteredSummary(){
     if(selRoute && !selRoute.has(r.route)) return false;
     if(selVessel && !selVessel.has(r.vessel)) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    if(q && !`${r.vessel} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.remark}`.toLowerCase().includes(q)) return false;
+    if(q && !`${r.route} ${r.vessel} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.voy} ${r.remark}`.toLowerCase().includes(q)) return false;
     if(delay==='delay') return r.etaDelay.toLowerCase().includes('delay');
     if(delay==='ahead') return r.etaDelay.toLowerCase().includes('ahead');
     if(delay==='normal') return !r.etaDelay;
