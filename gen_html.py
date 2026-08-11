@@ -1278,6 +1278,16 @@ function onRemarkCatChange(){
   var sel=[];
   checks.forEach(function(cb){if(cb.checked) sel.push(cb.value);});
   selRemarkCats = sel.length===REMARK_CATEGORIES.length ? null : sel;
+  // Update button text
+  var btn=document.getElementById('remarkFilterBtn');
+  if(selRemarkCats===null){
+    btn.textContent='All Remarks';
+    btn.style.background='';
+  } else {
+    btn.textContent=sel.length+'/'+REMARK_CATEGORIES.length+' categories';
+    btn.style.background='#fff3e0';
+    btn.style.borderColor='#e67e22';
+  }
   renderAnalytics();
 }
 
@@ -1362,8 +1372,10 @@ function isBunkeringPort(p){
   return /bunker/i.test(p||'');
 }
 
+var totalExcludedByRemark=0;
 function buildPortWaitData(){
   var byPort={};
+  totalExcludedByRemark=0;
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
@@ -1387,10 +1399,16 @@ function buildPortWaitData(){
         // 'other' catches calls with no remark
         if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
-      if(!match) return;  // skip this call entirely
+      if(!match){
+        // Track excluded call for UX feedback (show in port detail)
+        if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}, excludedCalls:[]};
+        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, rawPort:rawPort});
+        totalExcludedByRemark++;
+        return;  // skip this call
+      }
     }
 
-    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}};
+    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}, excludedCalls:[]};
     var rec=byPort[port];
     rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw, rawPort:rawPort});
     rec.totalWait+=wait;
@@ -1507,8 +1525,27 @@ function renderPortWaitTable(){
         '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':'color:#8a9bb0;')+'">'+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
         '</tr>';
     });
+    // Show excluded calls if remark filter is active
+    var excludedRows='';
+    if(selRemarkCats && r.excludedCalls && r.excludedCalls.length>0){
+      excludedRows='<tr><td colspan="6" style="padding:6px 8px;color:#999;font-size:11px;border-top:1px dashed #e0e0e0;">'+
+        '<span style="color:#e67e22;">&#9888;</span> Filtered out ('+r.excludedCalls.length+' calls excluded by remark filter):</td></tr>';
+      r.excludedCalls.forEach(function(cl){
+        var catLabel='';
+        var found=REMARK_CATEGORIES.find(function(c){return c.key===cl.cat;});
+        if(found) catLabel=found.label;
+        excludedRows+='<tr class="excluded-row" style="background:#fafafa;color:#b0b0b0;text-decoration:line-through;">'+
+          '<td style="color:#ccc;font-size:11px;">—</td>'+
+          '<td style="font-size:11px;">'+escapeHtml(cl.vessel||'')+'</td>'+
+          '<td style="font-size:10px;">'+escapeHtml(cl.voy||'')+'</td>'+
+          '<td style="font-size:10px;">'+escapeHtml(cl.eta||'')+'</td>'+
+          '<td class="center" style="font-size:11px;">'+(cl.wait||0).toFixed(1)+'</td>'+
+          '<td style="font-size:10px;"><span style="background:#f5f5f5;color:#999;padding:1px 5px;border-radius:3px;">'+catLabel+'</span> '+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
+          '</tr>';
+      });
+    }
     var detailHtml='';
-    if(callRows){
+    if(callRows || excludedRows){
       detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="8" style="padding:0;">'+
         '<div style="padding:4px 0;">'+
         '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
@@ -1520,7 +1557,7 @@ function renderPortWaitTable(){
         '<th style="padding:3px 6px;text-align:center;">Wait (hrs)</th>'+
         '<th style="padding:3px 6px;text-align:left;">Remark</th>'+
         '</tr></thead>'+
-        '<tbody>'+callRows+'</tbody>'+
+        '<tbody>'+callRows+excludedRows+'</tbody>'+
         '</table></div></td></tr>';
     }
     rows+='<tr'+rowBg+' class="port-row" onclick="togglePortWaitDetail(\''+pid+'\')" style="cursor:pointer;">'+
@@ -1536,7 +1573,12 @@ function renderPortWaitTable(){
       '</tr>'+detailHtml;
   });
   tbody.innerHTML=rows;
-  document.getElementById('statPortWait').textContent=data.length+' ports · 到靠率 = wait < 6h';
+  var statText=data.length+' ports';
+  if(selRemarkCats && totalExcludedByRemark>0){
+    statText+=' · <span style="color:#e67e22;">'+totalExcludedByRemark+' calls filtered</span>';
+  }
+  statText+=' · 到靠率 = wait < 6h';
+  document.getElementById('statPortWait').innerHTML=statText;
 }
 
 function togglePortWaitDetail(pid){
