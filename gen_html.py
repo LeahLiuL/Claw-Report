@@ -125,7 +125,10 @@ def extract(excel_path):
                                 sr_voy = get_str(ws_src.cell(sr, 7).value)
                                 sr_port = get_str(ws_src.cell(sr, 1).value)
                                 if sr_voy == target_voy and sr_port == target_port:
-                                    remarks_by_row[sr] = remark_text
+                                    if sr in remarks_by_row:
+                                        remarks_by_row[sr] = remarks_by_row[sr] + '; ' + remark_text
+                                    else:
+                                        remarks_by_row[sr] = remark_text
                                     matched = True
                                     break
                             if not matched:
@@ -135,8 +138,8 @@ def extract(excel_path):
                             remarks_by_row[schedule_rows[-1]] = remark_text
                         else:
                             remark = remark_text  # fallback: no schedule rows yet
-                    i = j + 1
-                    break
+                    j += 1
+                    continue
                 c16_j = ws_src.cell(j, 16).value
                 if c16_j and isinstance(c16_j, str) and 'PIC' in c16_j:
                     i = j
@@ -1214,12 +1217,12 @@ function escapeHtml(s){
 
 // Remark classification: keyword -> category mapping
 var REMARK_CATEGORIES = [
-  {key:'congestion',  label:'Port Congestion / 塞港',    keywords:['congestion','塞港','congestion delay']},
-  {key:'weather',     label:'Weather / 天气',            keywords:['typhoon','台风','避台','大风浪','weather','storm','swell']},
-  {key:'bunker',      label:'Bunker / 加油',             keywords:['bunker','加油','bunkering','fuel']},
-  {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation']},
-  {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','delay','regulatory']},
-  {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call']},
+  {key:'congestion',  label:'Port Congestion / 塞港',    keywords:['congestion','塞港','congestion delay','congested','拥堵','拥挤','congesiton']},
+  {key:'weather',     label:'Weather / 天气',            keywords:['typhoon','台风','避台','大风浪','weather','storm','swell','fog','雾','monsoon']},
+  {key:'bunker',      label:'Bunker / 加油',             keywords:['bunker','加油','bunkering','fuel','LSFO','MT','BUNKER']},
+  {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation','P/O','P/I','omit','OMIT','改靠','shifted','suspension']},
+  {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','regulatory','MSA']},
+  {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call','add call','private call','ADD CALL']},
   {key:'cargo',       label:'Trade / Cargo Balance / 备货配货',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
   {key:'other',       label:'Other / 其他',              keywords:[]}  // fallback
 ];
