@@ -559,6 +559,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate (到靠率) = % of calls with wait &lt; 6 hours. Ranked best&#8594;worst by default.</p>
   <div class="table-wrap">
     <table id="portWaitTable">
       <thead><tr id="portWaitThead"></tr></thead>
@@ -568,6 +569,7 @@ function _loadXlsx(cb){
 
   <!-- Vessel Speed Analysis -->
   <h3 style="margin:24px 0 8px;color:#1F4E79;">&#128168; Vessel Speed Analysis</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Speed values from source Excel column "SPEED" (calculated as leg distance &#247; sailing time). Min/Max = extreme values per vessel; values &#8804;0 or >30kn excluded as dirty data. Hover values to see raw source.</p>
   <div class="controls" style="margin-bottom:8px;">
     <span class="stat-chip" id="statSpeed">&#8212; vessels</span>
     <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
@@ -1261,18 +1263,46 @@ function onRemarkCatChange(){
 var portWaitData=[];
 var portWaitSortCol=-1, portWaitSortDir=1;
 
+// Merge port name variants: AEJEA(T1)→AEJEA, CNSHK-CCT→CNSHK, DJJIB(DMP)→DJJIB,
+// MYPKG (1st CALL)→MYPKG, THLCH (ESCO)→THLCH, SGSIN(Bunkering)→SGSIN(bunker) etc.
+function normalizePort(p){
+  if(!p) return '';
+  var s=p.trim();
+  // Strip anything in parentheses/brackets: (T1), (DMP), (SGTD), (RSGT), (ESCO), (TIPS), (1st CALL), (2nd CALL), (Bunkering)
+  s=s.replace(/\s*[\(\（][^)\）]*[\)\）]/g,'');
+  // Strip "-suffix": -Shipyard, -CCT, -MCT
+  s=s.replace(/\s*-\s*[A-Za-z0-9]+$/,'');
+  // Strip " anchorage" / "anchoage" (typo)
+  s=s.replace(/\s*anchorage/i,'').replace(/\s*anchoage/i,'');
+  // Strip " 1st CALL" / " 2nd CALL"
+  s=s.replace(/\s*\d+st\s*CALL/i,'').replace(/\s*\d+nd\s*CALL/i,'');
+  // Special: "CJK & NGB anchoage" → "CNNGB" (merge into Ningbo)
+  if(/CJK.*NGB/i.test(s)) s='CNNGB';
+  return s.trim();
+}
+
+// Is this a bunkering-only call?
+function isBunkeringPort(p){
+  return /bunker/i.test(p||'');
+}
+
 function buildPortWaitData(){
   var byPort={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
-    var port=sr.port||'';
+    var rawPort=sr.port||'';
+    if(!rawPort) return;
+    // Skip bunkering-only calls
+    if(isBunkeringPort(rawPort)) return;
+    var port=normalizePort(rawPort);
     if(!port) return;
-    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, remarks:{}};
+    if(!byPort[port]) byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0, remarks:{}};
     var rec=byPort[port];
     var wait=parseFloat(sr.wait)||0;
-    rec.calls.push({wait:wait, remark:sr.remark||'', vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw});
+    rec.calls.push({wait:wait, remark:sr.remark||'', vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:sr.etaRaw, rawPort:rawPort});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
+    if(wait<6) rec.berthCalls++;  // 到靠 = wait < 6 hours
     if(sr.remark){
       var cat=classifyRemark(sr.remark)||'other';
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
@@ -1288,12 +1318,12 @@ function buildPortWaitData(){
       var hasCat=false;
       for(var i=0;i<selRemarkCats.length;i++){
         if(rec.remarks[selRemarkCats[i]]){hasCat=true;break;}
-        // Also check calls that don't have remarks but category is 'other'
         if(selRemarkCats[i]==='other' && Object.keys(rec.remarks).length===0){hasCat=true;break;}
       }
       if(!hasCat) continue;
     }
     rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
+    rec.berthRate=rec.calls.length>0 ? Math.round(rec.berthCalls/rec.calls.length*100) : 0;
     rec.catLabels=Object.keys(rec.remarks).map(function(k){
       var found=REMARK_CATEGORIES.find(function(c){return c.key===k;});
       return found ? found.label : k;
@@ -1301,17 +1331,30 @@ function buildPortWaitData(){
     result.push(rec);
   }
 
+  // Default sort: berth rate descending (best ports first)
+  if(portWaitSortCol<0){
+    result.sort(function(a,b){return b.berthRate-a.berthRate || a.avgWait-b.avgWait;});
+  }
+
   portWaitData=result;
 }
 
 var PORT_WAIT_COLS=[
-  {key:'port',     label:'Port'},
-  {key:'calls',    label:'Calls'},
-  {key:'avgWait',  label:'Avg Wait (hrs)'},
-  {key:'maxWait',  label:'Max Wait (hrs)'},
+  {key:'rank',      label:'#'},
+  {key:'port',      label:'Port'},
+  {key:'calls',     label:'Calls'},
+  {key:'berthRate', label:'Berth Rate (到靠率)'},
+  {key:'avgWait',   label:'Avg Wait (hrs)'},
+  {key:'maxWait',   label:'Max Wait (hrs)'},
   {key:'longWaitCalls', label:'Calls > 24h'},
-  {key:'catLabels',label:'Remark Categories'},
+  {key:'catLabels', label:'Remark Categories'},
 ];
+
+function berthRateColor(rate){
+  if(rate>=80) return '#27ae60';  // green = good
+  if(rate>=50) return '#e67e22';  // orange = medium
+  return '#c0392b';               // red = bad
+}
 
 function renderPortWaitTable(){
   buildPortWaitData();
@@ -1333,8 +1376,8 @@ function renderPortWaitTable(){
     var def=PORT_WAIT_COLS[portWaitSortCol];
     var k=def.key; var d=portWaitSortDir;
     data=data.slice().sort(function(a,b){
-      if(k==='port') return (a.port||'').localeCompare(b.port||'')*d;
-      if(k==='catLabels') return (a.catLabels||'').localeCompare(b.catLabels||'')*d;
+      if(k==='port' || k==='catLabels') return (a[k]||'').localeCompare(b[k]||'')*d;
+      if(k==='rank') return 0;  // rank is display-only, re-sort by berthRate
       var va=a[k]||0, vb=b[k]||0;
       return (va-vb)*d;
     });
@@ -1342,11 +1385,21 @@ function renderPortWaitTable(){
 
   // Body
   var rows='';
-  data.forEach(function(r){
+  data.forEach(function(r,idx){
+    var rate=r.berthRate;
+    var c=berthRateColor(rate);
+    var bar='<div style="display:inline-flex;align-items:center;gap:6px;">'+
+      '<div style="width:80px;height:14px;background:#e8e8e8;border-radius:7px;overflow:hidden;">'+
+      '<div style="width:'+rate+'%;height:100%;background:'+c+';border-radius:7px;"></div></div>'+
+      '<b style="color:'+c+';min-width:36px;">'+rate+'%</b></div>';
     var cat=(r.catLabels||'') ? '<span style="color:#C00000;font-size:11px;">'+r.catLabels+'</span>' : '<span style="color:#8a9bb0;">—</span>';
-    rows+='<tr>'+
+    // Row background hint for worst ports
+    var rowBg=rate<50 ? ' style="background:#fff5f5;"' : (rate>=80 ? ' style="background:#f0faf3;"' : '');
+    rows+='<tr'+rowBg+'>'+
+      '<td class="center" style="color:#8a9bb0;font-size:12px;">'+(idx+1)+'</td>'+
       '<td><strong>'+r.port+'</strong></td>'+
       '<td class="center">'+r.calls.length+'</td>'+
+      '<td>'+bar+'</td>'+
       '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
       '<td class="center'+(r.longWaitCalls>0?' delay':'')+'">'+(r.longWaitCalls>0?'<b>'+r.longWaitCalls+'</b>':'0')+'</td>'+
@@ -1354,10 +1407,11 @@ function renderPortWaitTable(){
       '</tr>';
   });
   tbody.innerHTML=rows;
-  document.getElementById('statPortWait').textContent=data.length+' port entries';
+  document.getElementById('statPortWait').textContent=data.length+' ports · 到靠率 = wait < 6h';
 }
 
 function sortPortWait(col){
+  if(col===0) return;  // rank column not sortable
   if(portWaitSortCol===col) portWaitSortDir*=-1;
   else{portWaitSortCol=col;portWaitSortDir=1;}
   renderPortWaitTable();
