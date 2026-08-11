@@ -556,7 +556,12 @@ function _loadXlsx(cb){
      ═══════════════════════════════════════════════════════════════════ -->
 <div id="analyticsView" class="tab-content">
   <div class="controls">
-    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Wait Remark Filter:</span>
+    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Port Filter:</span>
+    <div style="position:relative;">
+      <button class="filter-btn" id="portFilterBtn" onclick="togglePortFilter()">All Ports</button>
+      <div class="filter-dropdown col-dropdown" id="portFilterDropdown"></div>
+    </div>
+    <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Remark Filter:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="remarkFilterBtn" onclick="toggleRemarkFilter()">All Remarks</button>
       <div class="filter-dropdown col-dropdown" id="remarkFilterDropdown"></div>
@@ -1276,6 +1281,54 @@ function onRemarkCatChange(){
   renderAnalytics();
 }
 
+// ── Port Filter ─────────────────────────────────────────────────────
+var selPortFilter = null;  // null = show all ports
+
+function buildPortFilterDropdown(){
+  var dd=document.getElementById('portFilterDropdown');
+  var allPorts={};
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var p=normalizePort(sr.port);
+    if(p && !isBunkeringPort(sr.port)) allPorts[p]=true;
+  });
+  var sorted=Object.keys(allPorts).sort();
+  var html='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+  html+='<input type="checkbox" value="__all__" '+(selPortFilter===null?'checked':'')+' onchange="onPortFilterChange()">';
+  html+='<b>All Ports</b></label>';
+  sorted.forEach(function(p){
+    var checked = selPortFilter===null || selPortFilter.indexOf(p)>=0;
+    html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+    html+='<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onPortFilterChange()">';
+    html+=p+'</label>';
+  });
+  dd.innerHTML=html;
+}
+
+function togglePortFilter(){
+  var dd=document.getElementById('portFilterDropdown');
+  if(!dd.classList.contains('open')){ buildPortFilterDropdown(); dd.classList.add('open'); }
+  else dd.classList.remove('open');
+  document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
+}
+
+function onPortFilterChange(){
+  var allCb=document.querySelector('#portFilterDropdown input[value="__all__"]');
+  var checks=document.querySelectorAll('#portFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  var sel=[];
+  var total=0;
+  checks.forEach(function(cb){total++; if(cb.checked) sel.push(cb.value);});
+
+  // "All Ports" checked = show all; unchecked = use individual selections
+  if(allCb && allCb.checked){
+    selPortFilter=null;
+    checks.forEach(function(cb){cb.checked=true;});
+  } else {
+    selPortFilter = sel.length===total ? null : sel;
+  }
+  if(allCb) allCb.checked = (selPortFilter===null);
+  renderAnalytics();
+}
+
 // ── Port Wait Analysis ────────────────────────────────────────────────
 
 var portWaitData=[];
@@ -1318,6 +1371,10 @@ function buildPortWaitData(){
     if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
+
+    // Apply port filter
+    if(selPortFilter && selPortFilter.indexOf(port)<0) return;
+
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
     var cat=classifyRemark(remark)||'other';
@@ -1559,9 +1616,20 @@ var vesselSpeedData=[];
 var speedSortCol=-1, speedSortDir=1;
 
 function buildVesselSpeedData(){
+  // If port filter is active, first determine which vessels qualify (visit >=1 selected port)
+  var allowedVessels=null;
+  if(selPortFilter){
+    allowedVessels={};
+    TODAY_DATA.fullSchedule.forEach(function(sr){
+      var p=normalizePort(sr.port);
+      if(p && selPortFilter.indexOf(p)>=0 && sr.vessel) allowedVessels[sr.vessel]=true;
+    });
+  }
+
   var byVessel={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var v=sr.vessel||'';
+    if(allowedVessels && !allowedVessels[v]) return;
     var spd=parseFloat(sr.speed);
     if(!v || isNaN(spd) || spd<=0 || spd>20) return;  // exclude unrealistic: ≤0 or >20kn
     if(!byVessel[v]) byVessel[v]={vessel:v, route:sr.route, speeds:[], sum:0, min:spd, max:spd};
@@ -1682,6 +1750,7 @@ function exportSpeedExcel(){
 // ── Init ──────────────────────────────────────────────────────────────
 
 function initAnalytics(){
+  buildPortFilterDropdown();
   buildRemarkFilterDropdown();
   renderPortWaitTable();
   renderRemarkSummary();
@@ -1691,6 +1760,7 @@ function initAnalytics(){
 function renderAnalytics(){
   renderPortWaitTable();
   renderRemarkSummary();
+  renderSpeedTable();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
