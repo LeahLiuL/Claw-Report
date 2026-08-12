@@ -176,18 +176,33 @@ def read_source(path, vessel_code=None, folder_name=None):
     """
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
-    # 初始航线: 用 detect_route 从 R1 的 C1/C9 检测(处理反向布局)
-    c1_r1 = ws.cell(1, 1).value
-    c9_r1 = ws.cell(1, 9).value
-    detected = detect_route(vessel_code, c1_r1, c9_r1)
-    route = detected if detected else (str(c1_r1).strip() if c1_r1 else "")
-    code = c9_r1
+    # 找表头行(PORT)
     hr = None
     for r in range(1, min(ws.max_row, 200) + 1):
         if norm(ws.cell(r, 1).value) == "PORT":
             hr = r; break
     if hr is None:
-        return {"route": route, "code": code, "rows": []}
+        return {"route": "", "code": None, "rows": []}
+    # 初始航线: 从表头行往上扫描已知航线码。
+    # 兼容两种源布局: 有的 R1 直接是航线码; 有的是合并大标题行
+    # (如 "HDT VESSEL DAILY MOVEMENT" A1:Q1 合并, 真正航线码在 R2C1), 需跳过。
+    route = ""
+    code = None
+    for r in range(hr - 1, 0, -1):
+        c1v = ws.cell(r, 1).value
+        c9v = ws.cell(r, 9).value
+        if code is None and c9v is not None and not isinstance(c9v, datetime):
+            code = c9v
+        det = detect_route(vessel_code, c1v, c9v)
+        if det:
+            route = det
+            break
+    if not route:
+        # fallback: R1C1 原文(与旧行为一致, 避免空航线)
+        c1_r1 = ws.cell(1, 1).value
+        route = str(c1_r1).strip() if c1_r1 else ""
+    if code is None:
+        code = ws.cell(1, 9).value
     # 源表头归一名 -> 源列号
     src_hdr = {}
     for c in range(1, ws.max_column + 1):
