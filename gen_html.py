@@ -1672,13 +1672,9 @@ var monthlyTrendData=[];
 function normalizePort(p){
   if(!p) return '';
   var s=p.trim();
-  // UN/LOCODE alias: CNNSA same as CNNAS (Nansha)
-  if(s==='CNNSA') s='CNNAS';
-  // UN/LOCODE alias: JED same as SAJED (Jeddah)
-  if(s==='JED') s='SAJED';
   // Strip anything in parentheses/brackets: (T1), (DMP), (SGTD), (RSGT), (ESCO), (TIPS), (1st CALL), (2nd CALL), (Bunkering)
   s=s.replace(/\s*[\(\（][^)\）]*[\)\）]/g,'');
-  // Strip "-suffix": -Shipyard, -CCT, -MCT
+  // Strip "-suffix": -Shipyard, -CCT, -MCT, -DPW
   s=s.replace(/\s*-\s*[A-Za-z0-9]+$/,'');
   // Strip " anchorage" / "anchoage" (typo)
   s=s.replace(/\s*anchorage/i,'').replace(/\s*anchoage/i,'');
@@ -1686,6 +1682,10 @@ function normalizePort(p){
   s=s.replace(/\s*\d+st\s*CALL/i,'').replace(/\s*\d+nd\s*CALL/i,'');
   // Special: "CJK & NGB anchoage" → "CNNGB" (merge into Ningbo)
   if(/CJK.*NGB/i.test(s)) s='CNNGB';
+  // ── Final UN/LOCODE aliases (AFTER all stripping, so variants like
+  //    "JED-DPW"→"JED" also merge) ──────────────────────────────
+  if(s==='CNNSA') s='CNNAS';      // Nansha
+  if(s==='JED')  s='SAJED';       // Jeddah
   return s.trim();
 }
 
