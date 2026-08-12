@@ -634,6 +634,7 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="speedVesselFilterBtn" onclick="toggleSpeedVesselFilter()">All Vessels</button>
       <div class="filter-dropdown col-dropdown" id="speedVesselFilterDropdown"></div>
     </div>
+    <input type="text" id="speedVesselSearch" placeholder="&#128269; 输入船名筛选…" oninput="onSpeedVesselSearch()" style="margin-left:10px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:170px;">
     <span class="stat-chip" id="statSpeed" style="margin-left:12px;">&#8212; vessels</span>
     <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
   </div>
@@ -1426,6 +1427,12 @@ function onPortDateChange(){
 
 // ── Speed Vessel Filter (independent filter for Speed tab) ──────────
 var selVesselFilter = null;  // null = show all vessels
+var selVesselSearch = '';    // free-text vessel name search (AND with checkbox filter)
+
+function onSpeedVesselSearch(){
+  selVesselSearch = document.getElementById('speedVesselSearch').value.trim();
+  renderSpeedTable();
+}
 
 function buildSpeedVesselFilterDropdown(){
   var dd=document.getElementById('speedVesselFilterDropdown');
@@ -1886,9 +1893,11 @@ var speedSortCol=-1, speedSortDir=1;
 
 function buildVesselSpeedData(){
   var byVessel={};
+  var search=(selVesselSearch||'').toLowerCase();
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var v=sr.vessel||'';
-    if(selVesselFilter && selVesselFilter.indexOf(v)<0) return;  // vessel filter
+    if(selVesselFilter && selVesselFilter.indexOf(v)<0) return;  // vessel checkbox filter
+    if(search && v.toLowerCase().indexOf(search)<0) return;      // vessel name search
     var spd=parseFloat(sr.speed);
     if(!v || isNaN(spd) || spd<=0 || spd>20) return;  // exclude unrealistic: ≤0 or >20kn
     if(!byVessel[v]) byVessel[v]={vessel:v, route:sr.route, speeds:[], sum:0, min:spd, max:spd};
