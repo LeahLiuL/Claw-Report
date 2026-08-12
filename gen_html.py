@@ -592,6 +592,7 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="portFilterBtn" onclick="togglePortFilter()">All Ports</button>
       <div class="filter-dropdown col-dropdown" id="portFilterDropdown"></div>
     </div>
+    <input type="text" id="portSearch" placeholder="&#128269; 输入港口筛选…" oninput="onPortSearch()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:160px;">
     <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Remark:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="remarkFilterBtn" onclick="toggleRemarkFilter()">All Remarks</button>
@@ -1364,6 +1365,14 @@ function onRemarkCatChange(){
   renderMonthlyTrend();
 }
 var selPortFilter = null;  // null = show all ports
+var selPortSearch = '';    // free-text port name search (AND with checkbox filter)
+
+function onPortSearch(){
+  selPortSearch = document.getElementById('portSearch').value.trim();
+  renderPortWaitTable();
+  renderRemarkSummary();
+  renderMonthlyTrend();
+}
 
 function buildPortFilterDropdown(){
   var dd=document.getElementById('portFilterDropdown');
@@ -1373,16 +1382,29 @@ function buildPortFilterDropdown(){
     if(p && !isBunkeringPort(sr.port)) allPorts[p]=true;
   });
   var sorted=Object.keys(allPorts).sort();
-  var html='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+  var kw = (document.getElementById('portFilterSearchBox') ? document.getElementById('portFilterSearchBox').value : '').toLowerCase();
+  var html='<div style="padding:2px 8px 6px;border-bottom:1px solid #e4ecf5;margin-bottom:4px;">';
+  html+='<input type="text" id="portFilterSearchBox" placeholder="&#128269; 搜索港口…" value="'+kw+'" oninput="onPortFilterSearchBox()" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
+  html+='</div>';
+  html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
   html+='<input type="checkbox" value="__all__" '+(selPortFilter===null?'checked':'')+' onchange="onPortFilterChange()">';
   html+='<b>All Ports</b></label>';
   sorted.forEach(function(p){
     var checked = selPortFilter===null || selPortFilter.indexOf(p)>=0;
-    html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+    var match = !kw || p.toLowerCase().indexOf(kw)>=0;
+    html+='<label data-p="'+p+'" style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;'+(match?'':'display:none;')+'">';
     html+='<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onPortFilterChange()">';
     html+=p+'</label>';
   });
   dd.innerHTML=html;
+}
+
+function onPortFilterSearchBox(){
+  var kw=document.getElementById('portFilterSearchBox').value.toLowerCase();
+  document.querySelectorAll('#portFilterDropdown label[data-p]').forEach(function(lb){
+    var p=lb.getAttribute('data-p');
+    lb.style.display = (!kw || p.toLowerCase().indexOf(kw)>=0) ? 'flex' : 'none';
+  });
 }
 
 function togglePortFilter(){
@@ -1536,6 +1558,8 @@ function buildPortWaitData(){
 
     // Apply port filter
     if(selPortFilter && selPortFilter.indexOf(port)<0) return;
+    // Apply free-text port search (AND with checkbox filter)
+    if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
 
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
