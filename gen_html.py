@@ -397,10 +397,12 @@ function _loadXlsx(cb){
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* ── Controls ───────────────────────────────────────────────────────── */
+  /* ── Controls (sticky: stays pinned on scroll) ──────────────────────── */
   .controls {
     padding: 14px 28px; background: #fff; border-bottom: 1px solid #dde4ed;
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 60;
+    box-shadow: 0 3px 10px rgba(31,78,121,.12);
   }
   .controls input, .controls select {
     padding: 6px 12px; border: 1px solid #c9d5e2; border-radius: 5px;
@@ -462,11 +464,17 @@ function _loadXlsx(cb){
   tr.detail-row:hover { background: #f5f8fb !important; }
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
-  .table-wrap { overflow-x: auto; padding: 0 28px 28px; position: relative; }
+  .table-wrap {
+    overflow-x: auto; padding: 0 28px 28px; position: relative;
+    /* inner vertical scroll so the sticky header stays visible:
+       viewport minus pinned controls height minus a small margin */
+    max-height: calc(100vh - var(--ctrl-h, 62px) - 12px);
+    overflow-y: auto;
+  }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12.5px; min-width: 1200px; }
   th {
     background: #1F4E79; color: #fff; font-weight: 600; padding: 9px 8px;
-    text-align: center; white-space: nowrap; position: sticky; top: 0; z-index: 2;
+    text-align: center; white-space: nowrap; position: sticky; top: 0; z-index: 5;
     cursor: pointer; user-select: none;
   }
   th:hover { background: #163b5f; }
@@ -536,7 +544,7 @@ function _loadXlsx(cb){
   .login-box button { width: 100%; padding: 10px; background: #1F4E79; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
   .login-box button:hover { background: #2E75B6; }
 
-  /* ── BOA 准班率统计区块 ─────────────────────────────────────────── */
+  /* ── BOA berth-on-arrival stats section ─────────────────────────────── */
   .range-opt { display: inline-flex; align-items: center; gap: 6px; background: #eef2f7; border: 1px solid #d5dee8; border-radius: 16px; padding: 4px 11px; cursor: pointer; font-size: 12px; color: #3b4a5a; user-select: none; }
   .range-opt input { margin: 0; accent-color: #1F4E79; }
   .range-opt.sel { background: #1F4E79; border-color: #1F4E79; color: #fff; }
@@ -687,7 +695,7 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="portFilterBtn" onclick="togglePortFilter()">All Ports</button>
       <div class="filter-dropdown col-dropdown" id="portFilterDropdown"></div>
     </div>
-    <input type="text" id="portSearch" placeholder="&#128269; 输入港口筛选…" oninput="onPortSearch()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:160px;">
+    <input type="text" id="portSearch" placeholder="&#128269; Search ports..." oninput="onPortSearch()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:160px;">
     <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Remark:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="remarkFilterBtn" onclick="toggleRemarkFilter()">All Remarks</button>
@@ -698,7 +706,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate (到靠率) = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
   <div class="table-wrap">
     <table id="portWaitTable">
       <thead><tr id="portWaitThead"></tr></thead>
@@ -719,43 +727,43 @@ function _loadXlsx(cb){
     <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 
-  <!-- BOA 准班率统计 (数据源: 船期统计 Excel) -->
+  <!-- BOA berth-on-arrival stats (source: 船期统计 Excel) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
-    <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA 准班率统计 <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">数据源: 船期统计 2026xx.xlsx「2026 xx」sheet &middot; 到靠 = WAIT &le; 阈值（上海 CNSHA 12h，其他 6h）&middot; Port&#8594;Region / Lane&#8594;Trade 以「Port &amp; Lane Mapping」为准。区间只过滤「没到靠」数量，到靠数量不变。</p>
+    <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: 船期统计 2026xx.xlsx (sheet &#8220;2026 xx&#8221;) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Port&#8594;Region / Lane&#8594;Trade per &#8220;Port &amp; Lane Mapping&#8221;. Range filters only the over-range count; berth count is unchanged.</p>
 
     <div class="controls" style="flex-wrap:wrap;padding:8px 12px;">
-      <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; 没到靠区间:</span>
-      <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> 全部没到靠</label>
-      <label class="range-opt" id="boa-opt-6"><input type="radio" name="boarange" value="6-24"> 6&#8211;24 小时</label>
-      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24-48"> 24&#8211;48 小时</label>
-      <label class="range-opt" id="boa-opt-48"><input type="radio" name="boarange" value="48+"> 48 小时以上</label>
+      <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
+      <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> All over</label>
+      <label class="range-opt" id="boa-opt-6"><input type="radio" name="boarange" value="6-24"> 6&#8211;24h</label>
+      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24-48"> 24&#8211;48h</label>
+      <label class="range-opt" id="boa-opt-48"><input type="radio" name="boarange" value="48+"> 48h+</label>
     </div>
 
     <div class="boa-chips">
-      <div class="boa-chip"><div class="num" id="boaChipTotal">&#8212;</div><div class="lbl2">总调用</div></div>
-      <div class="boa-chip green"><div class="num" id="boaChipBerth">&#8212;</div><div class="lbl2">到靠</div></div>
-      <div class="boa-chip orange"><div class="num" id="boaChipOver">&#8212;</div><div class="lbl2">没到靠（当前区间）</div></div>
-      <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">到靠率（当前区间）</div></div>
+      <div class="boa-chip"><div class="num" id="boaChipTotal">&#8212;</div><div class="lbl2">Total calls</div></div>
+      <div class="boa-chip green"><div class="num" id="boaChipBerth">&#8212;</div><div class="lbl2">Berth</div></div>
+      <div class="boa-chip orange"><div class="num" id="boaChipOver">&#8212;</div><div class="lbl2">Over (current range)</div></div>
+      <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">Berth rate (current range)</div></div>
     </div>
 
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Lane Trade（按航线贸易区）</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Lane Trade</h4>
       <table id="boaTblTrade"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Lane（按航线，含贸易区汇总）</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Lane (with Trade subtotals)</h4>
       <table id="boaTblLane"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9314; BOA by Port Region（按港口区域）</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9314; BOA by Port Region</h4>
       <table id="boaTblRegion"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9315; BOA by Port（按港口，含区域汇总）</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9315; BOA by Port (with Region subtotals)</h4>
       <table id="boaTblPort"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
-    <p style="font-size:10px;color:#8a9bb0;margin:4px 0 0;">点击表头排序 &middot; 绿 &#8805;80% &middot; 橙 50&#8211;80% &middot; 红 &lt;50%</p>
+    <p style="font-size:10px;color:#8a9bb0;margin:4px 0 0;">Click headers to sort &middot; Green &#8805;80% &middot; Orange 50&#8211;80% &middot; Red &lt;50%</p>
   </div>
 </div>
 
@@ -769,7 +777,7 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="speedVesselFilterBtn" onclick="toggleSpeedVesselFilter()">All Vessels</button>
       <div class="filter-dropdown col-dropdown" id="speedVesselFilterDropdown"></div>
     </div>
-    <input type="text" id="speedVesselSearch" placeholder="&#128269; 输入船名筛选…" oninput="onSpeedVesselSearch()" style="margin-left:10px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:170px;">
+    <input type="text" id="speedVesselSearch" placeholder="&#128269; Search vessel..." oninput="onSpeedVesselSearch()" style="margin-left:10px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:170px;">
     <span class="stat-chip" id="statSpeed" style="margin-left:12px;">&#8212; vessels</span>
     <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
   </div>
@@ -1008,6 +1016,7 @@ function switchTab(viewId, btn){
   }
   // Close any open column/filter dropdown
   document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
+  updateCtrlH();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1427,14 +1436,14 @@ function escapeHtml(s){
 
 // Remark classification: keyword -> category mapping
 var REMARK_CATEGORIES = [
-  {key:'congestion',  label:'Port Congestion / 塞港',    keywords:['congestion','塞港','congestion delay','congested','拥堵','拥挤','congesiton']},
-  {key:'weather',     label:'Weather / 天气',            keywords:['typhoon','台风','避台','大风浪','weather','storm','swell','fog','雾','monsoon']},
-  {key:'bunker',      label:'Bunker / 加油',             keywords:['bunker','加油','bunkering','fuel','LSFO','MT','BUNKER']},
-  {key:'phase',       label:'Phase In/Out / 航线调整',   keywords:['phase in','phase out','slide','eco speed','rotation','P/O','P/I','omit','OMIT','改靠','shifted','suspension']},
-  {key:'msa',         label:'MSA / 海事监管',            keywords:['msa','regulatory','MSA']},
-  {key:'adhoc',       label:'Ad Hoc Call / 临时挂靠',    keywords:['ad hoc','adhoc','extra call','add call','private call','ADD CALL']},
-  {key:'cargo',       label:'Trade / Cargo Balance / 备货配货',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
-  {key:'other',       label:'Other / 其他',              keywords:[]}  // fallback
+  {key:'congestion',  label:'Port Congestion',    keywords:['congestion','塞港','congestion delay','congested','拥堵','拥挤','congesiton']},
+  {key:'weather',     label:'Weather',            keywords:['typhoon','台风','避台','大风浪','weather','storm','swell','fog','雾','monsoon']},
+  {key:'bunker',      label:'Bunker',             keywords:['bunker','加油','bunkering','fuel','LSFO','MT','BUNKER']},
+  {key:'phase',       label:'Phase In/Out',       keywords:['phase in','phase out','slide','eco speed','rotation','P/O','P/I','omit','OMIT','改靠','shifted','suspension']},
+  {key:'msa',         label:'MSA / Regulatory',   keywords:['msa','regulatory','MSA']},
+  {key:'adhoc',       label:'Ad Hoc Call',        keywords:['ad hoc','adhoc','extra call','add call','private call','ADD CALL']},
+  {key:'cargo',       label:'Cargo / Trade Balance',  keywords:['balance','load balance','connection','trade','备货','等货','wait cargo']},
+  {key:'other',       label:'Other',              keywords:[]}  // fallback
 ];
 
 function classifyRemark(remark){
@@ -1518,7 +1527,7 @@ function buildPortFilterDropdown(){
   var sorted=Object.keys(allPorts).sort();
   var kw = (document.getElementById('portFilterSearchBox') ? document.getElementById('portFilterSearchBox').value : '').toLowerCase();
   var html='<div style="padding:2px 8px 6px;border-bottom:1px solid #e4ecf5;margin-bottom:4px;">';
-  html+='<input type="text" id="portFilterSearchBox" placeholder="&#128269; 搜索港口…" value="'+kw+'" oninput="onPortFilterSearchBox()" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
+  html+='<input type="text" id="portFilterSearchBox" placeholder="&#128269; Search ports..." value="'+kw+'" oninput="onPortFilterSearchBox()" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
   html+='</div>';
   html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
   html+='<input type="checkbox" value="__all__" '+(selPortFilter===null?'checked':'')+' onchange="onPortFilterAllChange(this)">';
@@ -1826,7 +1835,7 @@ var PORT_WAIT_COLS=[
   {key:'rank',      label:'#'},
   {key:'port',      label:'Port'},
   {key:'calls',     label:'Calls'},
-  {key:'berthRate', label:'Berth Rate (到靠率)'},
+  {key:'berthRate', label:'Berth Rate'},
   {key:'avgWait',   label:'Avg Wait (hrs)'},
   {key:'maxWait',   label:'Max Wait (hrs)'},
   {key:'longWaitCalls', label:'Calls > 24h'},
@@ -1952,7 +1961,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · 到靠率 = wait < 6h (CNSHA <12h) / total calls';
+  statText+=' · berth rate = wait < 6h (CNSHA <12h) / total calls';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -2253,16 +2262,16 @@ function closeHistory(){document.getElementById('historyModal').classList.remove
 document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===document.getElementById('historyModal'))closeHistory();});
 
 /* ═══════════════════════════════════════════════════════════════════
-   BOA 准班率统计 (并入 Port Wait 页; 数据源 TODAY_DATA.boaCalls)
+   BOA berth-on-arrival stats (merged into Port Wait tab; source TODAY_DATA.boaCalls)
    ═══════════════════════════════════════════════════════════════════ */
 var BOA_CALLS = (TODAY_DATA.boaCalls)||[];
 var BOA_LABEL  = TODAY_DATA.boaLabel||'';
 var BOA_RANGE  = 'all';
 var BOA_HEADERS = {
-  boaTblTrade:  ['Lane Trade', '到靠', '没到靠', '总计', '到靠率'],
-  boaTblLane:   ['Lane Trade', 'Lane', '到靠', '没到靠', '总计', '到靠率'],
-  boaTblRegion: ['Port Region', '到靠', '没到靠', '总计', '到靠率'],
-  boaTblPort:   ['Port Region', 'Port', '到靠', '没到靠', '总计', '到靠率']
+  boaTblTrade:  ['Lane Trade', 'Berth', 'Over', 'Total', 'Rate'],
+  boaTblLane:   ['Lane Trade', 'Lane', 'Berth', 'Over', 'Total', 'Rate'],
+  boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
+  boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
 };
 function boaIsBerth(c){ return c.w <= (c.p==='CNSHA' ? 12 : 6); }
 function boaOverInRange(c){
@@ -2303,8 +2312,8 @@ function boaBuildLeaf(group, dim, row){
 }
 function boaGrandRow(grouped){
   var cells=[];
-  if(grouped) cells.push(boaTdDim('',''), boaTdDim('总计','boa-grp'));
-  else cells.push(boaTdDim('总计','boa-grp'));
+  if(grouped) cells.push(boaTdDim('',''), boaTdDim('Total','boa-grp'));
+  else cells.push(boaTdDim('Total','boa-grp'));
   cells.push(boaTdNum(BOA_STAT.berth), boaTdNum(BOA_STAT.over), boaTdNum(BOA_STAT.total), boaTdRate(BOA_STAT.rate));
   return boaRowHtml(cells, 'boa-grand');
 }
@@ -2403,7 +2412,7 @@ function boaRenderGrouped(tblId, groupField, dimField){
     });
     var ga = gAgg[g];
     html += boaRowHtml([
-      boaTdDim(g+' 汇总','boa-grp'), boaTdDim('',''),
+      boaTdDim(g+' Total','boa-grp'), boaTdDim('',''),
       boaTdNum(ga.berth), boaTdNum(ga.over), boaTdNum(ga.total), boaTdRate(ga.rate)
     ], 'boa-sumrow');
   });
@@ -2425,7 +2434,7 @@ function boaRefresh(){
 function boaInit(){
   if(!BOA_CALLS.length){
     var lab = document.getElementById('boaLabelSpan');
-    if(lab) lab.textContent = '(未找到数据源: 船期统计 20xxxx.xlsx)';
+    if(lab) lab.textContent = '(source file not found)';
     return;
   }
   document.getElementById('boaLabelSpan').textContent = '· '+BOA_LABEL;
@@ -2473,6 +2482,14 @@ if(sessionStorage.getItem('cul_auth')==='1'){
 /* ═══════════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════════ */
+// Keep sticky table headers below the pinned controls bar
+function updateCtrlH(){
+  var v=document.querySelector('.tab-content.active .controls');
+  var h=v?v.offsetHeight:62;
+  document.documentElement.style.setProperty('--ctrl-h', h+'px');
+}
+window.addEventListener('resize', updateCtrlH);
+
 function init(){
   loadSnapshots(); saveSnapshot(TODAY_DATA);
   document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+TODAY_DATA.vessels.length+' vessels  |  '+TODAY_DATA.fullSchedule.length+' schedule rows';
@@ -2482,6 +2499,7 @@ function init(){
   initPortView();
   initSpeedView();
   boaInit();
+  updateCtrlH();
 }
 // init() only called after login success (see LOGIN section above)
 </script>
