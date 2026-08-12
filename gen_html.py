@@ -15,7 +15,7 @@ gen_html.py  —  CUL Daily Movement HTML Generator
     python gen_html.py --out "P:/path/to/output/cul_daily_movement.html"
 """
 
-import openpyxl, json, re, sys, os, argparse
+import openpyxl, json, re, sys, os, argparse, glob
 from datetime import datetime, date, timedelta
 
 # ── Defaults ──────────────────────────────────────────────────────────────
@@ -264,6 +264,78 @@ def extract(excel_path):
         'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d') if data_eta_max else '',
     }
 
+# ── BOA 准班率数据 (并入 Port Wait 页) ──────────────────────────────────
+# 源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
+BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
+
+def extract_boa(path):
+    """从船期统计 Excel 提取 BOA 准班率调用数据 (口径与 boa_gen.py 一致)。
+    返回 (calls, label)：calls 为 [{t,r,l,p,w}]，label 如 '2026 07'；失败返回 ([], '')。
+    """
+    if not os.path.exists(path):
+        # 尝试同目录下最新的「船期统计 2026xx.xlsx」
+        cands = sorted(glob.glob(os.path.join(os.path.dirname(path), '船期统计 20*.xlsx')), reverse=True)
+        if cands:
+            path = cands[0]
+        else:
+            print('  [BOA] source not found:', path)
+            return [], ''
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception as e:
+        print('  [BOA] load failed:', e)
+        return [], ''
+
+    port_region, lane_trade = {}, {}
+    if 'Port & Lane Mapping' in wb.sheetnames:
+        ws_map = wb['Port & Lane Mapping']
+        for row in ws_map.iter_rows(min_row=2, max_row=ws_map.max_row, max_col=6):
+            port = row[0].value; region = row[1].value
+            lane = row[4].value;  trade = row[5].value
+            if port and region:
+                p_norm = re.sub(r'\s*\(.*?\)', '', str(port).strip()).strip()
+                port_region[p_norm] = str(region).strip()
+            if lane and trade:
+                lane_trade[str(lane).strip()] = str(trade).strip()
+
+    # 数据 sheet: 优先 "2026 07" 命名，否则第一个非 Mapping 的 sheet
+    data_sheet = None
+    for name in wb.sheetnames:
+        if name.strip() != 'Port & Lane Mapping' and re.match(r'^20\d{2}\s?\d{2}$', name.strip()):
+            data_sheet = wb[name]; break
+    if data_sheet is None:
+        for name in wb.sheetnames:
+            if name.strip() != 'Port & Lane Mapping':
+                data_sheet = wb[name]; break
+    if data_sheet is None:
+        print('  [BOA] no data sheet found')
+        return [], ''
+
+    calls = []
+    for row in data_sheet.iter_rows(min_row=2, max_row=data_sheet.max_row, max_col=26):
+        a = row[0].value   # Lane Trade
+        b = row[1].value   # Port Region
+        d = row[3].value   # Lane
+        e = row[4].value   # PORT
+        g = row[6].value   # WAIT
+        if e is None or not isinstance(g, (int, float)):
+            continue
+        port = str(e).strip()
+        lane = str(d).strip() if d else ''
+        trade = str(a).strip() if a else ''
+        region = str(b).strip() if b else ''
+        if lane in lane_trade: trade = lane_trade[lane]
+        p_norm = re.sub(r'\s*\(.*?\)', '', port).strip()
+        if p_norm in port_region: region = port_region[p_norm]
+        calls.append({'t': trade, 'r': region, 'l': lane, 'p': port, 'w': float(g)})
+
+    label = ''
+    m = re.search(r'(20\d{2}\s?\d{2})', os.path.basename(path))
+    if m:
+        label = m.group(1).replace(' ', ' ')  # 如 "2026 07"
+    print(f'  [BOA] {label}: {len(calls)} calls from {os.path.basename(path)}')
+    return calls, label
+
 # ── HTML Template ────────────────────────────────────────────────────────
 # JS: COLUMN_DEFS_SUMMARY and COLUMN_DEFS_FULL are injected from Python.
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -463,6 +535,29 @@ function _loadXlsx(cb){
   .login-box .login-err { color: #e74c3c; font-size: 12px; margin-bottom: 8px; min-height: 18px; }
   .login-box button { width: 100%; padding: 10px; background: #1F4E79; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
   .login-box button:hover { background: #2E75B6; }
+
+  /* ── BOA 准班率统计区块 ─────────────────────────────────────────── */
+  .range-opt { display: inline-flex; align-items: center; gap: 6px; background: #eef2f7; border: 1px solid #d5dee8; border-radius: 16px; padding: 4px 11px; cursor: pointer; font-size: 12px; color: #3b4a5a; user-select: none; }
+  .range-opt input { margin: 0; accent-color: #1F4E79; }
+  .range-opt.sel { background: #1F4E79; border-color: #1F4E79; color: #fff; }
+  .range-opt.sel input { accent-color: #fff; }
+  .boa-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .boa-chip { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 16px; min-width: 120px; }
+  .boa-chip .num { font-size: 20px; font-weight: 700; color: #1F4E79; }
+  .boa-chip .lbl2 { font-size: 11px; color: #8a9bb0; }
+  .boa-chip.green .num { color: #2e8b57; }
+  .boa-chip.orange .num { color: #e67e22; }
+  #boaTblTrade th, #boaTblLane th, #boaTblRegion th, #boaTblPort th { cursor: pointer; white-space: nowrap; font-size: 12px; }
+  #boaTblTrade th:hover, #boaTblLane th:hover, #boaTblRegion th:hover, #boaTblPort th:hover { background: #e2ebf5; }
+  #boaTblTrade td, #boaTblLane td, #boaTblRegion td, #boaTblPort td { font-size: 12px; }
+  .rate-bad { color: #c0392b; font-weight: 600; }
+  .rate-mid { color: #e67e22; font-weight: 600; }
+  .rate-good { color: #2e8b57; font-weight: 600; }
+  .boa-grp { font-weight: 600; color: #33475b; }
+  .boa-subrow td { background: #fbfcfe; }
+  .boa-sumrow td { background: #eef4fa; font-weight: 600; color: #1F4E79; }
+  .boa-grand td { background: #1F4E79; color: #fff; font-weight: 700; }
+  .boa-grand td.rate-bad, .boa-grand td.rate-mid, .boa-grand td.rate-good { color: #fff; }
 </style>
 </head>
 <body>
@@ -622,6 +717,45 @@ function _loadXlsx(cb){
     <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128200; Monthly Port Wait Trend</h4>
     <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters.</p>
     <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
+  <!-- BOA 准班率统计 (数据源: 船期统计 Excel) -->
+  <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
+    <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA 准班率统计 <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">数据源: 船期统计 2026xx.xlsx「2026 xx」sheet &middot; 到靠 = WAIT &le; 阈值（上海 CNSHA 12h，其他 6h）&middot; Port&#8594;Region / Lane&#8594;Trade 以「Port &amp; Lane Mapping」为准。区间只过滤「没到靠」数量，到靠数量不变。</p>
+
+    <div class="controls" style="flex-wrap:wrap;padding:8px 12px;">
+      <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; 没到靠区间:</span>
+      <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> 全部没到靠</label>
+      <label class="range-opt" id="boa-opt-6"><input type="radio" name="boarange" value="6-24"> 6&#8211;24 小时</label>
+      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24-48"> 24&#8211;48 小时</label>
+      <label class="range-opt" id="boa-opt-48"><input type="radio" name="boarange" value="48+"> 48 小时以上</label>
+    </div>
+
+    <div class="boa-chips">
+      <div class="boa-chip"><div class="num" id="boaChipTotal">&#8212;</div><div class="lbl2">总调用</div></div>
+      <div class="boa-chip green"><div class="num" id="boaChipBerth">&#8212;</div><div class="lbl2">到靠</div></div>
+      <div class="boa-chip orange"><div class="num" id="boaChipOver">&#8212;</div><div class="lbl2">没到靠（当前区间）</div></div>
+      <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">到靠率（当前区间）</div></div>
+    </div>
+
+    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Lane Trade（按航线贸易区）</h4>
+      <table id="boaTblTrade"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Lane（按航线，含贸易区汇总）</h4>
+      <table id="boaTblLane"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9314; BOA by Port Region（按港口区域）</h4>
+      <table id="boaTblRegion"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9315; BOA by Port（按港口，含区域汇总）</h4>
+      <table id="boaTblPort"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+    <p style="font-size:10px;color:#8a9bb0;margin:4px 0 0;">点击表头排序 &middot; 绿 &#8805;80% &middot; 橙 50&#8211;80% &middot; 红 &lt;50%</p>
   </div>
 </div>
 
@@ -2119,6 +2253,203 @@ function closeHistory(){document.getElementById('historyModal').classList.remove
 document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===document.getElementById('historyModal'))closeHistory();});
 
 /* ═══════════════════════════════════════════════════════════════════
+   BOA 准班率统计 (并入 Port Wait 页; 数据源 TODAY_DATA.boaCalls)
+   ═══════════════════════════════════════════════════════════════════ */
+var BOA_CALLS = (TODAY_DATA.boaCalls)||[];
+var BOA_LABEL  = TODAY_DATA.boaLabel||'';
+var BOA_RANGE  = 'all';
+var BOA_HEADERS = {
+  boaTblTrade:  ['Lane Trade', '到靠', '没到靠', '总计', '到靠率'],
+  boaTblLane:   ['Lane Trade', 'Lane', '到靠', '没到靠', '总计', '到靠率'],
+  boaTblRegion: ['Port Region', '到靠', '没到靠', '总计', '到靠率'],
+  boaTblPort:   ['Port Region', 'Port', '到靠', '没到靠', '总计', '到靠率']
+};
+function boaIsBerth(c){ return c.w <= (c.p==='CNSHA' ? 12 : 6); }
+function boaOverInRange(c){
+  if(boaIsBerth(c)) return false;
+  switch(BOA_RANGE){
+    case 'all':   return true;
+    case '6-24':  return c.w >= 6  && c.w < 24;
+    case '24-48': return c.w >= 24 && c.w < 48;
+    case '48+':   return c.w >= 48;
+  }
+  return false;
+}
+function boaAgg(items){
+  var berth=0, over=0;
+  items.forEach(function(c){
+    if(boaIsBerth(c)) berth++; else if(boaOverInRange(c)) over++;
+  });
+  var total = berth + over;
+  return {berth:berth, over:over, total:total, rate: total>0 ? berth/total : 0};
+}
+function boaRateCls(r){ return r>=0.8 ? 'rate-good' : (r>=0.5 ? 'rate-mid' : 'rate-bad'); }
+function boaPct(r){ return (r*100).toFixed(1)+'%'; }
+function boaRowHtml(cells, cls){ return '<tr'+(cls?(' class="'+cls+'"'):'')+'>'+cells.join('')+'</tr>'; }
+function boaTdNum(v){ return '<td class="num" style="text-align:right;">'+v+'</td>'; }
+function boaTdDim(v, cls){ return '<td class="'+(cls||'')+'">'+v+'</td>'; }
+function boaTdRate(r){ return '<td class="num '+boaRateCls(r)+'" style="text-align:right;">'+boaPct(r)+'</td>'; }
+
+var boaSortState = {};
+function boaBuildHeader(id){
+  return '<tr>'+BOA_HEADERS[id].map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
+}
+function boaBuildLeaf(group, dim, row){
+  var cells=[];
+  if(group!==null) cells.push(boaTdDim(group,'boa-grp'));
+  cells.push(boaTdDim(dim,'boa-grp'));
+  cells.push(boaTdNum(row.berth), boaTdNum(row.over), boaTdNum(row.total), boaTdRate(row.rate));
+  return cells;
+}
+function boaGrandRow(grouped){
+  var cells=[];
+  if(grouped) cells.push(boaTdDim('',''), boaTdDim('总计','boa-grp'));
+  else cells.push(boaTdDim('总计','boa-grp'));
+  cells.push(boaTdNum(BOA_STAT.berth), boaTdNum(BOA_STAT.over), boaTdNum(BOA_STAT.total), boaTdRate(BOA_STAT.rate));
+  return boaRowHtml(cells, 'boa-grand');
+}
+function boaValAt(aggRow, col, hasGroup){
+  var arr=[aggRow.berth, aggRow.over, aggRow.total, aggRow.rate];
+  var idx = hasGroup ? col-2 : col-1;
+  return arr[idx];
+}
+function boaMakeSortable(tblId, renderFn){
+  boaSortState[tblId] = {col:0, dir:1};
+  document.querySelectorAll('#'+tblId+' th').forEach(function(th,i){
+    th.onclick = function(){
+      var s = boaSortState[tblId];
+      if(s.col===i) s.dir = -s.dir; else { s.col=i; s.dir=1; }
+      renderFn();
+    };
+  });
+}
+function boaRenderTrade(){
+  var s = boaSortState['boaTblTrade'];
+  var map = {};
+  BOA_CALLS.forEach(function(c){
+    var k = c.t || '(blank)';
+    if(!map[k]) map[k]=[];
+    map[k].push(c);
+  });
+  var rows = Object.keys(map).map(function(k){ return {dim:k, agg:boaAgg(map[k])}; });
+  rows.sort(function(a,b){
+    if(s.col===0) return a.dim<b.dim?-1:1;
+    var va=boaValAt(a.agg,s.col,false), vb=boaValAt(b.agg,s.col,false);
+    return (va<vb?-1:va>vb?1:0) * s.dir;
+  });
+  var tb = document.getElementById('boaTblTrade').querySelector('tbody');
+  var html = rows.map(function(r){ return boaRowHtml(boaBuildLeaf(null, r.dim, r.agg)); }).join('');
+  html += boaGrandRow(false);
+  tb.innerHTML = html;
+}
+function boaRenderRegion(){
+  var s = boaSortState['boaTblRegion'];
+  var map = {};
+  BOA_CALLS.forEach(function(c){
+    var k = c.r || '(blank)';
+    if(!map[k]) map[k]=[];
+    map[k].push(c);
+  });
+  var rows = Object.keys(map).map(function(k){ return {dim:k, agg:boaAgg(map[k])}; });
+  rows.sort(function(a,b){
+    if(s.col===0) return a.dim<b.dim?-1:1;
+    var va=boaValAt(a.agg,s.col,false), vb=boaValAt(b.agg,s.col,false);
+    return (va<vb?-1:va>vb?1:0) * s.dir;
+  });
+  var tb = document.getElementById('boaTblRegion').querySelector('tbody');
+  var html = rows.map(function(r){ return boaRowHtml(boaBuildLeaf(null, r.dim, r.agg)); }).join('');
+  html += boaGrandRow(false);
+  tb.innerHTML = html;
+}
+function boaRenderGrouped(tblId, groupField, dimField){
+  var s = boaSortState[tblId];
+  var map = {};
+  BOA_CALLS.forEach(function(c){
+    var g = c[groupField] || '(blank)';
+    var d = c[dimField]   || '(blank)';
+    var k = g+'\u0001'+d;
+    if(!map[k]) map[k]=[];
+    map[k].push(c);
+  });
+  var rows = Object.keys(map).map(function(k){
+    var parts = k.split('\u0001');
+    return {g:parts[0], d:parts[1], agg:boaAgg(map[k])};
+  });
+  var groups = []; var gSet = {};
+  rows.forEach(function(r){ if(!gSet[r.g]){ gSet[r.g]=1; groups.push(r.g); } });
+  var gAgg = {};
+  groups.forEach(function(g){
+    var items=[];
+    rows.forEach(function(r){ if(r.g===g) items = items.concat(map[g+'\u0001'+r.d]); });
+    gAgg[g] = boaAgg(items);
+  });
+  groups.sort(function(a,b){
+    if(s.col===0) return a<b?-1:1;
+    if(s.col===1) return gAgg[a].total>gAgg[b].total?-1:1;
+    var va=boaValAt(gAgg[a],s.col,true), vb=boaValAt(gAgg[b],s.col,true);
+    return (va<vb?-1:va>vb?1:0) * s.dir;
+  });
+  var tb = document.getElementById(tblId).querySelector('tbody');
+  var html = '';
+  groups.forEach(function(g){
+    var leaves = rows.filter(function(r){ return r.g===g; });
+    leaves.sort(function(a,b){
+      if(s.col<=1) return a.d<b.d?-1:1;
+      var va=boaValAt(a.agg,s.col,true), vb=boaValAt(b.agg,s.col,true);
+      return (va<vb?-1:va>vb?1:0) * s.dir;
+    });
+    leaves.forEach(function(r){
+      html += boaRowHtml(boaBuildLeaf(g, r.d, r.agg), 'boa-subrow');
+    });
+    var ga = gAgg[g];
+    html += boaRowHtml([
+      boaTdDim(g+' 汇总','boa-grp'), boaTdDim('',''),
+      boaTdNum(ga.berth), boaTdNum(ga.over), boaTdNum(ga.total), boaTdRate(ga.rate)
+    ], 'boa-sumrow');
+  });
+  html += boaGrandRow(true);
+  tb.innerHTML = html;
+}
+function boaRenderLane(){ boaRenderGrouped('boaTblLane', 't', 'l'); }
+function boaRenderPort(){ boaRenderGrouped('boaTblPort', 'r', 'p'); }
+
+var BOA_STAT = {berth:0, over:0, total:0, rate:0};
+function boaRefresh(){
+  BOA_STAT = boaAgg(BOA_CALLS);
+  document.getElementById('boaChipTotal').textContent = BOA_CALLS.length;
+  document.getElementById('boaChipBerth').textContent = BOA_STAT.berth;
+  document.getElementById('boaChipOver').textContent  = BOA_STAT.over;
+  document.getElementById('boaChipRate').textContent  = boaPct(BOA_STAT.rate);
+  boaRenderTrade(); boaRenderRegion(); boaRenderLane(); boaRenderPort();
+}
+function boaInit(){
+  if(!BOA_CALLS.length){
+    var lab = document.getElementById('boaLabelSpan');
+    if(lab) lab.textContent = '(未找到数据源: 船期统计 20xxxx.xlsx)';
+    return;
+  }
+  document.getElementById('boaLabelSpan').textContent = '· '+BOA_LABEL;
+  Object.keys(BOA_HEADERS).forEach(function(id){
+    document.getElementById(id).querySelector('thead').innerHTML = boaBuildHeader(id);
+  });
+  boaMakeSortable('boaTblTrade', boaRenderTrade);
+  boaMakeSortable('boaTblRegion', boaRenderRegion);
+  boaMakeSortable('boaTblLane', boaRenderLane);
+  boaMakeSortable('boaTblPort', boaRenderPort);
+  document.querySelectorAll('input[name=boarange]').forEach(function(rb){
+    rb.addEventListener('change', function(){
+      BOA_RANGE = this.value;
+      document.querySelectorAll('.range-opt').forEach(function(l){
+        var inp = l.querySelector('input');
+        if(inp && inp.name==='boarange') l.classList.toggle('sel', inp.checked);
+      });
+      boaRefresh();
+    });
+  });
+  boaRefresh();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    LOGIN
    ═══════════════════════════════════════════════════════════════════ */
 var LOGIN_PWD='CUL1234';
@@ -2150,6 +2481,7 @@ function init(){
   initFullSchedule();
   initPortView();
   initSpeedView();
+  boaInit();
 }
 // init() only called after login success (see LOGIN section above)
 </script>
@@ -2176,6 +2508,10 @@ def main():
     print(f'  -> {len(data["vessels"])} vessels (summary)')
     print(f'  -> {len(data["fullSchedule"])} schedule rows (full)')
     print(f'  -> date={data["date"]}')
+
+    boa_calls, boa_label = extract_boa(BOA_SRC)
+    data['boaCalls'] = boa_calls
+    data['boaLabel'] = boa_label
 
     # Build column defs JSON for JS
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
