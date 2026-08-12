@@ -629,10 +629,10 @@ function _loadXlsx(cb){
      ═══════════════════════════════════════════════════════════════════ -->
 <div id="speedView" class="tab-content">
   <div class="controls">
-    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128205; Port Filter:</span>
+    <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128674; Vessel Filter:</span>
     <div style="position:relative;">
-      <button class="filter-btn" id="speedPortFilterBtn" onclick="toggleSpeedPortFilter()">All Ports</button>
-      <div class="filter-dropdown col-dropdown" id="speedPortFilterDropdown"></div>
+      <button class="filter-btn" id="speedVesselFilterBtn" onclick="toggleSpeedVesselFilter()">All Vessels</button>
+      <div class="filter-dropdown col-dropdown" id="speedVesselFilterDropdown"></div>
     </div>
     <span class="stat-chip" id="statSpeed" style="margin-left:12px;">&#8212; vessels</span>
     <button class="filter-btn" style="margin-left:12px;" onclick="exportSpeedExcel()">&#8595; Export Speed</button>
@@ -1424,47 +1424,49 @@ function onPortDateChange(){
   renderMonthlyTrend();
 }
 
-// ── Speed Port Filter (independent filter, shares selPortFilter) ─────
-function buildSpeedPortFilterDropdown(){
-  var dd=document.getElementById('speedPortFilterDropdown');
-  var btn=document.getElementById('speedPortFilterBtn');
-  var html='<label><input type="checkbox" value="__all__" onchange="onSpeedPortFilterChange()"'+(selPortFilter===null?' checked':'')+'> All Ports</label>';
-  var ports=[]; var seen=new Set();
+// ── Speed Vessel Filter (independent filter for Speed tab) ──────────
+var selVesselFilter = null;  // null = show all vessels
+
+function buildSpeedVesselFilterDropdown(){
+  var dd=document.getElementById('speedVesselFilterDropdown');
+  var btn=document.getElementById('speedVesselFilterBtn');
+  var html='<label><input type="checkbox" value="__all__" onchange="onSpeedVesselFilterChange()"'+(selVesselFilter===null?' checked':'')+'> All Vessels</label>';
+  var vessels=[]; var seen=new Set();
   TODAY_DATA.fullSchedule.forEach(function(sr){
-    var p=normalizePort(sr.port);
-    if(p && !isBunkeringPort(p) && !seen.has(p)){ seen.add(p); ports.push(p); }
+    var v=sr.vessel||'';
+    if(v && !seen.has(v)){ seen.add(v); vessels.push(v); }
   });
-  var selArr=selPortFilter||[];
-  ports.sort();
-  ports.forEach(function(p){
-    html+='<label><input type="checkbox" value="'+p+'" onchange="onSpeedPortFilterChange()"'+(selPortFilter===null||selArr.indexOf(p)>=0?' checked':'')+'> '+p+'</label>';
+  var selArr=selVesselFilter||[];
+  vessels.sort(function(a,b){return a.localeCompare(b);});
+  vessels.forEach(function(v){
+    html+='<label><input type="checkbox" value="'+escapeHtml(v)+'" onchange="onSpeedVesselFilterChange()"'+(selVesselFilter===null||selArr.indexOf(v)>=0?' checked':'')+'> '+escapeHtml(v)+'</label>';
   });
   dd.innerHTML=html;
-  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+ports.length+' ports';
+  btn.textContent=selVesselFilter===null?'All Vessels':selVesselFilter.length+' of '+vessels.length+' vessels';
 }
 
-function toggleSpeedPortFilter(){
-  var dd=document.getElementById('speedPortFilterDropdown');
-  if(!dd.classList.contains('open')){ buildSpeedPortFilterDropdown(); dd.classList.add('open'); }
+function toggleSpeedVesselFilter(){
+  var dd=document.getElementById('speedVesselFilterDropdown');
+  if(!dd.classList.contains('open')){ buildSpeedVesselFilterDropdown(); dd.classList.add('open'); }
   else dd.classList.remove('open');
   document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
 }
 
-function onSpeedPortFilterChange(){
-  var allCb=document.querySelector('#speedPortFilterDropdown input[value="__all__"]');
-  var checks=document.querySelectorAll('#speedPortFilterDropdown input[type=checkbox]:not([value="__all__"])');
+function onSpeedVesselFilterChange(){
+  var allCb=document.querySelector('#speedVesselFilterDropdown input[value="__all__"]');
+  var checks=document.querySelectorAll('#speedVesselFilterDropdown input[type=checkbox]:not([value="__all__"])');
   var sel=[];
   var total=0;
   checks.forEach(function(cb){total++; if(cb.checked) sel.push(cb.value);});
   if(allCb && allCb.checked){
-    selPortFilter=null;
+    selVesselFilter=null;
     checks.forEach(function(cb){cb.checked=true;});
   } else {
-    selPortFilter = sel.length===total ? null : sel;
+    selVesselFilter = sel.length===total ? null : sel;
   }
-  if(allCb) allCb.checked = (selPortFilter===null);
-  var btn=document.getElementById('speedPortFilterBtn');
-  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+total+' ports';
+  if(allCb) allCb.checked = (selVesselFilter===null);
+  var btn=document.getElementById('speedVesselFilterBtn');
+  btn.textContent=selVesselFilter===null?'All Vessels':selVesselFilter.length+' of '+total+' vessels';
   renderSpeedTable();
 }
 
@@ -1883,20 +1885,10 @@ var vesselSpeedData=[];
 var speedSortCol=-1, speedSortDir=1;
 
 function buildVesselSpeedData(){
-  // If port filter is active, first determine which vessels qualify (visit >=1 selected port)
-  var allowedVessels=null;
-  if(selPortFilter){
-    allowedVessels={};
-    TODAY_DATA.fullSchedule.forEach(function(sr){
-      var p=normalizePort(sr.port);
-      if(p && selPortFilter.indexOf(p)>=0 && sr.vessel) allowedVessels[sr.vessel]=true;
-    });
-  }
-
   var byVessel={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var v=sr.vessel||'';
-    if(allowedVessels && !allowedVessels[v]) return;
+    if(selVesselFilter && selVesselFilter.indexOf(v)<0) return;  // vessel filter
     var spd=parseFloat(sr.speed);
     if(!v || isNaN(spd) || spd<=0 || spd>20) return;  // exclude unrealistic: ≤0 or >20kn
     if(!byVessel[v]) byVessel[v]={vessel:v, route:sr.route, speeds:[], sum:0, min:spd, max:spd};
@@ -2035,7 +2027,7 @@ function initPortView(){
 }
 
 function initSpeedView(){
-  buildSpeedPortFilterDropdown();
+  buildSpeedVesselFilterDropdown();
   renderSpeedTable();
 }
 
