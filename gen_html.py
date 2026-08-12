@@ -1326,14 +1326,15 @@ function onRemarkCatChange(){
   var checks=document.querySelectorAll('#remarkFilterDropdown input[type=checkbox]');
   var sel=[];
   checks.forEach(function(cb){if(cb.checked) sel.push(cb.value);});
-  selRemarkCats = sel.length===REMARK_CATEGORIES.length ? null : sel;
+  // Denominator = actual visible checkboxes, not the full category list
+  selRemarkCats = sel.length===checks.length ? null : sel;
   // Update button text
   var btn=document.getElementById('remarkFilterBtn');
   if(selRemarkCats===null){
     btn.textContent='All Remarks';
     btn.style.background='';
   } else {
-    btn.textContent=sel.length+'/'+REMARK_CATEGORIES.length+' categories';
+    btn.textContent=sel.length+'/'+checks.length+' categories';
     btn.style.background='#fff3e0';
     btn.style.borderColor='#e67e22';
   }
