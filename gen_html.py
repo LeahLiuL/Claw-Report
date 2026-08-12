@@ -1387,16 +1387,17 @@ function buildPortFilterDropdown(){
   html+='<input type="text" id="portFilterSearchBox" placeholder="&#128269; 搜索港口…" value="'+kw+'" oninput="onPortFilterSearchBox()" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
   html+='</div>';
   html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
-  html+='<input type="checkbox" value="__all__" '+(selPortFilter===null?'checked':'')+' onchange="onPortFilterChange()">';
+  html+='<input type="checkbox" value="__all__" '+(selPortFilter===null?'checked':'')+' onchange="onPortFilterAllChange(this)">';
   html+='<b>All Ports</b></label>';
   sorted.forEach(function(p){
     var checked = selPortFilter===null || selPortFilter.indexOf(p)>=0;
     var match = !kw || p.toLowerCase().indexOf(kw)>=0;
     html+='<label data-p="'+p+'" style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;'+(match?'':'display:none;')+'">';
-    html+='<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onPortFilterChange()">';
+    html+='<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onPortFilterItemChange(this)">';
     html+=p+'</label>';
   });
   dd.innerHTML=html;
+  updatePortFilterButton();
 }
 
 function onPortFilterSearchBox(){
@@ -1414,26 +1415,52 @@ function togglePortFilter(){
   document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
 }
 
-function onPortFilterChange(){
+function updatePortFilterButton(){
+  var checks=document.querySelectorAll('#portFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  var total=0, sel=[];
+  checks.forEach(function(cb){total++; if(cb.checked) sel.push(cb.value);});
+  var btn=document.getElementById('portFilterBtn');
+  if(sel.length===total){
+    btn.textContent='All Ports';
+  } else {
+    btn.textContent=sel.length+' of '+total+' ports';
+  }
+}
+
+function applyPortFilterFromDOM(){
   var allCb=document.querySelector('#portFilterDropdown input[value="__all__"]');
   var checks=document.querySelectorAll('#portFilterDropdown input[type=checkbox]:not([value="__all__"])');
-  var sel=[];
-  var total=0;
+  var total=0, sel=[];
   checks.forEach(function(cb){total++; if(cb.checked) sel.push(cb.value);});
-
-  // "All Ports" checked = show all; unchecked = use individual selections
-  if(allCb && allCb.checked){
+  if(sel.length===total){
     selPortFilter=null;
-    checks.forEach(function(cb){cb.checked=true;});
+    if(allCb) allCb.checked=true;
   } else {
-    selPortFilter = sel.length===total ? null : sel;
+    selPortFilter=sel;
+    if(allCb) allCb.checked=false;
   }
-  if(allCb) allCb.checked = (selPortFilter===null);
-  var btn=document.getElementById('portFilterBtn');
-  btn.textContent=selPortFilter===null?'All Ports':selPortFilter.length+' of '+total+' ports';
+  updatePortFilterButton();
   renderPortWaitTable();
   renderRemarkSummary();
   renderMonthlyTrend();
+}
+
+function onPortFilterAllChange(allCb){
+  var checks=document.querySelectorAll('#portFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  checks.forEach(function(cb){ cb.checked = allCb.checked; });
+  if(allCb.checked){
+    selPortFilter=null;
+  } else {
+    selPortFilter=[];
+  }
+  updatePortFilterButton();
+  renderPortWaitTable();
+  renderRemarkSummary();
+  renderMonthlyTrend();
+}
+
+function onPortFilterItemChange(cb){
+  applyPortFilterFromDOM();
 }
 
 // ── Date Range Filter ───────────────────────────────────────────────
