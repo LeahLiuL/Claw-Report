@@ -1210,23 +1210,37 @@ function exportFullScheduleExcel(){
   });
 
   var sheetData=[];
-  var tr=[];
   var numCols = headers.length;
+  // Top global title
+  var tr=[];
   for(var c=0;c<numCols;c++) tr[c]={v:(c===0?'CUL VESSEL FULL SCHEDULE  --  As of '+todayStr:''),s:tS};
   sheetData.push(tr);
-  sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
 
   var defs = COLUMN_DEFS_FULL;
+  // Map visible column keys to their exported indices
+  var visKeys=[], keyToIdx={};
+  defs.forEach(function(col){
+    if(!visibleCols['2'].has(col.key)) return;
+    keyToIdx[col.key]=visKeys.length;
+    visKeys.push(col.key);
+  });
+
+  // Per-vessel title row style (matches source file: route / vessel / code)
+  var vTitleS={font:{name:'Arial',bold:true,color:{rgb:'1F4E79'},sz:11},fill:F('DDEBF7'),border:B,alignment:A('left','center')};
+
   var prevVessel='';
   for(var i=0;i<exportData.length;i++){
     var r=exportData[i];
     if(r.vessel!==prevVessel){
-      // Insert separator row before new vessel group (skip for first vessel)
-      if(prevVessel!==''){
-        var sepRow = [];
-        for(var c=0;c<numCols;c++) sepRow[c]={v:'',s:sepS};
-        sheetData.push(sepRow);
-      }
+      // Per-vessel title row: route, vessel, vessel code
+      var titleRow=[];
+      for(var c=0;c<numCols;c++) titleRow[c]={v:'',s:vTitleS};
+      if(keyToIdx.route!=null) titleRow[keyToIdx.route]={v:r.route||'',s:vTitleS};
+      if(keyToIdx.vessel!=null) titleRow[keyToIdx.vessel]={v:r.vessel||'',s:vTitleS};
+      if(keyToIdx.code!=null) titleRow[keyToIdx.code]={v:r.code||'',s:vTitleS};
+      sheetData.push(titleRow);
+      // Column header row
+      sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
       prevVessel=r.vessel;
     }
     var fc='FFFFFF';
@@ -1252,8 +1266,14 @@ function exportFullScheduleExcel(){
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
   ws['!cols'] = headers.map(function(h){return{wch:Math.max(h.length+4, 10)};});
-  ws['!rows']=[{hpt:28},{hpt:30}];for(var j=2;j<totalRows;j++)ws['!rows'].push({hpt:16});
-  ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+(totalRows-1)};
+  ws['!rows']=[{hpt:28}];
+  for(var j=1;j<totalRows;j++){
+    var firstCell = sheetData[j][0];
+    if(firstCell && firstCell.s===hS) ws['!rows'].push({hpt:26});
+    else if(firstCell && firstCell.s===vTitleS) ws['!rows'].push({hpt:22});
+    else ws['!rows'].push({hpt:16});
+  }
+  // No global autofilter because header rows are repeated per vessel
 
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Full Schedule');
