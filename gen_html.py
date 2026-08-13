@@ -891,6 +891,50 @@ var visibleCols = {
   '2': new Set(COLUMN_DEFS_FULL.filter(c=>c.defaultVisible).map(c=>c.key)),
 };
 
+// Persist column-visibility selections across page reloads (localStorage).
+// We store, per view, the full set of column keys ("all") plus the subset that was
+// explicitly hidden ("hidden"). On load:
+//   - a column NOT in "all"  -> brand-new since save -> follow its defaultVisible flag
+//   - a column in "all" & in "hidden" -> keep hidden (user's explicit choice)
+//   - a column in "all" & not in "hidden" -> keep visible (covers both default-visible
+//     and a default-hidden column the user explicitly turned on)
+var COLVIS_KEY = 'cul_movement_cols';
+function loadColVisibility(){
+  try{
+    var raw = localStorage.getItem(COLVIS_KEY);
+    if(!raw) return;
+    var saved = JSON.parse(raw); // {'1':{all:[...],hidden:[...]}, '2':{...}}
+    ['1','2'].forEach(function(vid){
+      var rec = saved[vid];
+      if(!rec || !Array.isArray(rec.all)) return;
+      var defs = vid==='1' ? COLUMN_DEFS_SUMMARY : COLUMN_DEFS_FULL;
+      var allSet = new Set(rec.all);
+      var hiddenSet = new Set(rec.hidden || []);
+      var merged = new Set();
+      defs.forEach(function(c){
+        if(!allSet.has(c.key)) merged.add(c.key);   // new column -> default visible
+        else if(hiddenSet.has(c.key)) {}            // explicitly hidden -> keep hidden
+        else merged.add(c.key);                     // was visible -> keep visible
+      });
+      visibleCols[vid] = merged;
+    });
+  }catch(e){}
+}
+function saveColVisibility(){
+  try{
+    var out = {'1':{all:[],hidden:[]}, '2':{all:[],hidden:[]}};
+    ['1','2'].forEach(function(vid){
+      var defs = vid==='1' ? COLUMN_DEFS_SUMMARY : COLUMN_DEFS_FULL;
+      defs.forEach(function(c){
+        out[vid].all.push(c.key);
+        if(!visibleCols[vid].has(c.key)) out[vid].hidden.push(c.key);
+      });
+    });
+    localStorage.setItem(COLVIS_KEY, JSON.stringify(out));
+  }catch(e){}
+}
+loadColVisibility();
+
 // Multi-select filter state: {route1: Set, pic1: Set, route2: Set, pic2: Set}
 // Default: null means "show all" (empty Set also means show all, used after init)
 var filterSelections = {route1: null, vessel1: null, pic1: null, route2: null, vessel2: null, pic2: null};
@@ -1019,6 +1063,7 @@ function buildColDropdown(viewId){
     cb.onchange = function(){
       if(this.checked) visibleCols[viewId].add(col.key);
       else visibleCols[viewId].delete(col.key);
+      saveColVisibility();
       if(viewId==='1') renderSummary();
       else renderFullSchedule();
     };
