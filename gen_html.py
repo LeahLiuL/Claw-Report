@@ -288,6 +288,8 @@ BOA_PORT_REGION_EXTRA = {
     'EGSUZ': 'Intra Asia', 'SAGIZ': 'Intra Asia', 'MALTA': 'Europe', 'JOAQJ': 'Intra Asia',
     'EGSGA': 'Intra Asia', 'INKDL': 'Intra Asia', 'CNDCB': 'China Mainland', 'EGSAF': 'Intra Asia',
     'AOAQJ': 'AF', 'EGDAM': 'Intra Asia', 'TNRDS': 'AF', 'GRSKG': 'Europe',
+    'THPAT': 'Intra Asia', 'THSSW': 'Intra Asia',  # 泰国港口，与映射表 THBKK/THSCS/THLCH/THBKS 一致 (2026-08-13)
+    'TUZLA': 'Europe',  # 土耳其伊斯坦布尔附近，与映射表 TRIST/TRIZT 一致 (2026-08-13)
 }
 
 def load_boa_mappings():
