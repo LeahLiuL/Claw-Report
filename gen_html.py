@@ -769,18 +769,18 @@ function _loadXlsx(cb){
     <table id="portWaitRegionTable"><thead><tr id="portWaitRegionThead"></tr></thead><tbody id="portWaitRegionTbody"></tbody></table>
   </div>
 
-  <!-- Port Call Count by Lane -->
-  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Lane</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per lane, grouped by trade (Lane&#8594;Trade mapping). Follows Port Wait date/port/remark filters.</p>
-  <div class="table-wrap">
-    <table id="callCountLaneTable"><thead><tr id="callCountLaneThead"></tr></thead><tbody id="callCountLaneTbody"></tbody></table>
-  </div>
-
-  <!-- Port Call Count by Region -->
-  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Region</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per port, grouped by region (Port&#8594;Region mapping). Follows Port Wait date/port/remark filters.</p>
-  <div class="table-wrap">
-    <table id="callCountRegionTable"><thead><tr id="callCountRegionThead"></tr></thead><tbody id="callCountRegionTbody"></tbody></table>
+  <!-- Port Call Count by Lane / Region (side by side) -->
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Lane</h3>
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per lane, grouped by trade (Lane&#8594;Trade mapping). Follows Port Wait date/port/remark filters.</p>
+      <table id="callCountLaneTable" style="min-width:auto;"><thead><tr id="callCountLaneThead"></tr></thead><tbody id="callCountLaneTbody"></tbody></table>
+    </div>
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Region</h3>
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per port, grouped by region (Port&#8594;Region mapping). Follows Port Wait date/port/remark filters.</p>
+      <table id="callCountRegionTable" style="min-width:auto;"><thead><tr id="callCountRegionThead"></tr></thead><tbody id="callCountRegionTbody"></tbody></table>
+    </div>
   </div>
 
   <!-- Remark Category Wait Breakdown & Monthly Trend (side by side) -->
