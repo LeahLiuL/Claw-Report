@@ -1432,8 +1432,10 @@ function exportFullScheduleExcel(){
     visKeys.push(col.key);
   });
 
-  // Per-vessel title row style (matches source file: route / vessel / code)
+  // Per-vessel title row style (matches source file: route / vessel / code / pic)
   var vTitleS={font:{name:'Arial',bold:true,color:{rgb:'1F4E79'},sz:11},fill:F('DDEBF7'),border:B,alignment:A('left','center')};
+  // Blank separator row inserted after each vessel's last schedule entry
+  var blankS={font:{name:'Arial',sz:6},fill:F('FFFFFF'),border:B,alignment:A('left','center')};
 
   var prevVessel='';
   for(var i=0;i<exportData.length;i++){
@@ -1445,6 +1447,7 @@ function exportFullScheduleExcel(){
       if(keyToIdx.route!=null) titleRow[keyToIdx.route]={v:r.route||'',s:vTitleS};
       if(keyToIdx.vessel!=null) titleRow[keyToIdx.vessel]={v:r.vessel||'',s:vTitleS};
       if(keyToIdx.code!=null) titleRow[keyToIdx.code]={v:r.code||'',s:vTitleS};
+      if(keyToIdx.pic!=null) titleRow[keyToIdx.pic]={v:r.pic||'',s:vTitleS};
       sheetData.push(titleRow);
       // Column header row
       sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
@@ -1467,6 +1470,12 @@ function exportFullScheduleExcel(){
       else row.push({v:v,s:nS});
     });
     sheetData.push(row);
+    // Blank separator row after the last schedule entry of the current vessel
+    if(i+1>=exportData.length || exportData[i+1].vessel!==r.vessel){
+      var blankRow=[];
+      for(var c=0;c<numCols;c++) blankRow[c]={v:'',s:blankS};
+      sheetData.push(blankRow);
+    }
   }
 
   var totalRows = sheetData.length;
@@ -1478,6 +1487,7 @@ function exportFullScheduleExcel(){
     var firstCell = sheetData[j][0];
     if(firstCell && firstCell.s===hS) ws['!rows'].push({hpt:26});
     else if(firstCell && firstCell.s===vTitleS) ws['!rows'].push({hpt:22});
+    else if(firstCell && firstCell.s===blankS) ws['!rows'].push({hpt:8});
     else ws['!rows'].push({hpt:16});
   }
   // No global autofilter because header rows are repeated per vessel
