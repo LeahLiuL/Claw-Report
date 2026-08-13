@@ -816,21 +816,25 @@ function _loadXlsx(cb){
       <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">Berth rate (current range)</div></div>
     </div>
 
-    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Trade</h4>
-      <table id="boaTblTrade"><thead><tr></tr></thead><tbody></tbody></table>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;">
+      <div class="table-wrap" style="flex:1;min-width:380px;">
+        <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Trade</h4>
+        <table id="boaTblTrade" style="min-width:auto"><thead><tr></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="table-wrap" style="flex:1;min-width:380px;">
+        <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Trade &rarr; Lane (Lane mapped to its Trade)</h4>
+        <table id="boaTblLane" style="min-width:auto"><thead><tr></tr></thead><tbody></tbody></table>
+      </div>
     </div>
-    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Trade &rarr; Lane (Lane mapped to its Trade)</h4>
-      <table id="boaTblLane"><thead><tr></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9314; BOA by Port Region</h4>
-      <table id="boaTblRegion"><thead><tr></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9315; BOA by Port (with Region subtotals)</h4>
-      <table id="boaTblPort"><thead><tr></tr></thead><tbody></tbody></table>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;">
+      <div class="table-wrap" style="flex:1;min-width:380px;">
+        <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9314; BOA by Port Region</h4>
+        <table id="boaTblRegion" style="min-width:auto"><thead><tr></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="table-wrap" style="flex:1;min-width:380px;">
+        <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9315; BOA by Port (with Region subtotals)</h4>
+        <table id="boaTblPort" style="min-width:auto"><thead><tr></tr></thead><tbody></tbody></table>
+      </div>
     </div>
     <p style="font-size:10px;color:#8a9bb0;margin:4px 0 0;">Click headers to sort &middot; Green &#8805;80% &middot; Orange 50&#8211;80% &middot; Red &lt;50%</p>
   </div>
