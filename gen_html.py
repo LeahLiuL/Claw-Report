@@ -209,6 +209,7 @@ def extract(excel_path):
             'eta':         fmt_dt(ws_src.cell(r, 9).value),
             'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
             'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
+            'etdRaw':      ws_src.cell(r, 11).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 11).value, datetime) else '',
             'etb':         fmt_dt(ws_src.cell(r, 10).value),
             'etd':         fmt_dt(ws_src.cell(r, 11).value),
             'run':         get_str(ws_src.cell(r, 12).value),
@@ -241,6 +242,7 @@ def extract(excel_path):
                 'eta':         fmt_dt(ws_src.cell(r, 9).value),
                 'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
                 'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
+                'etdRaw':      ws_src.cell(r, 11).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 11).value, datetime) else '',
                 'etb':         fmt_dt(ws_src.cell(r, 10).value),
                 'etd':         fmt_dt(ws_src.cell(r, 11).value),
                 'run':         get_str(ws_src.cell(r, 12).value),
@@ -732,6 +734,12 @@ function _loadXlsx(cb){
     <input type="date" id="portDateFrom" title="From" onchange="onPortDateChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
     <span style="margin:0 4px;font-size:13px;">to</span>
     <input type="date" id="portDateTo" title="To" onchange="onPortDateChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
+    <span style="font-weight:600;font-size:14px;margin:0 6px;">&#9201; By:</span>
+    <select id="portDateBasis" onchange="onPortDateChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;">
+      <option value="eta" selected>ETA</option>
+      <option value="etb">ETB</option>
+      <option value="etd">ETD</option>
+    </select>
     <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128205; Port:</span>
     <div style="position:relative;">
       <button class="filter-btn" id="portFilterBtn" onclick="togglePortFilter()">All Ports</button>
@@ -748,7 +756,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; threshold / total calls (CNSHA &amp; CNNGB &lt; 12h, others &lt; 6h; always based on all calls in time range). Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -800,7 +808,7 @@ function _loadXlsx(cb){
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Over-range options: All over = WAIT &gt; threshold; 24h+ = WAIT &ge;24h; 48h+ = WAIT &ge;48h. Only the over count changes with range; berth count is unchanged.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA &amp; CNNGB 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Over-range options: All over = WAIT &gt; threshold; 24h+ = WAIT &ge;24h; 48h+ = WAIT &ge;48h. Only the over count changes with range; berth count is unchanged.</p>
 
     <div class="sub-controls" style="padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
@@ -1734,13 +1742,21 @@ function onPortFilterItemChange(cb){
 }
 
 // ── Date Range Filter ───────────────────────────────────────────────
-var selPortDateFrom=null, selPortDateTo=null;
+var selPortDateFrom=null, selPortDateTo=null, selPortDateBasis='eta';
+
+// Raw date string for the selected filter basis (ETA / ETB / ETD)
+function portWaitDateRaw(sr){
+  if(selPortDateBasis==='etb') return sr.etbRaw||'';
+  if(selPortDateBasis==='etd') return sr.etdRaw||'';
+  return sr.etaRaw||'';
+}
 
 function onPortDateChange(){
   selPortDateFrom=document.getElementById('portDateFrom').value||null;
   selPortDateTo=document.getElementById('portDateTo').value||null;
+  selPortDateBasis=document.getElementById('portDateBasis').value||'eta';
   renderPortWaitAll();
-  // BOA follows the same date range as Port Wait
+  // BOA follows the same date range (and basis) as Port Wait
   BOA_CALLS=buildBoaCalls();
   boaRefresh();
 }
@@ -1805,10 +1821,12 @@ var remarkCatTotals={};
 var monthlyTrendData=[];
 
 // Port Wait over-range selector (3 categories, mirrors BOA):
-//   all = wait > standard (≥6h, SHA≥12h); 24+ = wait ≥24h; 48+ = wait ≥48h
+//   all = wait > standard (≥6h, SHA/CNNGB≥12h); 24+ = wait ≥24h; 48+ = wait ≥48h
+// Berth threshold: Shanghai (CNSHA) and Ningbo (CNNGB) use 12h, all other ports 6h.
+function berthThreshold(port){ return (port==='CNSHA' || port==='CNNGB') ? 12 : 6; }
 var PORT_OVER_RANGE='all';
 function portOverInRange(wait, port){
-  if(wait <= (port==='CNSHA' ? 12 : 6)) return false;  // berth, not over
+  if(wait <= berthThreshold(port)) return false;  // berth, not over
   switch(PORT_OVER_RANGE){
     case 'all': return true;
     case '24+': return wait >= 24;
@@ -1861,8 +1879,8 @@ function buildPortWaitData(){
     var port=normalizePort(rawPort);
     if(!port) return;
 
-    // Date range filter
-    var era=sr.etaRaw||'';
+    // Date range filter (by selected basis: ETA / ETB / ETD)
+    var era=portWaitDateRaw(sr);
     if(!era) return;
     if(df && era < df) return;
     if(dt && era > dt) return;
@@ -1887,7 +1905,7 @@ function buildPortWaitData(){
 
     // Track unfiltered (all calls within date range) for berth rate
     rec.allCalls++;
-    if(port==='CNSHA' ? wait<12 : wait<6) rec.allBerthCalls++;
+    if(wait < berthThreshold(port)) rec.allBerthCalls++;
 
     // If remark filter is active, ONLY include calls whose remark matches selected categories
     if(selRemarkCats){
@@ -1897,7 +1915,7 @@ function buildPortWaitData(){
         if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match){
-        rec.excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, rawPort:rawPort});
+        rec.excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
         totalExcludedByRemark++;
         return;  // skip this call for wait/calls aggregation
       }
@@ -1909,7 +1927,7 @@ function buildPortWaitData(){
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
     if(portOverInRange(wait, port)) rec.overCalls++;
-    if(port==='CNSHA' ? wait<12 : wait<6) rec.berthCalls++;
+    if(wait < berthThreshold(port)) rec.berthCalls++;
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -1955,7 +1973,7 @@ function buildPortWaitData(){
   // ── Monthly Trend Aggregation ──────────────────────────────────────
   var byMonth={};
   allFilteredCalls.forEach(function(cl){
-    // dateKey is etaRaw in "YYYY-MM-DD" format
+    // dateKey is the selected date-basis raw ("YYYY-MM-DD" format)
     var dk=cl.dateKey||'';
     if(!dk || dk.length<7) return;
     var m=dk.substring(0,7); // "YYYY-MM"
@@ -2044,6 +2062,8 @@ function renderPortWaitTable(){
         '<td style="font-size:12px;">'+escapeHtml(cl.vessel||'')+'</td>'+
         '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.voy||'')+'</td>'+
         '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.eta||'')+'</td>'+
+        '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.etb||'')+'</td>'+
+        '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.etd||'')+'</td>'+
         '<td class="center '+wClass+'" style="font-size:12px;">'+wDisp+'</td>'+
         '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':'color:#8a9bb0;')+'">'+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
         '</tr>';
@@ -2051,7 +2071,7 @@ function renderPortWaitTable(){
     // Show excluded calls if remark filter is active
     var excludedRows='';
     if(selRemarkCats && r.excludedCalls && r.excludedCalls.length>0){
-      excludedRows='<tr><td colspan="6" style="padding:6px 8px;color:#999;font-size:11px;border-top:1px dashed #e0e0e0;">'+
+      excludedRows='<tr><td colspan="8" style="padding:6px 8px;color:#999;font-size:11px;border-top:1px dashed #e0e0e0;">'+
         '<span style="color:#e67e22;">&#9888;</span> Filtered out ('+r.excludedCalls.length+' calls excluded by remark filter):</td></tr>';
       r.excludedCalls.forEach(function(cl){
         var catLabel='';
@@ -2062,6 +2082,8 @@ function renderPortWaitTable(){
           '<td style="font-size:11px;">'+escapeHtml(cl.vessel||'')+'</td>'+
           '<td style="font-size:10px;">'+escapeHtml(cl.voy||'')+'</td>'+
           '<td style="font-size:10px;">'+escapeHtml(cl.eta||'')+'</td>'+
+          '<td style="font-size:10px;color:#6a7b8d;">'+escapeHtml(cl.etb||'')+'</td>'+
+          '<td style="font-size:10px;color:#6a7b8d;">'+escapeHtml(cl.etd||'')+'</td>'+
           '<td class="center" style="font-size:11px;">'+(cl.wait||0).toFixed(1)+'</td>'+
           '<td style="font-size:10px;"><span style="background:#f5f5f5;color:#999;padding:1px 5px;border-radius:3px;">'+catLabel+'</span> '+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
           '</tr>';
@@ -2069,7 +2091,7 @@ function renderPortWaitTable(){
     }
     var detailHtml='';
     if(callRows || excludedRows){
-      detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="9" style="padding:0;">'+
+      detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="10" style="padding:0;">'+
         '<div style="padding:4px 0;">'+
         '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
         '<thead><tr style="background:#eef3f7;color:#5a697a;font-size:11px;">'+
@@ -2077,6 +2099,8 @@ function renderPortWaitTable(){
         '<th style="padding:3px 6px;text-align:left;">Vessel</th>'+
         '<th style="padding:3px 6px;text-align:left;">Voy</th>'+
         '<th style="padding:3px 6px;text-align:left;">ETA</th>'+
+        '<th style="padding:3px 6px;text-align:left;">ETB</th>'+
+        '<th style="padding:3px 6px;text-align:left;">ETD</th>'+
         '<th style="padding:3px 6px;text-align:center;">Wait (hrs)</th>'+
         '<th style="padding:3px 6px;text-align:left;">Remark</th>'+
         '</tr></thead>'+
@@ -2109,7 +2133,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · berth rate = wait < 6h (CNSHA <12h) / total calls · Over (range) follows current over-range selector';
+  statText+=' · berth rate = wait < threshold (CNSHA & CNNGB <12h, others <6h) / total calls · Over (range) follows current over-range selector';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -2199,7 +2223,7 @@ function getFilteredCalls(){
     if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
-    var era=sr.etaRaw||'';
+    var era=portWaitDateRaw(sr);
     if(!era) return;
     if(df && era<df) return;
     if(dt && era>dt) return;
@@ -2577,7 +2601,7 @@ function buildBoaCalls(){
     if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
-    var era=sr.etaRaw||'';
+    var era=portWaitDateRaw(sr);
     if(!era) return;
     if(df && era<df) return;
     if(dt && era>dt) return;
@@ -2600,7 +2624,7 @@ var BOA_HEADERS = {
   boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
 };
-function boaIsBerth(c){ return c.w <= (c.p==='CNSHA' ? 12 : 6); }
+function boaIsBerth(c){ return c.w <= berthThreshold(c.p); }
 function boaOverInRange(c){
   if(boaIsBerth(c)) return false;
   switch(BOA_RANGE){
