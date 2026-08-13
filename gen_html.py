@@ -438,6 +438,11 @@ function _loadXlsx(cb){
     position: sticky; top: var(--top-h, 105px); z-index: 60;
     box-shadow: 0 3px 10px rgba(31,78,121,.12);
   }
+  /* Section-level filter bars (non-sticky) so their dropdowns never overlay top controls */
+  .sub-controls {
+    padding: 14px 28px; background: #fff; border-bottom: 1px solid #dde4ed;
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
   .controls input, .controls select {
     padding: 6px 12px; border: 1px solid #c9d5e2; border-radius: 5px;
     font-size: 13px; outline: none; height: 34px;
@@ -744,7 +749,7 @@ function _loadXlsx(cb){
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
   <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
-  <div class="controls" style="flex-wrap:wrap;padding:8px 12px;margin-bottom:8px;">
+  <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
     <label class="range-opt" id="port-opt-24"><input type="radio" name="portrange" value="24+"> 24h+</label>
@@ -797,7 +802,7 @@ function _loadXlsx(cb){
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
     <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Over-range options: All over = WAIT &gt; threshold; 24h+ = WAIT &ge;24h; 48h+ = WAIT &ge;48h. Only the over count changes with range; berth count is unchanged.</p>
 
-    <div class="controls" style="flex-wrap:wrap;padding:8px 12px;">
+    <div class="sub-controls" style="padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
       <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> All over (&gt; standard)</label>
       <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24+"> 24h+</label>
