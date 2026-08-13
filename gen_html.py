@@ -1398,7 +1398,10 @@ function exportSummaryExcel(){
 
 function exportFullScheduleExcel(){
   var data=getFilteredFull(), todayStr=TODAY_DATA.date;
-  var headers = COLUMN_DEFS_FULL.filter(c=>visibleCols['2'].has(c.key)).map(c=>c.label);
+  // Export always includes vessel identity columns (Code, PIC) even if hidden in the UI view
+  var exportKeys = new Set(visibleCols['2']);
+  exportKeys.add('code'); exportKeys.add('pic');
+  var headers = COLUMN_DEFS_FULL.filter(c=>exportKeys.has(c.key)).map(c=>c.label);
 
   function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
   var B=thinBorder();
@@ -1427,7 +1430,7 @@ function exportFullScheduleExcel(){
   // Map visible column keys to their exported indices
   var visKeys=[], keyToIdx={};
   defs.forEach(function(col){
-    if(!visibleCols['2'].has(col.key)) return;
+    if(!exportKeys.has(col.key)) return;
     keyToIdx[col.key]=visKeys.length;
     visKeys.push(col.key);
   });
@@ -1462,7 +1465,7 @@ function exportFullScheduleExcel(){
     function ds(v){if(!v)return cS;return(v.toLowerCase().indexOf('delay')>=0)?dS:cS;}
     var row = [];
     defs.forEach(function(col){
-      if(!visibleCols['2'].has(col.key)) return;
+      if(!exportKeys.has(col.key)) return;
       var v = r[col.key]||'';
       if(col.key==='vessel') row.push({v:v,s:bS});
       else if(col.key==='etaDelay'||col.key==='etdDelay') row.push({v:v,s:ds(v)});
