@@ -116,24 +116,26 @@ def extract(excel_path):
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
                     remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
                     if remark_text:
-                        # Parse remark to find target row: first two tokens = voyage + port
+                        # Parse remark to find target row: first two tokens = voyage + terminal/port
                         parts = remark_text.split()
                         if len(parts) >= 2 and schedule_rows:
                             target_voy, target_port = parts[0], parts[1]
+                            # Strip the leading voyage + terminal/port tokens; keep only the remark content
+                            remark_body = ' '.join(parts[2:])
                             matched = False
                             for sr in schedule_rows:
                                 sr_voy = get_str(ws_src.cell(sr, 7).value)
                                 sr_port = get_str(ws_src.cell(sr, 1).value)
                                 if sr_voy == target_voy and sr_port == target_port:
                                     if sr in remarks_by_row:
-                                        remarks_by_row[sr] = remarks_by_row[sr] + '; ' + remark_text
+                                        remarks_by_row[sr] = remarks_by_row[sr] + '; ' + remark_body
                                     else:
-                                        remarks_by_row[sr] = remark_text
+                                        remarks_by_row[sr] = remark_body
                                     matched = True
                                     break
                             if not matched:
                                 # Fallback: assign to last schedule row
-                                remarks_by_row[schedule_rows[-1]] = remark_text
+                                remarks_by_row[schedule_rows[-1]] = remark_body
                         elif schedule_rows:
                             remarks_by_row[schedule_rows[-1]] = remark_text
                         else:
