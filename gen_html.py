@@ -264,100 +264,53 @@ def extract(excel_path):
         'dataEtaMax':     data_eta_max.strftime('%Y-%m-%d') if data_eta_max else '',
     }
 
-# ── BOA 准班率数据 (并入 Port Wait 页) ──────────────────────────────────
-# 源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
+# ── BOA 映射 (Port & Lane Mapping + 补充映射) ─────────────────────────────
+# BOA 数据行从 Daily Movement 船期实时聚合 (前端跟随 Port Wait 日期筛选)，
+# Lane→Trade / Port→Region 归类从映射表找；映射表未覆盖的在此补充。
+# 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
 BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
-# 缓存: 提取失败(源盘不可达/Excel 被占用)时回退到上次成功结果，避免线上版 BOA 变空
-BOA_CACHE = os.path.join(SCRIPT_DIR, 'boa_cache.json')
 
-def _boa_cache_fallback():
-    """extract_boa 提取失败时读取上次成功的缓存 (boa_cache.json)。"""
-    try:
-        with open(BOA_CACHE, encoding='utf-8') as f:
-            c = json.load(f)
-        calls, label = c.get('calls', []), c.get('label', '')
-        if calls:
-            print(f'  [BOA] fallback to cached {label}: {len(calls)} calls (source unavailable)')
-            return calls, label
-    except Exception:
-        pass
-    return [], ''
+# 源数据中映射表未覆盖的航线 → Trade (2026-08-13 用户确认)
+BOA_LANE_TRADE_EXTRA = {
+    'RTS':  'ME',  # 红海-中东 (SAJED/EGSOK/OMSOH)，船期统计中 RTS→ME
+    'NAX':  'MD',  # 用户确认 NAX=NAF→MD；地中海-北非线 (TRALI/TRIST)，与 AEM(MD) 港口重叠
+    'RES':  'ME',  # 船期统计中 RES→ME (JOAQJ/EGSOK/SAJED)
+    'HLX':  'ME',  # 船期统计中 HLX→ME (THLCH/SGSIN/INNSA/PKKHI)
+    'GTS':  'ME',  # KR TASMAN: SAJED/YEADE/EGSOK/OMSOH 中东红海；同区域映射航线 SGX/CGX→ME
+    'CGS':  'ME',  # 靠 AEKLF 为主；映射表中靠 AEKLF 的 SGX/CGX 都归 ME
+    'CST/SL1': 'TH',  # 组合航线 CST/SL1 → TH (映射表中 CST→TH、SL1→TH)
+    'ZGCD': 'MD',  # ZGCD 是船名 (ZHONG GU CHENG DU)，实际属 AEM 航线 → MD
+}
 
-def extract_boa(path):
-    """从船期统计 Excel 提取 BOA 准班率调用数据 (口径与 boa_gen.py 一致)。
-    返回 (calls, label)：calls 为 [{t,r,l,p,w}]，label 如 '2026 07'；失败返回 ([], '')。
-    提取成功会写 boa_cache.json；失败时回退缓存，保证 dashboard 不丢 BOA 数据。
+# 源数据中映射表未覆盖的港口 → Region
+BOA_PORT_REGION_EXTRA = {
+    'DZALG': 'AF', 'AEKLF': 'Intra Asia', 'LYMRA': 'AF', 'LYBEN': 'AF',
+    'EGSUZ': 'Intra Asia', 'SAGIZ': 'Intra Asia', 'MALTA': 'Europe', 'JOAQJ': 'Intra Asia',
+    'EGSGA': 'Intra Asia', 'INKDL': 'Intra Asia', 'CNDCB': 'China Mainland', 'EGSAF': 'Intra Asia',
+    'AOAQJ': 'AF', 'EGDAM': 'Intra Asia', 'TNRDS': 'AF', 'GRSKG': 'Europe',
+}
+
+def load_boa_mappings():
+    """读取映射表 Port & Lane Mapping + 叠加补充映射。
+    返回 (lane_trade, port_region) dict。映射表缺失(P 盘不可达)时仅用补充映射，不报错。
     """
-    if not os.path.exists(path):
-        # 尝试同目录下最新的「船期统计 2026xx.xlsx」
-        cands = sorted(glob.glob(os.path.join(os.path.dirname(path), '船期统计 20*.xlsx')), reverse=True)
-        if cands:
-            path = cands[0]
-        else:
-            print('  [BOA] source not found:', path)
-            return _boa_cache_fallback()
+    lane_trade  = dict(BOA_LANE_TRADE_EXTRA)
+    port_region = dict(BOA_PORT_REGION_EXTRA)
     try:
-        wb = openpyxl.load_workbook(path, data_only=True)
+        wb = openpyxl.load_workbook(BOA_SRC, data_only=True, read_only=True)
+        if 'Port & Lane Mapping' in wb.sheetnames:
+            ws_map = wb['Port & Lane Mapping']
+            for row in ws_map.iter_rows(min_row=2, max_col=6, values_only=True):
+                port, region, _, lane, trade = row[0], row[1], row[3], row[4], row[5]
+                if port and region:
+                    p_norm = re.sub(r'\s*\(.*?\)', '', str(port).strip()).strip()
+                    port_region[p_norm] = str(region).strip()
+                if lane and trade:
+                    lane_trade[str(lane).strip()] = str(trade).strip()
+        print(f'  [BOA] mappings loaded: {len(lane_trade)} lanes, {len(port_region)} ports')
     except Exception as e:
-        print('  [BOA] load failed:', e)
-        return _boa_cache_fallback()
-
-    port_region, lane_trade = {}, {}
-    if 'Port & Lane Mapping' in wb.sheetnames:
-        ws_map = wb['Port & Lane Mapping']
-        for row in ws_map.iter_rows(min_row=2, max_row=ws_map.max_row, max_col=6):
-            port = row[0].value; region = row[1].value
-            lane = row[4].value;  trade = row[5].value
-            if port and region:
-                p_norm = re.sub(r'\s*\(.*?\)', '', str(port).strip()).strip()
-                port_region[p_norm] = str(region).strip()
-            if lane and trade:
-                lane_trade[str(lane).strip()] = str(trade).strip()
-
-    # 数据 sheet: 优先 "2026 07" 命名，否则第一个非 Mapping 的 sheet
-    data_sheet = None
-    for name in wb.sheetnames:
-        if name.strip() != 'Port & Lane Mapping' and re.match(r'^20\d{2}\s?\d{2}$', name.strip()):
-            data_sheet = wb[name]; break
-    if data_sheet is None:
-        for name in wb.sheetnames:
-            if name.strip() != 'Port & Lane Mapping':
-                data_sheet = wb[name]; break
-    if data_sheet is None:
-        print('  [BOA] no data sheet found')
-        return [], ''
-
-    calls = []
-    for row in data_sheet.iter_rows(min_row=2, max_row=data_sheet.max_row, max_col=26):
-        a = row[0].value   # Lane Trade
-        b = row[1].value   # Port Region
-        d = row[3].value   # Lane
-        e = row[4].value   # PORT
-        g = row[6].value   # WAIT
-        if e is None or not isinstance(g, (int, float)):
-            continue
-        port = str(e).strip()
-        lane = str(d).strip() if d else ''
-        trade = str(a).strip() if a else ''
-        region = str(b).strip() if b else ''
-        if lane in lane_trade: trade = lane_trade[lane]
-        p_norm = re.sub(r'\s*\(.*?\)', '', port).strip()
-        if p_norm in port_region: region = port_region[p_norm]
-        calls.append({'t': trade, 'r': region, 'l': lane, 'p': port, 'w': float(g)})
-
-    label = ''
-    m = re.search(r'(20\d{2}\s?\d{2})', os.path.basename(path))
-    if m:
-        label = m.group(1).replace(' ', ' ')  # 如 "2026 07"
-    print(f'  [BOA] {label}: {len(calls)} calls from {os.path.basename(path)}')
-    # 仅在提取到非空数据时写缓存，避免空结果覆盖上次成功缓存
-    if calls:
-        try:
-            with open(BOA_CACHE, 'w', encoding='utf-8') as f:
-                json.dump({'label': label, 'calls': calls}, f, ensure_ascii=False)
-        except Exception as e:
-            print('  [BOA] cache write failed:', e)
-    return calls, label
+        print('  [BOA] mapping source unavailable, using extra mappings only:', e)
+    return lane_trade, port_region
 
 # ── HTML Template ────────────────────────────────────────────────────────
 # JS: COLUMN_DEFS_SUMMARY and COLUMN_DEFS_FULL are injected from Python.
@@ -750,10 +703,10 @@ function _loadXlsx(cb){
     <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 
-  <!-- BOA berth-on-arrival stats (source: 船期统计 Excel) -->
+  <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: 船期统计 2026xx.xlsx (sheet &#8220;2026 xx&#8221;) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Port&#8594;Region / Lane&#8594;Trade per &#8220;Port &amp; Lane Mapping&#8221;. Range filters only the over-range count; berth count is unchanged.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Range filters only the over-range count; berth count is unchanged.</p>
 
     <div class="controls" style="flex-wrap:wrap;padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
@@ -1638,6 +1591,9 @@ function onPortDateChange(){
   renderPortWaitTable();
   renderRemarkSummary();
   renderMonthlyTrend();
+  // BOA follows the same date range as Port Wait
+  BOA_CALLS=buildBoaCalls();
+  boaRefresh();
 }
 
 // ── Speed Vessel Filter (independent filter for Speed tab) ──────────
@@ -2285,11 +2241,41 @@ function closeHistory(){document.getElementById('historyModal').classList.remove
 document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===document.getElementById('historyModal'))closeHistory();});
 
 /* ═══════════════════════════════════════════════════════════════════
-   BOA berth-on-arrival stats (merged into Port Wait tab; source TODAY_DATA.boaCalls)
+   BOA berth-on-arrival stats (merged into Port Wait tab)
+   Data rows computed from TODAY_DATA.fullSchedule, following the same
+   date filter as Port Wait. Lane→Trade / Port→Region from embedded maps.
    ═══════════════════════════════════════════════════════════════════ */
-var BOA_CALLS = (TODAY_DATA.boaCalls)||[];
-var BOA_LABEL  = TODAY_DATA.boaLabel||'';
+var BOA_LANE_TRADE  = TODAY_DATA.laneTradeMap  || {};
+var BOA_PORT_REGION = TODAY_DATA.portRegionMap || {};
+var BOA_CALLS = [];
 var BOA_RANGE  = 'all';
+function buildBoaCalls(){
+  var calls=[];
+  var todayStr=TODAY_DATA.date;
+  var df=selPortDateFrom||'', dt=selPortDateTo||todayStr;
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var rawPort=sr.port||'';
+    if(!rawPort) return;
+    if(isBunkeringPort(rawPort)) return;
+    var port=normalizePort(rawPort);
+    if(!port) return;
+    var era=sr.etaRaw||'';
+    if(!era) return;
+    if(df && era<df) return;
+    if(dt && era>dt) return;
+    var wait=parseFloat(sr.wait);
+    if(isNaN(wait)) return;   // same rule as before: only numeric WAIT counts
+    var route=sr.route||'';
+    calls.push({
+      t: BOA_LANE_TRADE[route] || 'Unknown',
+      r: BOA_PORT_REGION[port] || 'Unknown',
+      l: route || '(blank)',
+      p: port,
+      w: wait
+    });
+  });
+  return calls;
+}
 var BOA_HEADERS = {
   boaTblTrade:  ['Lane Trade', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblLane:   ['Lane Trade', 'Lane', 'Berth', 'Over', 'Total', 'Rate'],
@@ -2455,12 +2441,9 @@ function boaRefresh(){
   boaRenderTrade(); boaRenderRegion(); boaRenderLane(); boaRenderPort();
 }
 function boaInit(){
-  if(!BOA_CALLS.length){
-    var lab = document.getElementById('boaLabelSpan');
-    if(lab) lab.textContent = '(source file not found)';
-    return;
-  }
-  document.getElementById('boaLabelSpan').textContent = '· '+BOA_LABEL;
+  BOA_CALLS = buildBoaCalls();
+  var lab = document.getElementById('boaLabelSpan');
+  if(lab) lab.textContent = '· computed from CUL Daily Movement (follows Port Wait date range)';
   Object.keys(BOA_HEADERS).forEach(function(id){
     document.getElementById(id).querySelector('thead').innerHTML = boaBuildHeader(id);
   });
@@ -2550,9 +2533,9 @@ def main():
     print(f'  -> {len(data["fullSchedule"])} schedule rows (full)')
     print(f'  -> date={data["date"]}')
 
-    boa_calls, boa_label = extract_boa(BOA_SRC)
-    data['boaCalls'] = boa_calls
-    data['boaLabel'] = boa_label
+    boa_lane_trade, boa_port_region = load_boa_mappings()
+    data['laneTradeMap']  = boa_lane_trade
+    data['portRegionMap'] = boa_port_region
 
     # Build column defs JSON for JS
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
