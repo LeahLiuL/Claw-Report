@@ -742,11 +742,38 @@ function _loadXlsx(cb){
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
   <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; 6h / total calls (always based on all calls in time range). Ranked best&#8594;worst by default.</p>
+  <div class="controls" style="flex-wrap:wrap;padding:8px 12px;margin-bottom:8px;">
+    <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
+    <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
+    <label class="range-opt" id="port-opt-24"><input type="radio" name="portrange" value="24+"> 24h+</label>
+    <label class="range-opt" id="port-opt-48"><input type="radio" name="portrange" value="48+"> 48h+</label>
+  </div>
   <div class="table-wrap">
     <table id="portWaitTable">
       <thead><tr id="portWaitThead"></tr></thead>
       <tbody id="portWaitTbody"></tbody>
     </table>
+  </div>
+
+  <!-- Wait by Port Region -->
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#9889; Wait by Port Region</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Port wait aggregated by region (Port&#8594;Region per mapping). Over (range) follows the over-range selector above. Shows Calls / Total Wait / Avg Wait / Over / Over rate.</p>
+  <div class="table-wrap" style="max-width:900px;">
+    <table id="portWaitRegionTable"><thead><tr id="portWaitRegionThead"></tr></thead><tbody id="portWaitRegionTbody"></tbody></table>
+  </div>
+
+  <!-- Port Call Count by Lane -->
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Lane</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per lane, grouped by trade (Lane&#8594;Trade mapping). Follows Port Wait date/port/remark filters.</p>
+  <div class="table-wrap" style="max-width:900px;">
+    <table id="callCountLaneTable"><thead><tr id="callCountLaneThead"></tr></thead><tbody id="callCountLaneTbody"></tbody></table>
+  </div>
+
+  <!-- Port Call Count by Region -->
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128202; Port Call Count by Region</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Count of port calls per port, grouped by region (Port&#8594;Region mapping). Follows Port Wait date/port/remark filters.</p>
+  <div class="table-wrap" style="max-width:900px;">
+    <table id="callCountRegionTable"><thead><tr id="callCountRegionThead"></tr></thead><tbody id="callCountRegionTbody"></tbody></table>
   </div>
 
   <!-- Remark Category Wait Breakdown & Monthly Trend (side by side) -->
@@ -766,13 +793,12 @@ function _loadXlsx(cb){
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Range filters only the over-range count; berth count is unchanged.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Over-range options: All over = WAIT &gt; threshold; 24h+ = WAIT &ge;24h; 48h+ = WAIT &ge;48h. Only the over count changes with range; berth count is unchanged.</p>
 
     <div class="controls" style="flex-wrap:wrap;padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
-      <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> All over</label>
-      <label class="range-opt" id="boa-opt-6"><input type="radio" name="boarange" value="6-24"> 6&#8211;24h</label>
-      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24-48"> 24&#8211;48h</label>
+      <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> All over (&gt; standard)</label>
+      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24+"> 24h+</label>
       <label class="range-opt" id="boa-opt-48"><input type="radio" name="boarange" value="48+"> 48h+</label>
     </div>
 
@@ -1539,18 +1565,14 @@ function onRemarkCatChange(){
     btn.style.background='#fff3e0';
     btn.style.borderColor='#e67e22';
   }
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
 }
 var selPortFilter = null;  // null = show all ports
 var selPortSearch = '';    // free-text port name search (AND with checkbox filter)
 
 function onPortSearch(){
   selPortSearch = document.getElementById('portSearch').value.trim();
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
 }
 
 function buildPortFilterDropdown(){
@@ -1619,9 +1641,7 @@ function applyPortFilterFromDOM(){
     if(allCb) allCb.checked=false;
   }
   updatePortFilterButton();
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
 }
 
 function onPortFilterAllChange(allCb){
@@ -1633,9 +1653,7 @@ function onPortFilterAllChange(allCb){
     selPortFilter=[];
   }
   updatePortFilterButton();
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
 }
 
 function onPortFilterItemChange(cb){
@@ -1648,9 +1666,7 @@ var selPortDateFrom=null, selPortDateTo=null;
 function onPortDateChange(){
   selPortDateFrom=document.getElementById('portDateFrom').value||null;
   selPortDateTo=document.getElementById('portDateTo').value||null;
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
   // BOA follows the same date range as Port Wait
   BOA_CALLS=buildBoaCalls();
   boaRefresh();
@@ -1715,6 +1731,19 @@ var portWaitSortCol=-1, portWaitSortDir=1;
 var remarkCatTotals={};
 var monthlyTrendData=[];
 
+// Port Wait over-range selector (3 categories, mirrors BOA):
+//   all = wait > standard (≥6h, SHA≥12h); 24+ = wait ≥24h; 48+ = wait ≥48h
+var PORT_OVER_RANGE='all';
+function portOverInRange(wait, port){
+  if(wait <= (port==='CNSHA' ? 12 : 6)) return false;  // berth, not over
+  switch(PORT_OVER_RANGE){
+    case 'all': return true;
+    case '24+': return wait >= 24;
+    case '48+': return wait >= 48;
+  }
+  return false;
+}
+
 // Merge port name variants: AEJEA(T1)→AEJEA, CNSHK-CCT→CNSHK, DJJIB(DMP)→DJJIB,
 // MYPKG (1st CALL)→MYPKG, THLCH (ESCO)→THLCH, SGSIN(Bunkering)→SGSIN(bunker) etc.
 function normalizePort(p){
@@ -1776,7 +1805,8 @@ function buildPortWaitData(){
 
     // Initialize port record if needed
     if(!byPort[port]){
-      byPort[port]={port:port, calls:[], totalWait:0, maxWait:0, longWaitCalls:0, berthCalls:0,  // filtered stats
+      byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
+                    calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthCalls:0,  // filtered stats
                     allCalls:0, allBerthCalls:0,  // unfiltered (for berth rate)
                     remarks:{}, excludedCalls:[]};
     }
@@ -1805,6 +1835,7 @@ function buildPortWaitData(){
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
+    if(portOverInRange(wait, port)) rec.overCalls++;
     if(port==='CNSHA' ? wait<12 : wait<6) rec.berthCalls++;
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
@@ -1873,11 +1904,13 @@ function buildPortWaitData(){
 var PORT_WAIT_COLS=[
   {key:'rank',      label:'#'},
   {key:'port',      label:'Port'},
+  {key:'region',    label:'Region'},
   {key:'calls',     label:'Calls'},
-  {key:'berthRate', label:'Berth Rate'},
+  {key:'totalWait', label:'Total Wait (hrs)'},
   {key:'avgWait',   label:'Avg Wait (hrs)'},
   {key:'maxWait',   label:'Max Wait (hrs)'},
-  {key:'longWaitCalls', label:'Calls > 24h'},
+  {key:'overCalls', label:'Over (range)'},
+  {key:'berthRate', label:'Berth Rate'},
   {key:'catLabels', label:'Remark Categories'},
 ];
 
@@ -1907,7 +1940,7 @@ function renderPortWaitTable(){
     var def=PORT_WAIT_COLS[portWaitSortCol];
     var k=def.key; var d=portWaitSortDir;
     data=data.slice().sort(function(a,b){
-      if(k==='port' || k==='catLabels') return (a[k]||'').localeCompare(b[k]||'')*d;
+      if(k==='port' || k==='catLabels' || k==='region') return (a[k]||'').localeCompare(b[k]||'')*d;
       if(k==='rank') return 0;  // rank is display-only, re-sort by berthRate
       var va=a[k]||0, vb=b[k]||0;
       return (va-vb)*d;
@@ -1963,7 +1996,7 @@ function renderPortWaitTable(){
     }
     var detailHtml='';
     if(callRows || excludedRows){
-      detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="8" style="padding:0;">'+
+      detailHtml='<tr id="'+pid+'-detail" class="detail-wrap" style="display:none;"><td></td><td colspan="9" style="padding:0;">'+
         '<div style="padding:4px 0;">'+
         '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
         '<thead><tr style="background:#eef3f7;color:#5a697a;font-size:11px;">'+
@@ -1977,15 +2010,18 @@ function renderPortWaitTable(){
         '<tbody>'+callRows+excludedRows+'</tbody>'+
         '</table></div></td></tr>';
     }
+    var overCell = r.overCalls>0 ? '<b>'+r.overCalls+'</b>' : '0';
     rows+='<tr'+rowBg+' class="port-row" onclick="togglePortWaitDetail(\''+pid+'\')" style="cursor:pointer;">'+
       '<td class="center" style="font-size:12px;color:#8a9bb0;">'+(callRows?'<span id="'+pid+'-icon">&#9654;</span>':'')+'</td>'+
       '<td class="center" style="color:#8a9bb0;font-size:12px;">'+(idx+1)+'</td>'+
       '<td><strong>'+r.port+'</strong></td>'+
+      '<td class="center">'+r.region+'</td>'+
       '<td class="center">'+(selRemarkCats?r.calls.length+' <span style="font-size:10px;color:#999;">/ '+r.allCalls+'</span>':r.calls.length)+'</td>'+
-      '<td>'+bar+'</td>'+
+      '<td class="center">'+r.totalWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
-      '<td class="center'+(r.longWaitCalls>0?' delay':'')+'">'+(r.longWaitCalls>0?'<b>'+r.longWaitCalls+'</b>':'0')+'</td>'+
+      '<td class="center'+(r.overCalls>0?' delay':'')+'">'+overCell+'</td>'+
+      '<td>'+bar+'</td>'+
       '<td>'+cat+'</td>'+
       '</tr>'+detailHtml;
   });
@@ -2000,7 +2036,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · berth rate = wait < 6h (CNSHA <12h) / total calls';
+  statText+=' · berth rate = wait < 6h (CNSHA <12h) / total calls · Over (range) follows current over-range selector';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -2022,9 +2058,153 @@ function sortPortWait(col){
   if(col===0) return;
   if(portWaitSortCol===col) portWaitSortDir*=-1;
   else{portWaitSortCol=col;portWaitSortDir=1;}
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
+}
+
+// ── Wait by Port Region (Port→Region matching, mirrors BOA) ────────────────
+var PORT_WAIT_REGION_COLS=[
+  {key:'region',    label:'Port Region'},
+  {key:'calls',     label:'Calls'},
+  {key:'totalWait', label:'Total Wait (hrs)'},
+  {key:'avgWait',   label:'Avg Wait (hrs)'},
+  {key:'overCalls', label:'Over (range)'},
+  {key:'overRate',  label:'Over Rate'},
+];
+function renderPortWaitByRegion(){
+  var byRegion={};
+  portWaitData.forEach(function(r){
+    var reg=r.region||'Unknown';
+    if(!byRegion[reg]) byRegion[reg]={region:reg, calls:0, totalWait:0, over:0, maxWait:0};
+    var a=byRegion[reg];
+    a.calls+=r.calls.length;
+    a.totalWait+=r.totalWait;
+    a.over+=r.overCalls;
+    if(r.maxWait>a.maxWait) a.maxWait=r.maxWait;
+  });
+  var rows=Object.keys(byRegion).map(function(k){
+    var a=byRegion[k];
+    return {region:k, calls:a.calls, totalWait:a.totalWait,
+            avgWait:a.calls?a.totalWait/a.calls:0,
+            overCalls:a.over, overRate:a.calls?a.over/a.calls:0, maxWait:a.maxWait};
+  });
+  rows.sort(function(a,b){return b.calls-a.calls;});
+  var thead=document.getElementById('portWaitRegionThead');
+  var tbody=document.getElementById('portWaitRegionTbody');
+  thead.innerHTML='<tr>'+PORT_WAIT_REGION_COLS.map(function(c){return '<th>'+c.label+'</th>';}).join('')+'</tr>';
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="6" class="no-data">No data in range</td></tr>'; return; }
+  var totalCalls=0,totalOver=0,totalWait=0;
+  var body=rows.map(function(r){
+    totalCalls+=r.calls; totalOver+=r.overCalls; totalWait+=r.totalWait;
+    return '<tr>'+
+      '<td><strong>'+r.region+'</strong></td>'+
+      '<td class="center">'+r.calls+'</td>'+
+      '<td class="center">'+r.totalWait.toFixed(1)+'</td>'+
+      '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
+      '<td class="center'+(r.overCalls>0?' delay':'')+'">'+(r.overCalls>0?'<b>'+r.overCalls+'</b>':'0')+'</td>'+
+      '<td class="center">'+Math.round(r.overRate*100)+'%</td>'+
+      '</tr>';
+  }).join('');
+  body+='<tr style="font-weight:700;background:#eef4fa;">'+
+    '<td>Total</td>'+
+    '<td class="center">'+totalCalls+'</td>'+
+    '<td class="center">'+totalWait.toFixed(1)+'</td>'+
+    '<td class="center">'+(totalCalls?(totalWait/totalCalls).toFixed(1):'0.0')+'</td>'+
+    '<td class="center">'+totalOver+'</td>'+
+    '<td class="center">'+(totalCalls?Math.round(totalOver/totalCalls*100)+'%':'0%')+'</td>'+
+    '</tr>';
+  tbody.innerHTML=body;
+}
+
+// ── Unified filtered call list (date+port+search+remark), port-normalized ──
+function getFilteredCalls(){
+  var todayStr=TODAY_DATA.date;
+  var df=selPortDateFrom||'', dt=selPortDateTo||todayStr;
+  var out=[];
+  TODAY_DATA.fullSchedule.forEach(function(sr){
+    var rawPort=sr.port||'';
+    if(!rawPort) return;
+    if(isBunkeringPort(rawPort)) return;
+    var port=normalizePort(rawPort);
+    if(!port) return;
+    var era=sr.etaRaw||'';
+    if(!era) return;
+    if(df && era<df) return;
+    if(dt && era>dt) return;
+    if(selPortFilter && selPortFilter.indexOf(port)<0) return;
+    if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
+    var wait=parseFloat(sr.wait)||0;
+    var remark=sr.remark||'';
+    var cat=classifyRemark(remark)||'other';
+    if(selRemarkCats){
+      var match=false;
+      for(var i=0;i<selRemarkCats.length;i++){
+        if(cat===selRemarkCats[i]){match=true;break;}
+        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
+      }
+      if(!match) return;
+    }
+    var route=sr.route||'(blank)';
+    out.push({port:port, region:BOA_PORT_REGION[port]||'Unknown', route:route, trade:BOA_LANE_TRADE[route]||'Unknown', wait:wait});
+  });
+  return out;
+}
+
+// ── Port Call Count by Lane (Trade→Lane), Excel summary "BOA by Lane" form ──
+function renderPortCallCountByLane(){
+  var calls=getFilteredCalls();
+  var byTrade={};
+  calls.forEach(function(c){
+    if(!byTrade[c.trade]) byTrade[c.trade]={trade:c.trade, lanes:{}, total:0};
+    var t=byTrade[c.trade];
+    if(!t.lanes[c.route]) t.lanes[c.route]=0;
+    t.lanes[c.route]++;
+    t.total++;
+  });
+  var trades=Object.keys(byTrade).sort();
+  var thead=document.getElementById('callCountLaneThead');
+  var tbody=document.getElementById('callCountLaneTbody');
+  thead.innerHTML='<tr><th>Lane Trade</th><th>Lane</th><th>Calls</th></tr>';
+  if(!trades.length){ tbody.innerHTML='<tr><td colspan="3" class="no-data">No data in range</td></tr>'; return; }
+  var html='';
+  trades.forEach(function(tk){
+    var t=byTrade[tk];
+    var lanes=Object.keys(t.lanes).sort();
+    lanes.forEach(function(lk){
+      html+='<tr class="boa-subrow"><td class="boa-grp">'+t.trade+'</td><td>'+lk+'</td><td class="center">'+t.lanes[lk]+'</td></tr>';
+    });
+    html+='<tr class="boa-sumrow"><td class="boa-grp" colspan="2">'+t.trade+' Total</td><td class="center">'+t.total+'</td></tr>';
+  });
+  html+='<tr class="boa-grand"><td class="boa-grp" colspan="2">Total</td><td class="center">'+calls.length+'</td></tr>';
+  tbody.innerHTML=html;
+}
+
+// ── Port Call Count by Region (Region→Port), Excel summary "BOA by Port" form ──
+function renderPortCallCountByRegion(){
+  var calls=getFilteredCalls();
+  var byRegion={};
+  calls.forEach(function(c){
+    if(!byRegion[c.region]) byRegion[c.region]={region:c.region, ports:{}, total:0};
+    var r=byRegion[c.region];
+    if(!r.ports[c.port]) r.ports[c.port]=0;
+    r.ports[c.port]++;
+    r.total++;
+  });
+  var regions=Object.keys(byRegion).sort();
+  var thead=document.getElementById('callCountRegionThead');
+  var tbody=document.getElementById('callCountRegionTbody');
+  thead.innerHTML='<tr><th>Port Region</th><th>Port</th><th>Calls</th></tr>';
+  if(!regions.length){ tbody.innerHTML='<tr><td colspan="3" class="no-data">No data in range</td></tr>'; return; }
+  var html='';
+  regions.forEach(function(rk){
+    var r=byRegion[rk];
+    var ports=Object.keys(r.ports).sort();
+    ports.forEach(function(pk){
+      html+='<tr class="boa-subrow"><td class="boa-grp">'+r.region+'</td><td>'+pk+'</td><td class="center">'+r.ports[pk]+'</td></tr>';
+    });
+    html+='<tr class="boa-sumrow"><td class="boa-grp" colspan="2">'+r.region+' Total</td><td class="center">'+r.total+'</td></tr>';
+  });
+  html+='<tr class="boa-grand"><td class="boa-grp" colspan="2">Total</td><td class="center">'+calls.length+'</td></tr>';
+  tbody.innerHTML=html;
 }
 
 function renderRemarkSummary(){
@@ -2248,6 +2428,16 @@ function exportSpeedExcel(){
   XLSX.writeFile(wb,'CUL Vessel Speed '+todayStr+'.xlsx');
 }
 
+// Render ALL Port Wait tab tables (re-run on any filter/date/range change)
+function renderPortWaitAll(){
+  renderPortWaitTable();
+  renderRemarkSummary();
+  renderMonthlyTrend();
+  renderPortWaitByRegion();
+  renderPortCallCountByLane();
+  renderPortCallCountByRegion();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────
 
 function initPortView(){
@@ -2263,9 +2453,7 @@ function initPortView(){
   selPortDateTo = selPortDateTo || todayStr;
   buildPortFilterDropdown();
   buildRemarkFilterDropdown();
-  renderPortWaitTable();
-  renderRemarkSummary();
-  renderMonthlyTrend();
+  renderPortWaitAll();
 }
 
 function initSpeedView(){
@@ -2346,10 +2534,9 @@ function boaIsBerth(c){ return c.w <= (c.p==='CNSHA' ? 12 : 6); }
 function boaOverInRange(c){
   if(boaIsBerth(c)) return false;
   switch(BOA_RANGE){
-    case 'all':   return true;
-    case '6-24':  return c.w >= 6  && c.w < 24;
-    case '24-48': return c.w >= 24 && c.w < 48;
-    case '48+':   return c.w >= 48;
+    case 'all':   return true;            // All over = WAIT > threshold (≥6h, SHA≥12h)
+    case '24+':   return c.w >= 24;       // 24h+
+    case '48+':   return c.w >= 48;       // 48h+
   }
   return false;
 }
@@ -2519,6 +2706,17 @@ function boaInit(){
         if(inp && inp.name==='boarange') l.classList.toggle('sel', inp.checked);
       });
       boaRefresh();
+    });
+  });
+  // Port Wait over-range selector (3 categories)
+  document.querySelectorAll('input[name=portrange]').forEach(function(rb){
+    rb.addEventListener('change', function(){
+      PORT_OVER_RANGE = this.value;
+      document.querySelectorAll('.range-opt').forEach(function(l){
+        var inp = l.querySelector('input');
+        if(inp && inp.name==='portrange') l.classList.toggle('sel', inp.checked);
+      });
+      renderPortWaitAll();
     });
   });
   boaRefresh();
