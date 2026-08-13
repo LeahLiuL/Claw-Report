@@ -1398,9 +1398,10 @@ function exportSummaryExcel(){
 
 function exportFullScheduleExcel(){
   var data=getFilteredFull(), todayStr=TODAY_DATA.date;
-  // Export always includes vessel identity columns (Code, PIC) even if hidden in the UI view
+  // Export always includes vessel identity columns (Lane/route, Vessel, Code, PIC)
+  // so the per-vessel title row retains them even when hidden in the UI view
   var exportKeys = new Set(visibleCols['2']);
-  exportKeys.add('code'); exportKeys.add('pic');
+  exportKeys.add('route'); exportKeys.add('vessel'); exportKeys.add('code'); exportKeys.add('pic');
   var headers = COLUMN_DEFS_FULL.filter(c=>exportKeys.has(c.key)).map(c=>c.label);
 
   function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
