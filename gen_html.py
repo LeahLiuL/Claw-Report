@@ -267,10 +267,26 @@ def extract(excel_path):
 # ── BOA 准班率数据 (并入 Port Wait 页) ──────────────────────────────────
 # 源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
 BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
+# 缓存: 提取失败(源盘不可达/Excel 被占用)时回退到上次成功结果，避免线上版 BOA 变空
+BOA_CACHE = os.path.join(SCRIPT_DIR, 'boa_cache.json')
+
+def _boa_cache_fallback():
+    """extract_boa 提取失败时读取上次成功的缓存 (boa_cache.json)。"""
+    try:
+        with open(BOA_CACHE, encoding='utf-8') as f:
+            c = json.load(f)
+        calls, label = c.get('calls', []), c.get('label', '')
+        if calls:
+            print(f'  [BOA] fallback to cached {label}: {len(calls)} calls (source unavailable)')
+            return calls, label
+    except Exception:
+        pass
+    return [], ''
 
 def extract_boa(path):
     """从船期统计 Excel 提取 BOA 准班率调用数据 (口径与 boa_gen.py 一致)。
     返回 (calls, label)：calls 为 [{t,r,l,p,w}]，label 如 '2026 07'；失败返回 ([], '')。
+    提取成功会写 boa_cache.json；失败时回退缓存，保证 dashboard 不丢 BOA 数据。
     """
     if not os.path.exists(path):
         # 尝试同目录下最新的「船期统计 2026xx.xlsx」
@@ -279,12 +295,12 @@ def extract_boa(path):
             path = cands[0]
         else:
             print('  [BOA] source not found:', path)
-            return [], ''
+            return _boa_cache_fallback()
     try:
         wb = openpyxl.load_workbook(path, data_only=True)
     except Exception as e:
         print('  [BOA] load failed:', e)
-        return [], ''
+        return _boa_cache_fallback()
 
     port_region, lane_trade = {}, {}
     if 'Port & Lane Mapping' in wb.sheetnames:
@@ -334,6 +350,13 @@ def extract_boa(path):
     if m:
         label = m.group(1).replace(' ', ' ')  # 如 "2026 07"
     print(f'  [BOA] {label}: {len(calls)} calls from {os.path.basename(path)}')
+    # 仅在提取到非空数据时写缓存，避免空结果覆盖上次成功缓存
+    if calls:
+        try:
+            with open(BOA_CACHE, 'w', encoding='utf-8') as f:
+                json.dump({'label': label, 'calls': calls}, f, ensure_ascii=False)
+        except Exception as e:
+            print('  [BOA] cache write failed:', e)
     return calls, label
 
 # ── HTML Template ────────────────────────────────────────────────────────
