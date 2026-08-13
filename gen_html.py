@@ -2510,15 +2510,12 @@ function renderPortWaitAll(){
 // ── Init ──────────────────────────────────────────────────────────────
 
 function initPortView(){
-  // Set default date range: earliest ETA in data → today
-  var minDate='', todayStr=TODAY_DATA.date;
-  TODAY_DATA.fullSchedule.forEach(function(sr){
-    var d=sr.etaRaw||'';
-    if(d && (!minDate || d < minDate)) minDate=d;
-  });
-  document.getElementById('portDateFrom').value = selPortDateFrom || minDate;
+  // Set default date range: Jan 1 of current year → today
+  var todayStr=TODAY_DATA.date;
+  var yearStart = todayStr.slice(0,4) + '-01-01';
+  document.getElementById('portDateFrom').value = selPortDateFrom || yearStart;
   document.getElementById('portDateTo').value = selPortDateTo || todayStr;
-  selPortDateFrom = selPortDateFrom || minDate;
+  selPortDateFrom = selPortDateFrom || yearStart;
   selPortDateTo = selPortDateTo || todayStr;
   buildPortFilterDropdown();
   buildRemarkFilterDropdown();
