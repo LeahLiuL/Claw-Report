@@ -509,7 +509,7 @@ function _loadXlsx(cb){
   th.sort-asc .sort-arrow::after { content: '\25b2'; opacity: 1; }
   th.sort-desc .sort-arrow::after { content: '\25bc'; opacity: 1; }
   th:not(.sort-asc):not(.sort-desc) .sort-arrow::after { content: '\21c5'; }
-  td { padding: 7px 9px; border-bottom: 1px solid #e4ecf5; vertical-align: middle; }
+  td { padding: 7px 9px; border-bottom: 1px solid #e4ecf5; vertical-align: middle; text-align: center; }
 
   /* Summary table row striping */
   #summaryView tr:nth-child(even) td { background: #f5f9fe; }
@@ -741,17 +741,18 @@ function _loadXlsx(cb){
     </table>
   </div>
 
-  <!-- Remark Category Wait Breakdown -->
-  <div class="table-wrap" style="max-width:900px;">
-    <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128202; Wait Time by Remark Category</h4>
-    <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
-  </div>
-
-  <!-- Monthly Trend -->
-  <div class="table-wrap" style="max-width:900px;margin-top:20px;">
-    <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;">&#128200; Monthly Port Wait Trend</h4>
-    <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters.</p>
-    <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
+  <!-- Remark Category Wait Breakdown & Monthly Trend (side by side) -->
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128202; Wait Time by Remark Category</h4>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Category breakdown of port wait within selected filters and time range.</p>
+      <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128200; Monthly Port Wait Trend</h4>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters.</p>
+      <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
   </div>
 
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
@@ -2355,9 +2356,9 @@ function boaAgg(items){
 function boaRateCls(r){ return r>=0.8 ? 'rate-good' : (r>=0.5 ? 'rate-mid' : 'rate-bad'); }
 function boaPct(r){ return (r*100).toFixed(1)+'%'; }
 function boaRowHtml(cells, cls){ return '<tr'+(cls?(' class="'+cls+'"'):'')+'>'+cells.join('')+'</tr>'; }
-function boaTdNum(v){ return '<td class="num" style="text-align:right;">'+v+'</td>'; }
+function boaTdNum(v){ return '<td class="num">'+v+'</td>'; }
 function boaTdDim(v, cls){ return '<td class="'+(cls||'')+'">'+v+'</td>'; }
-function boaTdRate(r){ return '<td class="num '+boaRateCls(r)+'" style="text-align:right;">'+boaPct(r)+'</td>'; }
+function boaTdRate(r){ return '<td class="num '+boaRateCls(r)+'">'+boaPct(r)+'</td>'; }
 
 var boaSortState = {};
 function boaBuildHeader(id){
