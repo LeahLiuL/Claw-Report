@@ -424,11 +424,16 @@ function _loadXlsx(cb){
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* ── Controls (sticky: stays pinned on scroll) ──────────────────────── */
+  /* ── Sticky top bar: header + tabs ─────────────────────────────────────── */
+  .top-pinned {
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  /* ── Controls (sticky: stays pinned below the header+tabs bar) ───────── */
   .controls {
     padding: 14px 28px; background: #fff; border-bottom: 1px solid #dde4ed;
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-    position: sticky; top: 0; z-index: 60;
+    position: sticky; top: var(--top-h, 105px); z-index: 60;
     box-shadow: 0 3px 10px rgba(31,78,121,.12);
   }
   .controls input, .controls select {
@@ -494,8 +499,8 @@ function _loadXlsx(cb){
   .table-wrap {
     overflow-x: auto; padding: 0 28px 28px; position: relative;
     /* inner vertical scroll so the sticky header stays visible:
-       viewport minus pinned controls height minus a small margin */
-    max-height: calc(100vh - var(--ctrl-h, 62px) - 12px);
+       viewport minus pinned top bar height minus controls height minus a small margin */
+    max-height: calc(100vh - var(--top-h, 105px) - var(--ctrl-h, 62px) - 12px);
     overflow-y: auto;
   }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12.5px; min-width: 1200px; }
@@ -608,26 +613,29 @@ function _loadXlsx(cb){
   </div>
 </div>
 
-<!-- ── Header ──────────────────────────────────────────────────────────── -->
-<div class="header">
-  <div class="header-top">
-    <div class="header-left">
-      <h1>&#9875; CUL VESSEL DAILY MOVEMENT</h1>
-      <div class="sub" id="headerDate">Loading&hellip;</div>
-    </div>
-    <div class="header-right">
-      <button class="btn btn-history" onclick="openHistory()">&#128203; History</button>
-      <button class="btn btn-export" id="btnExport" onclick="exportExcel()">&#8595; Export Excel</button>
+<!-- ── Sticky top bar: header + tabs stay pinned on scroll ───────────── -->
+<div class="top-pinned">
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-left">
+        <h1>&#9875; CUL VESSEL DAILY MOVEMENT</h1>
+        <div class="sub" id="headerDate">Loading&hellip;</div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-history" onclick="openHistory()">&#128203; History</button>
+        <button class="btn btn-export" id="btnExport" onclick="exportExcel()">&#8595; Export Excel</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ── Tabs ────────────────────────────────────────────────────────────── -->
-<div class="tabs">
-  <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
-  <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
-  <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
-  <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
+  <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
+    <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
+    <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
+    <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -2540,8 +2548,11 @@ if(sessionStorage.getItem('cul_auth')==='1'){
 /* ═══════════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════════ */
-// Keep sticky table headers below the pinned controls bar
+// Keep sticky table headers below the pinned top bar (header+tabs) + controls
 function updateCtrlH(){
+  var top=document.querySelector('.top-pinned');
+  var topH=top?top.offsetHeight:105;
+  document.documentElement.style.setProperty('--top-h', topH+'px');
   var v=document.querySelector('.tab-content.active .controls');
   var h=v?v.offsetHeight:62;
   document.documentElement.style.setProperty('--ctrl-h', h+'px');
