@@ -1398,10 +1398,10 @@ function exportSummaryExcel(){
 
 function exportFullScheduleExcel(){
   var data=getFilteredFull(), todayStr=TODAY_DATA.date;
-  // Export always includes vessel identity columns (Lane/route, Vessel, Code, PIC)
-  // so the per-vessel title row retains them even when hidden in the UI view
+  // Detail rows respect the UI column visibility: hidden columns are NOT exported.
+  // The per-vessel TITLE row (a merged combined cell) always shows the 4 identity fields
+  // (Lane/route, Vessel, Code, PIC) regardless of UI hiding.
   var exportKeys = new Set(visibleCols['2']);
-  exportKeys.add('route'); exportKeys.add('vessel'); exportKeys.add('code'); exportKeys.add('pic');
   var headers = COLUMN_DEFS_FULL.filter(c=>exportKeys.has(c.key)).map(c=>c.label);
 
   function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
@@ -1442,17 +1442,20 @@ function exportFullScheduleExcel(){
   var blankS={font:{name:'Arial',sz:6},fill:F('FFFFFF'),border:B,alignment:A('left','center')};
 
   var prevVessel='';
+  // Track merges so the top title and every per-vessel title row are merged across all columns
+  var merges=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
   for(var i=0;i<exportData.length;i++){
     var r=exportData[i];
     if(r.vessel!==prevVessel){
-      // Per-vessel title row: route, vessel, vessel code
+      // Per-vessel title row: always show the 4 identity fields (Lane/route, Vessel, Code, PIC)
+      // as one merged cell, independent of UI column hiding (detail rows still respect hiding)
+      var titleText='Lane: '+(r.route||'')+'    Vessel: '+(r.vessel||'')+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
       var titleRow=[];
       for(var c=0;c<numCols;c++) titleRow[c]={v:'',s:vTitleS};
-      if(keyToIdx.route!=null) titleRow[keyToIdx.route]={v:r.route||'',s:vTitleS};
-      if(keyToIdx.vessel!=null) titleRow[keyToIdx.vessel]={v:r.vessel||'',s:vTitleS};
-      if(keyToIdx.code!=null) titleRow[keyToIdx.code]={v:r.code||'',s:vTitleS};
-      if(keyToIdx.pic!=null) titleRow[keyToIdx.pic]={v:r.pic||'',s:vTitleS};
+      titleRow[0]={v:titleText,s:vTitleS};
+      var tRow=sheetData.length;
       sheetData.push(titleRow);
+      merges.push({s:{r:tRow,c:0},e:{r:tRow,c:numCols-1}});
       // Column header row
       sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
       prevVessel=r.vessel;
@@ -1484,7 +1487,7 @@ function exportFullScheduleExcel(){
 
   var totalRows = sheetData.length;
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
+  ws['!merges']=merges;
   ws['!cols'] = headers.map(function(h){return{wch:Math.max(h.length+4, 10)};});
   ws['!rows']=[{hpt:28}];
   for(var j=1;j<totalRows;j++){
