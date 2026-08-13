@@ -634,6 +634,7 @@ function _loadXlsx(cb){
       <div class="header-right">
         <button class="btn btn-history" onclick="openHistory()">&#128203; History</button>
         <button class="btn btn-export" id="btnExport" onclick="exportExcel()">&#8595; Export Excel</button>
+        <button class="btn btn-export" onclick="openExportTablesModal()">&#128196; Export Tables</button>
       </div>
     </div>
   </div>
@@ -884,6 +885,27 @@ function _loadXlsx(cb){
     <div class="modal-body">
       <div class="history-date-list" id="historyDateList"></div>
       <div class="history-table-wrap" id="historyTableWrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Export Tables Modal (multi-select → one workbook) ──────────────── -->
+<div class="modal-overlay" id="exportTablesModal" onclick="if(event.target===this)closeExportTablesModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>&#128196; Export Tables to Excel</h3>
+      <button class="modal-close" onclick="closeExportTablesModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">勾选需要导出的表；未勾选的不导出。所有勾选的表将写入同一个 Excel 文件（每张表一个工作表）。导出内容反映当前筛选 / 列可见性。</p>
+      <div id="exportTableChecks" style="max-height:52vh;overflow:auto;border:1px solid #e3e9f0;border-radius:6px;padding:6px 10px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
+        <button class="btn" onclick="exportSelToggleAll(true)" style="font-size:12px;padding:4px 10px;">&#10003; All</button>
+        <button class="btn" onclick="exportSelToggleAll(false)" style="font-size:12px;padding:4px 10px;">&#10007; Clear</button>
+        <span style="flex:1;"></span>
+        <button class="btn" onclick="closeExportTablesModal()">Cancel</button>
+        <button class="btn btn-export" onclick="exportSelectedTables()">&#8595; Export Selected</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1408,7 +1430,10 @@ function exportExcel(){
   });
 }
 
-function exportSummaryExcel(){
+function exportSummaryExcel(wb){
+  wb = wb || null;
+  var newWb = !wb;
+  if(newWb) wb = XLSX.utils.book_new();
   var data=getFilteredSummary(), todayStr=TODAY_DATA.date;
   var headers = COLUMN_DEFS_SUMMARY.filter(c=>visibleCols['1'].has(c.key) && c.key!=='_idx').map(c=>c.label);
 
@@ -1455,12 +1480,16 @@ function exportSummaryExcel(){
   ws['!rows']=[{hpt:28},{hpt:30}];for(var j=0;j<data.length;j++)ws['!rows'].push({hpt:18});
   ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+(data.length+2)};
 
-  var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Daily Movement Summary');
-  XLSX.writeFile(wb,'CUL Daily Movement Summary '+todayStr+'.xlsx');
+  var wbOut = wb;
+  XLSX.utils.book_append_sheet(wbOut,ws,'Daily Movement Summary');
+  if(newWb) XLSX.writeFile(wbOut,'CUL Daily Movement Summary '+todayStr+'.xlsx');
+  return wbOut;
 }
 
-function exportFullScheduleExcel(){
+function exportFullScheduleExcel(wb){
+  wb = wb || null;
+  var newWb = !wb;
+  if(newWb) wb = XLSX.utils.book_new();
   var data=getFilteredFull(), todayStr=TODAY_DATA.date;
   // Detail rows respect the UI column visibility: hidden columns are NOT exported.
   // The per-vessel TITLE row (a merged combined cell) always shows the 4 identity fields
@@ -1563,10 +1592,139 @@ function exportFullScheduleExcel(){
   }
   // No global autofilter because header rows are repeated per vessel
 
-  var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Full Schedule');
-  XLSX.writeFile(wb,'CUL Daily Movement Full Schedule '+todayStr+'.xlsx');
+  var wbOut = wb;
+  XLSX.utils.book_append_sheet(wbOut,ws,'Full Schedule');
+  if(newWb) XLSX.writeFile(wbOut,'CUL Daily Movement Full Schedule '+todayStr+'.xlsx');
+  return wbOut;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MULTI-SELECT EXPORT  (choose tables → one workbook, one sheet each)
+   ═══════════════════════════════════════════════════════════════════ */
+// Each exportable table: id = DOM <table> id; sheet = Excel sheet name;
+// rich = use the dedicated formatted builder; skipFirst = drop leading
+// expander # column (Port Wait triangle).
+var EXPORT_TABLES = [
+  {group:'Summary', items:[
+    {id:'summaryTable', label:'Daily Movement Summary', sheet:'Daily Movement Summary', rich:'summary'},
+  ]},
+  {group:'Full Schedule', items:[
+    {id:'fullTable', label:'Full Schedule', sheet:'Full Schedule', rich:'full'},
+  ]},
+  {group:'Port Wait', items:[
+    {id:'portWaitTable', label:'Port Wait Time Analysis', sheet:'Port Wait', skipFirst:true},
+    {id:'portWaitRegionTable', label:'Wait by Port Region', sheet:'Wait by Region'},
+    {id:'callCountLaneTable', label:'Port Call Count by Lane', sheet:'Call Count by Lane'},
+    {id:'callCountRegionTable', label:'Port Call Count by Region', sheet:'Call Count by Region'},
+  ]},
+  {group:'BOA', items:[
+    {id:'boaTblTrade', label:'BOA by Trade', sheet:'BOA by Trade'},
+    {id:'boaTblLane', label:'BOA by Trade → Lane', sheet:'BOA by Lane'},
+    {id:'boaTblRegion', label:'BOA by Port Region', sheet:'BOA by Region'},
+    {id:'boaTblPort', label:'BOA by Port', sheet:'BOA by Port'},
+  ]},
+  {group:'Speed', items:[
+    {id:'speedTable', label:'Vessel Speed', sheet:'Vessel Speed'},
+  ]},
+];
+
+function openExportTablesModal(){
+  var box=document.getElementById('exportTableChecks');
+  var html='';
+  EXPORT_TABLES.forEach(function(g){
+    html+='<div style="margin:8px 0 2px;font-weight:700;font-size:11px;color:#1F4E79;">'+g.group+'</div>';
+    g.items.forEach(function(it){
+      html+='<label style="display:flex;align-items:center;gap:8px;padding:3px 4px;font-size:13px;cursor:pointer;">'+
+            '<input type="checkbox" class="exp-chk" data-id="'+it.id+'" checked> '+it.label+
+            '<span style="color:#9aa7b6;font-size:10px;">('+it.sheet+')</span></label>';
+    });
+  });
+  box.innerHTML=html;
+  document.getElementById('exportTablesModal').classList.add('open');
+}
+function closeExportTablesModal(){ document.getElementById('exportTablesModal').classList.remove('open'); }
+function exportSelToggleAll(on){
+  document.querySelectorAll('#exportTablesModal .exp-chk').forEach(function(c){ c.checked=on; });
+}
+
+// Read a rendered table's DOM into a styled sheet (title row + header + body
+// rows). Numbers are parsed to numeric so Excel can sort/filter them.
+function _tabSheetFromDom(tableId, title, sheetName, wb, skipFirst){
+  var tbl=document.getElementById(tableId);
+  if(!tbl) return false;
+  var thead=tbl.querySelector('thead'), tbody=tbl.querySelector('tbody');
+  var headTr=thead?thead.querySelector('tr'):null;
+  if(!headTr) return false;
+  var ths=headTr.querySelectorAll('th');
+  var sf=skipFirst?1:0;
+  var headers=[];
+  for(var c=sf;c<ths.length;c++){
+    var t=(ths[c].textContent||'').replace(/[▲▼↑↓→]/g,'').replace(/\s+/g,' ').trim();
+    headers.push(t);
+  }
+  if(!headers.length) return false;
+  var numCols=headers.length;
+
+  function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
+  var B=thinBorder();
+  function F(rgb){return{patternType:'solid',fgColor:{rgb:rgb}};}
+  function A(h,v,wrap){var o={horizontal:h,vertical:v};if(wrap)o.wrapText=true;return o;}
+  var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
+  var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
+
+  var sheetData=[];
+  var tr=[]; for(var c=0;c<numCols;c++) tr[c]={v:(c===0?title:''),s:tS};
+  sheetData.push(tr);
+  sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
+
+  var rows=tbody?tbody.querySelectorAll('tr'):[];
+  for(var i=0;i<rows.length;i++){
+    var tds=rows[i].querySelectorAll('td');
+    if(tds.length<=sf) continue;
+    var fc=(i%2===0)?'EBF3FB':'FFFFFF';
+    var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
+    var cS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')};
+    var row=[];
+    for(var c=sf;c<tds.length;c++){
+      var raw=(tds[c].textContent||'').trim();
+      var clean=raw.replace(/,/g,'');
+      var isNum=clean!=='' && /^-?\d+(\.\d+)?$/.test(clean);
+      row.push({v:isNum?Number(clean):raw, s:isNum?cS:nS});
+    }
+    sheetData.push(row);
+  }
+
+  var totalRows=sheetData.length;
+  var ws=XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
+  ws['!cols']=headers.map(function(h){return{wch:Math.max(h.length+4,10)};});
+  ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
+  if(totalRows>2) ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  return true;
+}
+
+function exportSelectedTables(){
+  _loadXlsx(function(){
+    var sel={};
+    document.querySelectorAll('#exportTablesModal .exp-chk').forEach(function(c){ if(c.checked) sel[c.getAttribute('data-id')]=true; });
+    var flat=[];
+    EXPORT_TABLES.forEach(function(g){ g.items.forEach(function(it){ flat.push(it); }); });
+    var wb=XLSX.utils.book_new();
+    var todayStr=TODAY_DATA.date;
+    var count=0;
+    flat.forEach(function(it){
+      if(!sel[it.id]) return;            // unselected → skip
+      if(it.rich==='summary'){ exportSummaryExcel(wb); count++; }
+      else if(it.rich==='full'){ exportFullScheduleExcel(wb); count++; }
+      else { if(_tabSheetFromDom(it.id, 'CUL DAILY MOVEMENT — '+it.label+'  —  As of '+todayStr, it.sheet, wb, it.skipFirst)) count++; }
+    });
+    if(count===0){ alert('请至少勾选一张表再导出。'); return; }
+    XLSX.writeFile(wb,'CUL Daily Movement '+todayStr+'.xlsx');
+    closeExportTablesModal();
+  });
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════
    PORT & SPEED ANALYTICS
