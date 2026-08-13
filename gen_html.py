@@ -270,8 +270,25 @@ def extract(excel_path):
 # 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
 BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
 
-# 源数据中映射表未覆盖的航线 → Trade (2026-08-13 用户确认)
-BOA_LANE_TRADE_EXTRA = {
+# ── BOA 映射：完整兜底映射表 ─────────────────────────────────────────────
+# 说明：以下 lane→trade 与 port→region 为「Port & Lane Mapping」表全量快照
+#       (船期统计 202607, 读取时间 2026-08-13) + 代码补充映射。
+#       运行时优先读 P 盘映射表覆盖；P 盘不可达时用本兜底，保证 0 Unknown。
+# 更新方式：映射表有增删时，手动同步本字典（或运行 gen_html.py 打印 diff）。
+
+# Lane → Trade（42 条来自映射表 + 8 条补充 = 50 条）
+BOA_LANE_TRADE_FALLBACK = {
+    # ── 来自映射表 Port & Lane Mapping (42) ──
+    'AEM': 'MD', 'AEX': 'EU', 'AG2': 'ME', 'AGX': 'ME', 'CCT': 'TH',
+    'CES': 'EU', 'CGX': 'ME', 'CHT': 'TH', 'CIS': 'IN', 'CP1': 'PH',
+    'CPX': 'MN', 'CST': 'TH', 'CV3': 'VN', 'CVT': 'TH', 'CVX': 'VN',
+    'CVX2': 'VN', 'CVX3': 'VN', 'HDT': 'TW', 'IMR': 'ME', 'ISS': 'IN',
+    'JPS': 'ME', 'NP2': 'PH', 'NSCT1': 'TW', 'NSX': 'TH', 'RBC1': 'TH',
+    'REX': 'ME', 'SCT': 'TH', 'SCT2': 'TH', 'SGX': 'ME', 'SHX': 'VN',
+    'SJA': 'ME', 'SL1': 'TH', 'ST3': 'TW', 'STD': 'TW', 'STX': 'TH',
+    'SV2': 'VN', 'SVG': 'VN', 'TP1': 'US', 'TPC': 'TP', 'TPN': 'TP',
+    'TPX': 'TP', 'VGX': 'ME',
+    # ── 补充映射（映射表未覆盖，2026-08-13 用户确认/数据推断）──
     'RTS':  'ME',  # 红海-中东 (SAJED/EGSOK/OMSOH)，船期统计中 RTS→ME
     'NAX':  'MD',  # 用户确认 NAX=NAF→MD；地中海-北非线 (TRALI/TRIST)，与 AEM(MD) 港口重叠
     'RES':  'ME',  # 船期统计中 RES→ME (JOAQJ/EGSOK/SAJED)
@@ -282,22 +299,49 @@ BOA_LANE_TRADE_EXTRA = {
     'ZGCD': 'MD',  # ZGCD 是船名 (ZHONG GU CHENG DU)，实际属 AEM 航线 → MD
 }
 
-# 源数据中映射表未覆盖的港口 → Region
-BOA_PORT_REGION_EXTRA = {
+# Port → Region（75 条来自映射表 + 19 条补充 = 94 条）
+BOA_PORT_REGION_FALLBACK = {
+    # ── 来自映射表 Port & Lane Mapping (75) ──
+    'AEJEA': 'Intra Asia', 'BEANR': 'Europe', 'CNGCT': 'China Mainland',
+    'CNHMN': 'China Mainland', 'CNHUA': 'China Mainland', 'CNHUI': 'China Mainland',
+    'CNNAS': 'China Mainland', 'CNNGB': 'China Mainland', 'CNSHA': 'China Mainland',
+    'CNSHH': 'China Mainland', 'CNSHK': 'China Mainland', 'CNSWA': 'China Mainland',
+    'CNTAO': 'China Mainland', 'CNTNJ': 'China Mainland', 'CNWIT': 'China Mainland',
+    'CNXGG': 'China Mainland', 'CNXMN': 'China Mainland', 'CNXNA': 'China Mainland',
+    'CNXNG': 'China Mainland', 'CNYPN': 'China Mainland', 'CNYTN': 'China Mainland',
+    'DEHAM': 'Europe', 'DJJIB': 'AF', 'EGALY': 'Intra Asia', 'EGSOK': 'Intra Asia',
+    'EGSUE': 'Intra Asia', 'GBSOU': 'Europe', 'GBTIL': 'Europe', 'GRPIR': 'Europe',
+    'HKHKG': 'China HK & TW', 'IDJKT': 'Intra Asia', 'ILASD': 'Europe',
+    'ILHFA': 'Europe', 'INMUN': 'Intra Asia', 'INNSA': 'Intra Asia',
+    'KHKOS': 'Intra Asia', 'KRPUS': 'Intra Asia', 'MYPKG': 'Intra Asia',
+    'MYPKN': 'Intra Asia', 'MYPKW': 'Intra Asia', 'NLAMS': 'Europe',
+    'NLRTM': 'Europe', 'OMSOH': 'Intra Asia', 'PHMNL': 'Intra Asia',
+    'PHMNN': 'Intra Asia', 'PHSPS': 'Intra Asia', 'PKKHI': 'Intra Asia',
+    'QAHMD': 'Intra Asia', 'SADMM': 'Intra Asia', 'SAJED': 'Intra Asia',
+    'SDPZU': 'AF', 'SGSIN': 'Intra Asia', 'THBKK': 'Intra Asia',
+    'THBKS': 'Intra Asia', 'THLCH': 'Intra Asia', 'THSCS': 'Intra Asia',
+    'TRALI': 'Europe', 'TRGEB': 'Intra Asia', 'TRIST': 'Europe',
+    'TRIZT': 'Europe', 'TRMER': 'Europe', 'TWKEL': 'China HK & TW',
+    'TWKHH': 'China HK & TW', 'TWTPE': 'China HK & TW', 'TWTXG': 'China HK & TW',
+    'USLAX': 'US', 'USLGB': 'US', 'USOAK': 'US', 'VNDAD': 'Intra Asia',
+    'VNDAN': 'Intra Asia', 'VNHCM': 'Intra Asia', 'VNHPH': 'Intra Asia',
+    'VNSGN': 'Intra Asia', 'VNVUT': 'Intra Asia', 'YEADE': 'Intra Asia',
+    # ── 补充映射（映射表未覆盖，2026-08-13）──
     'DZALG': 'AF', 'AEKLF': 'Intra Asia', 'LYMRA': 'AF', 'LYBEN': 'AF',
     'EGSUZ': 'Intra Asia', 'SAGIZ': 'Intra Asia', 'MALTA': 'Europe', 'JOAQJ': 'Intra Asia',
     'EGSGA': 'Intra Asia', 'INKDL': 'Intra Asia', 'CNDCB': 'China Mainland', 'EGSAF': 'Intra Asia',
     'AOAQJ': 'AF', 'EGDAM': 'Intra Asia', 'TNRDS': 'AF', 'GRSKG': 'Europe',
-    'THPAT': 'Intra Asia', 'THSSW': 'Intra Asia',  # 泰国港口，与映射表 THBKK/THSCS/THLCH/THBKS 一致 (2026-08-13)
-    'TUZLA': 'Europe',  # 土耳其伊斯坦布尔附近，与映射表 TRIST/TRIZT 一致 (2026-08-13)
+    'THPAT': 'Intra Asia', 'THSSW': 'Intra Asia',  # 泰国港口，与映射表 THBKK/THSCS/THLCH/THBKS 一致
+    'TUZLA': 'Europe',  # 土耳其伊斯坦布尔附近，与映射表 TRIST/TRIZT 一致
 }
 
 def load_boa_mappings():
-    """读取映射表 Port & Lane Mapping + 叠加补充映射。
-    返回 (lane_trade, port_region) dict。映射表缺失(P 盘不可达)时仅用补充映射，不报错。
+    """读取映射表 Port & Lane Mapping 覆盖兜底映射；映射表缺失(P 盘不可达)时用兜底，不报错。
+    返回 (lane_trade, port_region) dict。任何环境下都保证完整映射 → BOA 0 Unknown。
     """
-    lane_trade  = dict(BOA_LANE_TRADE_EXTRA)
-    port_region = dict(BOA_PORT_REGION_EXTRA)
+    lane_trade  = dict(BOA_LANE_TRADE_FALLBACK)
+    port_region = dict(BOA_PORT_REGION_FALLBACK)
+    n_map_lane = n_map_port = 0
     try:
         wb = openpyxl.load_workbook(BOA_SRC, data_only=True, read_only=True)
         if 'Port & Lane Mapping' in wb.sheetnames:
@@ -307,11 +351,16 @@ def load_boa_mappings():
                 if port and region:
                     p_norm = re.sub(r'\s*\(.*?\)', '', str(port).strip()).strip()
                     port_region[p_norm] = str(region).strip()
+                    n_map_port += 1
                 if lane and trade:
                     lane_trade[str(lane).strip()] = str(trade).strip()
-        print(f'  [BOA] mappings loaded: {len(lane_trade)} lanes, {len(port_region)} ports')
+                    n_map_lane += 1
+            print(f'  [BOA] mapping source OK: {n_map_lane} lanes, {n_map_port} ports from sheet')
+        else:
+            print('  [BOA] sheet "Port & Lane Mapping" not found, using fallback')
     except Exception as e:
-        print('  [BOA] mapping source unavailable, using extra mappings only:', e)
+        print('  [BOA] mapping source unavailable, using FALLBACK mapping:', e)
+    print(f'  [BOA] final mappings: {len(lane_trade)} lanes, {len(port_region)} ports')
     return lane_trade, port_region
 
 # ── HTML Template ────────────────────────────────────────────────────────
@@ -726,11 +775,11 @@ function _loadXlsx(cb){
     </div>
 
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Lane Trade</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9312; BOA by Trade</h4>
       <table id="boaTblTrade"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
-      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Lane (with Trade subtotals)</h4>
+      <h4 style="margin:6px 0 8px;color:#1F4E79;font-size:13px;">&#9313; BOA by Trade &rarr; Lane (Lane mapped to its Trade)</h4>
       <table id="boaTblLane"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
     <div class="table-wrap" style="max-width:100%;margin-top:10px;">
@@ -2279,8 +2328,8 @@ function buildBoaCalls(){
   return calls;
 }
 var BOA_HEADERS = {
-  boaTblTrade:  ['Lane Trade', 'Berth', 'Over', 'Total', 'Rate'],
-  boaTblLane:   ['Lane Trade', 'Lane', 'Berth', 'Over', 'Total', 'Rate'],
+  boaTblTrade:  ['Trade', 'Berth', 'Over', 'Total', 'Rate'],
+  boaTblLane:   ['Trade', 'Lane', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
 };
