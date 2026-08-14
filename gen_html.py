@@ -968,6 +968,12 @@ function _loadXlsx(cb){
     <span style="margin:0 4px;font-size:13px;">to</span>
     <input type="date" id="maintTo" title="ETD to" onchange="onMaintChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
     <span class="stat-chip" id="statMaint" style="margin-left:12px;">&#8212; calls</span>
+    <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128205; Service:</span>
+    <button class="filter-btn" id="maintServiceFilterBtn" onclick="toggleMaintServiceFilter()">All Services</button>
+    <div class="filter-dropdown col-dropdown" id="maintServiceFilterDropdown"></div>
+    <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128674; Vessel:</span>
+    <button class="filter-btn" id="maintVesselFilterBtn" onclick="toggleMaintVesselFilter()">All Vessels</button>
+    <div class="filter-dropdown col-dropdown" id="maintVesselFilterDropdown"></div>
   </div>
 
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 维护率定义: Port Log = I 列 Y / 总数; Vessel Schedule (Actual Schedule) = J 列 &quot;Maintain timely&quot; / 总数.</p>
@@ -3232,11 +3238,10 @@ function doLogin(){
     document.getElementById('loginPwd').value='';
   }
 }
-// Check if already authenticated this session
-if(sessionStorage.getItem('cul_auth')==='1'){
-  document.getElementById('loginOverlay').classList.add('hidden');
-  init();
-}
+// Check if already authenticated this session — invoked at the END of the
+// script (see bottom) so all top-level data (MAINT_RECORDS, TODAY_DATA, …)
+// is assigned before init() runs. Running init() too early (parse time)
+// left MAINT_RECORDS undefined on reload and broke the Maintenance view.
 
 /* ═══════════════════════════════════════════════════════════════════
    Maintenance Rate (Vessel Schedule / Port Log 维护率)
@@ -3245,9 +3250,132 @@ if(sessionStorage.getItem('cul_auth')==='1'){
    Port Log 维护率 = plog=='Y' / total
    Vessel Schedule (Actual Schedule) 维护率 = vsched==1 ("Maintain timely") / total
    ═══════════════════════════════════════════════════════════════════ */
-var MAINT_RECORDS = (MAINT_DATA && MAINT_DATA.records) || [];
+var MAINT_RECORDS = ((typeof MAINT_DATA !== 'undefined') && MAINT_DATA && MAINT_DATA.records) || [];
 var maintOpFilter = 'CUL';      // 默认 CUL（用户要求）
 var selMaintFrom = '', selMaintTo = '';
+
+// ── Maintenance Vessel / Service multi-select filters (mirror Port Wait port filter) ──
+var MAINT_FILTER_DEFS = {
+  service: { btn:'maintServiceFilterBtn', dd:'maintServiceFilterDropdown', search:'maintServiceFilterSearchBox', lsKey:'cul_movement_maint_service', nullText:'All Services', field:'service' },
+  vessel:  { btn:'maintVesselFilterBtn',  dd:'maintVesselFilterDropdown',  search:'maintVesselFilterSearchBox',  lsKey:'cul_movement_maint_vessel',  nullText:'All Vessels',  field:'vessel' }
+};
+var selMaintServiceFilter = null;  // null = all services
+var selMaintVesselFilter  = null;  // null = all vessels
+
+function getMaintFilterVal(which){ return which==='service' ? selMaintServiceFilter : selMaintVesselFilter; }
+function setMaintFilterVal(which, v){ if(which==='service') selMaintServiceFilter = v; else selMaintVesselFilter = v; }
+
+function buildMaintFilterDropdown(which){
+  var def = MAINT_FILTER_DEFS[which];
+  var dd = document.getElementById(def.dd);
+  var values = {};
+  MAINT_RECORDS.forEach(function(r){ var v=(r[def.field]||'').trim(); if(v) values[v]=true; });
+  var sorted = Object.keys(values).sort();
+  var sel = getMaintFilterVal(which);
+  var kw = (document.getElementById(def.search) ? document.getElementById(def.search).value : '').toLowerCase();
+  var html = '<div style="padding:2px 8px 6px;border-bottom:1px solid #e4ecf5;margin-bottom:4px;">';
+  html += '<input type="text" id="'+def.search+'" placeholder="&#128269; Search..." value="'+kw+'" oninput="onMaintFilterSearchBox(\''+which+'\')" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
+  html += '</div>';
+  html += '<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+  html += '<input type="checkbox" value="__all__" '+(sel===null?'checked':'')+' onchange="onMaintFilterAllChange(\''+which+'\',this)">';
+  html += '<b>'+def.nullText+'</b></label>';
+  sorted.forEach(function(v){
+    var checked = sel===null || sel.indexOf(v)>=0;
+    var match = !kw || v.toLowerCase().indexOf(kw)>=0;
+    html += '<label data-v="'+v+'" style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;'+(match?'':'display:none;')+'">';
+    html += '<input type="checkbox" value="'+v+'" '+(checked?'checked':'')+' onchange="onMaintFilterItemChange(\''+which+'\',this)">';
+    html += v+'</label>';
+  });
+  dd.innerHTML = html;
+  updateMaintFilterButton(which);
+}
+
+function onMaintFilterSearchBox(which){
+  var def = MAINT_FILTER_DEFS[which];
+  var kw = (document.getElementById(def.search).value||'').toLowerCase();
+  document.querySelectorAll('#'+def.dd+' label[data-v]').forEach(function(lb){
+    var v = lb.getAttribute('data-v');
+    lb.style.display = (!kw || v.toLowerCase().indexOf(kw)>=0) ? 'flex' : 'none';
+  });
+}
+
+function toggleMaintFilter(which){
+  var def = MAINT_FILTER_DEFS[which];
+  var dd = document.getElementById(def.dd);
+  if(!dd.classList.contains('open')){ buildMaintFilterDropdown(which); dd.classList.add('open'); }
+  else dd.classList.remove('open');
+  document.querySelectorAll('.filter-dropdown').forEach(function(d){ if(d!==dd) d.classList.remove('open'); });
+}
+function toggleMaintServiceFilter(){ toggleMaintFilter('service'); }
+function toggleMaintVesselFilter(){ toggleMaintFilter('vessel'); }
+
+function updateMaintFilterButton(which){
+  var def = MAINT_FILTER_DEFS[which];
+  var checks = document.querySelectorAll('#'+def.dd+' input[type=checkbox]:not([value="__all__"])');
+  var total=0, sel=[];
+  checks.forEach(function(cb){ total++; if(cb.checked) sel.push(cb.value); });
+  var btn = document.getElementById(def.btn);
+  if(sel.length===total){ btn.textContent = def.nullText; btn.classList.remove('has-selection'); }
+  else { btn.textContent = sel.length + ' selected'; btn.classList.add('has-selection'); }
+}
+
+function applyMaintFilterFromDOM(which){
+  var def = MAINT_FILTER_DEFS[which];
+  var allCb = document.querySelector('#'+def.dd+' input[value="__all__"]');
+  var checks = document.querySelectorAll('#'+def.dd+' input[type=checkbox]:not([value="__all__"])');
+  var total=0, sel=[];
+  checks.forEach(function(cb){ total++; if(cb.checked) sel.push(cb.value); });
+  if(sel.length===total){ setMaintFilterVal(which, null); if(allCb) allCb.checked=true; }
+  else { setMaintFilterVal(which, sel); if(allCb) allCb.checked=false; }
+  updateMaintFilterButton(which);
+  saveMaintFilter(which);
+  renderMaint();
+}
+
+function onMaintFilterAllChange(which, allCb){
+  var def = MAINT_FILTER_DEFS[which];
+  var checks = document.querySelectorAll('#'+def.dd+' input[type=checkbox]:not([value="__all__"])');
+  checks.forEach(function(cb){ cb.checked = allCb.checked; });
+  if(allCb.checked){ setMaintFilterVal(which, null); }
+  else { setMaintFilterVal(which, []); }
+  updateMaintFilterButton(which);
+  saveMaintFilter(which);
+  renderMaint();
+}
+
+function onMaintFilterItemChange(which, cb){
+  applyMaintFilterFromDOM(which);
+}
+
+function saveMaintFilter(which){
+  var def = MAINT_FILTER_DEFS[which];
+  try { localStorage.setItem(def.lsKey, JSON.stringify(getMaintFilterVal(which))); } catch(e){}
+}
+function loadMaintFilter(which){
+  var def = MAINT_FILTER_DEFS[which];
+  if(!MAINT_RECORDS) return;
+  try {
+    var raw = localStorage.getItem(def.lsKey);
+    if(raw === null) return;
+    var v = JSON.parse(raw);
+    var avail = {};
+    MAINT_RECORDS.forEach(function(r){ var x=(r[def.field]||'').trim(); if(x) avail[x]=true; });
+    if(v === null){ setMaintFilterVal(which, null); }
+    else if(Array.isArray(v)){
+      var cleaned = v.filter(function(x){ return avail[x]; });
+      setMaintFilterVal(which, cleaned.length ? cleaned : []);
+    } else { setMaintFilterVal(which, null); }
+  } catch(e){ setMaintFilterVal(which, null); }
+}
+function refreshMaintFilterButtons(){
+  ['service','vessel'].forEach(function(which){
+    var def = MAINT_FILTER_DEFS[which];
+    var sel = getMaintFilterVal(which);
+    var btn = document.getElementById(def.btn);
+    if(sel === null){ btn.textContent = def.nullText; btn.classList.remove('has-selection'); }
+    else { btn.textContent = sel.length + ' selected'; btn.classList.add('has-selection'); }
+  });
+}
 
 function maintFiltered(){
   var f = selMaintFrom || '', t = selMaintTo || '';
@@ -3256,6 +3384,8 @@ function maintFiltered(){
     var e = r.etd || '';
     if(f && e && e < f) return false;
     if(t && e && e > t) return false;
+    if(selMaintServiceFilter && selMaintServiceFilter.indexOf((r.service||'').trim()) < 0) return false;
+    if(selMaintVesselFilter && selMaintVesselFilter.indexOf((r.vessel||'').trim()) < 0) return false;
     return true;
   });
 }
@@ -3434,7 +3564,7 @@ function onMaintChange(){
 }
 
 function initMaintView(){
-  if(!MAINT_RECORDS.length){
+  if(!MAINT_RECORDS || !MAINT_RECORDS.length){
     document.getElementById('statMaint').textContent = 'Maintenance data unavailable (' +
       (MAINT_DATA ? MAINT_DATA.source : 'no source') + ').';
     return;
@@ -3455,6 +3585,9 @@ function initMaintView(){
   selMaintTo = selMaintTo || hi;
   maintOpFilter = 'CUL';
   sel.value = 'CUL';
+  loadMaintFilter('service');
+  loadMaintFilter('vessel');
+  refreshMaintFilterButtons();
   renderMaint();
 }
 
@@ -3485,6 +3618,16 @@ function init(){
   updateCtrlH();
 }
 // init() only called after login success (see LOGIN section above)
+
+// ── Bootstrap: if already authenticated this session, render immediately ──
+// Placed at the very end so every top-level data assignment (MAINT_RECORDS,
+// TODAY_DATA, COLUMN_DEFS_*, …) has executed before init() runs. Running it
+// earlier (at parse time) left MAINT_RECORDS undefined on reload.
+if(sessionStorage.getItem('cul_auth') === '1'){
+  var _lo = document.getElementById('loginOverlay');
+  if(_lo) _lo.classList.add('hidden');
+  init();
+}
 </script>
 </body>
 </html>"""
