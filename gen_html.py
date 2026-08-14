@@ -969,11 +969,15 @@ function _loadXlsx(cb){
     <input type="date" id="maintTo" title="ETD to" onchange="onMaintChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
     <span class="stat-chip" id="statMaint" style="margin-left:12px;">&#8212; calls</span>
     <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128205; Service:</span>
-    <button class="filter-btn" id="maintServiceFilterBtn" onclick="toggleMaintServiceFilter()">All Services</button>
-    <div class="filter-dropdown col-dropdown" id="maintServiceFilterDropdown"></div>
+    <div style="position:relative;display:inline-block;">
+      <button class="filter-btn" id="maintServiceFilterBtn" onclick="toggleMaintServiceFilter()">All Services</button>
+      <div class="filter-dropdown col-dropdown" id="maintServiceFilterDropdown"></div>
+    </div>
     <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128674; Vessel:</span>
-    <button class="filter-btn" id="maintVesselFilterBtn" onclick="toggleMaintVesselFilter()">All Vessels</button>
-    <div class="filter-dropdown col-dropdown" id="maintVesselFilterDropdown"></div>
+    <div style="position:relative;display:inline-block;">
+      <button class="filter-btn" id="maintVesselFilterBtn" onclick="toggleMaintVesselFilter()">All Vessels</button>
+      <div class="filter-dropdown col-dropdown" id="maintVesselFilterDropdown"></div>
+    </div>
   </div>
 
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 维护率定义: Port Log = I 列 Y / 总数; Vessel Schedule (Actual Schedule) = J 列 &quot;Maintain timely&quot; / 总数.</p>
