@@ -102,7 +102,7 @@ def extract(excel_path):
     while i <= rows_total:
         c16 = ws_src.cell(i, 16).value
         if c16 and isinstance(c16, str) and 'PIC' in c16:
-            route       = get_str(ws_src.cell(i, 1).value)
+            route       = VESSEL_ROUTE_OVERRIDE.get(get_str(ws_src.cell(i, 1).value), get_str(ws_src.cell(i, 1).value))
             vessel_full = get_str(ws_src.cell(i, 4).value)
             vessel_code = get_str(ws_src.cell(i, 9).value)
             pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
@@ -300,7 +300,11 @@ BOA_LANE_TRADE_FALLBACK = {
     'GTS':  'ME',  # KR TASMAN: SAJED/YEADE/EGSOK/OMSOH 中东红海；同区域映射航线 SGX/CGX→ME
     'CGS':  'ME',  # 靠 AEKLF 为主；映射表中靠 AEKLF 的 SGX/CGX 都归 ME
     'CST/SL1': 'TH',  # 组合航线 CST/SL1 → TH (映射表中 CST→TH、SL1→TH)
-    'ZGCD': 'MD',  # ZGCD 是船名 (ZHONG GU CHENG DU)，实际属 AEM 航线 → MD
+}
+
+# 某些船期的 route 列会错误地放 vessel code（如 ZGCD），需纠正为实际航线
+VESSEL_ROUTE_OVERRIDE = {
+    'ZGCD': 'AEM',  # ZHONG GU CHENG DU 实际属 AEM 航线
 }
 
 # Port → Region（75 条来自映射表 + 19 条补充 = 94 条）
