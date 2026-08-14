@@ -271,6 +271,11 @@ def extract(excel_path):
 # 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
 BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
 
+# 维护率数据源：Vessel Schedule / Port Log 维护情况台账
+# 列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
+#      I=Port Log Y/N (Y/N)  J=Vessel Schedule Maintain Status (Maintain timely / Not maintained)
+MAINT_SRC = r"C:\CULINES\Claw Report\Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx"
+
 # ── BOA 映射：完整兜底映射表 ─────────────────────────────────────────────
 # 说明：以下 lane→trade 与 port→region 为「Port & Lane Mapping」表全量快照
 #       (船期统计 202607, 读取时间 2026-08-13) + 代码补充映射。
@@ -367,6 +372,54 @@ def load_boa_mappings():
         print('  [BOA] mapping source unavailable, using FALLBACK mapping:', e)
     print(f'  [BOA] final mappings: {len(lane_trade)} lanes, {len(port_region)} ports')
     return lane_trade, port_region
+
+# ── Maintenance (Vessel Schedule / Port Log 维护率) 数据源 ────────────────
+def load_maint_data():
+    """读取维护率台账，返回 {date, generatedAt, source, records:[...]}。
+    任何环境（含源文件不可达）都返回合法结构：records 为空时前端展示提示，
+    生成脚本不会因此崩溃。"""
+    src = MAINT_SRC
+    out = {'date': '', 'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
+           'source': src, 'records': []}
+    try:
+        wb = openpyxl.load_workbook(src, data_only=True)
+        ws = wb.active
+        recs = []
+        etds = []
+        for ri in range(2, ws.max_row + 1):
+            svc = ws.cell(ri, 2).value
+            port = ws.cell(ri, 7).value
+            if (svc is None or str(svc).strip() == '') and (port is None or str(port).strip() == ''):
+                continue  # 跳过空行
+            op = ws.cell(ri, 6).value
+            etd_raw = ws.cell(ri, 8).value
+            plog = ws.cell(ri, 9).value
+            vsched_raw = ws.cell(ri, 10).value
+            if etd_raw is not None:
+                etd = etd_raw.strftime('%Y-%m-%d') if hasattr(etd_raw, 'strftime') else str(etd_raw)[:10]
+            else:
+                etd = ''
+            if etd:
+                etds.append(etd)
+            recs.append({
+                'service': '' if svc is None else str(svc).strip(),
+                'vessel':  '' if ws.cell(ri, 3).value is None else str(ws.cell(ri, 3).value).strip(),
+                'voyage':  '' if ws.cell(ri, 4).value is None else str(ws.cell(ri, 4).value).strip(),
+                'dir':     '' if ws.cell(ri, 5).value is None else str(ws.cell(ri, 5).value).strip(),
+                'operator':'' if op is None else str(op).strip(),
+                'port':    '' if port is None else str(port).strip(),
+                'etd':     etd,
+                'plog':    '' if plog is None else str(plog).strip().upper(),
+                'vsched':  1 if (vsched_raw is not None and 'timely' in str(vsched_raw).lower()) else 0,
+            })
+        out['records'] = recs
+        out['date'] = (min(etds) + ' ~ ' + max(etds)) if etds else ''
+        out['source'] = src + f"  ·  {len(recs)} rows  ·  ETD {out['date']}"
+        print(f'  [MAINT] source OK: {len(recs)} rows from {os.path.basename(src)}')
+    except Exception as e:
+        out['source'] = src + '  ·  UNAVAILABLE: ' + str(e)
+        print('  [MAINT] source unavailable:', e)
+    return out
 
 # ── HTML Template ────────────────────────────────────────────────────────
 # JS: COLUMN_DEFS_SUMMARY and COLUMN_DEFS_FULL are injected from Python.
@@ -654,6 +707,7 @@ function _loadXlsx(cb){
     <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
     <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
     <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
+    <button class="tab-btn" data-tab="maintView" onclick="switchTab('maintView',this)">&#128203; Maintenance</button>
     <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
   </div>
 </div>
@@ -900,6 +954,57 @@ function _loadXlsx(cb){
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW 3b: Maintenance Rate (Vessel Schedule / Port Log 维护率)
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="maintView" class="tab-content">
+  <div class="controls" style="flex-wrap:wrap;">
+    <span style="font-weight:600;font-size:14px;margin-right:4px;">&#128100; Operator:</span>
+    <select id="maintOpFilter" onchange="onMaintChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;">
+      <option value="ALL">All Operators</option>
+    </select>
+    <span style="font-weight:600;font-size:14px;margin:0 8px;">&#128197; ETD:</span>
+    <input type="date" id="maintFrom" title="ETD from" onchange="onMaintChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
+    <span style="margin:0 4px;font-size:13px;">to</span>
+    <input type="date" id="maintTo" title="ETD to" onchange="onMaintChange()" style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:130px;">
+    <span class="stat-chip" id="statMaint" style="margin-left:12px;">&#8212; calls</span>
+  </div>
+
+  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 维护率定义: Port Log = I 列 Y / 总数; Vessel Schedule (Actual Schedule) = J 列 &quot;Maintain timely&quot; / 总数.</p>
+
+  <!-- Overall chips -->
+  <div class="boa-chips" id="maintChips">
+    <div class="boa-chip"><div class="num" id="maintChipTotal">&#8212;</div><div class="lbl2">Total calls</div></div>
+    <div class="boa-chip"><div class="num" id="maintChipPortLog">&#8212;</div><div class="lbl2">Port Log maintained</div></div>
+    <div class="boa-chip"><div class="num" id="maintChipVSched">&#8212;</div><div class="lbl2">Vessel Sched maintained</div></div>
+  </div>
+
+  <!-- By Service -->
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128203; Maintenance by Service (&#33322;&#32447;)</h3>
+  <div class="table-wrap">
+    <table id="maintServiceTable" style="min-width:auto;"><thead><tr id="maintServiceThead"></tr></thead><tbody id="maintServiceTbody"></tbody></table>
+  </div>
+
+  <!-- By Port -->
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128205; Maintenance by Port</h3>
+  <div class="table-wrap">
+    <table id="maintPortTable" style="min-width:auto;"><thead><tr id="maintPortThead"></tr></thead><tbody id="maintPortTbody"></tbody></table>
+  </div>
+
+  <!-- Monthly Trend -->
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128200; Monthly Maintenance Trend</h4>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Port Log rate (blue) &amp; Vessel Schedule rate (orange) by ETD month, within current Operator/ETD filters.</p>
+      <div id="maintMonthBars" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <div class="table-wrap" style="flex:1;min-width:380px;">
+      <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128202; Monthly Rates</h4>
+      <table id="maintMonthTable" style="min-width:auto;"><thead><tr id="maintMonthThead"></tr></thead><tbody id="maintMonthTbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
 <!-- ── Export Tables Modal (multi-select → one workbook) ──────────────── -->
 <div class="modal-overlay" id="exportTablesModal" onclick="if(event.target===this)closeExportTablesModal()">
   <div class="modal" style="max-width:480px;">
@@ -948,6 +1053,7 @@ const SNAPSHOTS = {};
 const TODAY_DATA = __TODAY_DATA__;
 const COLUMN_DEFS_SUMMARY = __COLUMN_DEFS_SUMMARY__;
 const COLUMN_DEFS_FULL    = __COLUMN_DEFS_FULL__;
+const MAINT_DATA          = __MAINT_DATA__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
@@ -1691,6 +1797,11 @@ var EXPORT_TABLES = [
   ]},
   {group:'Speed', items:[
     {id:'speedTable', label:'Vessel Speed', sheet:'Vessel Speed'},
+  ]},
+  {group:'Maintenance', items:[
+    {id:'maintServiceTable', label:'Maintenance by Service', sheet:'Maint by Service'},
+    {id:'maintPortTable', label:'Maintenance by Port', sheet:'Maint by Port'},
+    {id:'maintMonthTable', label:'Maintenance Monthly Trend', sheet:'Maint Monthly'},
   ]},
 ];
 
@@ -3129,6 +3240,165 @@ if(sessionStorage.getItem('cul_auth')==='1'){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   Maintenance Rate (Vessel Schedule / Port Log 维护率)
+   MAINT_DATA.records[] = {service, vessel, voyage, dir, operator,
+      port, etd, plog('Y'/'N'), vsched(0/1)}
+   Port Log 维护率 = plog=='Y' / total
+   Vessel Schedule (Actual Schedule) 维护率 = vsched==1 ("Maintain timely") / total
+   ═══════════════════════════════════════════════════════════════════ */
+var MAINT_RECORDS = (MAINT_DATA && MAINT_DATA.records) || [];
+var maintOpFilter = 'CUL';      // 默认 CUL（用户要求）
+var selMaintFrom = '', selMaintTo = '';
+
+function maintFiltered(){
+  var f = selMaintFrom || '', t = selMaintTo || '';
+  return MAINT_RECORDS.filter(function(r){
+    if(maintOpFilter && maintOpFilter !== 'ALL' && r.operator !== maintOpFilter) return false;
+    var e = r.etd || '';
+    if(f && e && e < f) return false;
+    if(t && e && e > t) return false;
+    return true;
+  });
+}
+function maintPct(n, d){ return d > 0 ? (n / d * 100) : 0; }
+function maintRateCls(r){ return r >= 80 ? 'rate-good' : (r >= 50 ? 'rate-mid' : 'rate-bad'); }
+function maintRateCell(pct){ return '<td class="num ' + maintRateCls(pct) + '">' + pct.toFixed(1) + '%</td>'; }
+function maintNumCell(v){ return '<td class="num">' + v + '</td>'; }
+
+function renderMaintChips(recs){
+  var total = recs.length, plog = 0, vs = 0;
+  recs.forEach(function(r){ if(r.plog === 'Y') plog++; if(r.vsched === 1) vs++; });
+  var plogPct = maintPct(plog, total), vsPct = maintPct(vs, total);
+  document.getElementById('maintChipTotal').textContent = total.toLocaleString();
+  document.getElementById('maintChipPortLog').textContent = plog.toLocaleString() + ' (' + plogPct.toFixed(1) + '%)';
+  document.getElementById('maintChipVSched').textContent = vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)';
+  document.getElementById('statMaint').textContent = total.toLocaleString() + ' calls';
+}
+
+function renderMaintByDim(dimKey, theadId, tbodyId, titleCol){
+  var recs = maintFiltered();
+  var groups = {};
+  recs.forEach(function(r){
+    var k = r[dimKey] || '(blank)';
+    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0};
+    var g = groups[k];
+    g.calls++;
+    if(r.plog === 'Y') g.plog++;
+    if(r.vsched === 1) g.vs++;
+  });
+  var rows = Object.keys(groups).map(function(k){ return groups[k]; });
+  rows.sort(function(a,b){ return b.calls - a.calls; });
+
+  document.getElementById(theadId).innerHTML =
+    '<tr><th>' + titleCol + '</th><th class="num">Calls</th><th class="num">Port Log Maint</th>' +
+    '<th class="num">Port Log Rate</th><th class="num">Vessel Sched Maint</th><th class="num">Vessel Sched Rate</th></tr>';
+
+  var tbody = document.getElementById(tbodyId);
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8a9bb0;padding:14px;">No data for current filters.</td></tr>';
+    return;
+  }
+  var html = '';
+  rows.forEach(function(g, i){
+    var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
+    var bg = (i % 2 === 0) ? ' style="background:#EBF3FB;"' : '';
+    html += '<tr' + bg + '>' +
+      '<td>' + g.key + '</td>' +
+      maintNumCell(g.calls) + maintNumCell(g.plog) + maintRateCell(plogPct) +
+      maintNumCell(g.vs) + maintRateCell(vsPct) + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function renderMaintMonth(){
+  var recs = maintFiltered();
+  var byMonth = {};
+  recs.forEach(function(r){
+    var m = (r.etd || '').substring(0,7);
+    if(!m) return;
+    if(!byMonth[m]) byMonth[m] = {month:m, calls:0, plog:0, vs:0};
+    var g = byMonth[m];
+    g.calls++;
+    if(r.plog === 'Y') g.plog++;
+    if(r.vsched === 1) g.vs++;
+  });
+  var months = Object.keys(byMonth).sort();
+
+  var barsHtml = '';
+  months.forEach(function(m){
+    var g = byMonth[m];
+    var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
+    barsHtml +=
+      '<div style="font-size:11px;font-weight:600;color:#555;margin-top:2px;">' + m + ' <span style="color:#8a9bb0;font-weight:400;">(' + g.calls + ' calls)</span></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;margin:2px 0;">' +
+        '<span style="display:inline-block;width:92px;font-size:10px;color:#1F4E79;text-align:right;">Port Log</span>' +
+        '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;overflow:hidden;"><div style="width:' + plogPct.toFixed(1) + '%;background:#2E75B6;height:100%;"></div></div>' +
+        '<span style="width:50px;font-size:10px;color:#2E75B6;">' + plogPct.toFixed(1) + '%</span></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;margin:2px 0 6px;">' +
+        '<span style="display:inline-block;width:92px;font-size:10px;color:#C55A11;text-align:right;">Vessel Sched</span>' +
+        '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;overflow:hidden;"><div style="width:' + vsPct.toFixed(1) + '%;background:#ED7D31;height:100%;"></div></div>' +
+        '<span style="width:50px;font-size:10px;color:#C55A11;">' + vsPct.toFixed(1) + '%</span></div>';
+  });
+  document.getElementById('maintMonthBars').innerHTML = barsHtml ||
+    '<div style="color:#8a9bb0;font-size:11px;">No data for current filters.</div>';
+
+  document.getElementById('maintMonthThead').innerHTML =
+    '<tr><th>Month</th><th class="num">Calls</th><th class="num">Port Log Rate</th><th class="num">Vessel Sched Rate</th></tr>';
+  var tbody = document.getElementById('maintMonthTbody');
+  if(!months.length){
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8a9bb0;padding:14px;">No data for current filters.</td></tr>';
+    return;
+  }
+  var html = '';
+  months.forEach(function(m, i){
+    var g = byMonth[m];
+    var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
+    var bg = (i % 2 === 0) ? ' style="background:#EBF3FB;"' : '';
+    html += '<tr' + bg + '><td>' + m + '</td>' + maintNumCell(g.calls) + maintRateCell(plogPct) + maintRateCell(vsPct) + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function renderMaint(){
+  renderMaintChips(maintFiltered());
+  renderMaintByDim('service', 'maintServiceThead', 'maintServiceTbody', 'Service');
+  renderMaintByDim('port', 'maintPortThead', 'maintPortTbody', 'Port');
+  renderMaintMonth();
+}
+
+function onMaintChange(){
+  maintOpFilter = document.getElementById('maintOpFilter').value || 'ALL';
+  selMaintFrom = document.getElementById('maintFrom').value || '';
+  selMaintTo = document.getElementById('maintTo').value || '';
+  renderMaint();
+}
+
+function initMaintView(){
+  if(!MAINT_RECORDS.length){
+    document.getElementById('statMaint').textContent = 'Maintenance data unavailable (' +
+      (MAINT_DATA ? MAINT_DATA.source : 'no source') + ').';
+    return;
+  }
+  // Operator dropdown: ALL + distinct operators (CUL default)
+  var ops = {};
+  MAINT_RECORDS.forEach(function(r){ if(r.operator) ops[r.operator] = (ops[r.operator]||0)+1; });
+  var opList = Object.keys(ops).sort(function(a,b){ return ops[b]-ops[a]; });
+  var sel = document.getElementById('maintOpFilter');
+  sel.innerHTML = '<option value="ALL">All Operators</option>' +
+    opList.map(function(o){ return '<option value="'+o+'"'+(o==='CUL'?' selected':'')+'>'+o+' ('+ops[o]+')</option>'; }).join('');
+  // ETD range defaults = data min/max
+  var etds = MAINT_RECORDS.map(function(r){ return r.etd; }).filter(Boolean).sort();
+  var lo = etds.length ? etds[0] : '', hi = etds.length ? etds[etds.length-1] : '';
+  document.getElementById('maintFrom').value = selMaintFrom || lo;
+  document.getElementById('maintTo').value = selMaintTo || hi;
+  selMaintFrom = selMaintFrom || lo;
+  selMaintTo = selMaintTo || hi;
+  maintOpFilter = 'CUL';
+  sel.value = 'CUL';
+  renderMaint();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════════ */
 // Keep sticky table headers below the pinned top bar (header+tabs) + controls
@@ -3151,6 +3421,7 @@ function init(){
   initPortView();
   initSpeedView();
   boaInit();
+  initMaintView();
   updateCtrlH();
 }
 // init() only called after login success (see LOGIN section above)
@@ -3183,6 +3454,8 @@ def main():
     data['laneTradeMap']  = boa_lane_trade
     data['portRegionMap'] = boa_port_region
 
+    maint = load_maint_data()
+
     # Build column defs JSON for JS
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
     col_defs_full    = [{"key":c[0],"label":c[1],"defaultVisible":c[3]} for c in FULL_COLUMNS]
@@ -3191,6 +3464,7 @@ def main():
     html = html.replace('__TODAY_DATA__',       json.dumps(data, ensure_ascii=False))
     html = html.replace('__COLUMN_DEFS_SUMMARY__', json.dumps(col_defs_summary, ensure_ascii=False))
     html = html.replace('__COLUMN_DEFS_FULL__',    json.dumps(col_defs_full,    ensure_ascii=False))
+    html = html.replace('__MAINT_DATA__',          json.dumps(maint, ensure_ascii=False))
 
     os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else '.', exist_ok=True)
     with open(out_path, 'w', encoding='utf-8') as f:
