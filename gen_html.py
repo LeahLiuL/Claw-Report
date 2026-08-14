@@ -1677,8 +1677,12 @@ function _tabSheetFromDom(tableId, title, sheetName, wb, skipFirst){
   sheetData.push(tr);
   sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
 
-  var rows=tbody?tbody.querySelectorAll('tr'):[];
+  // Only iterate DIRECT child rows (excludes nested tables inside expandable
+  // detail sub-rows). Skip the Port Wait "detail-wrap" rows entirely — the user
+  // wants the Port Wait export to contain the summary rows only, not the per-call detail.
+  var rows=tbody?tbody.children:[];
   for(var i=0;i<rows.length;i++){
+    if(rows[i].classList && rows[i].classList.contains('detail-wrap')) continue;
     var tds=rows[i].querySelectorAll('td');
     if(tds.length<=sf) continue;
     var fc=(i%2===0)?'EBF3FB':'FFFFFF';
