@@ -166,28 +166,25 @@ def extract(excel_path):
             i += 1
 
     # ── Summary: nearest ETB per vessel (dedup by vessel across routes) ──
-    vessel_best = {}  # vessel_full -> (etb_d, best_row, vb)
-    summary_row_set = set()
+    # Rule: prefer ETB >= today (next upcoming call); among futures pick earliest;
+    #       if no future ETB, pick the most recent past ETB (closest to today).
+    vessel_rows = {}  # vessel_full -> list of (etb_d, row, vb)
     for vb in vessel_blocks:
-        best_row, best_etb = None, None
         for r in vb['schedule_rows']:
             etb_v = ws_src.cell(r, 10).value
             if isinstance(etb_v, datetime):
-                etb_d = etb_v.date()
-                if etb_d >= today and (best_etb is None or etb_d < best_etb):
-                    best_etb, best_row = etb_d, r
-        if best_row is None and vb['schedule_rows']:
-            for r in reversed(vb['schedule_rows']):
-                if isinstance(ws_src.cell(r, 10).value, datetime):
-                    best_row = r; best_etb = ws_src.cell(r, 10).value.date(); break
+                vessel_rows.setdefault(vb['vessel_full'], []).append((etb_v.date(), r, vb))
 
-        if best_row:
-            vname = vb['vessel_full']
-            # Dedup: keep only the row with ETB closest to today per vessel
-            if vname not in vessel_best or (best_etb and (
-                vessel_best[vname][0] is None or best_etb < vessel_best[vname][0]
-            )):
-                vessel_best[vname] = (best_etb, best_row, vb)
+    vessel_best = {}
+    summary_row_set = set()
+    for vname, entries in vessel_rows.items():
+        def _key(e):
+            etb_d = e[0]
+            if etb_d >= today:
+                return (0, etb_d)          # future: always preferred, earlier = better
+            return (1, today - etb_d)      # past: (1, gap); smaller gap (more recent) = better
+        best_etb, best_row, vb = sorted(entries, key=_key)[0]
+        vessel_best[vname] = (best_etb, best_row, vb)
 
     results = []
     for vname, (best_etb, best_row, vb) in vessel_best.items():
