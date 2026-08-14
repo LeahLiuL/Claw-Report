@@ -979,14 +979,14 @@ function _loadXlsx(cb){
     <div class="boa-chip"><div class="num" id="maintChipVSched">&#8212;</div><div class="lbl2">Vessel Sched maintained</div></div>
   </div>
 
-  <!-- By Service -->
-  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128203; Maintenance by Service (&#33322;&#32447;)</h3>
-  <div class="table-wrap">
-    <table id="maintServiceTable" style="min-width:auto;"><thead><tr id="maintServiceThead"></tr></thead><tbody id="maintServiceTbody"></tbody></table>
-  </div>
-
   <!-- By Port -->
-  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128205; Maintenance by Port</h3>
+  <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128205; Maintenance by Port
+    <span style="font-size:11px;font-weight:400;margin-left:10px;white-space:nowrap;">
+      <button onclick="expandAllMaintPort()" style="font-size:11px;padding:2px 8px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Expand all</button>
+      <button onclick="collapseAllMaintPort()" style="font-size:11px;padding:2px 8px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;margin-left:4px;">Collapse all</button>
+    </span>
+  </h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand its <b>unmaintained</b> calls (Port Log = N or Vessel Schedule ≠ &quot;Maintain timely&quot;). Red cells mark the missing item.</p>
   <div class="table-wrap">
     <table id="maintPortTable" style="min-width:auto;"><thead><tr id="maintPortThead"></tr></thead><tbody id="maintPortTbody"></tbody></table>
   </div>
@@ -1799,8 +1799,7 @@ var EXPORT_TABLES = [
     {id:'speedTable', label:'Vessel Speed', sheet:'Vessel Speed'},
   ]},
   {group:'Maintenance', items:[
-    {id:'maintServiceTable', label:'Maintenance by Service', sheet:'Maint by Service'},
-    {id:'maintPortTable', label:'Maintenance by Port', sheet:'Maint by Port'},
+    {id:'maintPortTable', label:'Maintenance by Port (with unmaintained detail)', sheet:'Maint by Port'},
     {id:'maintMonthTable', label:'Maintenance Monthly Trend', sheet:'Maint Monthly'},
   ]},
 ];
@@ -3275,37 +3274,99 @@ function renderMaintChips(recs){
   document.getElementById('statMaint').textContent = total.toLocaleString() + ' calls';
 }
 
-function renderMaintByDim(dimKey, theadId, tbodyId, titleCol){
+function maintPortId(port){ return 'maintPortDetail-' + String(port).replace(/[^A-Za-z0-9_-]/g,'_'); }
+
+function buildMaintDetailRows(recs){
+  var arr = recs.slice().sort(function(a,b){
+    return (a.service||'').localeCompare(b.service||'') || (a.etd||'').localeCompare(b.etd||'');
+  });
+  var html = '';
+  arr.forEach(function(r, idx){
+    var bg = (idx % 2 === 0) ? ' style="background:#f4f8fc;"' : '';
+    var plogCls = (r.plog === 'Y') ? '' : ' style="color:#C0392B;font-weight:600;"';
+    var vsCls  = (r.vsched === 1) ? '' : ' style="color:#C0392B;font-weight:600;"';
+    html += '<tr' + bg + '>' +
+      '<td>' + (r.service||'') + '</td>' +
+      '<td>' + (r.vessel||'') + '</td>' +
+      '<td>' + (r.voyage||'') + '</td>' +
+      '<td>' + (r.dir||'') + '</td>' +
+      '<td>' + (r.operator||'') + '</td>' +
+      '<td>' + (r.etd||'') + '</td>' +
+      '<td' + plogCls + '>' + ((r.plog==='Y')?'Y':'N') + '</td>' +
+      '<td' + vsCls + '>' + ((r.vsched===1)?'Maintain timely':'Not maintained') + '</td>' +
+      '</tr>';
+  });
+  return html;
+}
+
+function toggleMaintPort(port){
+  var row = document.getElementById(maintPortId(port));
+  if(!row) return;
+  var open = (row.style.display === 'none');
+  row.style.display = open ? '' : 'none';
+  var tr = row.previousElementSibling;
+  if(tr){ var sp = tr.querySelector('.maint-toggle-arrow'); if(sp) sp.innerHTML = open ? '&#9652;' : '&#9656;'; }
+}
+
+function expandAllMaintPort(){
+  document.querySelectorAll('#maintPortTbody tr.detail-wrap').forEach(function(row){
+    row.style.display = '';
+    var sp = row.previousElementSibling ? row.previousElementSibling.querySelector('.maint-toggle-arrow') : null;
+    if(sp) sp.innerHTML = '&#9652;';
+  });
+}
+function collapseAllMaintPort(){
+  document.querySelectorAll('#maintPortTbody tr.detail-wrap').forEach(function(row){
+    row.style.display = 'none';
+    var sp = row.previousElementSibling ? row.previousElementSibling.querySelector('.maint-toggle-arrow') : null;
+    if(sp) sp.innerHTML = '&#9656;';
+  });
+}
+
+function renderMaintByPort(){
   var recs = maintFiltered();
   var groups = {};
   recs.forEach(function(r){
-    var k = r[dimKey] || '(blank)';
-    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0};
+    var k = r.port || '(blank)';
+    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0, unmaintained:[]};
     var g = groups[k];
     g.calls++;
     if(r.plog === 'Y') g.plog++;
     if(r.vsched === 1) g.vs++;
+    if(r.plog !== 'Y' || r.vsched !== 1) g.unmaintained.push(r);
   });
   var rows = Object.keys(groups).map(function(k){ return groups[k]; });
   rows.sort(function(a,b){ return b.calls - a.calls; });
 
-  document.getElementById(theadId).innerHTML =
-    '<tr><th>' + titleCol + '</th><th class="num">Calls</th><th class="num">Port Log Maint</th>' +
-    '<th class="num">Port Log Rate</th><th class="num">Vessel Sched Maint</th><th class="num">Vessel Sched Rate</th></tr>';
+  document.getElementById('maintPortThead').innerHTML =
+    '<tr><th></th><th>Port</th><th class="num">Calls</th><th class="num">Port Log Maint</th>' +
+    '<th class="num">Port Log Rate</th><th class="num">Vessel Sched Maint</th><th class="num">Vessel Sched Rate</th><th class="num">Unmaintained</th></tr>';
 
-  var tbody = document.getElementById(tbodyId);
+  var tbody = document.getElementById('maintPortTbody');
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8a9bb0;padding:14px;">No data for current filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:14px;">No data for current filters.</td></tr>';
     return;
   }
   var html = '';
   rows.forEach(function(g, i){
     var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
-    var bg = (i % 2 === 0) ? ' style="background:#EBF3FB;"' : '';
-    html += '<tr' + bg + '>' +
+    var styleAttr = (i % 2 === 0) ? 'background:#EBF3FB;' : '';
+    var hasDetail = g.unmaintained.length > 0;
+    if(hasDetail) styleAttr += 'cursor:pointer;';
+    var bg = styleAttr ? ' style="' + styleAttr + '"' : '';
+    var arrow = hasDetail ? '<span class="maint-toggle-arrow" style="color:#1F4E79;">&#9656;</span>' : '';
+    var click = hasDetail ? ' onclick="toggleMaintPort(\'' + String(g.key).replace(/'/g,"\\'") + '\')"' : '';
+    html += '<tr' + bg + click + '>' +
+      '<td style="text-align:center;width:24px;">' + arrow + '</td>' +
       '<td>' + g.key + '</td>' +
       maintNumCell(g.calls) + maintNumCell(g.plog) + maintRateCell(plogPct) +
-      maintNumCell(g.vs) + maintRateCell(vsPct) + '</tr>';
+      maintNumCell(g.vs) + maintRateCell(vsPct) + maintNumCell(g.unmaintained.length) + '</tr>';
+    if(hasDetail){
+      html += '<tr class="detail-wrap" id="' + maintPortId(g.key) + '" style="display:none;"><td colspan="8" style="padding:0 0 0 28px;background:#fafcff;">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0;">' +
+        '<thead><tr style="background:#eef2f7;color:#555;"><th>Service</th><th>Vessel</th><th>Voyage</th><th>Dir</th><th>Operator</th><th>ETD</th><th>Port Log</th><th>Vessel Sched</th></tr></thead>' +
+        '<tbody>' + buildMaintDetailRows(g.unmaintained) + '</tbody></table></td></tr>';
+    }
   });
   tbody.innerHTML = html;
 }
@@ -3361,8 +3422,7 @@ function renderMaintMonth(){
 
 function renderMaint(){
   renderMaintChips(maintFiltered());
-  renderMaintByDim('service', 'maintServiceThead', 'maintServiceTbody', 'Service');
-  renderMaintByDim('port', 'maintPortThead', 'maintPortTbody', 'Port');
+  renderMaintByPort();
   renderMaintMonth();
 }
 
