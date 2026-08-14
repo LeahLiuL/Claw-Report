@@ -574,6 +574,15 @@ function _loadXlsx(cb){
   .history-table-wrap table { font-size: 11.5px; min-width: 900px; }
   .footer { text-align: center; padding: 12px; color: #8a9bb0; font-size: 11px; }
 
+  /* ── Lane Order modal ─────────────────────────────────────────────── */
+  .lane-row { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 5px; }
+  .lane-row:nth-child(odd) { background: #f6f9fc; }
+  .lane-row .lane-idx { width: 24px; text-align: center; color: #8a9bb0; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .lane-row .lane-code { flex: 1; font-weight: 600; color: #1F4E79; font-size: 13px; font-family: 'Consolas', monospace; }
+  .lane-move { width: 30px; height: 26px; border: 1px solid #c9d5e2; background: #fff; border-radius: 5px; cursor: pointer; font-size: 13px; color: #3b4a5a; line-height: 1; }
+  .lane-move:hover:not(:disabled) { background: #1F4E79; color: #fff; border-color: #1F4E79; }
+  .lane-move:disabled { opacity: .3; cursor: default; }
+
   /* ── Login Overlay ──────────────────────────────────────────────── */
   .login-overlay { display: flex; position: fixed; inset: 0; background: #0a1628; z-index: 9999; align-items: center; justify-content: center; }
   .login-overlay.hidden { display: none; }
@@ -717,6 +726,7 @@ function _loadXlsx(cb){
       <button class="col-toggle-btn" id="colToggleBtn2" onclick="toggleColDropdown('2')">&#9881; Columns</button>
       <div class="col-dropdown" id="colDropdown2"></div>
     </div>
+    <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
   </div>
   <div class="table-wrap">
@@ -911,6 +921,25 @@ function _loadXlsx(cb){
   </div>
 </div>
 
+<!-- ── Lane Order Modal (reorder Full Schedule lanes) ─────────────────── -->
+<div class="modal-overlay" id="laneOrderModal" onclick="if(event.target===this)closeLaneOrderModal()">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>&#8644; Lane Display Order</h3>
+      <button class="modal-close" onclick="closeLaneOrderModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">调整列表中 lane 的上下顺序，Full Schedule 即按此顺序展示。点击 ▲/▼ 移动，顺序自动保存（刷新后保留）。</p>
+      <div id="laneOrderList" style="max-height:54vh;overflow:auto;border:1px solid #e3e9f0;border-radius:6px;padding:4px 6px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
+        <button class="btn" onclick="resetLaneOrder()" style="font-size:12px;padding:4px 10px;">&#8634; Reset to default</button>
+        <span style="flex:1;"></span>
+        <button class="btn btn-export" onclick="closeLaneOrderModal()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="footer">CUL Daily Movement Dashboard &nbsp;|&nbsp; Data from CUL DAILY MOVEMENT.xlsx &nbsp;|&nbsp; <span id="footerTs"></span></div>
 
 <!-- ── JavaScript ───────────────────────────────────────────────────────── -->
@@ -923,7 +952,42 @@ const COLUMN_DEFS_FULL    = __COLUMN_DEFS_FULL__;
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
 var ROUTE_ORDER = ['ST3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
-function routeOrderKey(r){ var i = ROUTE_ORDER.indexOf(r); return i<0 ? 9999 : i; }
+
+// ── User-adjustable Lane display order ──────────────────────────────────
+// Full Schedule (and the route filter dropdown) sort lanes by routeOrderKey.
+// The user can override the order via the "Lane Order" modal; the override is
+// persisted to localStorage so it survives page reloads.
+var LANE_ORDER_KEY = 'cul_movement_laneorder';
+var LANE_ORDER_OVERRIDE = null;  // array of route codes, or null (= use ROUTE_ORDER)
+
+function loadLaneOrder(){
+  try {
+    var raw = localStorage.getItem(LANE_ORDER_KEY);
+    if(raw){
+      var arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length){ LANE_ORDER_OVERRIDE = arr; return; }
+    }
+  } catch(e){}
+  LANE_ORDER_OVERRIDE = null;
+}
+
+// Effective lane order: override (if set) merged with ROUTE_ORDER.
+function getLaneOrder(){
+  return (LANE_ORDER_OVERRIDE && LANE_ORDER_OVERRIDE.length) ? LANE_ORDER_OVERRIDE.slice() : ROUTE_ORDER.slice();
+}
+
+function saveLaneOrder(){
+  try {
+    if(LANE_ORDER_OVERRIDE && LANE_ORDER_OVERRIDE.length) localStorage.setItem(LANE_ORDER_KEY, JSON.stringify(LANE_ORDER_OVERRIDE));
+    else localStorage.removeItem(LANE_ORDER_KEY);
+  } catch(e){}
+}
+
+function routeOrderKey(r){
+  var order = getLaneOrder();
+  var i = order.indexOf(r);
+  return i<0 ? 9999 : i;
+}
 
 // Visible columns state (key = viewId '1' or '2', value = Set of colKeys)
 var visibleCols = {
@@ -1299,6 +1363,7 @@ let vesselGroupMap = {};
 
 function initFullSchedule(){
   fullData = TODAY_DATA.fullSchedule || [];
+  loadLaneOrder();
   let seen = {}, gi = 0;
   fullData.forEach(function(r){
     if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
@@ -1728,6 +1793,69 @@ function exportSelectedTables(){
     XLSX.writeFile(wb,'CUL Daily Movement '+todayStr+'.xlsx');
     closeExportTablesModal();
   });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   LANE ORDER MODAL (reorder Full Schedule lanes)
+   ═══════════════════════════════════════════════════════════════════ */
+
+// Build the full ordered lane list shown in the modal: only routes present in
+// the current data, in the effective (override or ROUTE_ORDER) order, with any
+// new data routes not yet in that order appended at the end (sorted by ROUTE_ORDER).
+function _buildLaneList(){
+  var dataRoutes = [...new Set((fullData||[]).map(function(r){ return r.route; }))].filter(Boolean);
+  var present = {}; dataRoutes.forEach(function(r){ present[r]=true; });
+  var order = getLaneOrder().filter(function(r){ return present[r]; });   // effective order, data routes only
+  var inOrder = {}; order.forEach(function(r){ inOrder[r]=true; });
+  var extra = dataRoutes.filter(function(r){ return !inOrder[r]; });
+  extra.sort(function(a,b){
+    var ia = ROUTE_ORDER.indexOf(a), ib = ROUTE_ORDER.indexOf(b);
+    return ((ia<0?9999:ia) - (ib<0?9999:ib));
+  });
+  return order.concat(extra);
+}
+
+function openLaneOrderModal(){
+  renderLaneOrderList();
+  document.getElementById('laneOrderModal').classList.add('open');
+}
+
+function closeLaneOrderModal(){
+  document.getElementById('laneOrderModal').classList.remove('open');
+}
+
+function renderLaneOrderList(){
+  var list = _buildLaneList();
+  var box = document.getElementById('laneOrderList');
+  box.innerHTML = list.map(function(rt, idx){
+    var upDisabled = idx===0 ? 'disabled' : '';
+    var downDisabled = idx===list.length-1 ? 'disabled' : '';
+    return '<div class="lane-row">'
+      + '<span class="lane-idx">'+(idx+1)+'</span>'
+      + '<span class="lane-code">'+escapeHtml(rt)+'</span>'
+      + '<button class="lane-move" '+upDisabled+' onclick="moveLane('+idx+',-1)">&#9650;</button>'
+      + '<button class="lane-move" '+downDisabled+' onclick="moveLane('+idx+',1)">&#9660;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function moveLane(idx, dir){
+  var list = _buildLaneList();
+  var ni = idx + dir;
+  if(ni < 0 || ni >= list.length) return;
+  var tmp = list[idx]; list[idx] = list[ni]; list[ni] = tmp;
+  LANE_ORDER_OVERRIDE = list;
+  saveLaneOrder();
+  renderLaneOrderList();          // re-render modal with new order
+  renderFullSchedule();           // live-update the table below
+}
+
+function resetLaneOrder(){
+  LANE_ORDER_OVERRIDE = null;
+  saveLaneOrder();
+  renderLaneOrderList();
+  renderFullSchedule();
 }
 
 
