@@ -390,7 +390,8 @@ def ensure_maint_source():
     2) 从 SFTP(10.5.4.2:6622) 下载到 .cache/（culadmin 等无本地副本的机器，需 VPN）。
     两者皆不可达返回 None，load_maint_data 将输出空 records 而不崩溃。"""
     if os.path.exists(MAINT_SRC):
-        return MAINT_SRC
+        mt = datetime.fromtimestamp(os.path.getmtime(MAINT_SRC)).strftime('%Y-%m-%d %H:%M')
+        return MAINT_SRC, mt + ' (local copy)'
     try:
         import paramiko
         os.makedirs(os.path.dirname(MAINT_LOCAL_CACHE), exist_ok=True)
@@ -410,21 +411,21 @@ def ensure_maint_source():
             except Exception: pass
             try: t.close()
             except Exception: pass
-        return MAINT_LOCAL_CACHE
+        return MAINT_LOCAL_CACHE, rmt_time + ' (SFTP)'
     except Exception as e:
         msg = str(e)
         print(f"  [MAINT] SFTP fetch failed: {msg}", file=sys.stderr, flush=True)
         if "10060" in msg or "timed out" in msg.lower() or "Unable to connect" in msg:
             print("  [MAINT] Hint: 10.5.4.2 is internal — connect VPN first.", file=sys.stderr, flush=True)
-        return None
+        return None, 
 
 def load_maint_data():
     """读取维护率台账，返回 {date, generatedAt, source, records:[...]}。
     任何环境（含源文件不可达）都返回合法结构：records 为空时前端展示提示，
     生成脚本不会因此崩溃。"""
-    src = ensure_maint_source()
+    src, src_mtime = ensure_maint_source()
     out = {'date': '', 'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
-           'source': src or '(no source)', 'records': []}
+           'source': src or '(no source)', 'records': [], 'sourceMtime': src_mtime}
     if not src or not os.path.exists(src):
         print('  [MAINT] no source available -> empty records')
         return out
@@ -1028,6 +1029,7 @@ function _loadXlsx(cb){
   </div>
 
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 维护率定义: Port Log = I 列 Y / 总数; Vessel Schedule (Actual Schedule) = J 列 &quot;Maintain timely&quot; / 总数.</p>
+  <p style="font-size:12px;color:#1F4E79;margin:0 0 8px;font-weight:600;">&#128336; Maintenance 数据更新时间：<span id="maintSourceTs">—</span></p>
 
   <!-- Overall chips -->
   <div class="boa-chips" id="maintChips">
@@ -3302,6 +3304,7 @@ function doLogin(){
    Vessel Schedule (Actual Schedule) 维护率 = vsched==1 ("Maintain timely") / total
    ═══════════════════════════════════════════════════════════════════ */
 var MAINT_RECORDS = ((typeof MAINT_DATA !== 'undefined') && MAINT_DATA && MAINT_DATA.records) || [];
+  document.getElementById('maintSourceTs').textContent = (MAINT_DATA && MAINT_DATA.sourceMtime) ? MAINT_DATA.sourceMtime : '—';
 var maintOpFilter = 'CUL';      // 默认 CUL（用户要求）
 var selMaintFrom = '', selMaintTo = '';
 
