@@ -274,7 +274,7 @@ BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BO
 # 维护率数据源：Vessel Schedule / Port Log 维护情况台账
 # 列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
 #      I=Port Log Y/N (Y/N)  J=Vessel Schedule Maintain Status (Maintain timely / Not maintained)
-MAINT_SRC = r"C:\CULINES\Claw Report\Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx"
+MAINT_SRC = r"C:\CULINES\Claw Report\Vessel Schedule Maintain Over Time.xlsx"
 # 其他机器(如 culadmin, 挂 Z 盘)无 C:\CULINES 本地路径，改为从 SFTP(10.5.4.2:6622) 拉取，
 # 保证任意机器生成的看板都含 Maintenance 数据。路径可用环境变量覆盖。
 MAINT_SFTP_HOST = os.environ.get("MAINT_SFTP_HOST", "10.5.4.2")
@@ -282,9 +282,9 @@ MAINT_SFTP_PORT = int(os.environ.get("MAINT_SFTP_PORT", "6622"))
 MAINT_SFTP_USER = os.environ.get("MAINT_SFTP_USER", "leah")
 MAINT_SFTP_PASS = os.environ.get("MAINT_SFTP_PASS", "Fine@B!")
 # SFTP 上 MAINT xlsx 的路径（默认与 Bapfile 同目录 /finebi/Master Data - Leah/）
-MAINT_SFTP_REMOTE = os.environ.get("MAINT_SFTP_REMOTE", "/finebi/Master Data - Leah/Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx")
+MAINT_SFTP_REMOTE = os.environ.get("MAINT_SFTP_REMOTE", "/finebi/Master Data - Leah/Vessel Schedule Maintain Over Time.xlsx")
 # 下载到 .cache/ (已被 .gitignore 忽略)，避免污染仓库
-MAINT_LOCAL_CACHE = os.path.join(SCRIPT_DIR, ".cache", "Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx")
+MAINT_LOCAL_CACHE = os.path.join(SCRIPT_DIR, ".cache", "Vessel Schedule Maintain Over Time.xlsx")
 
 # ── BOA 映射：完整兜底映射表 ─────────────────────────────────────────────
 # 说明：以下 lane→trade 与 port→region 为「Port & Lane Mapping」表全量快照

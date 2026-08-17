@@ -25,9 +25,9 @@ USER = os.environ.get("MAINT_SFTP_USER", "leah")
 PASS = os.environ.get("MAINT_SFTP_PASS", "Fine@B!")
 REMOTE = os.environ.get(
     "MAINT_SFTP_REMOTE",
-    "/finebi/Master Data - Leah/Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx",
+    "/finebi/Master Data - Leah/Vessel Schedule Maintain Over Time.xlsx",
 )
-LOCAL = r"C:\CULINES\Claw Report\Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx"
+LOCAL = r"C:\CULINES\Claw Report\Vessel Schedule Maintain Over Time.xlsx"
 
 
 def section(t):
