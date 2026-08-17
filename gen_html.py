@@ -275,6 +275,16 @@ BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BO
 # 列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
 #      I=Port Log Y/N (Y/N)  J=Vessel Schedule Maintain Status (Maintain timely / Not maintained)
 MAINT_SRC = r"C:\CULINES\Claw Report\Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx"
+# 其他机器(如 culadmin, 挂 Z 盘)无 C:\CULINES 本地路径，改为从 SFTP(10.5.4.2:6622) 拉取，
+# 保证任意机器生成的看板都含 Maintenance 数据。路径可用环境变量覆盖。
+MAINT_SFTP_HOST = os.environ.get("MAINT_SFTP_HOST", "10.5.4.2")
+MAINT_SFTP_PORT = int(os.environ.get("MAINT_SFTP_PORT", "6622"))
+MAINT_SFTP_USER = os.environ.get("MAINT_SFTP_USER", "leah")
+MAINT_SFTP_PASS = os.environ.get("MAINT_SFTP_PASS", "Fine@B!")
+# SFTP 上 MAINT xlsx 的路径（默认与 Bapfile 同目录 /finebi/Master Data - Leah/）
+MAINT_SFTP_REMOTE = os.environ.get("MAINT_SFTP_REMOTE", "/finebi/Master Data - Leah/Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx")
+# 下载到 .cache/ (已被 .gitignore 忽略)，避免污染仓库
+MAINT_LOCAL_CACHE = os.path.join(SCRIPT_DIR, ".cache", "Vessel_Schedule_Maintain_Over_Time_Port_Log.xlsx")
 
 # ── BOA 映射：完整兜底映射表 ─────────────────────────────────────────────
 # 说明：以下 lane→trade 与 port→region 为「Port & Lane Mapping」表全量快照
@@ -374,13 +384,50 @@ def load_boa_mappings():
     return lane_trade, port_region
 
 # ── Maintenance (Vessel Schedule / Port Log 维护率) 数据源 ────────────────
+def ensure_maint_source():
+    """返回可用的 MAINT xlsx 本地路径。读取优先级：
+    1) 本机 C:\\CULINES 副本（leahliu 机器，无需 VPN）；
+    2) 从 SFTP(10.5.4.2:6622) 下载到 .cache/（culadmin 等无本地副本的机器，需 VPN）。
+    两者皆不可达返回 None，load_maint_data 将输出空 records 而不崩溃。"""
+    if os.path.exists(MAINT_SRC):
+        return MAINT_SRC
+    try:
+        import paramiko
+        os.makedirs(os.path.dirname(MAINT_LOCAL_CACHE), exist_ok=True)
+        t = paramiko.Transport((MAINT_SFTP_HOST, MAINT_SFTP_PORT))
+        try:
+            t.connect(username=MAINT_SFTP_USER, password=MAINT_SFTP_PASS)
+            sftp = paramiko.SFTPClient.from_transport(t)
+            st = sftp.stat(MAINT_SFTP_REMOTE)
+            rmt_time = datetime.fromtimestamp(st.st_mtime).strftime('%Y-%m-%d %H:%M')
+            print(f"  [MAINT] SFTP found {MAINT_SFTP_REMOTE}  mtime={rmt_time}", flush=True)
+            tmp = MAINT_LOCAL_CACHE + ".part"
+            sftp.get(MAINT_SFTP_REMOTE, tmp)
+            os.replace(tmp, MAINT_LOCAL_CACHE)
+            print(f"  [MAINT] downloaded from SFTP -> {MAINT_LOCAL_CACHE} ({os.path.getsize(MAINT_LOCAL_CACHE):,} bytes)", flush=True)
+        finally:
+            try: sftp.close()
+            except Exception: pass
+            try: t.close()
+            except Exception: pass
+        return MAINT_LOCAL_CACHE
+    except Exception as e:
+        msg = str(e)
+        print(f"  [MAINT] SFTP fetch failed: {msg}", file=sys.stderr, flush=True)
+        if "10060" in msg or "timed out" in msg.lower() or "Unable to connect" in msg:
+            print("  [MAINT] Hint: 10.5.4.2 is internal — connect VPN first.", file=sys.stderr, flush=True)
+        return None
+
 def load_maint_data():
     """读取维护率台账，返回 {date, generatedAt, source, records:[...]}。
     任何环境（含源文件不可达）都返回合法结构：records 为空时前端展示提示，
     生成脚本不会因此崩溃。"""
-    src = MAINT_SRC
+    src = ensure_maint_source()
     out = {'date': '', 'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
-           'source': src, 'records': []}
+           'source': src or '(no source)', 'records': []}
+    if not src or not os.path.exists(src):
+        print('  [MAINT] no source available -> empty records')
+        return out
     try:
         wb = openpyxl.load_workbook(src, data_only=True)
         ws = wb.active
@@ -417,7 +464,7 @@ def load_maint_data():
         out['source'] = src + f"  ·  {len(recs)} rows  ·  ETD {out['date']}"
         print(f'  [MAINT] source OK: {len(recs)} rows from {os.path.basename(src)}')
     except Exception as e:
-        out['source'] = src + '  ·  UNAVAILABLE: ' + str(e)
+        out['source'] = (src or '') + '  ·  UNAVAILABLE: ' + str(e)
         print('  [MAINT] source unavailable:', e)
     return out
 
