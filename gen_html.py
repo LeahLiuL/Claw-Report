@@ -545,6 +545,7 @@ def load_maint_data():
                 etds.append(etd)
             vsched_raw = _get(row, 'vsched')
             plog_raw = _get(row, 'plog')
+            vsched_s = '' if vsched_raw is None else str(vsched_raw).strip().lower()
             recs.append({
                 'service':  '' if svc is None else str(svc).strip(),
                 'vessel':   '' if _get(row, 'vessel') is None else str(_get(row, 'vessel')).strip(),
@@ -554,7 +555,8 @@ def load_maint_data():
                 'port':     '' if port is None else str(port).strip(),
                 'etd':      etd,
                 'plog':     '' if plog_raw is None else str(plog_raw).strip().upper(),
-                'vsched':   1 if (vsched_raw is not None and 'timely' in str(vsched_raw).lower()) else 0,
+                # Vessel Schedule Maintain Status: 仅 "Maintain timely" 视为已维护，其余(Not maintained/空)视为未维护
+                'vsched':   1 if vsched_s == 'maintain timely' else 0,
             })
         out['records'] = recs
         out['date'] = (min(etds) + ' ~ ' + max(etds)) if etds else ''
@@ -1124,14 +1126,16 @@ function _loadXlsx(cb){
     </div>
   </div>
 
-  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 维护率定义: Port Log = I 列 Y / 总数; Vessel Schedule (Actual Schedule) = J 列 &quot;Maintain timely&quot; / 总数.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 判定规则: Port Log 维护 = I 列 Y；Vessel Schedule 维护 = J 列 &quot;Maintain timely&quot;（Not maintained 即未维护）。两类未维护明细已分开列出。</p>
   <p style="font-size:12px;color:#1F4E79;margin:0 0 8px;font-weight:600;">&#128336; Maintenance 数据更新时间：<span id="maintSourceTs">—</span></p>
 
   <!-- Overall chips -->
   <div class="boa-chips" id="maintChips">
     <div class="boa-chip"><div class="num" id="maintChipTotal">&#8212;</div><div class="lbl2">Total calls</div></div>
     <div class="boa-chip"><div class="num" id="maintChipPortLog">&#8212;</div><div class="lbl2">Port Log maintained</div></div>
+    <div class="boa-chip" style="background:#fdecea;border-color:#e6b8af;"><div class="num" id="maintChipPortLogNo" style="color:#C0392B;">&#8212;</div><div class="lbl2" style="color:#C0392B;">Port Log NOT maintained</div></div>
     <div class="boa-chip"><div class="num" id="maintChipVSched">&#8212;</div><div class="lbl2">Vessel Sched maintained</div></div>
+    <div class="boa-chip" style="background:#fdecea;border-color:#e6b8af;"><div class="num" id="maintChipVSchedNo" style="color:#C0392B;">&#8212;</div><div class="lbl2" style="color:#C0392B;">Vessel Sched NOT maintained</div></div>
   </div>
 
   <!-- By Port -->
@@ -1144,6 +1148,21 @@ function _loadXlsx(cb){
   <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand its <b>unmaintained</b> calls (Port Log = N or Vessel Schedule ≠ &quot;Maintain timely&quot;). Red cells mark the missing item.</p>
   <div class="table-wrap">
     <table id="maintPortTable" style="min-width:auto;"><thead><tr id="maintPortThead"></tr></thead><tbody id="maintPortTbody"></tbody></table>
+  </div>
+
+  <!-- Unmaintained Details: Port Log and Vessel Schedule separated -->
+  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Port Log 未维护明细 <span id="maintPlogNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Port Log Y/N = N 的船期（未维护 Port Log）</span>
+  </h3>
+  <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+    <table id="maintPlogNoTable" style="min-width:auto;"><thead><tr id="maintPlogNoThead"></tr></thead><tbody id="maintPlogNoTbody"></tbody></table>
+  </div>
+
+  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Vessel Schedule 未维护明细 <span id="maintVsNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Vessel Schedule Maintain Status = Not maintained 的船期（未维护船期）</span>
+  </h3>
+  <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+    <table id="maintVsNoTable" style="min-width:auto;"><thead><tr id="maintVsNoThead"></tr></thead><tbody id="maintVsNoTbody"></tbody></table>
   </div>
 
   <!-- Monthly Trend -->
@@ -1955,6 +1974,8 @@ var EXPORT_TABLES = [
   ]},
   {group:'Maintenance', items:[
     {id:'maintPortTable', label:'Maintenance by Port (with unmaintained detail)', sheet:'Maint by Port'},
+    {id:'maintPlogNoTable', label:'Port Log Unmaintained Detail', sheet:'Maint PLog No'},
+    {id:'maintVsNoTable', label:'Vessel Schedule Unmaintained Detail', sheet:'Maint VS No'},
     {id:'maintMonthTable', label:'Maintenance Monthly Trend', sheet:'Maint Monthly'},
   ]},
 ];
@@ -3548,9 +3569,12 @@ function renderMaintChips(recs){
   var total = recs.length, plog = 0, vs = 0;
   recs.forEach(function(r){ if(r.plog === 'Y') plog++; if(r.vsched === 1) vs++; });
   var plogPct = maintPct(plog, total), vsPct = maintPct(vs, total);
+  var plogNo = total - plog, vsNo = total - vs;
   document.getElementById('maintChipTotal').textContent = total.toLocaleString();
   document.getElementById('maintChipPortLog').textContent = plog.toLocaleString() + ' (' + plogPct.toFixed(1) + '%)';
+  document.getElementById('maintChipPortLogNo').textContent = plogNo.toLocaleString() + ' (' + maintPct(plogNo, total).toFixed(1) + '%)';
   document.getElementById('maintChipVSched').textContent = vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)';
+  document.getElementById('maintChipVSchedNo').textContent = vsNo.toLocaleString() + ' (' + maintPct(vsNo, total).toFixed(1) + '%)';
   document.getElementById('statMaint').textContent = total.toLocaleString() + ' calls';
 }
 
@@ -3651,6 +3675,43 @@ function renderMaintByPort(){
   tbody.innerHTML = html;
 }
 
+function renderMaintUnmaintained(){
+  var recs = maintFiltered();
+  var plogNo = [], vsNo = [];
+  recs.forEach(function(r){
+    if(r.plog !== 'Y') plogNo.push(r);
+    if(r.vsched !== 1) vsNo.push(r);
+  });
+  var byEtd = function(a,b){ return (a.etd||'').localeCompare(b.etd||'') || (a.service||'').localeCompare(b.service||'') || (a.vessel||'').localeCompare(b.vessel||''); };
+  plogNo.sort(byEtd); vsNo.sort(byEtd);
+
+  var headHtml = '<tr><th>Service</th><th>Vessel</th><th>Voyage</th><th>Dir</th><th>Operator</th><th>Port</th><th>ETD</th><th>Status</th></tr>';
+  document.getElementById('maintPlogNoThead').innerHTML = headHtml;
+  document.getElementById('maintVsNoThead').innerHTML = headHtml;
+
+  function rowsHtml(arr, statusTxt){
+    if(!arr.length) return '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:12px;">All maintained — no unmaintained calls for current filters.</td></tr>';
+    var h = '';
+    arr.forEach(function(r, i){
+      var bg = (i % 2 === 0) ? ' style="background:#fdf2f2;"' : '';
+      h += '<tr' + bg + '>' +
+        '<td>' + (r.service||'') + '</td>' +
+        '<td>' + (r.vessel||'') + '</td>' +
+        '<td>' + (r.voyage||'') + '</td>' +
+        '<td>' + (r.dir||'') + '</td>' +
+        '<td>' + (r.operator||'') + '</td>' +
+        '<td>' + (r.port||'') + '</td>' +
+        '<td>' + (r.etd||'') + '</td>' +
+        '<td style="color:#C0392B;font-weight:600;">' + statusTxt + '</td></tr>';
+    });
+    return h;
+  }
+  document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N');
+  document.getElementById('maintVsNoTbody').innerHTML = rowsHtml(vsNo, 'Not maintained');
+  document.getElementById('maintPlogNoCount').textContent = '(' + plogNo.length.toLocaleString() + ' calls)';
+  document.getElementById('maintVsNoCount').textContent = '(' + vsNo.length.toLocaleString() + ' calls)';
+}
+
 function renderMaintMonth(){
   var recs = maintFiltered();
   var byMonth = {};
@@ -3703,6 +3764,7 @@ function renderMaintMonth(){
 function renderMaint(){
   renderMaintChips(maintFiltered());
   renderMaintByPort();
+  renderMaintUnmaintained();
   renderMaintMonth();
 }
 
