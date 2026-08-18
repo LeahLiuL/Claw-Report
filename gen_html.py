@@ -3726,9 +3726,11 @@ function initMaintView(){
   var sel = document.getElementById('maintOpFilter');
   sel.innerHTML = '<option value="ALL">All Operators</option>' +
     opList.map(function(o){ return '<option value="'+o+'"'+(o==='CUL'?' selected':'')+'>'+o+' ('+ops[o]+')</option>'; }).join('');
-  // ETD range defaults = data min/max
-  var etds = MAINT_RECORDS.map(function(r){ return r.etd; }).filter(Boolean).sort();
-  var lo = etds.length ? etds[0] : '', hi = etds.length ? etds[etds.length-1] : '';
+  // ETD range defaults = year-to-date (Jan 1 of current year → today)
+  var _now = new Date();
+  var _ymd = function(d){ var y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2); return y+'-'+m+'-'+dd; };
+  var lo = _now.getFullYear() + '-01-01';
+  var hi = _ymd(_now);
   document.getElementById('maintFrom').value = selMaintFrom || lo;
   document.getElementById('maintTo').value = selMaintTo || hi;
   selMaintFrom = selMaintFrom || lo;
