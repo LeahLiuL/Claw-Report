@@ -3236,6 +3236,18 @@ var boaSortState = {};
 function boaBuildHeader(id){
   return '<tr>'+BOA_HEADERS[id].map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr>';
 }
+// Render thead with current sort state (active column highlighted + arrow)
+function boaRenderHeader(id){
+  var s = boaSortState[id] || {col:-1, dir:1};
+  var html = '<tr>' + BOA_HEADERS[id].map(function(h,i){
+    if(s.col===i){
+      var arrow = (s.dir===1) ? ' &#9650;' : ' &#9660;';
+      return '<th style="background:#d3e4f5;color:#1F4E79;cursor:pointer;">' + h + arrow + '</th>';
+    }
+    return '<th style="cursor:pointer;">' + h + '</th>';
+  }).join('') + '</tr>';
+  document.getElementById(id).querySelector('thead').innerHTML = html;
+}
 function boaBuildLeaf(group, dim, row){
   var cells=[];
   if(group!==null) cells.push(boaTdDim(group,'boa-grp'));
@@ -3245,7 +3257,7 @@ function boaBuildLeaf(group, dim, row){
 }
 function boaGrandRow(grouped){
   var cells=[];
-  if(grouped) cells.push(boaTdDim('',''), boaTdDim('Total','boa-grp'));
+  if(grouped) cells.push(boaTdDim('Total','boa-grp'), boaTdDim('',''));
   else cells.push(boaTdDim('Total','boa-grp'));
   cells.push(boaTdNum(BOA_STAT.berth), boaTdNum(BOA_STAT.over), boaTdNum(BOA_STAT.total), boaTdRate(BOA_STAT.rate));
   return boaRowHtml(cells, 'boa-grand');
@@ -3256,16 +3268,22 @@ function boaValAt(aggRow, col, hasGroup){
   return arr[idx];
 }
 function boaMakeSortable(tblId, renderFn){
-  boaSortState[tblId] = {col:0, dir:1};
-  document.querySelectorAll('#'+tblId+' th').forEach(function(th,i){
-    th.onclick = function(){
-      var s = boaSortState[tblId];
-      if(s.col===i) s.dir = -s.dir; else { s.col=i; s.dir=1; }
-      renderFn();
-    };
-  });
+  var rateIdx = BOA_HEADERS[tblId].indexOf('Rate');
+  boaSortState[tblId] = {col: rateIdx, dir: -1};   // default: Rate descending
+  var thead = document.getElementById(tblId).querySelector('thead');
+  thead.onclick = function(ev){
+    var th = ev.target && ev.target.closest ? ev.target.closest('th') : null;
+    if(!th) return;
+    var ths = Array.prototype.slice.call(thead.querySelectorAll('th'));
+    var i = ths.indexOf(th);
+    if(i < 0) return;
+    var s = boaSortState[tblId];
+    if(s.col===i) s.dir = -s.dir; else { s.col=i; s.dir=1; }
+    renderFn();
+  };
 }
 function boaRenderTrade(){
+  boaRenderHeader('boaTblTrade');
   var s = boaSortState['boaTblTrade'];
   var map = {};
   BOA_CALLS.forEach(function(c){
@@ -3275,7 +3293,7 @@ function boaRenderTrade(){
   });
   var rows = Object.keys(map).map(function(k){ return {dim:k, agg:boaAgg(map[k])}; });
   rows.sort(function(a,b){
-    if(s.col===0) return a.dim<b.dim?-1:1;
+    if(s.col===0) return (a.dim<b.dim?-1:a.dim>b.dim?1:0) * s.dir;
     var va=boaValAt(a.agg,s.col,false), vb=boaValAt(b.agg,s.col,false);
     return (va<vb?-1:va>vb?1:0) * s.dir;
   });
@@ -3285,6 +3303,7 @@ function boaRenderTrade(){
   tb.innerHTML = html;
 }
 function boaRenderRegion(){
+  boaRenderHeader('boaTblRegion');
   var s = boaSortState['boaTblRegion'];
   var map = {};
   BOA_CALLS.forEach(function(c){
@@ -3294,7 +3313,7 @@ function boaRenderRegion(){
   });
   var rows = Object.keys(map).map(function(k){ return {dim:k, agg:boaAgg(map[k])}; });
   rows.sort(function(a,b){
-    if(s.col===0) return a.dim<b.dim?-1:1;
+    if(s.col===0) return (a.dim<b.dim?-1:a.dim>b.dim?1:0) * s.dir;
     var va=boaValAt(a.agg,s.col,false), vb=boaValAt(b.agg,s.col,false);
     return (va<vb?-1:va>vb?1:0) * s.dir;
   });
@@ -3304,6 +3323,7 @@ function boaRenderRegion(){
   tb.innerHTML = html;
 }
 function boaRenderGrouped(tblId, groupField, dimField){
+  boaRenderHeader(tblId);
   var s = boaSortState[tblId];
   var map = {};
   BOA_CALLS.forEach(function(c){
@@ -3326,8 +3346,8 @@ function boaRenderGrouped(tblId, groupField, dimField){
     gAgg[g] = boaAgg(items);
   });
   groups.sort(function(a,b){
-    if(s.col===0) return a<b?-1:1;
-    if(s.col===1) return gAgg[a].total>gAgg[b].total?-1:1;
+    if(s.col===0) return (a<b?-1:a>b?1:0) * s.dir;
+    if(s.col===1) return (gAgg[a].total>gAgg[b].total?-1:gAgg[a].total<gAgg[b].total?1:0) * s.dir;
     var va=boaValAt(gAgg[a],s.col,true), vb=boaValAt(gAgg[b],s.col,true);
     return (va<vb?-1:va>vb?1:0) * s.dir;
   });
@@ -3336,7 +3356,7 @@ function boaRenderGrouped(tblId, groupField, dimField){
   groups.forEach(function(g){
     var leaves = rows.filter(function(r){ return r.g===g; });
     leaves.sort(function(a,b){
-      if(s.col<=1) return a.d<b.d?-1:1;
+      if(s.col<=1) return (a.d<b.d?-1:a.d>b.d?1:0) * s.dir;
       var va=boaValAt(a.agg,s.col,true), vb=boaValAt(b.agg,s.col,true);
       return (va<vb?-1:va>vb?1:0) * s.dir;
     });
@@ -3369,7 +3389,8 @@ function boaInit(){
   var lab = document.getElementById('boaLabelSpan');
   if(lab) lab.textContent = '· computed from CUL Daily Movement (follows Port Wait date range)';
   Object.keys(BOA_HEADERS).forEach(function(id){
-    document.getElementById(id).querySelector('thead').innerHTML = boaBuildHeader(id);
+    boaSortState[id] = {col: BOA_HEADERS[id].indexOf('Rate'), dir: -1};
+    boaRenderHeader(id);
   });
   boaMakeSortable('boaTblTrade', boaRenderTrade);
   boaMakeSortable('boaTblRegion', boaRenderRegion);
