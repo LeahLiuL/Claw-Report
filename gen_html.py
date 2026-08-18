@@ -1145,7 +1145,7 @@ function _loadXlsx(cb){
       <button onclick="collapseAllMaintPort()" style="font-size:11px;padding:2px 8px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;margin-left:4px;">Collapse all</button>
     </span>
   </h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand its <b>unmaintained</b> calls, split into two blocks: <b>Port Log 未维护 (Y/N = N)</b> and <b>Vessel Schedule 未维护 (Not maintained)</b>.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand <b>all calls</b> for that port, each with its Port Log (Y/N) and Vessel Schedule (Maintain timely / Not maintained) status. Red = not maintained.</p>
   <div class="table-wrap">
     <table id="maintPortTable" style="min-width:auto;"><thead><tr id="maintPortThead"></tr></thead><tbody id="maintPortTbody"></tbody></table>
   </div>
@@ -1979,7 +1979,7 @@ var EXPORT_TABLES = [
     {id:'speedTable', label:'Vessel Speed', sheet:'Vessel Speed'},
   ]},
   {group:'Maintenance', items:[
-    {id:'maintPortTable', label:'Maintenance by Port (with unmaintained detail)', sheet:'Maint by Port'},
+    {id:'maintPortTable', label:'Maintenance by Port (all-call detail)', sheet:'Maint by Port'},
     {id:'maintPlogNoTable', label:'Port Log Unmaintained Detail', sheet:'Maint PLog No'},
     {id:'maintVsNoTable', label:'Vessel Schedule Unmaintained Detail', sheet:'Maint VS No'},
     {id:'maintMonthTable', label:'Maintenance Monthly Trend', sheet:'Maint Monthly'},
@@ -3587,32 +3587,31 @@ function renderMaintChips(recs){
 function maintPortId(port){ return 'maintPortDetail-' + String(port).replace(/[^A-Za-z0-9_-]/g,'_'); }
 
 function buildMaintDetailBlocks(g){
-  // Split unmaintained calls into two separate blocks: Port Log vs Vessel Schedule
-  var plogNo = g.unmaintained.filter(function(r){ return r.plog !== 'Y'; });
-  var vsNo   = g.unmaintained.filter(function(r){ return r.vsched !== 1; });
-  function block(title, arr, statusTxt){
-    if(!arr.length) return '';
-    arr = arr.slice().sort(function(a,b){
-      return (a.etd||'').localeCompare(b.etd||'') || (a.service||'').localeCompare(b.service||'') || (a.vessel||'').localeCompare(b.vessel||'');
-    });
-    var h = '<div style="font-size:11px;font-weight:600;color:#C0392B;margin:8px 0 2px;">' + title + ' (' + arr.length + ')</div>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:2px 0 8px;">' +
-      '<thead><tr style="background:#f6e8e8;color:#8b3a3a;"><th style="padding:3px 6px;text-align:left;">Service</th><th style="padding:3px 6px;text-align:left;">Vessel</th><th style="padding:3px 6px;text-align:left;">Voyage</th><th style="padding:3px 6px;text-align:left;">Dir</th><th style="padding:3px 6px;text-align:left;">Operator</th><th style="padding:3px 6px;text-align:left;">ETD</th><th style="padding:3px 6px;text-align:left;">Status</th></tr></thead><tbody>';
-    arr.forEach(function(r, i){
-      var bg = (i % 2 === 0) ? '' : ' style="background:#faf0f0;"';
-      h += '<tr' + bg + '>' +
-        '<td style="padding:3px 6px;">' + (r.service||'') + '</td>' +
-        '<td style="padding:3px 6px;">' + (r.vessel||'') + '</td>' +
-        '<td style="padding:3px 6px;">' + (r.voyage||'') + '</td>' +
-        '<td style="padding:3px 6px;">' + (r.dir||'') + '</td>' +
-        '<td style="padding:3px 6px;">' + (r.operator||'') + '</td>' +
-        '<td style="padding:3px 6px;">' + (r.etd||'') + '</td>' +
-        '<td style="padding:3px 6px;color:#C0392B;font-weight:600;">' + statusTxt + '</td></tr>';
-    });
-    return h + '</tbody></table>';
-  }
-  return block('Port Log 未维护 (Y/N = N)', plogNo, 'N') +
-         block('Vessel Schedule 未维护 (Not maintained)', vsNo, 'Not maintained');
+  // Show ALL calls for this port, with Port Log / Vessel Sched status per row
+  var arr = g.all.slice().sort(function(a,b){
+    return (a.etd||'').localeCompare(b.etd||'') || (a.service||'').localeCompare(b.service||'') || (a.vessel||'').localeCompare(b.vessel||'');
+  });
+  var h = '<div style="font-size:11px;font-weight:600;color:#1F4E79;margin:8px 0 2px;">All calls (' + arr.length + ') &mdash; ' +
+    'Port Log: <b style="color:#2E7D32;">Y</b> maintained / <b style="color:#C0392B;">N</b> not maintained; ' +
+    'Vessel Sched: <b style="color:#2E7D32;">Maintain timely</b> / <b style="color:#C0392B;">Not maintained</b></div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:2px 0 8px;">' +
+    '<thead><tr style="background:#e8eff6;color:#1F4E79;"><th style="padding:3px 6px;text-align:left;">Service</th><th style="padding:3px 6px;text-align:left;">Vessel</th><th style="padding:3px 6px;text-align:left;">Voyage</th><th style="padding:3px 6px;text-align:left;">Dir</th><th style="padding:3px 6px;text-align:left;">Operator</th><th style="padding:3px 6px;text-align:left;">Port</th><th style="padding:3px 6px;text-align:left;">ETD</th><th style="padding:3px 6px;text-align:left;">Port Log</th><th style="padding:3px 6px;text-align:left;">Vessel Sched</th></tr></thead><tbody>';
+  arr.forEach(function(r, i){
+    var bg = (i % 2 === 0) ? '' : ' style="background:#f0f6fc;"';
+    var plogCls = (r.plog === 'Y') ? 'color:#2E7D32;' : 'color:#C0392B;font-weight:600;';
+    var vsCls   = (r.vsched === 1) ? 'color:#2E7D32;' : 'color:#C0392B;font-weight:600;';
+    h += '<tr' + bg + '>' +
+      '<td style="padding:3px 6px;">' + (r.service||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.vessel||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.voyage||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.dir||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.operator||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.port||'') + '</td>' +
+      '<td style="padding:3px 6px;">' + (r.etd||'') + '</td>' +
+      '<td style="padding:3px 6px;' + plogCls + '">' + (r.plog==='Y' ? 'Y' : 'N') + '</td>' +
+      '<td style="padding:3px 6px;' + vsCls + '">' + (r.vsched===1 ? 'Maintain timely' : 'Not maintained') + '</td></tr>';
+  });
+  return h + '</tbody></table>';
 }
 
 function toggleMaintPort(port){
@@ -3644,9 +3643,10 @@ function renderMaintByPort(){
   var groups = {};
   recs.forEach(function(r){
     var k = r.port || '(blank)';
-    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0, unmaintained:[]};
+    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0, unmaintained:[], all:[]};
     var g = groups[k];
     g.calls++;
+    g.all.push(r);
     if(r.plog === 'Y') g.plog++;
     if(r.vsched === 1) g.vs++;
     if(r.plog !== 'Y' || r.vsched !== 1) g.unmaintained.push(r);
@@ -3667,7 +3667,7 @@ function renderMaintByPort(){
   rows.forEach(function(g, i){
     var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
     var styleAttr = (i % 2 === 0) ? 'background:#EBF3FB;' : '';
-    var hasDetail = g.unmaintained.length > 0;
+    var hasDetail = g.calls > 0;
     if(hasDetail) styleAttr += 'cursor:pointer;';
     var bg = styleAttr ? ' style="' + styleAttr + '"' : '';
     var arrow = hasDetail ? '<span class="maint-toggle-arrow" style="color:#1F4E79;">&#9656;</span>' : '';
