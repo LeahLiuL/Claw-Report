@@ -417,13 +417,70 @@ def ensure_maint_source():
         print(f"  [MAINT] SFTP fetch failed: {msg}", file=sys.stderr, flush=True)
         if "10060" in msg or "timed out" in msg.lower() or "Unable to connect" in msg:
             print("  [MAINT] Hint: 10.5.4.2 is internal — connect VPN first.", file=sys.stderr, flush=True)
-        return None, 
+        return None, ''
+
+# ── 维护率台账列头识别（新旧文件兼容）───────────────────────────────────
+# 旧文件列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
+#           I=Port Log Y/N J=Vessel Schedule Maintain Status
+# 新文件(SFTP 改名后)删除了 Vessel 列、整体左移，ETD 时间列落在原 Port 位置，
+# 必须按表头名映射，不能依赖固定列位置。
+MAINT_HEADER_TOKENS = [
+    ('plog',     ('port log', 'portlog', 'plog'),  None),
+    ('vsched',   ('vessel schedule', 'vsched'),    None),
+    ('service',  ('service',),    None),
+    ('vessel',   ('vessel',),     ('vessel schedule',)),
+    ('voyage',   ('voyage',),     None),
+    ('dir',      ('direction', 'dir'),  None),
+    ('operator', ('operator', 'op'),   None),
+    ('port',     ('port',),       ('port log',)),
+    ('etd',      ('etd',),        None),
+]
+
+def _norm_hdr(h):
+    """表头归一化：转小写、去非字母数字。"""
+    return re.sub(r'[^a-z0-9]', '', str(h or '').strip().lower())
+
+def _hdr_has(nh, *tokens):
+    for t in tokens:
+        nt = _norm_hdr(t)
+        if nh == nt or nh.startswith(nt) or nt in nh:
+            return True
+    return False
+
+def detect_maint_columns(header_row):
+    """按表头名解析列索引(0-based)；表头不可识别返回 None。
+    复合名('port log'/'vessel schedule')优先匹配，防止 'port'/'vessel' 误吞。"""
+    if not header_row:
+        return None
+    cols = {}
+    for key, tokens, guard in MAINT_HEADER_TOKENS:
+        for ci, h in enumerate(header_row):
+            nh = _norm_hdr(h)
+            if not nh or not _hdr_has(nh, *tokens):
+                continue
+            if guard and _hdr_has(nh, *guard):
+                continue
+            cols[key] = ci
+            break
+    if 'service' not in cols or 'port' not in cols:
+        return None
+    return cols
+
+# 旧固定布局（0-based）: service=1 vessel=2 voyage=3 dir=4 operator=5
+#                        port=6 etd=7 plog=8 vsched=9
+LEGACY_MAINT_COLS = {'service': 1, 'vessel': 2, 'voyage': 3, 'dir': 4,
+                     'operator': 5, 'port': 6, 'etd': 7, 'plog': 8, 'vsched': 9}
+PORT_CODE_RE = re.compile(r'^[A-Z]{4,5}[A-Z0-9]{0,2}$')
 
 def load_maint_data():
-    """读取维护率台账，返回 {date, generatedAt, source, records:[...]}。
-    任何环境（含源文件不可达）都返回合法结构：records 为空时前端展示提示，
-    生成脚本不会因此崩溃。"""
-    src, src_mtime = ensure_maint_source()
+    """读取维护率台账，返回 {date, generatedAt, source, records:[...], sourceMtime}。
+    列映射优先级：1) 表头名识别(兼容列顺序变化/缺列)；2) port 列内容校验(港口码 vs 时间)；
+    3) 旧固定布局回退。任何环境（含源文件不可达）都返回合法结构，生成脚本不崩溃。"""
+    src_ret = ensure_maint_source()
+    if isinstance(src_ret, tuple) and len(src_ret) >= 2:
+        src, src_mtime = src_ret[0], src_ret[1]
+    else:
+        src, src_mtime = src_ret, ''
     out = {'date': '', 'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
            'source': src or '(no source)', 'records': [], 'sourceMtime': src_mtime}
     if not src or not os.path.exists(src):
@@ -432,33 +489,72 @@ def load_maint_data():
     try:
         wb = openpyxl.load_workbook(src, data_only=True)
         ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            out['source'] = (src or '') + '  ·  UNAVAILABLE: empty workbook'
+            print('  [MAINT] source unavailable: empty workbook')
+            return out
+
+        def _get(row, key):
+            ci = cols.get(key)
+            return row[ci] if ci is not None and ci < len(row) else None
+
+        def _looks_like_port_col(r0):
+            sample = [_get(r, 'port') for r in rows[r0:r0 + 300]]
+            vals = [str(v).strip() for v in sample if v is not None and str(v).strip()]
+            if not vals:
+                return False
+            hits = sum(1 for v in vals if PORT_CODE_RE.match(v))
+            return hits / len(vals) >= 0.5
+
+        # 1) 表头名识别（第 1 行可能是标题行，再试行 2）
+        cols, data_start = None, 1
+        for ri in (0, 1):
+            if ri >= len(rows):
+                break
+            c = detect_maint_columns(rows[ri])
+            if c:
+                cols, data_start = c, ri + 1
+                print('  [MAINT] columns mapped by header (row %d): %s' %
+                      (ri + 1, ', '.join('%s=%s' % (k, v) for k, v in sorted(c.items()))))
+                break
+        # 2) 回退旧固定布局
+        if cols is None:
+            cols = dict(LEGACY_MAINT_COLS)
+            data_start = 1
+            print('  [MAINT] header not recognized, fallback to legacy fixed layout')
+        # 3) port 列内容校验：超过一半非空值是港口码才认为正确，否则试旧布局
+        if not _looks_like_port_col(data_start) and cols != LEGACY_MAINT_COLS:
+            print('  [MAINT] port column validation failed (looks like non-port values), trying legacy layout')
+            cols = dict(LEGACY_MAINT_COLS)
+            data_start = 1
+
         recs = []
         etds = []
-        for ri in range(2, ws.max_row + 1):
-            svc = ws.cell(ri, 2).value
-            port = ws.cell(ri, 7).value
+        for row in rows[data_start:]:
+            svc = _get(row, 'service')
+            port = _get(row, 'port')
             if (svc is None or str(svc).strip() == '') and (port is None or str(port).strip() == ''):
                 continue  # 跳过空行
-            op = ws.cell(ri, 6).value
-            etd_raw = ws.cell(ri, 8).value
-            plog = ws.cell(ri, 9).value
-            vsched_raw = ws.cell(ri, 10).value
+            etd_raw = _get(row, 'etd')
             if etd_raw is not None:
                 etd = etd_raw.strftime('%Y-%m-%d') if hasattr(etd_raw, 'strftime') else str(etd_raw)[:10]
             else:
                 etd = ''
             if etd:
                 etds.append(etd)
+            vsched_raw = _get(row, 'vsched')
+            plog_raw = _get(row, 'plog')
             recs.append({
-                'service': '' if svc is None else str(svc).strip(),
-                'vessel':  '' if ws.cell(ri, 3).value is None else str(ws.cell(ri, 3).value).strip(),
-                'voyage':  '' if ws.cell(ri, 4).value is None else str(ws.cell(ri, 4).value).strip(),
-                'dir':     '' if ws.cell(ri, 5).value is None else str(ws.cell(ri, 5).value).strip(),
-                'operator':'' if op is None else str(op).strip(),
-                'port':    '' if port is None else str(port).strip(),
-                'etd':     etd,
-                'plog':    '' if plog is None else str(plog).strip().upper(),
-                'vsched':  1 if (vsched_raw is not None and 'timely' in str(vsched_raw).lower()) else 0,
+                'service':  '' if svc is None else str(svc).strip(),
+                'vessel':   '' if _get(row, 'vessel') is None else str(_get(row, 'vessel')).strip(),
+                'voyage':   '' if _get(row, 'voyage') is None else str(_get(row, 'voyage')).strip(),
+                'dir':      '' if _get(row, 'dir') is None else str(_get(row, 'dir')).strip(),
+                'operator': '' if _get(row, 'operator') is None else str(_get(row, 'operator')).strip(),
+                'port':     '' if port is None else str(port).strip(),
+                'etd':      etd,
+                'plog':     '' if plog_raw is None else str(plog_raw).strip().upper(),
+                'vsched':   1 if (vsched_raw is not None and 'timely' in str(vsched_raw).lower()) else 0,
             })
         out['records'] = recs
         out['date'] = (min(etds) + ' ~ ' + max(etds)) if etds else ''
