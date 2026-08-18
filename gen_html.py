@@ -3809,6 +3809,17 @@ def main():
 
     maint = load_maint_data()
 
+    # 生成后自检：MAINT 有数据但 port 列超一半是时间戳 → 列映射错位，禁止发布
+    _maint_recs = maint.get('records') or []
+    if _maint_recs:
+        _ports = [str(r.get('port') or '') for r in _maint_recs]
+        _ts = [p for p in _ports if re.match(r'^\d{4}-\d{2}-\d{2}', p)]
+        if _ts and len(_ts) / max(1, len(_ports)) >= 0.5:
+            print('  [MAINT] ERROR: port column misaligned (%d/%d values are timestamps) — '
+                  'aborting publish to avoid shipping a broken dashboard'
+                  % (len(_ts), len(_ports)), file=sys.stderr, flush=True)
+            sys.exit(1)
+
     # Build column defs JSON for JS
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
     col_defs_full    = [{"key":c[0],"label":c[1],"defaultVisible":c[3]} for c in FULL_COLUMNS]
