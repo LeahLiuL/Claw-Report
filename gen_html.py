@@ -1145,7 +1145,7 @@ function _loadXlsx(cb){
       <button onclick="collapseAllMaintPort()" style="font-size:11px;padding:2px 8px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;margin-left:4px;">Collapse all</button>
     </span>
   </h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand its <b>unmaintained</b> calls (Port Log = N or Vessel Schedule ≠ &quot;Maintain timely&quot;). Red cells mark the missing item.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Click a port row to expand its <b>unmaintained</b> calls, split into two blocks: <b>Port Log 未维护 (Y/N = N)</b> and <b>Vessel Schedule 未维护 (Not maintained)</b>.</p>
   <div class="table-wrap">
     <table id="maintPortTable" style="min-width:auto;"><thead><tr id="maintPortThead"></tr></thead><tbody id="maintPortTbody"></tbody></table>
   </div>
@@ -1153,6 +1153,9 @@ function _loadXlsx(cb){
   <!-- Unmaintained Details: Port Log and Vessel Schedule separated -->
   <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Port Log 未维护明细 <span id="maintPlogNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
     <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Port Log Y/N = N 的船期（未维护 Port Log）</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;white-space:nowrap;">
+      <input id="maintPlogNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
+    </span>
   </h3>
   <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
     <table id="maintPlogNoTable" style="min-width:auto;"><thead><tr id="maintPlogNoThead"></tr></thead><tbody id="maintPlogNoTbody"></tbody></table>
@@ -1160,6 +1163,9 @@ function _loadXlsx(cb){
 
   <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Vessel Schedule 未维护明细 <span id="maintVsNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
     <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Vessel Schedule Maintain Status = Not maintained 的船期（未维护船期）</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;white-space:nowrap;">
+      <input id="maintVsNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
+    </span>
   </h3>
   <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
     <table id="maintVsNoTable" style="min-width:auto;"><thead><tr id="maintVsNoThead"></tr></thead><tbody id="maintVsNoTbody"></tbody></table>
@@ -3580,27 +3586,33 @@ function renderMaintChips(recs){
 
 function maintPortId(port){ return 'maintPortDetail-' + String(port).replace(/[^A-Za-z0-9_-]/g,'_'); }
 
-function buildMaintDetailRows(recs){
-  var arr = recs.slice().sort(function(a,b){
-    return (a.service||'').localeCompare(b.service||'') || (a.etd||'').localeCompare(b.etd||'');
-  });
-  var html = '';
-  arr.forEach(function(r, idx){
-    var bg = (idx % 2 === 0) ? ' style="background:#f4f8fc;"' : '';
-    var plogCls = (r.plog === 'Y') ? '' : ' style="color:#C0392B;font-weight:600;"';
-    var vsCls  = (r.vsched === 1) ? '' : ' style="color:#C0392B;font-weight:600;"';
-    html += '<tr' + bg + '>' +
-      '<td>' + (r.service||'') + '</td>' +
-      '<td>' + (r.vessel||'') + '</td>' +
-      '<td>' + (r.voyage||'') + '</td>' +
-      '<td>' + (r.dir||'') + '</td>' +
-      '<td>' + (r.operator||'') + '</td>' +
-      '<td>' + (r.etd||'') + '</td>' +
-      '<td' + plogCls + '>' + ((r.plog==='Y')?'Y':'N') + '</td>' +
-      '<td' + vsCls + '>' + ((r.vsched===1)?'Maintain timely':'Not maintained') + '</td>' +
-      '</tr>';
-  });
-  return html;
+function buildMaintDetailBlocks(g){
+  // Split unmaintained calls into two separate blocks: Port Log vs Vessel Schedule
+  var plogNo = g.unmaintained.filter(function(r){ return r.plog !== 'Y'; });
+  var vsNo   = g.unmaintained.filter(function(r){ return r.vsched !== 1; });
+  function block(title, arr, statusTxt){
+    if(!arr.length) return '';
+    arr = arr.slice().sort(function(a,b){
+      return (a.etd||'').localeCompare(b.etd||'') || (a.service||'').localeCompare(b.service||'') || (a.vessel||'').localeCompare(b.vessel||'');
+    });
+    var h = '<div style="font-size:11px;font-weight:600;color:#C0392B;margin:8px 0 2px;">' + title + ' (' + arr.length + ')</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:2px 0 8px;">' +
+      '<thead><tr style="background:#f6e8e8;color:#8b3a3a;"><th style="padding:3px 6px;text-align:left;">Service</th><th style="padding:3px 6px;text-align:left;">Vessel</th><th style="padding:3px 6px;text-align:left;">Voyage</th><th style="padding:3px 6px;text-align:left;">Dir</th><th style="padding:3px 6px;text-align:left;">Operator</th><th style="padding:3px 6px;text-align:left;">ETD</th><th style="padding:3px 6px;text-align:left;">Status</th></tr></thead><tbody>';
+    arr.forEach(function(r, i){
+      var bg = (i % 2 === 0) ? '' : ' style="background:#faf0f0;"';
+      h += '<tr' + bg + '>' +
+        '<td style="padding:3px 6px;">' + (r.service||'') + '</td>' +
+        '<td style="padding:3px 6px;">' + (r.vessel||'') + '</td>' +
+        '<td style="padding:3px 6px;">' + (r.voyage||'') + '</td>' +
+        '<td style="padding:3px 6px;">' + (r.dir||'') + '</td>' +
+        '<td style="padding:3px 6px;">' + (r.operator||'') + '</td>' +
+        '<td style="padding:3px 6px;">' + (r.etd||'') + '</td>' +
+        '<td style="padding:3px 6px;color:#C0392B;font-weight:600;">' + statusTxt + '</td></tr>';
+    });
+    return h + '</tbody></table>';
+  }
+  return block('Port Log 未维护 (Y/N = N)', plogNo, 'N') +
+         block('Vessel Schedule 未维护 (Not maintained)', vsNo, 'Not maintained');
 }
 
 function toggleMaintPort(port){
@@ -3666,13 +3678,19 @@ function renderMaintByPort(){
       maintNumCell(g.calls) + maintNumCell(g.plog) + maintRateCell(plogPct) +
       maintNumCell(g.vs) + maintRateCell(vsPct) + maintNumCell(g.unmaintained.length) + '</tr>';
     if(hasDetail){
-      html += '<tr class="detail-wrap" id="' + maintPortId(g.key) + '" style="display:none;"><td colspan="8" style="padding:0 0 0 28px;background:#fafcff;">' +
-        '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0;">' +
-        '<thead><tr style="background:#eef2f7;color:#555;"><th>Service</th><th>Vessel</th><th>Voyage</th><th>Dir</th><th>Operator</th><th>ETD</th><th>Port Log</th><th>Vessel Sched</th></tr></thead>' +
-        '<tbody>' + buildMaintDetailRows(g.unmaintained) + '</tbody></table></td></tr>';
+      html += '<tr class="detail-wrap" id="' + maintPortId(g.key) + '" style="display:none;"><td colspan="8" style="padding:4px 8px 4px 28px;background:#fafcff;">' +
+        buildMaintDetailBlocks(g) + '</td></tr>';
     }
   });
   tbody.innerHTML = html;
+}
+
+var maintSort = { plogNo: {key:'etd', dir:1}, vsNo: {key:'etd', dir:1} };
+
+function maintSortTable(which, key){
+  var st = maintSort[which];
+  if(st.key === key){ st.dir = -st.dir; } else { st.key = key; st.dir = 1; }
+  renderMaintUnmaintained();
 }
 
 function renderMaintUnmaintained(){
@@ -3682,15 +3700,49 @@ function renderMaintUnmaintained(){
     if(r.plog !== 'Y') plogNo.push(r);
     if(r.vsched !== 1) vsNo.push(r);
   });
-  var byEtd = function(a,b){ return (a.etd||'').localeCompare(b.etd||'') || (a.service||'').localeCompare(b.service||'') || (a.vessel||'').localeCompare(b.vessel||''); };
-  plogNo.sort(byEtd); vsNo.sort(byEtd);
 
-  var headHtml = '<tr><th>Service</th><th>Vessel</th><th>Voyage</th><th>Dir</th><th>Operator</th><th>Port</th><th>ETD</th><th>Status</th></tr>';
-  document.getElementById('maintPlogNoThead').innerHTML = headHtml;
-  document.getElementById('maintVsNoThead').innerHTML = headHtml;
+  // Search filters (match any text column, case-insensitive)
+  var qPlog = (document.getElementById('maintPlogNoSearch').value || '').trim().toLowerCase();
+  var qVs   = (document.getElementById('maintVsNoSearch').value || '').trim().toLowerCase();
+  function match(r, q){
+    if(!q) return true;
+    return ['service','vessel','voyage','dir','operator','port','etd'].some(function(k){
+      return String(r[k]||'').toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  if(qPlog) plogNo = plogNo.filter(function(r){ return match(r, qPlog); });
+  if(qVs)   vsNo   = vsNo.filter(function(r){ return match(r, qVs); });
 
-  function rowsHtml(arr, statusTxt){
-    if(!arr.length) return '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:12px;">All maintained — no unmaintained calls for current filters.</td></tr>';
+  // Sort by current column/direction
+  function sortArr(arr, st){
+    arr.sort(function(a,b){
+      return String(a[st.key]||'').localeCompare(String(b[st.key]||''), 'zh', {numeric:true}) * st.dir;
+    });
+  }
+  sortArr(plogNo, maintSort.plogNo);
+  sortArr(vsNo, maintSort.vsNo);
+
+  var COLS = [['service','Service'],['vessel','Vessel'],['voyage','Voyage'],['dir','Dir'],
+              ['operator','Operator'],['port','Port'],['etd','ETD']];
+  function headHtml(which){
+    var st = maintSort[which], h = '<tr>';
+    COLS.forEach(function(c){
+      var arrow = (st.key === c[0]) ? (st.dir === 1 ? ' &#9650;' : ' &#9660;') : '';
+      h += '<th style="cursor:pointer;white-space:nowrap;user-select:none;" onclick="maintSortTable(\'' + which + '\',\'' + c[0] + '\')">' + c[1] + arrow + '</th>';
+    });
+    h += '<th>Status</th></tr>';
+    return h;
+  }
+  document.getElementById('maintPlogNoThead').innerHTML = headHtml('plogNo');
+  document.getElementById('maintVsNoThead').innerHTML = headHtml('vsNo');
+
+  function rowsHtml(arr, statusTxt, isFiltered){
+    if(!arr.length){
+      var msg = isFiltered
+        ? 'No rows match the current search filter.'
+        : 'All maintained &#8212; no unmaintained calls for current filters.';
+      return '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:12px;">' + msg + '</td></tr>';
+    }
     var h = '';
     arr.forEach(function(r, i){
       var bg = (i % 2 === 0) ? ' style="background:#fdf2f2;"' : '';
@@ -3706,8 +3758,8 @@ function renderMaintUnmaintained(){
     });
     return h;
   }
-  document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N');
-  document.getElementById('maintVsNoTbody').innerHTML = rowsHtml(vsNo, 'Not maintained');
+  document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N', !!qPlog);
+  document.getElementById('maintVsNoTbody').innerHTML = rowsHtml(vsNo, 'Not maintained', !!qVs);
   document.getElementById('maintPlogNoCount').textContent = '(' + plogNo.length.toLocaleString() + ' calls)';
   document.getElementById('maintVsNoCount').textContent = '(' + vsNo.length.toLocaleString() + ' calls)';
 }
