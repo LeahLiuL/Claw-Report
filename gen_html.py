@@ -1124,6 +1124,12 @@ function _loadXlsx(cb){
       <button class="filter-btn" id="maintVesselFilterBtn" onclick="toggleMaintVesselFilter()">All Vessels</button>
       <div class="filter-dropdown col-dropdown" id="maintVesselFilterDropdown"></div>
     </div>
+    <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128205; Port:</span>
+    <div style="position:relative;display:inline-block;">
+      <button class="filter-btn" id="maintPortFilterBtn" onclick="toggleMaintPortFilter()">All Ports</button>
+      <div class="filter-dropdown col-dropdown" id="maintPortFilterDropdown"></div>
+    </div>
+    <input type="text" id="maintPortSearch" placeholder="&#128269; Search ports..." oninput="onMaintPortSearch()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:160px;">
   </div>
 
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 判定规则: Port Log 维护 = I 列 Y；Vessel Schedule 维护 = J 列 &quot;Maintain timely&quot;（Not maintained 即未维护）。两类未维护明细已分开列出。</p>
@@ -3545,6 +3551,85 @@ function onMaintFilterItemChange(which, cb){
   applyMaintFilterFromDOM(which);
 }
 
+// ── Maintenance Port filter (mirrors Port Wait: checkbox dropdown + free-text search) ──
+var selMaintPortFilter = null;  // null = show all ports
+var selMaintPortSearch = '';    // free-text port search (AND with checkbox filter)
+
+function onMaintPortSearch(){
+  selMaintPortSearch = (document.getElementById('maintPortSearch').value || '').trim();
+  renderMaint();
+}
+
+function buildMaintPortFilterDropdown(){
+  var dd = document.getElementById('maintPortFilterDropdown');
+  var allPorts = {};
+  MAINT_RECORDS.forEach(function(r){ var p = (r.port || '').trim(); if(p) allPorts[p] = true; });
+  var sorted = Object.keys(allPorts).sort();
+  var kw = (document.getElementById('maintPortFilterSearchBox') ? document.getElementById('maintPortFilterSearchBox').value : '').toLowerCase();
+  var html = '<div style="padding:2px 8px 6px;border-bottom:1px solid #e4ecf5;margin-bottom:4px;">';
+  html += '<input type="text" id="maintPortFilterSearchBox" placeholder="&#128269; Search ports..." value="'+kw+'" oninput="onMaintPortFilterSearchBox()" style="width:100%;padding:4px 8px;border:1px solid #c9d5e2;border-radius:4px;font-size:12px;box-sizing:border-box;">';
+  html += '</div>';
+  html += '<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
+  html += '<input type="checkbox" value="__all__" '+(selMaintPortFilter===null?'checked':'')+' onchange="onMaintPortFilterAllChange(this)">';
+  html += '<b>All Ports</b></label>';
+  sorted.forEach(function(p){
+    var checked = selMaintPortFilter===null || selMaintPortFilter.indexOf(p)>=0;
+    var match = !kw || p.toLowerCase().indexOf(kw)>=0;
+    html += '<label data-p="'+p+'" style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;'+(match?'':'display:none;')+'">';
+    html += '<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onMaintPortFilterItemChange(this)">';
+    html += p+'</label>';
+  });
+  dd.innerHTML = html;
+  updateMaintPortFilterButton();
+}
+
+function onMaintPortFilterSearchBox(){
+  var kw = (document.getElementById('maintPortFilterSearchBox').value || '').toLowerCase();
+  document.querySelectorAll('#maintPortFilterDropdown label[data-p]').forEach(function(lb){
+    var p = lb.getAttribute('data-p');
+    lb.style.display = (!kw || p.toLowerCase().indexOf(kw)>=0) ? 'flex' : 'none';
+  });
+}
+
+function toggleMaintPortFilter(){
+  var dd = document.getElementById('maintPortFilterDropdown');
+  if(!dd.classList.contains('open')){ buildMaintPortFilterDropdown(); dd.classList.add('open'); }
+  else dd.classList.remove('open');
+  document.querySelectorAll('.filter-dropdown').forEach(function(d){ if(d!==dd) d.classList.remove('open'); });
+}
+
+function updateMaintPortFilterButton(){
+  var checks = document.querySelectorAll('#maintPortFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  var total = 0, sel = [];
+  checks.forEach(function(cb){ total++; if(cb.checked) sel.push(cb.value); });
+  var btn = document.getElementById('maintPortFilterBtn');
+  if(sel.length === total){ btn.textContent = 'All Ports'; btn.classList.remove('has-selection'); }
+  else { btn.textContent = sel.length + ' of ' + total + ' ports'; btn.classList.add('has-selection'); }
+}
+
+function applyMaintPortFilterFromDOM(){
+  var allCb = document.querySelector('#maintPortFilterDropdown input[value="__all__"]');
+  var checks = document.querySelectorAll('#maintPortFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  var total = 0, sel = [];
+  checks.forEach(function(cb){ total++; if(cb.checked) sel.push(cb.value); });
+  if(sel.length === total){ selMaintPortFilter = null; if(allCb) allCb.checked = true; }
+  else { selMaintPortFilter = sel; if(allCb) allCb.checked = false; }
+  updateMaintPortFilterButton();
+  renderMaint();
+}
+
+function onMaintPortFilterAllChange(allCb){
+  var checks = document.querySelectorAll('#maintPortFilterDropdown input[type=checkbox]:not([value="__all__"])');
+  checks.forEach(function(cb){ cb.checked = allCb.checked; });
+  selMaintPortFilter = allCb.checked ? null : [];
+  updateMaintPortFilterButton();
+  renderMaint();
+}
+
+function onMaintPortFilterItemChange(cb){
+  applyMaintPortFilterFromDOM();
+}
+
 function saveMaintFilter(which){
   var def = MAINT_FILTER_DEFS[which];
   try { localStorage.setItem(def.lsKey, JSON.stringify(getMaintFilterVal(which))); } catch(e){}
@@ -3584,6 +3669,9 @@ function maintFiltered(){
     if(t && e && e > t) return false;
     if(selMaintServiceFilter && selMaintServiceFilter.indexOf((r.service||'').trim()) < 0) return false;
     if(selMaintVesselFilter && selMaintVesselFilter.indexOf((r.vessel||'').trim()) < 0) return false;
+    var _mp = (r.port || '').trim();
+    if(selMaintPortFilter && selMaintPortFilter.indexOf(_mp) < 0) return false;
+    if(selMaintPortSearch && _mp.toLowerCase().indexOf(selMaintPortSearch.toLowerCase()) < 0) return false;
     return true;
   });
 }
