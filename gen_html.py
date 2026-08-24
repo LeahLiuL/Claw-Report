@@ -268,8 +268,8 @@ def extract(excel_path):
 # ── BOA 映射 (Port & Lane Mapping + 补充映射) ─────────────────────────────
 # BOA 数据行从 Daily Movement 船期实时聚合 (前端跟随 Port Wait 日期筛选)，
 # Lane→Trade / Port→Region 归类从映射表找；映射表未覆盖的在此补充。
-# 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx
-BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 202607.xlsx"
+# 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 2026 week 31.xlsx
+BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 2026 week 31.xlsx"
 
 # 维护率数据源：Vessel Schedule / Port Log 维护情况台账
 # 列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
@@ -288,7 +288,7 @@ MAINT_LOCAL_CACHE = os.path.join(SCRIPT_DIR, ".cache", "Vessel Schedule Maintain
 
 # ── BOA 映射：完整兜底映射表 ─────────────────────────────────────────────
 # 说明：以下 lane→trade 与 port→region 为「Port & Lane Mapping」表全量快照
-#       (船期统计 202607, 读取时间 2026-08-13) + 代码补充映射。
+#       (船期统计 2026 week 31, 读取时间 2026-08-24) + 代码补充映射。
 #       运行时优先读 P 盘映射表覆盖；P 盘不可达时用本兜底，保证 0 Unknown。
 # 更新方式：映射表有增删时，手动同步本字典（或运行 gen_html.py 打印 diff）。
 
