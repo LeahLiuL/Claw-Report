@@ -3,14 +3,19 @@
 """
 Generate static, GitHub-Pages-friendly sharded data from bapfile.db.
 
-Two indexes:
+Three indexes:
   data/cont/<PREFIX>.json.gz   -- one row per container_no, deduped by Target Port
                                   (keyed by first 4 chars of container_no = operator prefix).
                                   Used for container-number VLOOKUP.
-  data/month/<YYYY-MM>.json.gz -- all detail rows of that revenue month (for browsing
-                                  by VVD / Lane / Revenue Month / special-flag filters).
+  data/month/<YYYY-MM>.json.gz -- all detail rows of that revenue month.
+  data/lane/<LANE>.json.gz     -- all detail rows of that lane.
+                                  Used by the Browse UI: selecting a Lane loads just
+                                  that one shard; a VVD-only / month-only / flag-only
+                                  query loads every lane shard and filters locally.
+                                  The frontend reads MANIFEST.lane_files[lane] and
+                                  MANIFEST.lane_cols, so BOTH must be emitted here.
 
-Plus manifest.json (list of prefixes / months, column defs, generated_at, totals).
+Plus manifest.json (list of prefixes / months / lanes, column defs, generated_at, totals).
 
 Output layout is ready to be served as a static site (GitHub Pages).
 No Python backend required at view time.
@@ -25,6 +30,7 @@ BASE_COLS = ["vvd", "lane", "container_no", "fe", "pol", "pod", "type_size",
              "weight", "awk", "dg", "rf", "slot_opr", "cont_opr", "rev_month"]
 CONT_COLS = BASE_COLS + ["target_port", "mismatch"]
 MONTH_COLS = BASE_COLS + ["target_port"]
+LANE_COLS = BASE_COLS + ["target_port"]
 
 
 def gen_cont_index(con, out_dir):
@@ -116,9 +122,46 @@ def gen_month_index(con, out_dir):
     return months, month_files
 
 
-def gen_manifest(con, out_dir, prefixes, months, month_files):
-    lanes = [r[0] for r in con.execute(
-        "SELECT DISTINCT lane FROM bapfile WHERE lane IS NOT NULL AND lane<>'' ORDER BY lane")]
+def gen_lane_index(con, out_dir, lanes):
+    """One gzip shard per lane (data/lane/<LANE>.json.gz). The Browse UI selects a
+    Lane to load just that shard, or loads all lanes for a VVD-only filter.
+    NOTE: lane strings are used verbatim as both the manifest key and the filename;
+    they are alphanumeric (e.g. AM1, HDT) so this is URL-safe."""
+    d = os.path.join(out_dir, "data", "lane")
+    os.makedirs(d, exist_ok=True)
+    cols = LANE_COLS
+    lane_files = {}
+    t0 = time.time()
+    n_total = 0
+    for lane in lanes:
+        path = os.path.join(d, lane + ".json.gz")
+        f = gzip.open(path, "wt", encoding="utf-8", compresslevel=9)
+        f.write('{"cols":' + json.dumps(cols, ensure_ascii=False) + ',"rows":[')
+        cur = con.execute(
+            "SELECT " + ",".join(BASE_COLS) + ",target_port FROM bapfile WHERE lane=?", (lane,))
+        first = True
+        cnt = 0
+        while True:
+            row = cur.fetchone()
+            if row is None:
+                break
+            vals = [("" if v is None else v) for v in row]
+            if not first:
+                f.write(",")
+            f.write(json.dumps(vals, ensure_ascii=False))
+            first = False
+            cnt += 1
+        f.write("]}")
+        f.close()
+        lane_files[lane] = "data/lane/" + lane + ".json.gz"
+        n_total += cnt
+        sz = os.path.getsize(path)
+        print(f"  lane {lane}: {cnt} rows, {sz/1024/1024:.1f} MB gzip")
+    print(f"lane index done: {n_total} rows, {len(lanes)} lanes, {time.time()-t0:.0f}s")
+    return lane_files
+
+
+def gen_manifest(con, out_dir, prefixes, months, month_files, lanes, lane_files):
     cont_files = {p: "data/cont/" + p + ".json.gz" for p in prefixes}
     total_containers = con.execute(
         "SELECT COUNT(DISTINCT container_no) FROM bapfile").fetchone()[0]
@@ -128,18 +171,20 @@ def gen_manifest(con, out_dir, prefixes, months, month_files):
         "base_cols": BASE_COLS,
         "cont_cols": CONT_COLS,
         "month_cols": MONTH_COLS,
+        "lane_cols": LANE_COLS,
         "rev_months": months,
         "lanes": lanes,
         "cont_prefixes": prefixes,
         "cont_files": cont_files,
         "month_files": month_files,
+        "lane_files": lane_files,
         "total_containers": total_containers,
         "total_rows": total_rows,
     }
     with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
     print(f"manifest.json written: {total_containers} containers, {total_rows} rows, "
-          f"{len(prefixes)} prefixes, {len(months)} months")
+          f"{len(prefixes)} prefixes, {len(months)} months, {len(lanes)} lanes")
 
 
 if __name__ == "__main__":
@@ -151,11 +196,15 @@ if __name__ == "__main__":
     t0 = time.time()
     con = sqlite3.connect(args.db)
     os.makedirs(args.out, exist_ok=True)
+    lanes = [r[0] for r in con.execute(
+        "SELECT DISTINCT lane FROM bapfile WHERE lane IS NOT NULL AND lane<>'' ORDER BY lane")]
     print("Generating container index...")
     prefixes = gen_cont_index(con, args.out)
     print("Generating month index...")
     months, month_files = gen_month_index(con, args.out)
+    print("Generating lane index...")
+    lane_files = gen_lane_index(con, args.out, lanes)
     print("Writing manifest...")
-    gen_manifest(con, args.out, prefixes, months, month_files)
+    gen_manifest(con, args.out, prefixes, months, month_files, lanes, lane_files)
     con.close()
     print(f"ALL DONE in {time.time()-t0:.0f}s -> {args.out}")
