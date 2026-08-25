@@ -1,0 +1,30 @@
+@echo off
+REM ============================================================
+REM  ROB daily auto-update entry (run by scheduled tasks 13:00 & 01:00)
+REM  Unattended: no pause; all output -> rob_data\autoupdate.log
+REM ============================================================
+cd /d %~dp0
+set LOG=rob_data\autoupdate.log
+echo ===== %date% %time% ===== >> %LOG%
+
+echo [1/4] git pull ...
+git pull --ff-only >> %LOG% 2>&1
+if errorlevel 1 ( echo [ERROR] git pull failed (local changes?) >> %LOG% & exit /b 1 )
+
+echo [2/4] rob_refresh.py ...
+python rob_refresh.py >> %LOG% 2>&1
+if errorlevel 1 ( echo [ERROR] rob_refresh.py failed >> %LOG% & exit /b 1 )
+
+echo [3/4] commit and push ...
+git add rob_oil_report.html rob_data >> %LOG% 2>&1
+git diff --cached --quiet
+if errorlevel 1 (
+  git commit -m "ROB auto update %date% %time%" >> %LOG% 2>&1
+  git push >> %LOG% 2>&1
+  if errorlevel 1 ( echo [ERROR] git push failed >> %LOG% & exit /b 1 )
+) else (
+  echo No changes, skip commit. >> %LOG%
+)
+
+echo [4/4] DONE >> %LOG%
+exit /b 0

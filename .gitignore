@@ -13,3 +13,6 @@ _site/
 
 # WorkBuddy internals (memory, etc.)
 .workbuddy/
+
+# ROB auto pipeline local artifacts (xlsx regenerated daily, not for git)
+rob_data/*.xlsx
