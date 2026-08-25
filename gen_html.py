@@ -567,6 +567,75 @@ def load_maint_data():
         print('  [MAINT] source unavailable:', e)
     return out
 
+# ── 防回退保护：坏源(有记录却 vsched 全 0) 时恢复 last-good 数据 ──────────
+def _maint_is_broken(maint):
+    """坏源特征：记录数充足但 vsched 全部为 0。
+    典型为 culadmin 从 SFTP 下载的 .cache 坏文件（vsched 列整列缺失/非 'Maintain timely'，
+    与正确台账约 54% 维护率不符）。正确台账永远有相当比例的 maintain-timely。"""
+    recs = maint.get('records') or []
+    if len(recs) < 50:
+        return False
+    vsched_ok = sum(1 for r in recs if r.get('vsched') == 1)
+    return vsched_ok == 0
+
+def _extract_maint_from_html(html_path):
+    """从已生成的 HTML 抽取 const MAINT_DATA = {...}; 返回 dict 或 None。"""
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            txt = f.read()
+    except Exception:
+        return None
+    m = re.search(r'const MAINT_DATA\s*=\s*(\{.*\})\s*;$', txt, re.M)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except Exception:
+        return None
+
+MAINT_SNAPSHOT = os.path.join(SCRIPT_DIR, 'maint_snapshot.json')
+
+def _save_maint_snapshot(maint):
+    try:
+        with open(MAINT_SNAPSHOT, 'w', encoding='utf-8') as f:
+            json.dump(maint, f, ensure_ascii=False)
+    except Exception as e:
+        print('  [MAINT] snapshot save failed:', e, file=sys.stderr)
+
+def resolve_maint(out_path):
+    """加载 MAINT；若检测到坏源(有记录却 vsched 全 0)，从「现有 HTML 已嵌入数据」或
+    「仓库内置快照」恢复，避免发布错误的 0% 维护率。源正常时刷新内置快照供其他机器回退。
+
+    注意：本保护对「运行本脚本」的机器生效。culadmin 机器若长期不 git pull 旧代码，
+    仍需先修复 SFTP 源文件(见技能文档)才能根除——因为 culadmin 的坏数据来自 SFTP 下载，
+    而非本脚本逻辑。"""
+    maint = load_maint_data()
+    if not _maint_is_broken(maint):
+        _save_maint_snapshot(maint)   # 源正常 → 刷新快照
+        return maint
+    print('  [MAINT] WARNING: source looks broken (records present but vsched all 0). '
+          'Recovering last-good MAINT_DATA to avoid shipping 0% rate...',
+          file=sys.stderr, flush=True)
+    # 1) 复用现有 HTML 内已嵌入的正确 MAINT_DATA（不依赖 git pull / VPN）
+    if os.path.exists(out_path):
+        rec = _extract_maint_from_html(out_path)
+        if rec and not _maint_is_broken(rec):
+            print('  [MAINT] recovered from existing HTML (kept last-good data).', flush=True)
+            return rec
+    # 2) 回退到内置快照
+    if os.path.exists(MAINT_SNAPSHOT):
+        try:
+            with open(MAINT_SNAPSHOT, 'r', encoding='utf-8') as f:
+                rec = json.load(f)
+            if not _maint_is_broken(rec):
+                print('  [MAINT] recovered from bundled snapshot.', flush=True)
+                return rec
+        except Exception:
+            pass
+    print('  [MAINT] no recoverable MAINT_DATA; shipping source data as-is (rate may be 0).',
+          file=sys.stderr, flush=True)
+    return maint
+
 # ── HTML Template ────────────────────────────────────────────────────────
 # JS: COLUMN_DEFS_SUMMARY and COLUMN_DEFS_FULL are injected from Python.
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -4032,7 +4101,7 @@ def main():
     data['laneTradeMap']  = boa_lane_trade
     data['portRegionMap'] = boa_port_region
 
-    maint = load_maint_data()
+    maint = resolve_maint(out_path)
 
     # 生成后自检：MAINT 有数据但 port 列超一半是时间戳 → 列映射错位，禁止发布
     _maint_recs = maint.get('records') or []
