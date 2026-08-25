@@ -1213,6 +1213,15 @@ function _loadXlsx(cb){
     <div class="boa-chip" style="background:#fdecea;border-color:#e6b8af;"><div class="num" id="maintChipVSchedNo" style="color:#C0392B;">&#8212;</div><div class="lbl2" style="color:#C0392B;">Vessel Sched NOT maintained</div></div>
   </div>
 
+  <!-- Per-Port Maintenance Rate (dedicated rate summary) -->
+  <h3 style="margin:22px 0 8px;color:#1F4E79;">&#128202; Per-Port Maintenance Rate
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">每个港口 Port Log / Vessel Schedule 维护率（当前筛选下，点表头可排序）</span>
+  </h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Port Log Rate = 已维护 Port Log 的 calls ÷ 该港总 calls；Vessel Sched Rate = Maintain timely 的 calls ÷ 该港总 calls。绿 ≥80%，橙 ≥50%，红 &lt;50%。</p>
+  <div class="table-wrap" style="max-height:520px;overflow-y:auto;">
+    <table id="maintRateTable" style="min-width:auto;"><thead><tr id="maintRateThead"></tr></thead><tbody id="maintRateTbody"></tbody></table>
+  </div>
+
   <!-- By Port -->
   <h3 style="margin:20px 0 8px;color:#1F4E79;">&#128205; Maintenance by Port
     <span style="font-size:11px;font-weight:400;margin-left:10px;white-space:nowrap;">
@@ -3863,6 +3872,73 @@ function renderMaintByPort(){
   tbody.innerHTML = html;
 }
 
+// ── Per-Port Maintenance Rate (dedicated rate summary) ──────────────────
+var maintRateSort = {key:'plogRate', dir:1};  // default: Port Log Rate ascending (worst first)
+
+function maintRateBar(pct){
+  var cls = maintRateCls(pct);
+  var color = pct >= 80 ? '#2e8b57' : (pct >= 50 ? '#e67e22' : '#c0392b');
+  var w = Math.max(1, Math.min(100, pct));
+  return '<td class="num ' + cls + '">' +
+    '<div style="display:inline-block;width:72px;height:8px;background:#e9eef3;border-radius:4px;vertical-align:middle;overflow:hidden;margin-right:7px;">' +
+    '<div style="height:100%;width:' + w + '%;background:' + color + ';"></div></div>' +
+    pct.toFixed(1) + '%</td>';
+}
+
+function maintRateSortTable(key){
+  if(maintRateSort.key === key){ maintRateSort.dir = -maintRateSort.dir; }
+  else { maintRateSort.key = key; maintRateSort.dir = (key === 'port') ? 1 : -1; }
+  renderMaintPortRate();
+}
+
+function renderMaintPortRate(){
+  var recs = maintFiltered();
+  var groups = {};
+  recs.forEach(function(r){
+    var k = r.port || '(blank)';
+    if(!groups[k]) groups[k] = {key:k, calls:0, plog:0, vs:0};
+    groups[k].calls++;
+    if(r.plog === 'Y') groups[k].plog++;
+    if(r.vsched === 1) groups[k].vs++;
+  });
+  var rows = Object.keys(groups).map(function(k){
+    var g = groups[k];
+    return {key:k, calls:g.calls, plog:g.plog, vs:g.vs,
+            plogRate: maintPct(g.plog, g.calls), vsRate: maintPct(g.vs, g.calls)};
+  });
+  var s = maintRateSort;
+  rows.sort(function(a,b){
+    if(s.key === 'port'){ var va=a.key, vb=b.key; return (va<vb?-1:va>vb?1:0)*s.dir; }
+    var va = a[s.key], vb = b[s.key];
+    return (va<vb?-1:va>vb?1:0)*s.dir;
+  });
+
+  var arrow = function(col){ return s.key === col ? (s.dir > 0 ? ' ▲' : ' ▼') : ''; };
+  document.getElementById('maintRateThead').innerHTML =
+    '<tr>' +
+    '<th onclick="maintRateSortTable(\'port\')">Port' + arrow('port') + '</th>' +
+    '<th class="num" onclick="maintRateSortTable(\'calls\')">Calls' + arrow('calls') + '</th>' +
+    '<th class="num" onclick="maintRateSortTable(\'plogRate\')">Port Log Rate' + arrow('plogRate') + '</th>' +
+    '<th class="num" onclick="maintRateSortTable(\'vsRate\')">Vessel Sched Rate' + arrow('vsRate') + '</th>' +
+    '</tr>';
+
+  var tbody = document.getElementById('maintRateTbody');
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#8a9bb0;padding:14px;">No data for current filters.</td></tr>';
+    return;
+  }
+  var html = '';
+  rows.forEach(function(g, i){
+    var bg = (i % 2 === 0) ? ' style="background:#EBF3FB;"' : '';
+    html += '<tr' + bg + '>' +
+      '<td>' + g.key + '</td>' +
+      maintNumCell(g.calls) +
+      maintRateBar(g.plogRate) +
+      maintRateBar(g.vsRate) + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
 var maintSort = { plogNo: {key:'etd', dir:1}, vsNo: {key:'etd', dir:1} };
 
 function maintSortTable(which, key){
@@ -3993,6 +4069,7 @@ function renderMaintMonth(){
 
 function renderMaint(){
   renderMaintChips(maintFiltered());
+  renderMaintPortRate();
   renderMaintByPort();
   renderMaintUnmaintained();
   renderMaintMonth();
