@@ -420,7 +420,6 @@ function doUnlock() {
   var pwd = document.getElementById('pwd').value;
   var d = tryUnlock(pwd);
   if (d) {
-    localStorage.setItem('rob_pwd', pwd);
     DATA = d; enterApp();
   } else {
     document.getElementById('lockErr').textContent = 'Wrong password, please try again';
@@ -513,16 +512,6 @@ function exportExcel() {
 document.getElementById('pwd').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doUnlock();
 });
-(function() {
-  var saved = localStorage.getItem('rob_pwd');
-  if (saved) {
-    var d = tryUnlock(saved);
-    if (d) { DATA = d; enterApp(); return; }
-    localStorage.removeItem('rob_pwd');
-  }
-  function wait() { if (window.CryptoJS) return; setTimeout(wait, 200); }
-  wait();
-})();
 </script>
 </body>
 </html>
