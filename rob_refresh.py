@@ -275,17 +275,38 @@ def cryptojs_decrypt(enc, passphrase):
 
 # ---------------------------------------------------------------- 4. HTML
 HTML_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CUL ROB 盘油记录</title>
+<title>CUL ROB Bunker Report</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"
         onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';document.head.appendChild(s);"></script>
+<script>
+/* lazy-load xlsx-js-style for Excel export (same CDN fallback chain as cul_daily_movement.html) */
+var _xlsxStyled = true;
+function _loadXlsx(cb) {
+  if (window.XLSX) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+  s.onerror = function() {
+    _xlsxStyled = false;
+    s.src = 'https://cdn.bootcdn.net/ajax/libs/SheetJS/xlsx.full.min.js';
+    s.onerror = function() {
+      s.src = 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onerror = function() { alert('Failed to load Excel library. Please check your network.'); };
+      document.head.appendChild(s);
+    };
+    document.head.appendChild(s);
+  };
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
-  /* ---- 锁屏 ---- */
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
+  /* ---- lock screen ---- */
   #lock { position: fixed; inset: 0; z-index: 999; background: linear-gradient(135deg,#1F4E79 0%,#2E75B6 100%);
           display: flex; align-items: center; justify-content: center; }
   .lock-card { background: #fff; border-radius: 10px; padding: 36px 40px; width: 340px;
@@ -299,7 +320,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                       color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
   .lock-card button:hover { background: #2E75B6; }
   #lockErr { color: #d64545; font-size: 12px; margin-top: 10px; min-height: 16px; }
-  /* ---- 主界面 ---- */
+  /* ---- main app ---- */
   .header { background: linear-gradient(135deg,#1F4E79 0%,#2E75B6 100%); color: #fff;
             padding: 14px 28px 10px; box-shadow: 0 3px 12px rgba(31,78,121,.35);
             display: flex; justify-content: space-between; align-items: center; }
@@ -307,6 +328,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .header .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
   .header .updated { font-size: 13px; font-weight: 600; background: rgba(255,255,255,.16);
                      padding: 6px 14px; border-radius: 5px; border: 1px solid rgba(255,255,255,.35); }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .btn-export { background: #F6A623; color: #fff; border: none; border-radius: 5px; padding: 8px 18px;
+                font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+  .btn-export:hover { background: #d4891a; }
   .stats { display: flex; gap: 14px; padding: 16px 28px; flex-wrap: wrap; }
   .stat { background: #fff; border-radius: 8px; padding: 12px 20px; min-width: 130px;
           box-shadow: 0 2px 8px rgba(31,78,121,.10); }
@@ -337,10 +362,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
 <div id="lock">
   <div class="lock-card">
-    <h2>CUL ROB 盘油记录</h2>
-    <div class="sub">此页面已加密，请输入访问密码</div>
-    <input id="pwd" type="password" placeholder="密码" autofocus>
-    <button onclick="doUnlock()">解锁查看</button>
+    <h2>CUL ROB Bunker Report</h2>
+    <div class="sub">This page is encrypted. Enter password to continue.</div>
+    <input id="pwd" type="password" placeholder="Password" autofocus>
+    <button onclick="doUnlock()">Unlock</button>
     <div id="lockErr"></div>
   </div>
 </div>
@@ -348,31 +373,35 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div id="app" style="display:none">
   <div class="header">
     <div>
-      <h1>CUL ROB 盘油记录</h1>
-      <div class="sub">ROB 取自各船船长 Noon / Berth / Sailing Report · 每日 13:00 / 01:00 自动更新</div>
+      <h1>CUL ROB Bunker Report</h1>
+      <div class="sub">ROB from Masters' Noon / Berth / Sailing Reports · Auto-updated daily at 13:00 / 01:00</div>
     </div>
-    <div class="updated" id="updatedAt"></div>
+    <div class="header-right">
+      <button class="btn-export" onclick="exportExcel()">Export Excel</button>
+      <div class="updated" id="updatedAt"></div>
+    </div>
   </div>
   <div class="stats" id="stats"></div>
   <div class="toolbar">
-    <input id="q" type="text" placeholder="搜索船名 / 代码 / 航线 / PIC..." oninput="renderRows()">
-    <span class="hint">点击表头可排序</span>
+    <input id="q" type="text" placeholder="Search vessel / code / lane / PIC..." oninput="renderRows()">
+    <span class="hint">Click column headers to sort</span>
   </div>
   <div class="tablewrap">
     <table id="tbl">
       <thead><tr>
-        <th data-k="seq">序号</th><th data-k="vessel">Vessel Name</th><th data-k="code">Vessel Code</th>
-        <th data-k="lane">Lane</th><th>燃油负责人</th><th data-k="pic">PIC</th>
+        <th data-k="seq">No.</th><th data-k="vessel">Vessel Name</th><th data-k="code">Vessel Code</th>
+        <th data-k="lane">Lane</th><th>Bunker PIC</th><th data-k="pic">PIC</th>
         <th data-k="rob_lsfo" class="n">ROB LSFO</th><th data-k="rob_hsfo" class="n">ROB HSFO</th>
-        <th data-k="rob_mgo" class="n">ROB MGO</th><th>订油状态</th><th>订油情况</th>
-        <th data-k="remark">REMARK</th><th>特殊</th><th>拟采购日期</th><th data-k="report_time">ROB报告时间</th>
+        <th data-k="rob_mgo" class="n">ROB MGO</th><th>Order Status</th><th>Order Details</th>
+        <th data-k="remark">REMARK</th><th>Special</th><th>Planned Bunkering Date</th><th data-k="report_time">ROB Report Time</th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
   <div class="footer">
-    单位: MT · 数据来源: 各船船长邮件报告附件 · 缺失船在 REMARK 标注 ·
-    时间为报告接收时间 · 仅授权人员访问，请勿外传密码
+    Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
+    Missing vessels flagged in REMARK · Time = report received time ·
+    Authorized personnel only - do not share the password
   </div>
 </div>
 
@@ -394,17 +423,17 @@ function doUnlock() {
     localStorage.setItem('rob_pwd', pwd);
     DATA = d; enterApp();
   } else {
-    document.getElementById('lockErr').textContent = '密码错误，请重试';
+    document.getElementById('lockErr').textContent = 'Wrong password, please try again';
   }
 }
 function enterApp() {
   document.getElementById('lock').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('updatedAt').textContent = '更新于 ' + DATA.updated;
+  document.getElementById('updatedAt').textContent = 'Updated ' + DATA.updated;
   var found = DATA.vessels.filter(function(v){return v.found;}).length;
   document.getElementById('stats').innerHTML =
-    stat(DATA.vessels.length, '船舶总数') + stat(found, '已取到 ROB') +
-    stat(DATA.vessels.length - found, '待补 / 无报告', true);
+    stat(DATA.vessels.length, 'Total Vessels') + stat(found, 'ROB Received') +
+    stat(DATA.vessels.length - found, 'Missing / No Report', true);
   renderRows();
   document.querySelectorAll('thead th[data-k]').forEach(function(th) {
     th.onclick = function() {
@@ -448,6 +477,39 @@ function renderRows() {
   });
   document.getElementById('rows').innerHTML = h;
 }
+var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC', 'PIC',
+                      'ROB LSFO', 'ROB HSFO', 'ROB MGO', 'Order Status', 'Order Details',
+                      'REMARK', 'Special', 'Planned Bunkering Date', 'ROB Report Time'];
+function exportExcel() {
+  if (!window.XLSX) { _loadXlsx(exportExcel); return; }
+  var q = (document.getElementById('q').value || '').toLowerCase();
+  var vs = DATA.vessels.filter(function(v) {
+    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
+  });
+  var rows = [EXPORT_HEADERS.slice()];
+  vs.forEach(function(v) {
+    rows.push([v.seq, v.vessel, v.code, v.lane, '', v.pic,
+               v.rob_lsfo === null ? '' : v.rob_lsfo,
+               v.rob_hsfo === null ? '' : v.rob_hsfo,
+               v.rob_mgo === null ? '' : v.rob_mgo,
+               '', '', v.found ? '' : v.remark, '', '', v.report_time]);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:5},{wch:22},{wch:14},{wch:8},{wch:12},{wch:16},
+                 {wch:10},{wch:10},{wch:10},{wch:13},{wch:14},
+                 {wch:36},{wch:8},{wch:21},{wch:20}];
+  if (_xlsxStyled) {
+    for (var c = 0; c < EXPORT_HEADERS.length; c++) {
+      var cell = ws[XLSX.utils.encode_cell({r: 0, c: c})];
+      if (cell) cell.s = { fill: { fgColor: { rgb: '1F4E79' } },
+                           font: { color: { rgb: 'FFFFFF' }, bold: true },
+                           alignment: { horizontal: 'center' } };
+    }
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ROB Report');
+  XLSX.writeFile(wb, 'CUL_ROB_Report_' + DATA.updated.replace(/[^0-9]/g, '').slice(0, 12) + '.xlsx');
+}
 document.getElementById('pwd').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doUnlock();
 });
@@ -477,7 +539,7 @@ def build_html(results):
             "rob_lsfo": r.get("rob_lsfo"), "rob_hsfo": r.get("rob_hsfo"),
             "rob_mgo": r.get("rob_mgo"),
             "found": bool(r.get("found")),
-            "remark": "邮箱未找到船长存油报告" if not r.get("found") else "",
+            "remark": "No ROB report from Master found in mailbox" if not r.get("found") else "",
             "report_time": (r.get("report_time") or "")[:19],
         })
     payload = {"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
