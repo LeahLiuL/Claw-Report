@@ -836,6 +836,117 @@ def build_xlsx(results):
             print("[WARN] CULINES sync failed:", e)
 
 
+# ---------------------------------------------------------------- 6. 每日存档(供分析统计) + MISS 警告
+def write_daily_history(merged, today=None):
+    """把当天每艘船的 ROB 写入累计历史 CSV(供后续分析统计), 并生成当日完整快照 JSON。
+    每天每艘船只保留一行(同日多次运行取最新)。"""
+    import csv
+    if today is None:
+        today = datetime.now().strftime("%Y-%m-%d")
+    hist = os.path.join(ROB_DIR, "rob_history.csv")
+    cols = ["date", "vessel", "code", "lane", "pic",
+            "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
+            "found", "report_time"]
+    rows = {}
+    if os.path.exists(hist):
+        try:
+            with open(hist, encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    rows[(row["date"], row["vessel"])] = row
+        except Exception:
+            rows = {}
+    for r in merged:
+        v = r.get("vessel", "")
+        rows[(today, v)] = {
+            "date": today,
+            "vessel": v,
+            "code": r.get("code", ""),
+            "lane": r.get("lane", ""),
+            "pic": r.get("pic", ""),
+            "lsfo": r.get("rob_lsfo"),
+            "hsfo": r.get("rob_hsfo"),
+            "mgo": r.get("rob_mgo"),
+            "ulsfo": r.get("rob_ulsfo"),
+            "bw": r.get("rob_bw"),
+            "fw": r.get("rob_fw"),
+            "refeer": r.get("rob_refeer"),
+            "found": "1" if r.get("found") else "0",
+            "report_time": (r.get("report_time") or "")[:19],
+        }
+    out = sorted(rows.values(), key=lambda x: (x["date"], x["vessel"]))
+    with open(hist, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        w.writerows(out)
+    print("HISTORY -> %s (%d rows, today %s)" % (hist, len(out), today))
+    # 当日完整快照(JSON, 含 sender/source 便于追溯)
+    snap_dir = os.path.join(ROB_DIR, "history")
+    os.makedirs(snap_dir, exist_ok=True)
+    snap = os.path.join(snap_dir, "rob_%s.json" % today)
+    snap_data = {
+        "date": today,
+        "generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "vessels": [
+            {
+                "vessel": r.get("vessel", ""),
+                "code": r.get("code", ""),
+                "lane": r.get("lane", ""),
+                "rob_lsfo": r.get("rob_lsfo"),
+                "rob_hsfo": r.get("rob_hsfo"),
+                "rob_mgo": r.get("rob_mgo"),
+                "rob_ulsfo": r.get("rob_ulsfo"),
+                "rob_bw": r.get("rob_bw"),
+                "rob_fw": r.get("rob_fw"),
+                "rob_refeer": r.get("rob_refeer"),
+                "found": bool(r.get("found")),
+                "report_time": (r.get("report_time") or "")[:19],
+                "source": r.get("source", ""),
+                "sender": r.get("sender", ""),
+            }
+            for r in merged
+        ],
+    }
+    json.dump(snap_data, open(snap, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    print("SNAPSHOT -> %s" % snap)
+
+
+def write_miss_report(merged, today=None):
+    """生成当日 MISS 船清单(每日警告记录), 写日期化 txt + json, 并返回 MISS 列表。"""
+    if today is None:
+        today = datetime.now().strftime("%Y-%m-%d")
+    miss = [r for r in merged if not r.get("found")]
+    lines = []
+    lines.append("ROB 每日 MISS 船清单  %s" % today)
+    lines.append("=" * 52)
+    lines.append("未抓到 ROB 报告的船: %d 艘 / 共 %d 艘" % (len(miss), len(merged)))
+    lines.append("")
+    if miss:
+        for r in sorted(miss, key=lambda x: x.get("vessel", "")):
+            remark = r.get("remark") or "No ROB report from Master found in mailbox"
+            lines.append("- %s  (code: %s)" % (r.get("vessel", ""), r.get("code", "")))
+            lines.append("    %s" % remark)
+    else:
+        lines.append("（全部船均已抓到 ROB，无 MISS）")
+    lines.append("")
+    txt = os.path.join(ROB_DIR, "miss_vessels_%s.txt" % today)
+    with open(txt, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    jsonf = os.path.join(ROB_DIR, "miss_vessels_%s.json" % today)
+    json.dump({"date": today, "miss_count": len(miss), "total": len(merged),
+               "vessels": [{"vessel": r.get("vessel"), "code": r.get("code"),
+                            "remark": r.get("remark") or "No ROB report from Master found in mailbox"}
+                           for r in miss]},
+              open(jsonf, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    print("MISS -> %s  (%d vessels)" % (txt, len(miss)))
+    if miss:
+        print("[MISS WARNING] %d vessels have NO ROB report today:" % len(miss))
+        for r in sorted(miss, key=lambda x: x.get("vessel", "")):
+            print("   - %s (%s)" % (r.get("vessel", ""), r.get("code", "")))
+    else:
+        print("[MISS WARNING] all vessels have ROB report today.")
+    return miss
+
+
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
@@ -945,6 +1056,9 @@ def main():
 
     build_html(merged)
     build_xlsx(merged)
+    # 每日存档(供分析统计) + MISS 船清单每日警告
+    write_daily_history(merged)
+    write_miss_report(merged)
     print("DONE")
 
 
