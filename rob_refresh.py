@@ -247,15 +247,18 @@ def refresh_vessel(inbox, cache, rec, sender_map=None):
     sender_map = sender_map or {}
     # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
     eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
+    # 该发件人是否对应多艘船(共用邮箱, 如 MEDKON DON/LIA)——需主题过滤防误抓
+    shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
     # ① Vessel/<船名> 子文件夹(最可靠: 文件夹即船, 换船长邮箱也能抓到)
     folder, exact = match_folder(cache, vname)
     if folder is not None:
         try:
             items = folder.Items
             items.Sort("[ReceivedTime]", True)
-            # 共用/前缀文件夹(如 MEDKON 放多船)默认要求主题含船名防误抓;
-            # 但若已知该船 sender, 直接信任文件夹即可, 放宽主题限制。
-            token = None if exact else (None if eff_sender else nv)
+            # 精确匹配(独立文件夹)直接信任; 共用/前缀文件夹或共用发件人时,
+            # 要求主题含船名防误抓(如 MEDKON 文件夹放多船)。
+            need_subj = (not exact) and (eff_sender is None or shared > 1)
+            token = nv if need_subj else None
             hit = scan_for_rob(items, subject_token=token)
             if hit:
                 return apply_hit(rec, hit)
@@ -266,7 +269,8 @@ def refresh_vessel(inbox, cache, rec, sender_map=None):
         try:
             items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
             items.Sort("[ReceivedTime]", True)
-            hit = scan_for_rob(items)
+            token2 = nv if shared > 1 else None
+            hit = scan_for_rob(items, subject_token=token2)
             if hit:
                 rec["sender"] = eff_sender
                 return apply_hit(rec, hit)
