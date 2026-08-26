@@ -5,7 +5,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
 流水线:
   1. 船清单: 解析本仓库 cul_daily_movement.html 的 TODAY_DATA (失败则回退 rob_data/dm_summary.json)
   2. ROB:    Outlook CULINES store 实时抓各船最新 Noon/Berth/Sailing Report
-             策略: ① Vessel/<船名> 子文件夹 ② 已知 sender 邮箱 ③ 收件箱主题含船名
+             策略: ① Vessel/<船名> 子文件夹 ② 已知 sender 邮箱(递归所有子文件夹) ③ 收件箱(含所有子文件夹)主题含船名
              抓不到的船保留上次数据(不丢数据)
   3. 输出:   rob_data/rob_results.json (持久化, 记录每船 sender 便于下次定位)
              rob_oil_report.html (AES 加密网页, 密码见 PASSWORD)
@@ -104,6 +104,62 @@ def match_folder(cache, vessel):
         if len(k) >= 6 and (k.startswith(nv) or nv.startswith(k)):
             return f, False
     return None, False
+
+
+def _all_subfolders(parent, max_depth=6):
+    """递归 yield parent 下的所有子文件夹(含直接子文件夹)。"""
+    stack = [(parent, 0)]
+    while stack:
+        f, d = stack.pop()
+        if d >= max_depth:
+            continue
+        try:
+            for sub in f.Folders:
+                yield sub
+                stack.append((sub, d + 1))
+        except Exception:
+            pass
+
+
+def _recv_ts(it):
+    try:
+        rt = it.ReceivedTime
+        # ReceivedTime 是带时区的; 去掉时区信息以便与 datetime.min 比较排序
+        return rt.replace(tzinfo=None)
+    except Exception:
+        return datetime.min
+
+
+def search_recursive(inbox, subject=None, sender=None):
+    """递归搜索收件箱下所有子文件夹(含 Vessel 之外的, 如 CUHP\\CUHP Master),
+    按 subject 关键字或 sender 过滤, 返回按 ReceivedTime 倒序的邮件 list。
+    解决: 没有 Vessel/<船名> 文件夹、报告被归进其它子文件夹的船抓不到最新报告的问题。"""
+    out = []
+    folders = [inbox] + list(_all_subfolders(inbox))
+    for f in folders:
+        try:
+            items = f.Items
+        except Exception:
+            continue
+        try:
+            if sender:
+                items = items.Restrict("[SenderEmailAddress]='%s'" % sender)
+            elif subject:
+                items = items.Restrict(
+                    "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % subject)
+        except Exception:
+            continue
+        try:
+            items.Sort("[ReceivedTime]", True)
+        except Exception:
+            pass
+        try:
+            for it in items:
+                out.append(it)
+        except Exception:
+            pass
+    out.sort(key=_recv_ts, reverse=True)
+    return out
 
 
 def pick_report_attachment(it):
@@ -214,22 +270,19 @@ def refresh_vessel(inbox, cache, rec):
                 return apply_hit(rec, hit)
         except Exception:
             pass
-    # ② 已知船长 sender 邮箱
+    # ② 已知船长 sender 邮箱(递归所有子文件夹)
     sender = rec.get("sender")
     if sender:
         try:
-            items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % sender)
-            items.Sort("[ReceivedTime]", True)
+            items = search_recursive(inbox, sender=sender)
             hit = scan_for_rob(items)
             if hit:
                 return apply_hit(rec, hit)
         except Exception:
             pass
-    # ③ 收件箱主题含船名
+    # ③ 收件箱(含所有子文件夹)主题含船名
     try:
-        items = inbox.Items.Restrict(
-            "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % vname)
-        items.Sort("[ReceivedTime]", True)
+        items = search_recursive(inbox, subject=vname)
         hit = scan_for_rob(items)
         if hit:
             return apply_hit(rec, hit)
