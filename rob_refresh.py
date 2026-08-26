@@ -5,9 +5,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
 流水线:
   1. 船清单: 解析本仓库 cul_daily_movement.html 的 TODAY_DATA (失败则回退 rob_data/dm_summary.json)
   2. ROB:    Outlook CULINES store 实时抓各船最新 Noon/Berth/Sailing Report
-             策略: ① Vessel/<船名> 子文件夹 ② 已知 sender 邮箱(递归所有子文件夹) ③ 收件箱(含所有子文件夹)主题含船名
-             Tier2: 全局扫描所有报告附件, 从 Excel 内容(固定单元格 code / 船名)归属船
-                    —— 兜底约束1(主题不带船名/code)与约束2(无独立文件夹), 不依赖邮件元数据
+             策略: ① Vessel/<船名> 子文件夹 ② 已知 sender 邮箱 ③ 收件箱主题含船名
              抓不到的船保留上次数据(不丢数据)
   3. 输出:   rob_data/rob_results.json (持久化, 记录每船 sender 便于下次定位)
              rob_oil_report.html (AES 加密网页, 密码见 PASSWORD)
@@ -18,7 +16,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
   python rob_refresh.py --no-outlook  # 只用已有数据重新生成网页(调试)
   python rob_refresh.py --vessel "CHANG SHENG JI 8"  # 只刷新指定船
 """
-import sys, os, re, json, base64, hashlib, argparse, tempfile, time, io
+import sys, os, re, json, base64, hashlib, argparse, tempfile
 sys.stdout.reconfigure(encoding="utf-8")
 from datetime import datetime
 
@@ -27,6 +25,7 @@ ROB_DIR = os.path.join(BASE, "rob_data")
 DM_HTML = os.path.join(BASE, "cul_daily_movement.html")
 RESULTS = os.path.join(ROB_DIR, "rob_results.json")
 DM_FALLBACK = os.path.join(ROB_DIR, "dm_summary.json")
+SENDER_MAP_FILE = os.path.join(ROB_DIR, "vessel_senders.json")
 OUT_HTML = os.path.join(BASE, "rob_oil_report.html")
 OUT_XLSX = os.path.join(ROB_DIR, "rob_oil_table.xlsx")
 CULINES_DIR = r"C:\CULINES\Claw Report"
@@ -82,6 +81,49 @@ def connect_outlook():
     return stores[0] if stores else None
 
 
+def get_sender(it):
+    """尽量拿到真实 SMTP 发件地址。Exchange 账号下 SenderEmailAddress 常返回
+    X.500/空, 必须再走 Sender.GetExchangeUser().PrimarySmtpAddress 兜一层。"""
+    for attr in ("SenderEmailAddress",):
+        try:
+            v = getattr(it, attr, "")
+            if v and "@" in v:
+                return v
+        except Exception:
+            pass
+    try:
+        ex = it.Sender
+        if ex:
+            smtp = ex.GetExchangeUser().PrimarySmtpAddress
+            if smtp and "@" in smtp:
+                return smtp
+    except Exception:
+        pass
+    return ""
+
+
+def load_sender_map():
+    """船名(norm) -> 船长邮箱, 固化随仓库走。换电脑不依赖运行时历史。"""
+    m = {}
+    if os.path.exists(SENDER_MAP_FILE):
+        try:
+            raw = json.load(open(SENDER_MAP_FILE, encoding="utf-8"))
+            for k, v in raw.items():
+                if v:
+                    m[norm(k)] = v
+        except Exception as e:
+            print("[WARN] load vessel_senders.json failed:", e)
+    return m
+
+
+def save_sender_map(m):
+    try:
+        with open(SENDER_MAP_FILE, "w", encoding="utf-8") as f:
+            json.dump(m, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("[WARN] save vessel_senders.json failed:", e)
+
+
 def build_folder_cache(inbox):
     """Vessel 子文件夹: norm(文件夹名) -> folder"""
     cache = {}
@@ -108,62 +150,6 @@ def match_folder(cache, vessel):
     return None, False
 
 
-def _all_subfolders(parent, max_depth=6):
-    """递归 yield parent 下的所有子文件夹(含直接子文件夹)。"""
-    stack = [(parent, 0)]
-    while stack:
-        f, d = stack.pop()
-        if d >= max_depth:
-            continue
-        try:
-            for sub in f.Folders:
-                yield sub
-                stack.append((sub, d + 1))
-        except Exception:
-            pass
-
-
-def _recv_ts(it):
-    try:
-        rt = it.ReceivedTime
-        # ReceivedTime 是带时区的; 去掉时区信息以便与 datetime.min 比较排序
-        return rt.replace(tzinfo=None)
-    except Exception:
-        return datetime.min
-
-
-def search_recursive(inbox, subject=None, sender=None):
-    """递归搜索收件箱下所有子文件夹(含 Vessel 之外的, 如 CUHP\\CUHP Master),
-    按 subject 关键字或 sender 过滤, 返回按 ReceivedTime 倒序的邮件 list。
-    解决: 没有 Vessel/<船名> 文件夹、报告被归进其它子文件夹的船抓不到最新报告的问题。"""
-    out = []
-    folders = [inbox] + list(_all_subfolders(inbox))
-    for f in folders:
-        try:
-            items = f.Items
-        except Exception:
-            continue
-        try:
-            if sender:
-                items = items.Restrict("[SenderEmailAddress]='%s'" % sender)
-            elif subject:
-                items = items.Restrict(
-                    "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % subject)
-        except Exception:
-            continue
-        try:
-            items.Sort("[ReceivedTime]", True)
-        except Exception:
-            pass
-        try:
-            for it in items:
-                out.append(it)
-        except Exception:
-            pass
-    out.sort(key=_recv_ts, reverse=True)
-    return out
-
-
 def pick_report_attachment(it):
     xlsx = None
     for a in it.Attachments:
@@ -174,22 +160,6 @@ def pick_report_attachment(it):
         if a.FileName.lower().endswith(".xlsx"):
             return a
     return None
-
-
-def _rob_from_wb(wb):
-    """从已加载的 workbook 提取 ROB 油种(扫 'ROB <油种>' 取右一格)。"""
-    rob = {}
-    for ws in wb.worksheets:
-        for row in ws.iter_rows(values_only=True):
-            for i, c in enumerate(row):
-                if c and isinstance(c, str):
-                    cu = c.upper().strip()
-                    if cu.startswith("ROB ") and i + 1 < len(row):
-                        try:
-                            rob[cu[4:].strip()] = float(row[i + 1])
-                        except Exception:
-                            pass
-    return rob
 
 
 def extract_rob(att):
@@ -205,7 +175,17 @@ def extract_rob(att):
         except Exception:
             pass
         return {}
-    rob = _rob_from_wb(wb)
+    rob = {}
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            for i, c in enumerate(row):
+                if c and isinstance(c, str):
+                    cu = c.upper().strip()
+                    if cu.startswith("ROB ") and i + 1 < len(row):
+                        try:
+                            rob[cu[4:].strip()] = float(row[i + 1])
+                        except Exception:
+                            pass
     try:
         os.remove(p)
     except Exception:
@@ -213,169 +193,7 @@ def extract_rob(att):
     return rob
 
 
-def _is_reference_sheet(title):
-    """跳过 Excel 内嵌的参考表(列了所有船/港口), 避免内容扫描误归因。"""
-    t = (title or "").upper()
-    return ("CODE LIST" in t) or ("PORT CODE" in t) or ("VESSEL CODE" in t)
-
-
-def _identify_vessel(wb, fleet_by_code, fleet_by_name):
-    """从报告 Excel 内容识别船(不依赖邮件主题/文件夹)。
-    规则(高置信, 杜绝误归因):
-      - 跳过参考表 sheet (CUL Vessel Code List / CUL Port Code List ...)
-      - 仅扫描首部小区域(前 6 行 x 8 列)
-      - 精确匹配 fleet code, 或精确/前缀匹配 fleet 船名
-    返回 fleet 中的 vessel 显示名, 否则 None。"""
-    for ws in wb.worksheets:
-        if _is_reference_sheet(ws.title):
-            continue
-        maxr = min(getattr(ws, "max_row", 0) or 0, 6)
-        maxc = min(getattr(ws, "max_column", 0) or 0, 8)
-        for ri in range(1, maxr + 1):
-            for ci in range(1, maxc + 1):
-                v = ws.cell(ri, ci).value
-                if not v or not isinstance(v, str):
-                    continue
-                tok = norm(v)
-                if not tok:
-                    continue
-                if tok in fleet_by_code:
-                    return fleet_by_code[tok]
-                if tok in fleet_by_name:
-                    return fleet_by_name[tok]
-                for nv, disp in fleet_by_name.items():
-                    if tok.startswith(nv) and len(tok) >= len(nv):
-                        return disp
-    return None
-
-
-def _cheap_vessel_guess(subject, fleet_by_code, fleet_by_name):
-    """廉价地(只靠邮件主题)猜船: 主题含 fleet code 或船名子串即认定。返回 vessel 或 None。
-    用于 Tier2 决定是否需要打开 xlsx: 主题无船名=约束1候选(必须读内容);
-    否则仅当该邮件比当前记录更新时才值得打开。"""
-    ns = norm(subject)
-    if not ns:
-        return None
-    for code, ves in fleet_by_code.items():
-        if code and code in ns:
-            return ves
-    for nv, ves in fleet_by_name.items():
-        if nv and nv in ns:
-            return ves
-    return None
-
-
-def report_rob_and_vessel(att, fleet_by_code, fleet_by_name):
-    """读取附件字节 -> 打开 -> (ROB, 内容识别出的船名)。船名 None = 无法从内容确定。
-    直接用 att.Content 字节流喂 openpyxl, 避免 SaveAsFile 落盘(减少 COM/文件句柄压力,
-    避免连续打开大量附件时 Outlook COM 资源泄漏崩溃)。"""
-    import openpyxl
-    try:
-        data = att.Content
-        if not data:
-            return {}, None
-        wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
-        rob = _rob_from_wb(wb)
-        ves = _identify_vessel(wb, fleet_by_code, fleet_by_name)
-        return rob, ves
-    except Exception:
-        return {}, None
-
-
-def global_scan(inbox, fleet_by_code, fleet_by_name, current_by_vessel,
-                open_cap=150, per_folder=400, total_cap=4000):
-    """全局遍历收件箱+所有子文件夹的报告附件, 从 Excel 内容(固定单元格 code / 船名)归属船,
-    每船保留最新一份含 ROB 的报告。作为 per-vessel 的兜底与升级:
-      解决约束1(主题不带船名/code)与约束2(无独立文件夹), 且不依赖邮件元数据。
-
-    关键: 绝不盲目打开所有附件(那样连续 SaveAsFile/打开数百 Excel 会让 Outlook COM 资源
-    泄漏崩溃)。只打开'值得开'的:
-      - 主题里没有船名(code/船名子串都没有)的邮件 = 约束1候选, 必须读内容才能归属;
-      - 主题能猜到船、但该邮件比该船当前记录更新的 = 可能发现更晚的报告(查陈旧)。
-    其余已正确抓取且非更新的邮件一律不打开。open_cap 为安全上限(默认 150)。"""
-    import sys, gc
-    best = {}  # vessel -> (rob, recv_dt, subject, sender)
-    folders = [inbox] + list(_all_subfolders(inbox))
-    cands = []  # (recv_dt, item)
-    total = 0
-    for f in folders:
-        try:
-            items = f.Items
-            items.Sort("[ReceivedTime]", True)
-        except Exception:
-            continue
-        cnt = 0
-        try:
-            for it in items:
-                cnt += 1
-                if cnt > per_folder:
-                    break
-                if total >= total_cap:
-                    break
-                total += 1
-                try:
-                    rt = it.ReceivedTime.replace(tzinfo=None)
-                except Exception:
-                    rt = datetime.min
-                cands.append((rt, it))
-        except Exception:
-            continue
-        if total >= total_cap:
-            break
-    cands.sort(key=lambda x: x[0], reverse=True)
-    # 先决定哪些值得打开, 并区分"约束1候选(主题无船名)"与"可能更新的已知船"
-    to_open = []  # (rt, it, subj, is_constraint1)
-    for rt, it in cands:
-        try:
-            subj = it.Subject or ""
-        except Exception:
-            subj = ""
-        gv = _cheap_vessel_guess(subj, fleet_by_code, fleet_by_name)
-        if gv is None:
-            to_open.append((rt, it, subj, True))  # 约束1候选: 必须读内容才能归属
-        else:
-            cur = current_by_vessel.get(gv)
-            if cur is None or rt > cur:
-                to_open.append((rt, it, subj, False))  # 可能比当前记录更新
-    # 优先处理约束1候选, 确保主题无船名的船的报告在打开上限内先被尝试
-    c1 = [c for c in to_open if c[3]]
-    newer = [c for c in to_open if not c[3]]
-    c1.sort(key=lambda x: x[0], reverse=True)
-    newer.sort(key=lambda x: x[0], reverse=True)
-    ordered = c1 + newer
-    opened = 0
-    scanned = 0
-    for rt, it, subj, _ in ordered:
-        opened += 1
-        if opened > open_cap:
-            break
-        if opened % 25 == 0:
-            print("  [Tier2] opening report attachment %d ..." % opened, file=sys.stderr)
-        try:
-            att = pick_report_attachment(it)
-            if att is None:
-                continue
-            rob, ves = report_rob_and_vessel(att, fleet_by_code, fleet_by_name)
-        except Exception:
-            rob, ves = {}, None
-        if not ves:
-            continue
-        if not any(k in rob for k in OIL_KEYS):
-            continue  # 仅含 ROB 油种的真实 ROB 报告
-        scanned += 1
-        cur = best.get(ves)
-        if cur is None or (rt and (cur[1] is None or rt > cur[1])):
-            try:
-                se = it.SenderEmailAddress or ""
-            except Exception:
-                se = ""
-            best[ves] = (rob, rt, subj, se)
-        if opened % 25 == 0:
-            gc.collect()
-    return best, scanned
-
-
-def scan_for_rob(items, max_attach=15, max_walk=400, subject_token=None):
+def scan_for_rob(items, max_attach=40, max_walk=1200, subject_token=None):
     """倒序遍历邮件, 返回最新一封报告附件含 ROB 的 (rob, receivedTime, subject, sender)。
     subject_token: 若设置(norm 后的船名), 邮件主题必须含该 token 才候选 —— 用于共用文件夹
     防止误抓其他船的报告(如 MEDKON 文件夹里 MEDKON DON 的邮件)。"""
@@ -400,10 +218,7 @@ def scan_for_rob(items, max_attach=15, max_walk=400, subject_token=None):
             tried += 1
             rob = extract_rob(att)
             if any(k in rob for k in OIL_KEYS):
-                try:
-                    se = it.SenderEmailAddress or ""
-                except Exception:
-                    se = ""
+                se = get_sender(it)
                 try:
                     subj = it.Subject or ""
                 except Exception:
@@ -426,34 +241,43 @@ def apply_hit(rec, hit):
     return True
 
 
-def refresh_vessel(inbox, cache, rec):
+def refresh_vessel(inbox, cache, rec, sender_map=None):
     vname = rec["vessel"]
+    nv = norm(vname)
+    sender_map = sender_map or {}
+    # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
+    eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
     # ① Vessel/<船名> 子文件夹(最可靠: 文件夹即船, 换船长邮箱也能抓到)
     folder, exact = match_folder(cache, vname)
     if folder is not None:
         try:
             items = folder.Items
             items.Sort("[ReceivedTime]", True)
-            token = None if exact else norm(vname)
+            # 共用/前缀文件夹(如 MEDKON 放多船)默认要求主题含船名防误抓;
+            # 但若已知该船 sender, 直接信任文件夹即可, 放宽主题限制。
+            token = None if exact else (None if eff_sender else nv)
             hit = scan_for_rob(items, subject_token=token)
             if hit:
                 return apply_hit(rec, hit)
         except Exception:
             pass
-    # ② 已知船长 sender 邮箱(递归所有子文件夹)
-    sender = rec.get("sender")
-    if sender:
+    # ② 已知船长 sender 邮箱(全收件箱按发件人筛, 不依赖子文件夹/主题含船名)
+    if eff_sender:
         try:
-            items = search_recursive(inbox, sender=sender)
+            items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
+            items.Sort("[ReceivedTime]", True)
             hit = scan_for_rob(items)
             if hit:
+                rec["sender"] = eff_sender
                 return apply_hit(rec, hit)
         except Exception:
             pass
-    # ③ 收件箱(含所有子文件夹)主题含船名
+    # ③ 收件箱主题含船名(兜底)
     try:
-        items = search_recursive(inbox, subject=vname)
-        hit = scan_for_rob(items)
+        items = inbox.Items.Restrict(
+            "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % vname)
+        items.Sort("[ReceivedTime]", True)
+        hit = scan_for_rob(items, max_walk=1500, max_attach=40)
         if hit:
             return apply_hit(rec, hit)
     except Exception:
@@ -836,117 +660,6 @@ def build_xlsx(results):
             print("[WARN] CULINES sync failed:", e)
 
 
-# ---------------------------------------------------------------- 6. 每日存档(供分析统计) + MISS 警告
-def write_daily_history(merged, today=None):
-    """把当天每艘船的 ROB 写入累计历史 CSV(供后续分析统计), 并生成当日完整快照 JSON。
-    每天每艘船只保留一行(同日多次运行取最新)。"""
-    import csv
-    if today is None:
-        today = datetime.now().strftime("%Y-%m-%d")
-    hist = os.path.join(ROB_DIR, "rob_history.csv")
-    cols = ["date", "vessel", "code", "lane", "pic",
-            "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
-            "found", "report_time"]
-    rows = {}
-    if os.path.exists(hist):
-        try:
-            with open(hist, encoding="utf-8") as f:
-                for row in csv.DictReader(f):
-                    rows[(row["date"], row["vessel"])] = row
-        except Exception:
-            rows = {}
-    for r in merged:
-        v = r.get("vessel", "")
-        rows[(today, v)] = {
-            "date": today,
-            "vessel": v,
-            "code": r.get("code", ""),
-            "lane": r.get("lane", ""),
-            "pic": r.get("pic", ""),
-            "lsfo": r.get("rob_lsfo"),
-            "hsfo": r.get("rob_hsfo"),
-            "mgo": r.get("rob_mgo"),
-            "ulsfo": r.get("rob_ulsfo"),
-            "bw": r.get("rob_bw"),
-            "fw": r.get("rob_fw"),
-            "refeer": r.get("rob_refeer"),
-            "found": "1" if r.get("found") else "0",
-            "report_time": (r.get("report_time") or "")[:19],
-        }
-    out = sorted(rows.values(), key=lambda x: (x["date"], x["vessel"]))
-    with open(hist, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
-        w.writeheader()
-        w.writerows(out)
-    print("HISTORY -> %s (%d rows, today %s)" % (hist, len(out), today))
-    # 当日完整快照(JSON, 含 sender/source 便于追溯)
-    snap_dir = os.path.join(ROB_DIR, "history")
-    os.makedirs(snap_dir, exist_ok=True)
-    snap = os.path.join(snap_dir, "rob_%s.json" % today)
-    snap_data = {
-        "date": today,
-        "generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "vessels": [
-            {
-                "vessel": r.get("vessel", ""),
-                "code": r.get("code", ""),
-                "lane": r.get("lane", ""),
-                "rob_lsfo": r.get("rob_lsfo"),
-                "rob_hsfo": r.get("rob_hsfo"),
-                "rob_mgo": r.get("rob_mgo"),
-                "rob_ulsfo": r.get("rob_ulsfo"),
-                "rob_bw": r.get("rob_bw"),
-                "rob_fw": r.get("rob_fw"),
-                "rob_refeer": r.get("rob_refeer"),
-                "found": bool(r.get("found")),
-                "report_time": (r.get("report_time") or "")[:19],
-                "source": r.get("source", ""),
-                "sender": r.get("sender", ""),
-            }
-            for r in merged
-        ],
-    }
-    json.dump(snap_data, open(snap, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    print("SNAPSHOT -> %s" % snap)
-
-
-def write_miss_report(merged, today=None):
-    """生成当日 MISS 船清单(每日警告记录), 写日期化 txt + json, 并返回 MISS 列表。"""
-    if today is None:
-        today = datetime.now().strftime("%Y-%m-%d")
-    miss = [r for r in merged if not r.get("found")]
-    lines = []
-    lines.append("ROB 每日 MISS 船清单  %s" % today)
-    lines.append("=" * 52)
-    lines.append("未抓到 ROB 报告的船: %d 艘 / 共 %d 艘" % (len(miss), len(merged)))
-    lines.append("")
-    if miss:
-        for r in sorted(miss, key=lambda x: x.get("vessel", "")):
-            remark = r.get("remark") or "No ROB report from Master found in mailbox"
-            lines.append("- %s  (code: %s)" % (r.get("vessel", ""), r.get("code", "")))
-            lines.append("    %s" % remark)
-    else:
-        lines.append("（全部船均已抓到 ROB，无 MISS）")
-    lines.append("")
-    txt = os.path.join(ROB_DIR, "miss_vessels_%s.txt" % today)
-    with open(txt, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-    jsonf = os.path.join(ROB_DIR, "miss_vessels_%s.json" % today)
-    json.dump({"date": today, "miss_count": len(miss), "total": len(merged),
-               "vessels": [{"vessel": r.get("vessel"), "code": r.get("code"),
-                            "remark": r.get("remark") or "No ROB report from Master found in mailbox"}
-                           for r in miss]},
-              open(jsonf, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    print("MISS -> %s  (%d vessels)" % (txt, len(miss)))
-    if miss:
-        print("[MISS WARNING] %d vessels have NO ROB report today:" % len(miss))
-        for r in sorted(miss, key=lambda x: x.get("vessel", "")):
-            print("   - %s (%s)" % (r.get("vessel", ""), r.get("code", "")))
-    else:
-        print("[MISS WARNING] all vessels have ROB report today.")
-    return miss
-
-
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
@@ -981,74 +694,35 @@ def main():
         })
 
     if not args.no_outlook:
+        sender_map = load_sender_map()
         store = connect_outlook()
         if store is None:
             print("[WARN] CULINES Outlook store not found, keep old data")
         else:
             inbox = store.GetDefaultFolder(6)
             cache = build_folder_cache(inbox)
-            print("Outlook store OK, Vessel folders: %d" % len(cache))
+            print("Outlook store OK, Vessel folders: %d, sender map: %d"
+                  % (len(cache), len(sender_map)))
             n_new = 0
             targets = merged
             if args.vessel:
                 targets = [r for r in merged if args.vessel.upper() in r["vessel"].upper()]
             for i, rec in enumerate(targets, 1):
-                got = refresh_vessel(inbox, cache, rec)
+                got = refresh_vessel(inbox, cache, rec, sender_map)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
                       % (i, len(targets), rec["vessel"], rec["code"], mark,
                          rec.get("rob_lsfo"), rec.get("rob_mgo"),
                          (rec.get("report_time") or "")[:16]))
+                # 自动学习: 成功抓到且有真实发件人, 回写固化映射
+                if got:
+                    s = rec.get("sender")
+                    if s and norm(rec["vessel"]) not in sender_map:
+                        sender_map[norm(rec["vessel"])] = s
+                        print("   + learned sender for %s: %s" % (rec["vessel"], s))
+            save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
-
-            # ---- Tier2: 全局内容驱动兜底/升级(不依赖主题/文件夹) ----
-            if not args.vessel:
-                t0 = time.time()
-                fleet_by_code = {norm(v["code"]): v["vessel"] for v in fleet if v.get("code")}
-                fleet_by_name = {norm(v["vessel"]): v["vessel"] for v in fleet}
-                current_by_vessel = {}
-                for rec in merged:
-                    rt = rec.get("report_time")
-                    dt = None
-                    if rt:
-                        try:
-                            dt = datetime.strptime(rt, "%Y-%m-%d %H:%M:%S")
-                        except Exception:
-                            dt = None
-                    current_by_vessel[rec["vessel"]] = dt
-                gbest, gscanned = {}, 0
-                try:
-                    gbest, gscanned = global_scan(inbox, fleet_by_code, fleet_by_name, current_by_vessel)
-                except Exception:
-                    import traceback
-                    traceback.print_exc()
-                    print("[WARN] Tier2 global_scan failed, keep per-vessel results")
-                tg = 0
-                for rec in merged:
-                    ves = rec["vessel"]
-                    if ves not in gbest:
-                        continue
-                    rob, rt, subj, se = gbest[ves]
-                    old_rt = rec.get("report_time")
-                    old_dt = None
-                    if old_rt:
-                        try:
-                            old_dt = datetime.strptime(old_rt, "%Y-%m-%d %H:%M:%S")
-                        except Exception:
-                            old_dt = None
-                    if (not rec.get("found")) or old_dt is None or (rt and rt > old_dt):
-                        rec.update({
-                            "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"),
-                            "rob_mgo": rob.get("MGO"), "rob_ulsfo": rob.get("ULSFO"),
-                            "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
-                            "rob_refeer": rob.get("REFEER"),
-                            "report_time": rt.strftime("%Y-%m-%d %H:%M:%S") if rt else old_rt,
-                            "source": subj, "sender": se, "found": True,
-                        })
-                        tg += 1
-                print("Tier2 global scan: scanned %d ROB reports, upgraded/filled %d vessels (%.1fs)"
-                      % (gscanned, tg, time.time() - t0))
 
     json.dump(merged, open(RESULTS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     found = sum(1 for r in merged if r.get("found"))
@@ -1056,9 +730,6 @@ def main():
 
     build_html(merged)
     build_xlsx(merged)
-    # 每日存档(供分析统计) + MISS 船清单每日警告
-    write_daily_history(merged)
-    write_miss_report(merged)
     print("DONE")
 
 

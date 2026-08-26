@@ -16,7 +16,7 @@ echo [2/4] rob_refresh.py ...
 if errorlevel 1 ( echo [ERROR] rob_refresh.py failed >> %LOG% & exit /b 1 )
 
 echo [3/4] commit and push ...
-git add rob_oil_report.html rob_data >> %LOG% 2>&1
+git add rob_oil_report.html rob_data rob_refresh.py >> %LOG% 2>&1
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "ROB auto update %date% %time%" >> %LOG% 2>&1
