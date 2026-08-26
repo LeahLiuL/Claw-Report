@@ -6,6 +6,8 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
   1. 船清单: 解析本仓库 cul_daily_movement.html 的 TODAY_DATA (失败则回退 rob_data/dm_summary.json)
   2. ROB:    Outlook CULINES store 实时抓各船最新 Noon/Berth/Sailing Report
              策略: ① Vessel/<船名> 子文件夹 ② 已知 sender 邮箱(递归所有子文件夹) ③ 收件箱(含所有子文件夹)主题含船名
+             Tier2: 全局扫描所有报告附件, 从 Excel 内容(固定单元格 code / 船名)归属船
+                    —— 兜底约束1(主题不带船名/code)与约束2(无独立文件夹), 不依赖邮件元数据
              抓不到的船保留上次数据(不丢数据)
   3. 输出:   rob_data/rob_results.json (持久化, 记录每船 sender 便于下次定位)
              rob_oil_report.html (AES 加密网页, 密码见 PASSWORD)
@@ -16,7 +18,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
   python rob_refresh.py --no-outlook  # 只用已有数据重新生成网页(调试)
   python rob_refresh.py --vessel "CHANG SHENG JI 8"  # 只刷新指定船
 """
-import sys, os, re, json, base64, hashlib, argparse, tempfile
+import sys, os, re, json, base64, hashlib, argparse, tempfile, time, io
 sys.stdout.reconfigure(encoding="utf-8")
 from datetime import datetime
 
@@ -174,6 +176,22 @@ def pick_report_attachment(it):
     return None
 
 
+def _rob_from_wb(wb):
+    """从已加载的 workbook 提取 ROB 油种(扫 'ROB <油种>' 取右一格)。"""
+    rob = {}
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            for i, c in enumerate(row):
+                if c and isinstance(c, str):
+                    cu = c.upper().strip()
+                    if cu.startswith("ROB ") and i + 1 < len(row):
+                        try:
+                            rob[cu[4:].strip()] = float(row[i + 1])
+                        except Exception:
+                            pass
+    return rob
+
+
 def extract_rob(att):
     import openpyxl
     fd, p = tempfile.mkstemp(suffix=".xlsx")
@@ -187,22 +205,174 @@ def extract_rob(att):
         except Exception:
             pass
         return {}
-    rob = {}
-    for ws in wb.worksheets:
-        for row in ws.iter_rows(values_only=True):
-            for i, c in enumerate(row):
-                if c and isinstance(c, str):
-                    cu = c.upper().strip()
-                    if cu.startswith("ROB ") and i + 1 < len(row):
-                        try:
-                            rob[cu[4:].strip()] = float(row[i + 1])
-                        except Exception:
-                            pass
+    rob = _rob_from_wb(wb)
     try:
         os.remove(p)
     except Exception:
         pass
     return rob
+
+
+def _is_reference_sheet(title):
+    """跳过 Excel 内嵌的参考表(列了所有船/港口), 避免内容扫描误归因。"""
+    t = (title or "").upper()
+    return ("CODE LIST" in t) or ("PORT CODE" in t) or ("VESSEL CODE" in t)
+
+
+def _identify_vessel(wb, fleet_by_code, fleet_by_name):
+    """从报告 Excel 内容识别船(不依赖邮件主题/文件夹)。
+    规则(高置信, 杜绝误归因):
+      - 跳过参考表 sheet (CUL Vessel Code List / CUL Port Code List ...)
+      - 仅扫描首部小区域(前 6 行 x 8 列)
+      - 精确匹配 fleet code, 或精确/前缀匹配 fleet 船名
+    返回 fleet 中的 vessel 显示名, 否则 None。"""
+    for ws in wb.worksheets:
+        if _is_reference_sheet(ws.title):
+            continue
+        maxr = min(getattr(ws, "max_row", 0) or 0, 6)
+        maxc = min(getattr(ws, "max_column", 0) or 0, 8)
+        for ri in range(1, maxr + 1):
+            for ci in range(1, maxc + 1):
+                v = ws.cell(ri, ci).value
+                if not v or not isinstance(v, str):
+                    continue
+                tok = norm(v)
+                if not tok:
+                    continue
+                if tok in fleet_by_code:
+                    return fleet_by_code[tok]
+                if tok in fleet_by_name:
+                    return fleet_by_name[tok]
+                for nv, disp in fleet_by_name.items():
+                    if tok.startswith(nv) and len(tok) >= len(nv):
+                        return disp
+    return None
+
+
+def _cheap_vessel_guess(subject, fleet_by_code, fleet_by_name):
+    """廉价地(只靠邮件主题)猜船: 主题含 fleet code 或船名子串即认定。返回 vessel 或 None。
+    用于 Tier2 决定是否需要打开 xlsx: 主题无船名=约束1候选(必须读内容);
+    否则仅当该邮件比当前记录更新时才值得打开。"""
+    ns = norm(subject)
+    if not ns:
+        return None
+    for code, ves in fleet_by_code.items():
+        if code and code in ns:
+            return ves
+    for nv, ves in fleet_by_name.items():
+        if nv and nv in ns:
+            return ves
+    return None
+
+
+def report_rob_and_vessel(att, fleet_by_code, fleet_by_name):
+    """读取附件字节 -> 打开 -> (ROB, 内容识别出的船名)。船名 None = 无法从内容确定。
+    直接用 att.Content 字节流喂 openpyxl, 避免 SaveAsFile 落盘(减少 COM/文件句柄压力,
+    避免连续打开大量附件时 Outlook COM 资源泄漏崩溃)。"""
+    import openpyxl
+    try:
+        data = att.Content
+        if not data:
+            return {}, None
+        wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
+        rob = _rob_from_wb(wb)
+        ves = _identify_vessel(wb, fleet_by_code, fleet_by_name)
+        return rob, ves
+    except Exception:
+        return {}, None
+
+
+def global_scan(inbox, fleet_by_code, fleet_by_name, current_by_vessel,
+                open_cap=150, per_folder=400, total_cap=4000):
+    """全局遍历收件箱+所有子文件夹的报告附件, 从 Excel 内容(固定单元格 code / 船名)归属船,
+    每船保留最新一份含 ROB 的报告。作为 per-vessel 的兜底与升级:
+      解决约束1(主题不带船名/code)与约束2(无独立文件夹), 且不依赖邮件元数据。
+
+    关键: 绝不盲目打开所有附件(那样连续 SaveAsFile/打开数百 Excel 会让 Outlook COM 资源
+    泄漏崩溃)。只打开'值得开'的:
+      - 主题里没有船名(code/船名子串都没有)的邮件 = 约束1候选, 必须读内容才能归属;
+      - 主题能猜到船、但该邮件比该船当前记录更新的 = 可能发现更晚的报告(查陈旧)。
+    其余已正确抓取且非更新的邮件一律不打开。open_cap 为安全上限(默认 150)。"""
+    import sys, gc
+    best = {}  # vessel -> (rob, recv_dt, subject, sender)
+    folders = [inbox] + list(_all_subfolders(inbox))
+    cands = []  # (recv_dt, item)
+    total = 0
+    for f in folders:
+        try:
+            items = f.Items
+            items.Sort("[ReceivedTime]", True)
+        except Exception:
+            continue
+        cnt = 0
+        try:
+            for it in items:
+                cnt += 1
+                if cnt > per_folder:
+                    break
+                if total >= total_cap:
+                    break
+                total += 1
+                try:
+                    rt = it.ReceivedTime.replace(tzinfo=None)
+                except Exception:
+                    rt = datetime.min
+                cands.append((rt, it))
+        except Exception:
+            continue
+        if total >= total_cap:
+            break
+    cands.sort(key=lambda x: x[0], reverse=True)
+    # 先决定哪些值得打开, 并区分"约束1候选(主题无船名)"与"可能更新的已知船"
+    to_open = []  # (rt, it, subj, is_constraint1)
+    for rt, it in cands:
+        try:
+            subj = it.Subject or ""
+        except Exception:
+            subj = ""
+        gv = _cheap_vessel_guess(subj, fleet_by_code, fleet_by_name)
+        if gv is None:
+            to_open.append((rt, it, subj, True))  # 约束1候选: 必须读内容才能归属
+        else:
+            cur = current_by_vessel.get(gv)
+            if cur is None or rt > cur:
+                to_open.append((rt, it, subj, False))  # 可能比当前记录更新
+    # 优先处理约束1候选, 确保主题无船名的船的报告在打开上限内先被尝试
+    c1 = [c for c in to_open if c[3]]
+    newer = [c for c in to_open if not c[3]]
+    c1.sort(key=lambda x: x[0], reverse=True)
+    newer.sort(key=lambda x: x[0], reverse=True)
+    ordered = c1 + newer
+    opened = 0
+    scanned = 0
+    for rt, it, subj, _ in ordered:
+        opened += 1
+        if opened > open_cap:
+            break
+        if opened % 25 == 0:
+            print("  [Tier2] opening report attachment %d ..." % opened, file=sys.stderr)
+        try:
+            att = pick_report_attachment(it)
+            if att is None:
+                continue
+            rob, ves = report_rob_and_vessel(att, fleet_by_code, fleet_by_name)
+        except Exception:
+            rob, ves = {}, None
+        if not ves:
+            continue
+        if not any(k in rob for k in OIL_KEYS):
+            continue  # 仅含 ROB 油种的真实 ROB 报告
+        scanned += 1
+        cur = best.get(ves)
+        if cur is None or (rt and (cur[1] is None or rt > cur[1])):
+            try:
+                se = it.SenderEmailAddress or ""
+            except Exception:
+                se = ""
+            best[ves] = (rob, rt, subj, se)
+        if opened % 25 == 0:
+            gc.collect()
+    return best, scanned
 
 
 def scan_for_rob(items, max_attach=15, max_walk=400, subject_token=None):
@@ -720,6 +890,54 @@ def main():
                          rec.get("rob_lsfo"), rec.get("rob_mgo"),
                          (rec.get("report_time") or "")[:16]))
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
+
+            # ---- Tier2: 全局内容驱动兜底/升级(不依赖主题/文件夹) ----
+            if not args.vessel:
+                t0 = time.time()
+                fleet_by_code = {norm(v["code"]): v["vessel"] for v in fleet if v.get("code")}
+                fleet_by_name = {norm(v["vessel"]): v["vessel"] for v in fleet}
+                current_by_vessel = {}
+                for rec in merged:
+                    rt = rec.get("report_time")
+                    dt = None
+                    if rt:
+                        try:
+                            dt = datetime.strptime(rt, "%Y-%m-%d %H:%M:%S")
+                        except Exception:
+                            dt = None
+                    current_by_vessel[rec["vessel"]] = dt
+                gbest, gscanned = {}, 0
+                try:
+                    gbest, gscanned = global_scan(inbox, fleet_by_code, fleet_by_name, current_by_vessel)
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+                    print("[WARN] Tier2 global_scan failed, keep per-vessel results")
+                tg = 0
+                for rec in merged:
+                    ves = rec["vessel"]
+                    if ves not in gbest:
+                        continue
+                    rob, rt, subj, se = gbest[ves]
+                    old_rt = rec.get("report_time")
+                    old_dt = None
+                    if old_rt:
+                        try:
+                            old_dt = datetime.strptime(old_rt, "%Y-%m-%d %H:%M:%S")
+                        except Exception:
+                            old_dt = None
+                    if (not rec.get("found")) or old_dt is None or (rt and rt > old_dt):
+                        rec.update({
+                            "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"),
+                            "rob_mgo": rob.get("MGO"), "rob_ulsfo": rob.get("ULSFO"),
+                            "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
+                            "rob_refeer": rob.get("REFEER"),
+                            "report_time": rt.strftime("%Y-%m-%d %H:%M:%S") if rt else old_rt,
+                            "source": subj, "sender": se, "found": True,
+                        })
+                        tg += 1
+                print("Tier2 global scan: scanned %d ROB reports, upgraded/filled %d vessels (%.1fs)"
+                      % (gscanned, tg, time.time() - t0))
 
     json.dump(merged, open(RESULTS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     found = sum(1 for r in merged if r.get("found"))
