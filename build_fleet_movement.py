@@ -165,8 +165,30 @@ def latest_xlsx(folder):
     files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
     return files[0]
 
+def _has_port_header(ws):
+    """判断某 sheet 是否含 PORT 表头(即真正的船期数据表)。"""
+    for r in range(1, min(ws.max_row, 200) + 1):
+        v = ws.cell(r, 1).value
+        if v and str(v).strip().upper() == "PORT":
+            return True
+    return False
+
+def _pick_data_sheet(wb):
+    """多 sheet 工作簿中挑选正确的船期数据表。
+
+    坑: 某些船的 xlsx 含多张表(如 ZLST 有 'ZLST Official'(陈旧 YEADE 计划) 与
+    'ZLST - OFFICIAL'(当前维护的 SAJED 计划)), 且 sheetnames[0] 恰是陈旧表。
+    规则: 优先用【激活表】(用户正在维护/查看的那张); 仅当它是 simulation 或无 PORT
+    表头时, 退回 sheetnames[0]。单 sheet 工作簿激活表==sheet[0], 行为不变。
+    """
+    active = wb.active
+    if active is not None and _has_port_header(active) \
+       and "simulation" not in (active.title or "").lower():
+        return active
+    return wb[wb.sheetnames[0]]
+
 def read_source(path, vessel_code=None, folder_name=None):
-    """读源第一个sheet。按表头名(非固定列位)映射到大Excel列, 兼容源列序差异(如ASR多TERMINAL列)。
+    """读源数据表(自动挑选正确的 sheet)。按表头名(非固定列位)映射到大Excel列, 兼容源列序差异(如ASR多TERMINAL列)。
     返回 dict: route, code, rows[ {display:{col:val}, etb:datetime|None, voy, port, remark} ]。
     - 日期列(C5/C6/C8/C9/C10/C11)统一为 datetime(真实日期) 或 文本标记(OMIT/Mon..)。
     - Voy.No 若空, 向上就近取最近的有航次号的行。
@@ -175,7 +197,7 @@ def read_source(path, vessel_code=None, folder_name=None):
       2. 回退: C4 或 C9 匹配船代码/文件夹名 (未知航线码如 NSCT1, 但段标题行总有船名/代码)
     """
     wb = openpyxl.load_workbook(path, data_only=True)
-    ws = wb[wb.sheetnames[0]]
+    ws = _pick_data_sheet(wb)
     # 找表头行(PORT)
     hr = None
     for r in range(1, min(ws.max_row, 200) + 1):
