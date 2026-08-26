@@ -271,6 +271,11 @@ def extract(excel_path):
 # 映射表源: P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 2026 week 31.xlsx
 BOA_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\准班率BOA\2026\船期统计 2026 week 31.xlsx"
 
+# 代理联系表（各港口代理/本地操作岗联系人），用于 Maintenance 未维护明细的 Agent/OP 列
+# 仅抽取岗位含 operation / ops / vsl operation 者（船东代表处 Operations Representative、
+# 本地代理 Operation Manager / Vsl Operation 等），排除 Equipment Control 等非操作岗。
+AGENT_SRC = r"P:\04 上海操作中心\01 船期管理科\船期管理\CUL Agent Contact List 20260825 Thailand.xlsx"
+
 # 维护率数据源：Vessel Schedule / Port Log 维护情况台账
 # 列: B=Service C=Vessel D=Voyage E=Direction F=Operator G=Port H=ETD
 #      I=Port Log Y/N (Y/N)  J=Vessel Schedule Maintain Status (Maintain timely / Not maintained)
@@ -601,6 +606,84 @@ def _save_maint_snapshot(maint):
             json.dump(maint, f, ensure_ascii=False)
     except Exception as e:
         print('  [MAINT] snapshot save failed:', e, file=sys.stderr)
+
+def load_agent_contacts(src=None):
+    """从《CUL Agent Contact List》xlsx 抽取各港口「操作岗(operation/ops)」代理联系人，
+    返回 {PORT_CODE: [{'name','email','tel','mobile'}, ...]}。
+    港口码 = 分表名（与 MAINT_DATA.port 一致：EGSOK / SAJED / THLCH …）。
+    无操作岗联系人的港口不进入结果（前端显示 —）。"""
+    import re as _re, glob as _glob
+    if src is None:
+        src = AGENT_SRC
+    # 文件不存在时回退到同目录最新版本
+    if not os.path.exists(src):
+        cand = sorted(_glob.glob(os.path.join(os.path.dirname(src) or '.',
+                        'CUL Agent Contact List*.xlsx')))
+        if cand:
+            src = cand[-1]
+    if not os.path.exists(src):
+        print('  [AGENT] WARN: contact list not found (%s) — Agent/OP column will be empty.' % src,
+              file=sys.stderr, flush=True)
+        return {}
+    try:
+        wb = openpyxl.load_workbook(src, data_only=True)
+    except Exception as e:
+        print('  [AGENT] WARN: failed to open %s: %s' % (src, e), file=sys.stderr, flush=True)
+        return {}
+    OP_RE = _re.compile(r'(operation|ops|vsl operation)', _re.I)
+    EMAIL_RE = _re.compile(r'@')
+    def norm(s): return _re.sub(r'[^a-z0-9]', '', str(s or '').strip().lower())
+    def find_header(row):
+        cells = [str(v or '').strip() for v in row]
+        nh = [norm(c) for c in cells]
+        h = {'name':None,'email':None,'tel':None,'mobile':None,'pos':None}
+        for i,c in enumerate(nh):
+            if 'name' in c and h['name'] is None: h['name']=i
+            if ('email' in c or 'e-mail' in c) and h['email'] is None: h['email']=i
+            if ('telephone' in c or c=='tel' or '电话' in c) and h['tel'] is None: h['tel']=i
+            if ('mobile' in c or '手机' in c) and h['mobile'] is None: h['mobile']=i
+            if ('position' in c or 'designation' in c or '岗位' in c or '部门' in c or 'department' in c) and h['pos'] is None: h['pos']=i
+        if h['name'] is not None and h['email'] is not None:
+            return h
+        return None
+    result = {}
+    for sheet in wb.sheetnames:
+        if norm(sheet) == 'masterlist':
+            continue
+        ws = wb[sheet]
+        port = sheet.strip().upper()
+        contacts = []
+        header = None
+        for row in ws.iter_rows(values_only=True):
+            h = find_header(row)
+            if h:
+                header = h
+                continue
+            if header is None:
+                continue
+            cells = [("" if v is None else (v.strftime('%Y-%m-%d') if hasattr(v,'strftime') else str(v)).strip()) for v in row]
+            def get(k):
+                i = header[k]
+                return cells[i] if (i is not None and i < len(cells)) else ''
+            pos_val = get('pos'); name = get('name'); email = get('email')
+            tel = get('tel'); mobile = get('mobile')
+            if not OP_RE.search(pos_val or ''):
+                continue
+            if not name or not _re.search(r'[A-Za-z\u4e00-\u9fff]', name):
+                continue
+            if name.lower().startswith('department') or norm(name) in ('ops','operation','operations'):
+                continue
+            if not (EMAIL_RE.search(email or '') or tel or mobile):
+                continue
+            em  = (email.split(';')[0].split(',')[0].strip()  if email  else '')
+            em  = em if EMAIL_RE.search(em) else ''
+            t1  = (tel.split(';')[0].split(',')[0].strip()     if tel    else '')
+            m1  = (mobile.split(';')[0].split(',')[0].strip()  if mobile else '')
+            contacts.append({'name':name.strip(), 'email':em, 'tel':t1, 'mobile':m1})
+        if contacts:
+            result[port] = contacts
+    print('  [AGENT] loaded OP contacts for %d ports from %s' % (len(result), os.path.basename(src)))
+    return result
 
 def resolve_maint(out_path):
     """加载 MAINT；若检测到坏源(有记录却 vsched 全 0)，从「现有 HTML 已嵌入数据」或
@@ -1318,6 +1401,7 @@ const TODAY_DATA = __TODAY_DATA__;
 const COLUMN_DEFS_SUMMARY = __COLUMN_DEFS_SUMMARY__;
 const COLUMN_DEFS_FULL    = __COLUMN_DEFS_FULL__;
 const MAINT_DATA          = __MAINT_DATA__;
+const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
@@ -3977,7 +4061,19 @@ function renderMaintUnmaintained(){
   sortArr(vsNo, maintSort.vsNo);
 
   var COLS = [['service','Service'],['vessel','Vessel'],['voyage','Voyage'],['dir','Dir'],
-              ['operator','Operator'],['port','Port'],['etd','ETD']];
+              ['operator','Operator'],['port','Port'],['etd','ETD'],['agent','Agent / OP']];
+  function agentCellHtml(port){
+    var list = AGENT_BY_PORT[port] || [];
+    if(!list.length) return '<td style="color:#8a9bb0;font-size:11px;">—</td>';
+    var inner = list.map(function(c){
+      var bits = ['<b>'+escapeHtml(c.name||'')+'</b>'];
+      if(c.email)  bits.push('<a href="mailto:'+escapeHtml(c.email)+'" style="color:#1F4E79;">'+escapeHtml(c.email)+'</a>');
+      if(c.tel)    bits.push('Tel: '+escapeHtml(c.tel));
+      if(c.mobile) bits.push('Mob: '+escapeHtml(c.mobile));
+      return '<div style="line-height:1.4;margin:2px 0;">'+bits.join('<br>')+'</div>';
+    }).join('');
+    return '<td style="font-size:11px;vertical-align:top;">'+inner+'</td>';
+  }
   function headHtml(which){
     var st = maintSort[which], h = '<tr>';
     COLS.forEach(function(c){
@@ -3995,7 +4091,7 @@ function renderMaintUnmaintained(){
       var msg = isFiltered
         ? 'No rows match the current search filter.'
         : 'All maintained &#8212; no unmaintained calls for current filters.';
-      return '<tr><td colspan="8" style="text-align:center;color:#8a9bb0;padding:12px;">' + msg + '</td></tr>';
+      return '<tr><td colspan="9" style="text-align:center;color:#8a9bb0;padding:12px;">' + msg + '</td></tr>';
     }
     var h = '';
     arr.forEach(function(r, i){
@@ -4008,6 +4104,7 @@ function renderMaintUnmaintained(){
         '<td>' + (r.operator||'') + '</td>' +
         '<td>' + (r.port||'') + '</td>' +
         '<td>' + (r.etd||'') + '</td>' +
+        agentCellHtml(r.port) +
         '<td style="color:#C0392B;font-weight:600;">' + statusTxt + '</td></tr>';
     });
     return h;
@@ -4179,6 +4276,7 @@ def main():
     data['portRegionMap'] = boa_port_region
 
     maint = resolve_maint(out_path)
+    agent = load_agent_contacts()
 
     # 生成后自检：MAINT 有数据但 port 列超一半是时间戳 → 列映射错位，禁止发布
     _maint_recs = maint.get('records') or []
@@ -4200,6 +4298,7 @@ def main():
     html = html.replace('__COLUMN_DEFS_SUMMARY__', json.dumps(col_defs_summary, ensure_ascii=False))
     html = html.replace('__COLUMN_DEFS_FULL__',    json.dumps(col_defs_full,    ensure_ascii=False))
     html = html.replace('__MAINT_DATA__',          json.dumps(maint, ensure_ascii=False))
+    html = html.replace('__AGENT_BY_PORT__',       json.dumps(agent, ensure_ascii=False))
 
     os.makedirs(os.path.dirname(out_path) if os.path.dirname(out_path) else '.', exist_ok=True)
     with open(out_path, 'w', encoding='utf-8') as f:
