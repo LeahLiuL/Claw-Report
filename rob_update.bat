@@ -12,7 +12,7 @@ git pull --ff-only >> %LOG% 2>&1
 if errorlevel 1 ( echo [ERROR] git pull failed (local changes?) >> %LOG% & exit /b 1 )
 
 echo [2/4] rob_refresh.py ...
-python rob_refresh.py >> %LOG% 2>&1
+py rob_refresh.py >> %LOG% 2>&1
 if errorlevel 1 ( echo [ERROR] rob_refresh.py failed >> %LOG% & exit /b 1 )
 
 echo [3/4] commit and push ...
