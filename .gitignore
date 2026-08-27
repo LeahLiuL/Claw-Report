@@ -6,6 +6,7 @@ venv/
 
 # Local secrets / temp / build cache
 *.local
+.update_token
 /tmp/
 .cache/
 *.log
