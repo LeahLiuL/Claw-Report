@@ -125,12 +125,20 @@ def save_sender_map(m):
 
 
 def build_folder_cache(inbox):
-    """Vessel 子文件夹: norm(文件夹名) -> folder"""
+    """Vessel 子文件夹: norm(文件夹名) -> folder。递归多层(如 Vessel/ZLST/ZLST Master)。"""
     cache = {}
     try:
         vf = inbox.Folders["Vessel"]
-        for c in vf.Folders:
-            cache[norm(c.Name)] = c
+
+        def _walk(f):
+            try:
+                for c in f.Folders:
+                    cache[norm(c.Name)] = c
+                    _walk(c)
+            except Exception:
+                pass
+
+        _walk(vf)
     except Exception:
         pass
     return cache
@@ -295,38 +303,63 @@ def _search_subject_recursive(inbox, token):
     return out
 
 
-def _search_sender_recursive(inbox, sender):
-    """在收件箱 + 所有子文件夹中, 按发件人邮箱倒序返回邮件(递归, 含子文件夹报告)。"""
-    q = "[SenderEmailAddress]='%s'" % sender
+def _sender_queries(smtp, NS):
+    """给定 SMTP, 返回可用于 Restrict 的发件人过滤串列表。
+    关键: 内部 CULINES Exchange 账号的 SenderEmailAddress 是 X.500(不含 @),
+    直接按 SMTP 查恒为空; 故用 NS.CreateRecipient 解析出真实 X.500 一并加入,
+    这样内邮船(如 culshantou@culines.com)也能被发件人搜索命中(实测 211 封全中)。"""
+    qs = []
+    if smtp and "@" in smtp:
+        qs.append("[SenderEmailAddress]='%s'" % smtp)
+        try:
+            r = NS.CreateRecipient(smtp)
+            if r.Resolve():
+                ae = r.AddressEntry
+                x = ae.Address
+                if x and x != smtp and "@" not in x:   # X.500 不含 @, SMTP 含 @
+                    qs.append("[SenderEmailAddress]='%s'" % x)
+        except Exception:
+            pass
+    return qs
+
+
+def _search_sender_recursive(inbox, sender, NS=None):
+    """在收件箱 + 所有子文件夹中, 按发件人(解析 X.500 后)倒序返回邮件。"""
+    if NS is not None:
+        qs = _sender_queries(sender, NS)
+    else:
+        qs = ["[SenderEmailAddress]='%s'" % sender]
     out = []
     try:
         folders = [inbox] + list(_all_subfolders(inbox))
     except Exception:
         folders = [inbox]
     for f in folders:
-        try:
-            items = f.Items.Restrict(q)
-            items.Sort("[ReceivedTime]", True)
-            for it in items:
-                out.append(it)
-        except Exception:
-            continue
+        for q in qs:
+            try:
+                items = f.Items.Restrict(q)
+                items.Sort("[ReceivedTime]", True)
+                for it in items:
+                    out.append(it)
+            except Exception:
+                continue
     return out
 
 
-def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared):
+def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared, NS=None):
     """汇总该船所有可能来源的邮件(船文件夹 / 主题含船名 / 主题含代码 / 已知发件人),
     去重后按 ReceivedTime 全局倒序, 返回 (有序邮件列表, 主题过滤 token 列表)。
-    关键修复:
-      · 旧逻辑在 ② 用 [SenderEmailAddress]='内部邮箱' 做 Restrict —— 内部 Exchange 账号
-        的 SenderEmailAddress 是 X.500 而非 SMTP, 查询恒为空, 内邮船只能靠 ③ 兜底;
-      · 旧逻辑 ③ 把各文件夹结果按『收件箱→子文件夹』顺序拼接, 未全局排序, 导致子文件夹
-        里更新的报告被收件箱里的旧报告压住;
-      · 旧逻辑主题搜索只用『去空格小写』token(如 culhochiminh), 但实际报告主题多为
-        『CUL HOCHIMINH』『ZHONG LIAN SHAN TOU』(带空格), 落在收件箱(非 Vessel 文件夹)
-        的报告因此永远匹配不到 —— 这正是 CUHC / ZLST 卡在旧日期的根因。现补充『保留空格
-        小写』token 一起搜, 保证收件箱里的报告也能被命中。
-    现统一合并 + 全局倒序 + 取最新一封含 ROB 附件的, 保证拿到『真正最新』的报告。"""
+    关键修复(基于 2026-08-27 实测):
+      · 实测本机 Outlook 的 DASL 主题 LIKE 只匹配『主题里真实出现的空格形态』——
+        去空格小写 token(如 zhonglianshantou)对『ZHONG LIAN SHAN TOU』(带空格)永远
+        0 命中; 必须保留空格(如 'zhong lian shan tou')才命中。故主题搜索仅用
+        『带空格小写船名 + 船代码』(代码通常不在主题, 仅补充)。
+      · 发件人搜索原按 SMTP Restrict, 但内部 CULINES 账号 SenderEmailAddress 是
+        X.500(不含@), 查不到; 现用 NS.CreateRecipient 解析 X.500 一并加入, 内邮船
+        也能命中(实测 culshantou 211 封全中) —— 此为主路径, 最可靠。
+      · 文件夹缓存原为单层(Vessel 直接子目录), 但 ZLST 报告在 Vessel/ZLST/ZLST Master
+        (两层), 故缓存改递归多层(build_folder_cache)。
+    优先级: 发件人(X.500, 最可靠) > 主题(带空格) > 船文件夹; 最终合并全局倒序取最新 ROB。"""
     items = []
     # ① Vessel/<船名> 文件夹(若有): 该船邮件最集中处, 取最近 80 封即可覆盖最新
     folder, exact = match_folder(cache, rec["vessel"])
@@ -342,21 +375,20 @@ def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared):
                     break
         except Exception:
             pass
-    # ② 主题搜索: 同时用『去空格小写』和『保留空格小写』两种 token。
-    #    船代码(如 cuhc / zlst)通常连写, 去空格 token 即可命中; 船名(如 cul hochiminh)
-    #    多带空格, 必须保留空格才能命中收件箱里直接发来的报告。
+    # ② 主题搜索: DASL 查询用『带空格小写船名 + 船代码』——实测本机 Outlook 的 DASL 主题
+    #    LIKE 只匹配主题里真实出现的空格形态(去空格 token 对『ZHONG LIAN SHAN TOU』0 命中),
+    #    故搜索必须用带空格形态。
     name_lower = (rec.get("vessel") or "").lower().strip()
     code = norm(rec.get("code", ""))
-    toks = []
-    for tok in (nv, code, name_lower):
-        if tok and tok not in toks:
-            toks.append(tok)
-    for tok in toks:
+    search_toks = []
+    for tok in (name_lower, code):
+        if tok and tok not in search_toks:
+            search_toks.append(tok)
+    for tok in search_toks:
         items += _search_subject_recursive(inbox, tok)
-    # ③ 已知发件人(尽力而为: 内部 Exchange 账号 SenderEmailAddress 常为 X.500, Restrict
-    #    可能漏, 这里仅作补充来源, 主路径靠主题搜索)
+    # ③ 已知发件人(解析 X.500 后 Restrict, 内邮也能命中)——最可靠主路径
     if eff_sender:
-        items += _search_sender_recursive(inbox, eff_sender)
+        items += _search_sender_recursive(inbox, eff_sender, NS)
     # 去重 + 全局按 ReceivedTime 倒序
     seen = set()
     uniq = []
@@ -377,13 +409,17 @@ def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared):
             return datetime.min
 
     uniq.sort(key=_rt, reverse=True)
-    # 共用/前缀文件夹 或 共用发件人 时, 要求主题含船名或代码防误抓(同样要把空格 token 纳入)
-    need_filter = (not exact) or (shared > 1)
-    tokens = toks if need_filter else None
+    # 主题过滤 token 必须与 scan_for_rob 内部 norm(subj) 一致(去空格/标点),
+    # 否则带空格 token 对去空格主题永远 False, 会把真正的 NOON 报告过滤掉(实测 ZLST 因此漏抓)。
+    # 过滤策略: 仅当『发件人不唯一(共用)』或『无已知发件人(只能靠主题/文件夹兜底)』时才过滤,
+    # 以防误抓他船; 若已知唯一发件人, 直接信任该发件人的所有邮件, 不再要求主题含船名。
+    filter_toks = [t for t in (nv, code) if t]
+    need_filter = (shared > 1) or (eff_sender is None)
+    tokens = filter_toks if need_filter else None
     return uniq, tokens
 
 
-def refresh_vessel(inbox, cache, rec, sender_map=None):
+def refresh_vessel(inbox, cache, rec, sender_map=None, NS=None):
     sender_map = sender_map or {}
     nv = norm(rec["vessel"])
     # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
@@ -391,7 +427,7 @@ def refresh_vessel(inbox, cache, rec, sender_map=None):
     shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
     # 合并所有来源, 全局倒序取最新一封含 ROB 的邮件
     try:
-        cands, tokens = _collect_candidates(inbox, cache, rec, nv, eff_sender, shared)
+        cands, tokens = _collect_candidates(inbox, cache, rec, nv, eff_sender, shared, NS)
         hit = scan_for_rob(cands, subject_tokens=tokens)
         if hit:
             if eff_sender:
@@ -935,6 +971,7 @@ def main():
             print("[WARN] CULINES Outlook store not found, keep old data")
         else:
             inbox = store.GetDefaultFolder(6)
+            NS = store.Session
             cache = build_folder_cache(inbox)
             print("Outlook store OK, Vessel folders: %d, sender map: %d"
                   % (len(cache), len(sender_map)))
@@ -947,7 +984,7 @@ def main():
             if args.limit > 0:
                 targets = targets[:args.limit]
             for i, rec in enumerate(targets, 1):
-                got = refresh_vessel(inbox, cache, rec, sender_map)
+                got = refresh_vessel(inbox, cache, rec, sender_map, NS)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
