@@ -18,7 +18,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
 """
 import sys, os, re, json, base64, hashlib, argparse, tempfile, csv
 sys.stdout.reconfigure(encoding="utf-8")
-from datetime import datetime
+from datetime import datetime, timedelta
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROB_DIR = os.path.join(BASE, "rob_data")
@@ -30,11 +30,14 @@ OUT_HTML = os.path.join(BASE, "rob_oil_report.html")
 OUT_XLSX = os.path.join(ROB_DIR, "rob_oil_table.xlsx")
 CULINES_DIR = r"C:\CULINES\Claw Report"
 HISTORY_DIR = os.path.join(ROB_DIR, "history")
-HISTORY_CSV = os.path.join(HISTORY_DIR, "rob_history.csv")
+# 累加历史 CSV: 单一权威文件, 顶层 rob_data/rob_history.csv (双机协作版规范, 方案A)
+# 14 列, 与另一台每日更新 ROB 的机器完全一致, 避免列错位/互相覆盖。
+# 注意: sender 不进 CSV(只保留在 rob_results.json), 否则两机 schema 不一致会写坏累计数据。
+HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 # 累加历史 CSV 的列(逐船逐次快照, 一行一船)
-SNAP_FIELDS = ["snapshot_time", "vessel", "code", "lane",
-               "rob_lsfo", "rob_hsfo", "rob_mgo", "rob_ulsfo",
-               "rob_bw", "rob_fw", "found", "report_time", "sender"]
+SNAP_FIELDS = ["date", "vessel", "code", "lane", "pic",
+               "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
+               "found", "report_time"]
 
 PASSWORD = "jimmy"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
 REPORT_KEYS = ("NOON", "BERTH", "SAILING", "ANCHOR", "DRIFT")
@@ -156,12 +159,14 @@ def match_folder(cache, vessel):
     return None, False
 
 
-def pick_report_attachment(it):
+def pick_report_attachment(it, strict=False):
     xlsx = None
     for a in it.Attachments:
         fn = a.FileName
         if fn.lower().endswith(".xlsx") and any(k in fn.upper() for k in REPORT_KEYS):
             return a
+    if strict:
+        return None
     for a in it.Attachments:
         if a.FileName.lower().endswith(".xlsx"):
             return a
@@ -428,8 +433,15 @@ function _loadXlsx(cb) {
               font-size: 13px; cursor: pointer; }
   .trendbar button:hover { background: #2E75B6; }
   .trendbar .lbl { font-size: 12px; color: #5a6e82; }
-  .trendgrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 16px 28px; }
-  @media (max-width: 900px) { .trendgrid { grid-template-columns: 1fr; } }
+  .vwrap { position: relative; display: inline-block; }
+  .vdrop { position: absolute; left: 0; top: 100%; z-index: 50; background: #fff; border: 1px solid #c9d5e2;
+           border-radius: 6px; box-shadow: 0 4px 12px rgba(31,78,121,.18); padding: 6px; margin-top: 2px;
+           max-height: 260px; overflow: auto; min-width: 240px; }
+  .vopt { display: block; padding: 4px 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+  .vopt:hover { background: #eef4fb; }
+  .vopt input { margin-right: 6px; vertical-align: middle; }
+  .trendgrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 16px; padding: 16px 28px; }
+  @media (max-width: 1100px) { .trendgrid { grid-template-columns: 1fr; } }
   .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
   .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 10px; }
   #trendChart { width: 100% !important; height: 360px !important; }
@@ -492,7 +504,11 @@ function _loadXlsx(cb) {
   <div id="trend" style="display:none">
     <div class="trendbar">
       <span class="lbl">Vessels:</span>
-      <select id="trendVessels" multiple></select>
+      <input id="trendVSearch" placeholder="search…" oninput="trendFilterDrop()" style="width:110px">
+      <span class="vwrap">
+        <button type="button" onclick="trendToggleDrop()" id="trendVBtn">Select ▾</button>
+        <div id="trendVDrop" class="vdrop"></div>
+      </span>
       <button onclick="trendSelAll()">All</button>
       <span class="lbl">Oil:</span>
       <select id="trendOil">
@@ -516,9 +532,6 @@ function _loadXlsx(cb) {
     <div class="trendgrid">
       <div class="panel"><h3 id="trendChartTitle">ROB Trend</h3><canvas id="trendChart"></canvas></div>
       <div class="panel"><h3>Vessel Summary (selected range)</h3><div id="trendSummary" style="max-height:360px;overflow:auto"></div></div>
-    </div>
-    <div class="trendgrid">
-      <div class="panel"><h3>Lane Summary</h3><div id="trendLane"></div></div>
       <div class="panel"><h3>Data Integrity (missing reports)</h3><div id="trendIntegrity" style="max-height:300px;overflow:auto"></div></div>
     </div>
   </div>
@@ -656,13 +669,7 @@ function showTable() {
   document.getElementById('trend').style.display = 'none';
 }
 function initTrend() {
-  var vs = {};
-  DATA.history.forEach(function(r){ vs[r.v] = r.l || ''; });
-  var sel = document.getElementById('trendVessels');
-  sel.innerHTML = '';
-  Object.keys(vs).sort().forEach(function(v){
-    var o = document.createElement('option'); o.value = v; o.text = v + (vs[v] ? ' (' + vs[v] + ')' : ''); sel.appendChild(o);
-  });
+  buildVesselDrop();
   var ts = DATA.history.map(function(r){ return r.t.slice(0, 10); }).sort();
   var mn = ts[0], mx = ts[ts.length - 1];
   ['trendFrom','trendTo'].forEach(function(id){ var el = document.getElementById(id); el.min = mn; el.max = mx; });
@@ -670,7 +677,41 @@ function initTrend() {
   document.getElementById('trendTo').value = mx;
   trendSelAll();
 }
-function trendSelAll(){ var s = document.getElementById('trendVessels'); for (var i = 0; i < s.options.length; i++) s.options[i].selected = true; }
+var trendVSet = new Set();
+function buildVesselDrop() {
+  var vs = {};
+  DATA.history.forEach(function(r){ vs[r.v] = r.l || ''; });
+  var drop = document.getElementById('trendVDrop');
+  drop.innerHTML = '';
+  Object.keys(vs).sort().forEach(function(v){
+    var lab = document.createElement('label');
+    lab.className = 'vopt'; lab.dataset.v = v;
+    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = v; cb.checked = true;
+    cb.onchange = function(){ if (cb.checked) trendVSet.add(v); else trendVSet.delete(v); };
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(' ' + v + (vs[v] ? ' (' + vs[v] + ')' : '')));
+    drop.appendChild(lab);
+  });
+  trendVSet = new Set(Object.keys(vs));
+}
+function trendToggleDrop(){ var d = document.getElementById('trendVDrop'); d.style.display = (d.style.display === 'none' || !d.style.display) ? 'block' : 'none'; }
+function trendFilterDrop() {
+  var q = (document.getElementById('trendVSearch').value || '').toLowerCase();
+  document.querySelectorAll('#trendVDrop .vopt').forEach(function(l){
+    l.style.display = l.dataset.v.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+  });
+}
+function trendSelAll() {
+  document.querySelectorAll('#trendVDrop input[type=checkbox]').forEach(function(cb){ cb.checked = true; trendVSet.add(cb.value); });
+  document.getElementById('trendVDrop').style.display = 'none';
+}
+document.addEventListener('click', function(e){
+  var drop = document.getElementById('trendVDrop');
+  if (!drop) return;
+  if (drop.style.display === 'block' && !drop.contains(e.target) && e.target.id !== 'trendVBtn' && e.target.id !== 'trendVSearch') {
+    drop.style.display = 'none';
+  }
+});
 function toggleTrendMode(){
   trendMode = (trendMode === 'rob') ? 'consum' : 'rob';
   document.getElementById('trendModeBtn').textContent = 'Mode: ' + (trendMode === 'rob' ? 'ROB' : 'Consumption');
@@ -699,7 +740,7 @@ function renderTrend() {
   var anchor = parseFloat(document.getElementById('trendAnchor').value);
   var from = document.getElementById('trendFrom').value;
   var to = document.getElementById('trendTo').value;
-  var sel = Array.from(document.getElementById('trendVessels').selectedOptions).map(function(o){ return o.value; });
+  var sel = Array.from(trendVSet);
   var recs = DATA.history.filter(function(r){
     if (sel.length && sel.indexOf(r.v) < 0) return false;
     if (from && (r.rt || r.t).slice(0, 10) < from) return false;
@@ -767,7 +808,6 @@ function renderTrend() {
   });
   document.getElementById('trendChartTitle').textContent = (trendMode==='consum'?'Daily Consumption (aligned to ' + anchor + ':00)':'ROB Trend') + ' — ' + oil.toUpperCase();
   renderSummary(summary);
-  renderLane(byV, oil);
   renderIntegrity(recs);
 }
 function renderSummary(s) {
@@ -783,29 +823,6 @@ function renderSummary(s) {
   });
   h += '</table>';
   document.getElementById('trendSummary').innerHTML = h;
-}
-function renderLane(byV, oil) {
-  var anchor = parseFloat(document.getElementById('trendAnchor').value);
-  var laneMap = {};
-  Object.keys(byV).forEach(function(v){
-    var arr = byV[v]; if (!arr.length) return;
-    var last = arr[arr.length - 1]; var lane = last.l || '—';
-    var daily = alignDaily(arr, oil, anchor);
-    if (daily.length < 1) return;
-    var lv = daily[daily.length - 1].rob;
-    var sumDaily = 0;
-    for (var i = 1; i < daily.length; i++) sumDaily += (daily[i-1].rob - daily[i].rob);
-    var ad = (daily.length - 1) > 0 ? sumDaily / (daily.length - 1) : 0;
-    if (!laneMap[lane]) laneMap[lane] = { rob:0, cons:0, cnt:0 };
-    laneMap[lane].rob += lv; laneMap[lane].cons += ad; laneMap[lane].cnt++;
-  });
-  var h = '<table class="trendtbl"><tr><th>Lane</th><th>Vessels</th><th>Total ROB (' + oil.toUpperCase() + ')</th><th>Avg Daily Consumption</th></tr>';
-  Object.keys(laneMap).sort().forEach(function(l){
-    var m = laneMap[l];
-    h += '<tr><td>' + l + '</td><td>' + m.cnt + '</td><td>' + fmt(m.rob) + '</td><td>' + fmt(m.cons) + '</td></tr>';
-  });
-  h += '</table>';
-  document.getElementById('trendLane').innerHTML = h;
 }
 function renderIntegrity(recs) {
   var miss = recs.filter(function(r){ return r.f === 0; });
@@ -831,6 +848,15 @@ def _num(x):
         return None
 
 
+def _hours_of(s):
+    """'YYYY-MM-DD HH:MM' -> 当天小时数(浮点), 用于挑最接近锚点的报告。"""
+    import re as _re
+    m = _re.search(r"(\d{1,2}):(\d{2})", s or "")
+    if not m:
+        return 12.0
+    return int(m.group(1)) + int(m.group(2)) / 60.0
+
+
 def build_html(results):
     vessels = []
     ordered = sorted(results, key=lambda r: (r.get("lane", ""), r.get("code", "")))
@@ -850,14 +876,18 @@ def build_html(results):
         try:
             with open(HISTORY_CSV, encoding="utf-8") as f:
                 for row in csv.DictReader(f):
+                    # 14 列规范: date,vessel,code,lane,pic,lsfo,hsfo,mgo,ulsfo,bw,fw,refeer,found,report_time
                     history.append({
-                        "t": (row.get("snapshot_time") or "")[:16],   # 运行时间 YYYY-MM-DD HH:MM
+                        "t": (row.get("report_time") or row.get("date") or "")[:16],
                         "v": row.get("vessel", ""),
                         "c": row.get("code", ""),
                         "l": row.get("lane", ""),
-                        "ls": _num(row.get("rob_lsfo")),
-                        "hs": _num(row.get("rob_hsfo")),
-                        "mg": _num(row.get("rob_mgo")),
+                        "ls": _num(row.get("lsfo")),
+                        "hs": _num(row.get("hsfo")),
+                        "mg": _num(row.get("mgo")),
+                        "us": _num(row.get("ulsfo")),
+                        "bw": _num(row.get("bw")),
+                        "fw": _num(row.get("fw")),
                         "f": int(row.get("found") or 0),
                         "rt": (row.get("report_time") or "")[:19],    # 船长报告接收时间
                     })
@@ -968,30 +998,49 @@ def write_daily_history(results):
                       f, ensure_ascii=False, indent=2)
     except Exception as e:
         print("[WARN] write daily json failed:", e)
-    # 2) 累加 csv(幂等: 跳过已存在的 (snapshot_time, vessel), 绝不覆盖历史行)
-    #    既防重复运行产生重复行, 也保证跨机器 pull 后历史不丢失/不重置。
-    existing = set()
+    # 2) 累加 csv(幂等, 绝不覆盖历史行; 14 列规范与另一台机器一致):
+    #    - 有报告时间的行按 (vessel, report_time) 去重 —— 同一份 Noon 报告无论由
+    #      每日运行还是回补(--backfill)、哪台机器写入, 都只留一行;
+    #    - MISS 行(report_time 为空)按 (date, vessel) 记录, 每次运行留痕,
+    #      供网页 Data Integrity 面板展示缺报历史。
+    #    date 列统一取"报告日期"(report_time[:10]), 而非运行日, 避免批量回补/双机
+    #    运行日差异导致整月历史塌缩到同一天。
+    existing_rt, existing_miss = set(), set()
     if os.path.exists(HISTORY_CSV):
         try:
             with open(HISTORY_CSV, encoding="utf-8", newline="") as f:
                 for row in csv.reader(f):
-                    if row and row[0] and row[1]:
-                        existing.add((row[0], row[1]))
+                    if len(row) < 14:
+                        continue
+                    rt = (row[13] or "")[:19]
+                    if rt:
+                        existing_rt.add((row[1], rt))
+                    else:
+                        existing_miss.add((row[0], row[1]))
         except Exception:
             pass
     write_header = not os.path.exists(HISTORY_CSV)
     new_rows = []
     for r in results:
-        key = (snap_time, r.get("vessel", ""))
-        if key in existing:
-            continue
-        existing.add(key)
+        rt19 = (r.get("report_time") or "")[:19]
+        vessel = r.get("vessel", "")
+        if rt19:
+            if (vessel, rt19) in existing_rt:
+                continue
+            existing_rt.add((vessel, rt19))
+            d = rt19[:10]
+        else:
+            d = snap_time[:10]
+            if (d, vessel) in existing_miss:
+                continue
+            existing_miss.add((d, vessel))
         new_rows.append([
-            snap_time, r.get("vessel", ""), r.get("code", ""), r.get("lane", ""),
+            d, vessel, r.get("code", ""), r.get("lane", ""),
+            r.get("pic", ""),
             r.get("rob_lsfo"), r.get("rob_hsfo"), r.get("rob_mgo"),
             r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
-            int(bool(r.get("found"))), (r.get("report_time") or "")[:19],
-            r.get("sender") or "",
+            r.get("rob_refeer", ""),
+            int(bool(r.get("found"))), rt19,
         ])
     try:
         with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
@@ -1008,12 +1057,191 @@ def write_daily_history(results):
         print("[WARN] write history csv failed:", e)
 
 
+def append_history_rows(recs, fleet_lookup=None):
+    """把回补解析到的报告追加进累加 CSV(14 列规范, 与另一台机器一致)。
+    去重键 (vessel, report_time): 同一封报告无论由每日运行/回补/哪台机器写入都只留一行。
+    一天多份报告(Noon/Berth/Sailing)折叠为"每天每船一条": 取当天最接近 Noon(12:00)
+    的那条, 与另一台每日一行模型一致, 也正好是趋势锚点想要的每天同一时刻 ROB。
+    date 列 = 报告日期(report_time[:10])。"""
+    fleet_lookup = fleet_lookup or {}
+    existing = set()
+    if os.path.exists(HISTORY_CSV):
+        try:
+            for row in csv.reader(open(HISTORY_CSV, encoding="utf-8")):
+                if len(row) >= 14 and row[13]:
+                    existing.add((row[1], row[13][:19]))
+        except Exception:
+            pass
+    best = {}   # (date, vessel) -> (score, rec, rt19, date)
+    for r in recs:
+        rt19 = (r.get("report_time") or "")[:19]
+        if not rt19:
+            continue
+        if (r["vessel"], rt19) in existing:
+            continue
+        d = rt19[:10]
+        key = (d, r["vessel"])
+        score = abs(_hours_of(rt19) - 12.0)
+        cur = best.get(key)
+        if cur is None or score < cur[0]:
+            best[key] = (score, r, rt19, d)
+    rows = []
+    for (d, vessel), (score, r, rt19, dd) in best.items():
+        fl = fleet_lookup.get(norm(r["vessel"]), {})
+        rows.append([
+            dd, vessel, fl.get("code", r.get("code", "")), fl.get("lane", r.get("lane", "")),
+            "",  # pic: 回补不抓船长名, 留空(另一台机器的行会带)
+            r.get("rob_lsfo"), r.get("rob_hsfo"), r.get("rob_mgo"),
+            r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
+            "",  # refeer: 回补不抓, 留空
+            1, rt19,
+        ])
+    try:
+        write_header = not os.path.exists(HISTORY_CSV)
+        with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            if write_header:
+                w.writerow(SNAP_FIELDS)
+            for row in rows:
+                w.writerow(row)
+    except Exception as e:
+        print("[WARN] append history failed:", e)
+    return len(rows)
+
+
+def backfill_history(days, sender_map, fleet_lookup=None):
+    """回补过去 days 天的每一份 ROB 报告(Noon/Berth/Sailing), 按船长邮箱逆向映射识别船。
+    返回 (recs 已解析, unknown 未知发件人列表)。未知发件人需交用户确认后固化进 vessel_senders.json。"""
+    import win32com.client
+    store = connect_outlook()
+    if store is None:
+        print("[WARN] no CULINES store, backfill aborted"); return [], []
+    inbox = store.GetDefaultFolder(6)
+    cache = build_folder_cache(inbox)
+    rev = {}
+    for v, e in sender_map.items():
+        if e:
+            rev.setdefault(e.lower(), []).append(v)
+    cutoff = datetime.now().astimezone() - timedelta(days=days)
+    cutoff_naive = cutoff.replace(tzinfo=None)
+    filt = cutoff_naive.strftime("%m/%d/%Y %H:%M %p")
+    folders = [inbox]
+    try:
+        vf = inbox.Folders["Vessel"]
+        for c in vf.Folders:
+            folders.append(c)
+    except Exception:
+        pass
+    unknown, recs, seen = [], [], set()
+    for f in folders:
+        try:
+            items = f.Items.Restrict("[ReceivedTime] >= '%s'" % filt)
+        except Exception:
+            try:
+                items = f.Items
+            except Exception:
+                continue
+        try:
+            items.Sort("[ReceivedTime]", True)
+        except Exception:
+            pass
+        in_vessel_tree = (f is not inbox)
+        for it in items:
+            try:
+                rt = it.ReceivedTime
+            except Exception:
+                continue
+            if rt < cutoff:
+                continue
+            att = pick_report_attachment(it, strict=True)
+            if att is None:
+                continue
+            rob = extract_rob(att)
+            if not any(k in rob for k in OIL_KEYS):
+                continue
+            # 这是一份 ROB 报告, 识别船(按发件人邮箱优先, 其次 Vessel 子文件夹)
+            se = get_sender(it)
+            vessel = None
+            cands = rev.get(se.lower(), []) if se else []
+            folder_v = norm(f.Name) if in_vessel_tree else None
+            if cands:
+                if len(cands) == 1:
+                    vessel = cands[0]
+                else:
+                    try:
+                        subj = norm(it.Subject or "")
+                    except Exception:
+                        subj = ""
+                    hit = [v for v in cands if v in subj]
+                    vessel = hit[0] if hit else cands[0]
+            elif folder_v and folder_v in cache:
+                vessel = f.Name
+            if not vessel:
+                unknown.append({"sender": se, "subject": (it.Subject or "")[:90],
+                                "received": rt.strftime("%Y-%m-%d %H:%M")})
+                continue
+            rep_t = rt.strftime("%Y-%m-%d %H:%M:%S")
+            key = (rep_t, vessel)
+            if key in seen:
+                continue
+            seen.add(key)
+            recs.append({
+                "vessel": vessel, "report_time": rep_t, "sender": se,
+                "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"),
+                "rob_mgo": rob.get("MGO"), "rob_ulsfo": rob.get("ULSFO"),
+                "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
+            })
+    return recs, unknown
+
+
 # ---------------------------------------------------------------- main
+def backfill_mode(days):
+    sender_map = load_sender_map()
+    fleet = load_fleet()
+    fleet_lookup = {norm(v["vessel"]): v for v in fleet}
+    # norm -> 显示名(fleet + vessel.csv), 回补按发件人映射归船拿到的是 norm 键,
+    # 写入历史前统一转显示名, 避免与每日运行的大写船名在趋势页分裂成两条船。
+    disp = {norm(v["vessel"]): v["vessel"] for v in fleet}
+    try:
+        with open(os.path.join(BASE, "vessel.csv"), encoding="utf-8-sig") as f:
+            for row in csv.reader(f):
+                if len(row) >= 2 and row[0].strip():
+                    nv = norm(row[0])
+                    disp.setdefault(nv, row[0].strip())
+                    if nv not in fleet_lookup:
+                        fleet_lookup[nv] = {"vessel": row[0].strip(),
+                                            "code": row[1].strip(), "lane": ""}
+    except Exception:
+        pass
+    recs, unknown = backfill_history(days, sender_map, fleet_lookup)
+    for r in recs:
+        r["vessel"] = disp.get(r["vessel"], r["vessel"].upper())
+    added = append_history_rows(recs, fleet_lookup)
+    print("backfill: parsed %d reports, appended %d new rows (past %d days)"
+          % (len(recs), added, days))
+    results = []
+    if os.path.exists(RESULTS):
+        results = json.load(open(RESULTS, encoding="utf-8"))
+    build_html(results)
+    build_xlsx(results)
+    if unknown:
+        print("\n=== UNKNOWN SENDERS (%d) — ROB reports from unmapped captains ==="
+              % len(unknown))
+        for u in unknown[:300]:
+            print("  SENDER=%s | %s | %s" % (u["sender"], u["received"], u["subject"]))
+    print("DONE")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-outlook", action="store_true", help="不抓 Outlook, 只重建网页")
     ap.add_argument("--vessel", default=None, help="只刷新指定船(名称子串)")
+    ap.add_argument("--backfill", type=int, default=0,
+                    help="回补过去 N 天的每份 ROB 报告(按船长邮箱识别船), 追加进历史 CSV")
     args = ap.parse_args()
+    if args.backfill:
+        backfill_mode(args.backfill)
+        return
 
     os.makedirs(ROB_DIR, exist_ok=True)
     fleet = load_fleet()
