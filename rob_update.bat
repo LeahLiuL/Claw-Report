@@ -8,7 +8,7 @@ set LOG=rob_data\autoupdate.log
 echo ===== %date% %time% ===== >> %LOG%
 
 echo [1/4] git pull ...
-git pull --ff-only >> %LOG% 2>&1
+git pull --rebase --autostash >> %LOG% 2>&1
 if errorlevel 1 ( echo [ERROR] git pull failed (local changes?) >> %LOG% & exit /b 1 )
 
 echo [2/4] rob_refresh.py ...
