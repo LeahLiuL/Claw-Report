@@ -968,22 +968,42 @@ def write_daily_history(results):
                       f, ensure_ascii=False, indent=2)
     except Exception as e:
         print("[WARN] write daily json failed:", e)
-    # 2) 累加 csv(追加, 绝不覆盖历史行)
+    # 2) 累加 csv(幂等: 跳过已存在的 (snapshot_time, vessel), 绝不覆盖历史行)
+    #    既防重复运行产生重复行, 也保证跨机器 pull 后历史不丢失/不重置。
+    existing = set()
+    if os.path.exists(HISTORY_CSV):
+        try:
+            with open(HISTORY_CSV, encoding="utf-8", newline="") as f:
+                for row in csv.reader(f):
+                    if row and row[0] and row[1]:
+                        existing.add((row[0], row[1]))
+        except Exception:
+            pass
     write_header = not os.path.exists(HISTORY_CSV)
+    new_rows = []
+    for r in results:
+        key = (snap_time, r.get("vessel", ""))
+        if key in existing:
+            continue
+        existing.add(key)
+        new_rows.append([
+            snap_time, r.get("vessel", ""), r.get("code", ""), r.get("lane", ""),
+            r.get("rob_lsfo"), r.get("rob_hsfo"), r.get("rob_mgo"),
+            r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
+            int(bool(r.get("found"))), (r.get("report_time") or "")[:19],
+            r.get("sender") or "",
+        ])
     try:
         with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
             w = csv.writer(f)
             if write_header:
                 w.writerow(SNAP_FIELDS)
-            for r in results:
-                w.writerow([
-                    snap_time, r.get("vessel", ""), r.get("code", ""), r.get("lane", ""),
-                    r.get("rob_lsfo"), r.get("rob_hsfo"), r.get("rob_mgo"),
-                    r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
-                    int(bool(r.get("found"))), (r.get("report_time") or "")[:19],
-                    r.get("sender") or "",
-                ])
-        print("history -> %s (+%d rows, day=%s)" % (HISTORY_CSV, len(results), day_file))
+            for row in new_rows:
+                w.writerow(row)
+        if new_rows:
+            print("history -> %s (+%d rows, day=%s)" % (HISTORY_CSV, len(new_rows), day_file))
+        else:
+            print("history -> %s (no new rows this run, cumulative preserved)" % HISTORY_CSV)
     except Exception as e:
         print("[WARN] write history csv failed:", e)
 
