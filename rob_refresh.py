@@ -16,7 +16,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
   python rob_refresh.py --no-outlook  # 只用已有数据重新生成网页(调试)
   python rob_refresh.py --vessel "CHANG SHENG JI 8"  # 只刷新指定船
 """
-import sys, os, re, json, base64, hashlib, argparse, tempfile, gc
+import sys, os, re, json, base64, hashlib, argparse, tempfile, csv
 sys.stdout.reconfigure(encoding="utf-8")
 from datetime import datetime
 
@@ -29,6 +29,12 @@ SENDER_MAP_FILE = os.path.join(ROB_DIR, "vessel_senders.json")
 OUT_HTML = os.path.join(BASE, "rob_oil_report.html")
 OUT_XLSX = os.path.join(ROB_DIR, "rob_oil_table.xlsx")
 CULINES_DIR = r"C:\CULINES\Claw Report"
+HISTORY_DIR = os.path.join(ROB_DIR, "history")
+HISTORY_CSV = os.path.join(HISTORY_DIR, "rob_history.csv")
+# 累加历史 CSV 的列(逐船逐次快照, 一行一船)
+SNAP_FIELDS = ["snapshot_time", "vessel", "code", "lane",
+               "rob_lsfo", "rob_hsfo", "rob_mgo", "rob_ulsfo",
+               "rob_bw", "rob_fw", "found", "report_time", "sender"]
 
 PASSWORD = "jimmy"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
 REPORT_KEYS = ("NOON", "BERTH", "SAILING", "ANCHOR", "DRIFT")
@@ -125,20 +131,12 @@ def save_sender_map(m):
 
 
 def build_folder_cache(inbox):
-    """Vessel 子文件夹: norm(文件夹名) -> folder。递归多层(如 Vessel/ZLST/ZLST Master)。"""
+    """Vessel 子文件夹: norm(文件夹名) -> folder"""
     cache = {}
     try:
         vf = inbox.Folders["Vessel"]
-
-        def _walk(f):
-            try:
-                for c in f.Folders:
-                    cache[norm(c.Name)] = c
-                    _walk(c)
-            except Exception:
-                pass
-
-        _walk(vf)
+        for c in vf.Folders:
+            cache[norm(c.Name)] = c
     except Exception:
         pass
     return cache
@@ -170,97 +168,53 @@ def pick_report_attachment(it):
     return None
 
 
-def _scan_rob(wb):
-    """从已加载 workbook 提取 ROB 油种。
-    支持两类标签写法:
-      · 行首型  'ROB LSFO'                 (NOON / SAILING 报告常见)
-      · 阶段前缀型 'POB ROB LSFO' / 'FWE ROB MGO' / 'DROP ANCHOR ROB LSFO'
-        (BERTH 报告常见, ROB 前带作业阶段前缀)
-    只要单元格含独立词 'ROB' 且含已知油种代码, 即取其右一格数值;
-    同油种多阶段快照时取最后(最下游)一处作为当前存油。
-    现代低硫船常只报 ULSFO/VLSFO, 归一为 LSFO 以免漏抓。"""
-    rob = {}
-    oil_codes = ("LSFO", "HSFO", "MGO", "ULSFO", "ULSGO", "VLSFO", "IFO", "MDO", "LSMGO")
-    for ws in wb.worksheets:
-        for row in ws.iter_rows(values_only=True):
-            for i, c in enumerate(row):
-                if c and isinstance(c, str):
-                    cu = c.upper().strip()
-                    if "ROB" not in cu:            # 必须含独立词 ROB(排除 PROBABLY 等)
-                        continue
-                    oil = None
-                    for code in oil_codes:
-                        if code in cu:
-                            oil = code
-                            break
-                    if oil is None:
-                        continue
-                    if i + 1 >= len(row):
-                        continue
-                    val = row[i + 1]
-                    if val is None or val == "":
-                        continue
-                    try:
-                        rob[oil] = float(val)      # 同油种多次出现 -> 最后(最下游)一处生效
-                    except Exception:
-                        pass
-    # ULSFO/VLSFO/ULSGO/LSMGO 归一为 LSFO(本表无独立列)
-    for alt in ("ULSFO", "VLSFO", "ULSGO", "LSMGO"):
-        if alt in rob and "LSFO" not in rob:
-            rob["LSFO"] = rob[alt]
-            break
-    return rob
-
-
 def extract_rob(att):
-    import openpyxl, io
-    # 优先用 att.Content 字节流(不落盘): SaveAsFile 对异常/嵌入附件极易触发
-    # Outlook COM 原生崩溃(进程直接被杀, 无 Python 堆栈), 故仅作最后回退。
-    try:
-        data = att.Content
-        if data:
-            wb = openpyxl.load_workbook(io.BytesIO(data), data_only=True)
-            return _scan_rob(wb)
-    except Exception:
-        pass
-    # 回退: SaveAsFile 落盘后读取(针对 att.Content 不支持的少数附件)
+    import openpyxl
     fd, p = tempfile.mkstemp(suffix=".xlsx")
     os.close(fd)
     try:
         att.SaveAsFile(p)
         wb = openpyxl.load_workbook(p, data_only=True)
-        return _scan_rob(wb)
     except Exception:
-        return {}
-    finally:
         try:
             os.remove(p)
         except Exception:
             pass
+        return {}
+    rob = {}
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            for i, c in enumerate(row):
+                if c and isinstance(c, str):
+                    cu = c.upper().strip()
+                    if cu.startswith("ROB ") and i + 1 < len(row):
+                        try:
+                            rob[cu[4:].strip()] = float(row[i + 1])
+                        except Exception:
+                            pass
+    try:
+        os.remove(p)
+    except Exception:
+        pass
+    return rob
 
 
-def scan_for_rob(items, max_attach=20, max_walk=600, subject_tokens=None):
-    """倒序遍历邮件(调用方需保证已按 ReceivedTime 倒序), 返回最新一封报告附件含 ROB
-    的 (rob, receivedTime, subject, sender)。
-    subject_tokens: 若设置(可传单个 token 或 token 列表, norm 后), 邮件主题必须含其中
-    至少一个 token 才候选 —— 用于共用/前缀文件夹或共用发件人时防止误抓其他船的报告
-    (如 MEDKON 文件夹里 MEDKON DON 的邮件; 或 M. ODYSSEY 主题只写代码 MODS 而非全称)。"""
-    if subject_tokens and not isinstance(subject_tokens, (list, tuple, set)):
-        subject_tokens = [subject_tokens]
-    subject_tokens = [t for t in (subject_tokens or []) if t]
+def scan_for_rob(items, max_attach=40, max_walk=1200, subject_token=None):
+    """倒序遍历邮件, 返回最新一封报告附件含 ROB 的 (rob, receivedTime, subject, sender)。
+    subject_token: 若设置(norm 后的船名), 邮件主题必须含该 token 才候选 —— 用于共用文件夹
+    防止误抓其他船的报告(如 MEDKON 文件夹里 MEDKON DON 的邮件)。"""
     tried = walked = 0
     for it in items:
         walked += 1
         if walked > max_walk:
             break
         try:
-            if subject_tokens:
+            if subject_token:
                 try:
                     subj0 = it.Subject or ""
                 except Exception:
                     subj0 = ""
-                ns = norm(subj0)
-                if not any(t in ns for t in subject_tokens):
+                if subject_token not in norm(subj0):
                     continue
             att = pick_report_attachment(it)
             if att is None:
@@ -293,174 +247,51 @@ def apply_hit(rec, hit):
     return True
 
 
-def _all_subfolders(parent, max_depth=4):
-    """递归 yield parent 下的所有子文件夹(含直接子文件夹)。"""
-    stack = [(parent, 0)]
-    while stack:
-        f, d = stack.pop()
-        if d >= max_depth:
-            continue
-        try:
-            for sub in f.Folders:
-                yield sub
-                stack.append((sub, d + 1))
-        except Exception:
-            pass
-
-
-def _search_subject_recursive(inbox, token):
-    """在收件箱 + 所有子文件夹中, 按主题含 token(norm 后)倒序返回邮件。
-    解决: 报告被归进非 Vessel 子文件夹(如 CUHP\\CUHP Master)或 Vessel 子文件夹
-    (如 M. ODYSSEY 在 Vessel\\ODESSY)时, 仅靠 inbox 根目录 Restrict 抓不到的问题。"""
-    q = "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % token
-    out = []
-    try:
-        folders = [inbox] + list(_all_subfolders(inbox))
-    except Exception:
-        folders = [inbox]
-    for f in folders:
-        try:
-            items = f.Items.Restrict(q)
-            items.Sort("[ReceivedTime]", True)
-            for it in items:
-                out.append(it)
-        except Exception:
-            continue
-    return out
-
-
-def _sender_queries(smtp, NS):
-    """给定 SMTP, 返回可用于 Restrict 的发件人过滤串列表。
-    关键: 内部 CULINES Exchange 账号的 SenderEmailAddress 是 X.500(不含 @),
-    直接按 SMTP 查恒为空; 故用 NS.CreateRecipient 解析出真实 X.500 一并加入,
-    这样内邮船(如 culshantou@culines.com)也能被发件人搜索命中(实测 211 封全中)。"""
-    qs = []
-    if smtp and "@" in smtp:
-        qs.append("[SenderEmailAddress]='%s'" % smtp)
-        try:
-            r = NS.CreateRecipient(smtp)
-            if r.Resolve():
-                ae = r.AddressEntry
-                x = ae.Address
-                if x and x != smtp and "@" not in x:   # X.500 不含 @, SMTP 含 @
-                    qs.append("[SenderEmailAddress]='%s'" % x)
-        except Exception:
-            pass
-    return qs
-
-
-def _search_sender_recursive(inbox, sender, NS=None):
-    """在收件箱 + 所有子文件夹中, 按发件人(解析 X.500 后)倒序返回邮件。"""
-    if NS is not None:
-        qs = _sender_queries(sender, NS)
-    else:
-        qs = ["[SenderEmailAddress]='%s'" % sender]
-    out = []
-    try:
-        folders = [inbox] + list(_all_subfolders(inbox))
-    except Exception:
-        folders = [inbox]
-    for f in folders:
-        for q in qs:
-            try:
-                items = f.Items.Restrict(q)
-                items.Sort("[ReceivedTime]", True)
-                for it in items:
-                    out.append(it)
-            except Exception:
-                continue
-    return out
-
-
-def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared, NS=None):
-    """汇总该船所有可能来源的邮件(船文件夹 / 主题含船名 / 主题含代码 / 已知发件人),
-    去重后按 ReceivedTime 全局倒序, 返回 (有序邮件列表, 主题过滤 token 列表)。
-    关键修复(基于 2026-08-27 实测):
-      · 实测本机 Outlook 的 DASL 主题 LIKE 只匹配『主题里真实出现的空格形态』——
-        去空格小写 token(如 zhonglianshantou)对『ZHONG LIAN SHAN TOU』(带空格)永远
-        0 命中; 必须保留空格(如 'zhong lian shan tou')才命中。故主题搜索仅用
-        『带空格小写船名 + 船代码』(代码通常不在主题, 仅补充)。
-      · 发件人搜索原按 SMTP Restrict, 但内部 CULINES 账号 SenderEmailAddress 是
-        X.500(不含@), 查不到; 现用 NS.CreateRecipient 解析 X.500 一并加入, 内邮船
-        也能命中(实测 culshantou 211 封全中) —— 此为主路径, 最可靠。
-      · 文件夹缓存原为单层(Vessel 直接子目录), 但 ZLST 报告在 Vessel/ZLST/ZLST Master
-        (两层), 故缓存改递归多层(build_folder_cache)。
-    优先级: 发件人(X.500, 最可靠) > 主题(带空格) > 船文件夹; 最终合并全局倒序取最新 ROB。"""
-    items = []
-    # ① Vessel/<船名> 文件夹(若有): 该船邮件最集中处, 取最近 80 封即可覆盖最新
-    folder, exact = match_folder(cache, rec["vessel"])
+def refresh_vessel(inbox, cache, rec, sender_map=None):
+    vname = rec["vessel"]
+    nv = norm(vname)
+    sender_map = sender_map or {}
+    # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
+    eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
+    # 该发件人是否对应多艘船(共用邮箱, 如 MEDKON DON/LIA)——需主题过滤防误抓
+    shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
+    # ① Vessel/<船名> 子文件夹(最可靠: 文件夹即船, 换船长邮箱也能抓到)
+    folder, exact = match_folder(cache, vname)
     if folder is not None:
         try:
-            fis = folder.Items
-            fis.Sort("[ReceivedTime]", True)
-            cnt = 0
-            for it in fis:
-                items.append(it)
-                cnt += 1
-                if cnt >= 80:
-                    break
+            items = folder.Items
+            items.Sort("[ReceivedTime]", True)
+            # 精确匹配(独立文件夹)直接信任; 共用/前缀文件夹或共用发件人时,
+            # 要求主题含船名防误抓(如 MEDKON 文件夹放多船)。
+            need_subj = (not exact) and (eff_sender is None or shared > 1)
+            token = nv if need_subj else None
+            hit = scan_for_rob(items, subject_token=token)
+            if hit:
+                return apply_hit(rec, hit)
         except Exception:
             pass
-    # ② 主题搜索: DASL 查询用『带空格小写船名 + 船代码』——实测本机 Outlook 的 DASL 主题
-    #    LIKE 只匹配主题里真实出现的空格形态(去空格 token 对『ZHONG LIAN SHAN TOU』0 命中),
-    #    故搜索必须用带空格形态。
-    name_lower = (rec.get("vessel") or "").lower().strip()
-    code = norm(rec.get("code", ""))
-    search_toks = []
-    for tok in (name_lower, code):
-        if tok and tok not in search_toks:
-            search_toks.append(tok)
-    for tok in search_toks:
-        items += _search_subject_recursive(inbox, tok)
-    # ③ 已知发件人(解析 X.500 后 Restrict, 内邮也能命中)——最可靠主路径
+    # ② 已知船长 sender 邮箱(全收件箱按发件人筛, 不依赖子文件夹/主题含船名)
     if eff_sender:
-        items += _search_sender_recursive(inbox, eff_sender, NS)
-    # 去重 + 全局按 ReceivedTime 倒序
-    seen = set()
-    uniq = []
-    for it in items:
         try:
-            eid = it.EntryID
-        except Exception:
-            eid = id(it)
-        if eid in seen:
-            continue
-        seen.add(eid)
-        uniq.append(it)
-
-    def _rt(it):
-        try:
-            return it.ReceivedTime
-        except Exception:
-            return datetime.min
-
-    uniq.sort(key=_rt, reverse=True)
-    # 主题过滤 token 必须与 scan_for_rob 内部 norm(subj) 一致(去空格/标点),
-    # 否则带空格 token 对去空格主题永远 False, 会把真正的 NOON 报告过滤掉(实测 ZLST 因此漏抓)。
-    # 过滤策略: 仅当『发件人不唯一(共用)』或『无已知发件人(只能靠主题/文件夹兜底)』时才过滤,
-    # 以防误抓他船; 若已知唯一发件人, 直接信任该发件人的所有邮件, 不再要求主题含船名。
-    filter_toks = [t for t in (nv, code) if t]
-    need_filter = (shared > 1) or (eff_sender is None)
-    tokens = filter_toks if need_filter else None
-    return uniq, tokens
-
-
-def refresh_vessel(inbox, cache, rec, sender_map=None, NS=None):
-    sender_map = sender_map or {}
-    nv = norm(rec["vessel"])
-    # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
-    eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(rec["vessel"])
-    shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
-    # 合并所有来源, 全局倒序取最新一封含 ROB 的邮件
-    try:
-        cands, tokens = _collect_candidates(inbox, cache, rec, nv, eff_sender, shared, NS)
-        hit = scan_for_rob(cands, subject_tokens=tokens)
-        if hit:
-            if eff_sender:
+            items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
+            items.Sort("[ReceivedTime]", True)
+            token2 = nv if shared > 1 else None
+            hit = scan_for_rob(items, subject_token=token2)
+            if hit:
                 rec["sender"] = eff_sender
+                return apply_hit(rec, hit)
+        except Exception:
+            pass
+    # ③ 收件箱主题含船名(兜底)
+    try:
+        items = inbox.Items.Restrict(
+            "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % vname)
+        items.Sort("[ReceivedTime]", True)
+        hit = scan_for_rob(items, max_walk=1500, max_attach=40)
+        if hit:
             return apply_hit(rec, hit)
-    except Exception as e:
-        print("   [WARN] refresh %s failed: %s" % (rec["vessel"], e))
+    except Exception:
+        pass
     return False
 
 
@@ -508,6 +339,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <title>CUL ROB Bunker Report</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"
         onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';document.head.appendChild(s);"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+        onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';document.head.appendChild(s);"></script>
 <script>
 /* lazy-load xlsx-js-style for Excel export (same CDN fallback chain as cul_daily_movement.html) */
 var _xlsxStyled = true;
@@ -582,6 +415,31 @@ function _loadXlsx(cb) {
   td.miss { color: #d64545; font-size: 12px; }
   td.vessel { font-weight: 600; color: #1F4E79; }
   .footer { padding: 10px 28px 26px; font-size: 11px; color: #8a99ab; }
+  /* ---- trend tab ---- */
+  .btn-trend { background: #2E75B6; color: #fff; border: none; border-radius: 5px; padding: 8px 16px;
+               font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 10px; }
+  .btn-trend:hover { background: #1F4E79; }
+  .trendbar { padding: 14px 28px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+              background: #fff; box-shadow: 0 2px 8px rgba(31,78,121,.10); margin: 0 0 4px; }
+  .trendbar select, .trendbar input { padding: 7px 10px; border: 1px solid #c9d5e2; border-radius: 6px;
+              font-size: 13px; outline: none; }
+  .trendbar select[multiple] { min-width: 200px; height: 120px; }
+  .trendbar button { padding: 7px 14px; border: none; border-radius: 6px; background: #1F4E79; color: #fff;
+              font-size: 13px; cursor: pointer; }
+  .trendbar button:hover { background: #2E75B6; }
+  .trendbar .lbl { font-size: 12px; color: #5a6e82; }
+  .trendgrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; padding: 16px 28px; }
+  @media (max-width: 900px) { .trendgrid { grid-template-columns: 1fr; } }
+  .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
+  .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 10px; }
+  #trendChart { width: 100% !important; height: 360px !important; }
+  .trendtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: left; }
+  .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; }
+  .trendtbl tr:nth-child(even) { background: #f8fafc; }
+  .warn { color: #d64545; font-weight: 700; }
+  .ok { color: #2e8b57; }
+  .bunker { color: #c77d00; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -604,6 +462,7 @@ function _loadXlsx(cb) {
     </div>
     <div class="header-right">
       <button class="btn-export" onclick="exportExcel()">Export Excel</button>
+      <button class="btn-trend" onclick="showTrend()">Trend</button>
       <div class="updated" id="updatedAt"></div>
     </div>
   </div>
@@ -628,6 +487,40 @@ function _loadXlsx(cb) {
     Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
     Missing vessels flagged in REMARK · Time = report received time ·
     Authorized personnel only - do not share the password
+  </div>
+
+  <div id="trend" style="display:none">
+    <div class="trendbar">
+      <span class="lbl">Vessels:</span>
+      <select id="trendVessels" multiple></select>
+      <button onclick="trendSelAll()">All</button>
+      <span class="lbl">Oil:</span>
+      <select id="trendOil">
+        <option value="ls">LSFO</option>
+        <option value="hs">HSFO</option>
+        <option value="mg">MGO</option>
+      </select>
+      <span class="lbl">Daily anchor:</span>
+      <select id="trendAnchor" title="Align each vessel to one ROB per day at this hour (consumption = daily diff)">
+        <option value="12" selected>Noon (12:00)</option>
+        <option value="8">Morning (08:00)</option>
+        <option value="18">Evening (18:00)</option>
+        <option value="0">Midnight (00:00)</option>
+      </select>
+      <span class="lbl">From:</span><input type="date" id="trendFrom">
+      <span class="lbl">To:</span><input type="date" id="trendTo">
+      <button onclick="renderTrend()">Apply</button>
+      <button onclick="toggleTrendMode()" id="trendModeBtn">Mode: ROB</button>
+      <button onclick="showTable()">Back to Table</button>
+    </div>
+    <div class="trendgrid">
+      <div class="panel"><h3 id="trendChartTitle">ROB Trend</h3><canvas id="trendChart"></canvas></div>
+      <div class="panel"><h3>Vessel Summary (selected range)</h3><div id="trendSummary" style="max-height:360px;overflow:auto"></div></div>
+    </div>
+    <div class="trendgrid">
+      <div class="panel"><h3>Lane Summary</h3><div id="trendLane"></div></div>
+      <div class="panel"><h3>Data Integrity (missing reports)</h3><div id="trendIntegrity" style="max-height:300px;overflow:auto"></div></div>
+    </div>
   </div>
 </div>
 
@@ -738,10 +631,204 @@ function exportExcel() {
 document.getElementById('pwd').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doUnlock();
 });
+
+/* ================= Trend / Consumption analysis ================= */
+var trendMode = 'rob';
+var trendChartObj = null;
+function daysBetween(a, b) {
+  var da = new Date(a.replace(/-/g, '/'));
+  var db = new Date(b.replace(/-/g, '/'));
+  return Math.max(0, (db - da) / 86400000);
+}
+function showTrend() {
+  document.querySelector('.stats').style.display = 'none';
+  document.querySelector('.toolbar').style.display = 'none';
+  document.querySelector('.tablewrap').style.display = 'none';
+  document.querySelector('.footer').style.display = 'none';
+  document.getElementById('trend').style.display = 'block';
+  initTrend(); renderTrend();
+}
+function showTable() {
+  document.querySelector('.stats').style.display = '';
+  document.querySelector('.toolbar').style.display = '';
+  document.querySelector('.tablewrap').style.display = '';
+  document.querySelector('.footer').style.display = '';
+  document.getElementById('trend').style.display = 'none';
+}
+function initTrend() {
+  var vs = {};
+  DATA.history.forEach(function(r){ vs[r.v] = r.l || ''; });
+  var sel = document.getElementById('trendVessels');
+  sel.innerHTML = '';
+  Object.keys(vs).sort().forEach(function(v){
+    var o = document.createElement('option'); o.value = v; o.text = v + (vs[v] ? ' (' + vs[v] + ')' : ''); sel.appendChild(o);
+  });
+  var ts = DATA.history.map(function(r){ return r.t.slice(0, 10); }).sort();
+  var mn = ts[0], mx = ts[ts.length - 1];
+  ['trendFrom','trendTo'].forEach(function(id){ var el = document.getElementById(id); el.min = mn; el.max = mx; });
+  document.getElementById('trendFrom').value = mn;
+  document.getElementById('trendTo').value = mx;
+  trendSelAll();
+}
+function trendSelAll(){ var s = document.getElementById('trendVessels'); for (var i = 0; i < s.options.length; i++) s.options[i].selected = true; }
+function toggleTrendMode(){
+  trendMode = (trendMode === 'rob') ? 'consum' : 'rob';
+  document.getElementById('trendModeBtn').textContent = 'Mode: ' + (trendMode === 'rob' ? 'ROB' : 'Consumption');
+  renderTrend();
+}
+function hoursOf(s) { var m = (s || '').match(/(\d{1,2}):(\d{2})/); return m ? (+m[1] + (+m[2]) / 60) : 12; }
+// Align each vessel's history to ONE ROB per calendar day, choosing the row
+// whose time-of-day is closest to the anchor hour (default Noon = the Master's
+// daily Noon report). This gives "same time each day" ROB for clean daily diff.
+function alignDaily(rows, oil, anchor) {
+  var byDay = {};
+  rows.forEach(function(r) {
+    if (r[oil] === null || r[oil] === undefined) return;
+    var day = (r.rt && r.rt.length >= 10) ? r.rt.slice(0, 10) : (r.t || '').slice(0, 10);
+    if (!day) return;
+    var h = hoursOf(r.rt || r.t);
+    var score = Math.abs(h - anchor);
+    if (!byDay[day] || score < byDay[day].score) byDay[day] = { rob: r[oil], score: score };
+  });
+  var days = Object.keys(byDay).sort();
+  return days.map(function(d) { return { day: d, rob: byDay[d].rob }; });
+}
+function renderTrend() {
+  if (!DATA || !DATA.history) return;
+  var oil = document.getElementById('trendOil').value;
+  var anchor = parseFloat(document.getElementById('trendAnchor').value);
+  var from = document.getElementById('trendFrom').value;
+  var to = document.getElementById('trendTo').value;
+  var sel = Array.from(document.getElementById('trendVessels').selectedOptions).map(function(o){ return o.value; });
+  var recs = DATA.history.filter(function(r){
+    if (sel.length && sel.indexOf(r.v) < 0) return false;
+    if (from && (r.rt || r.t).slice(0, 10) < from) return false;
+    if (to && (r.rt || r.t).slice(0, 10) > to) return false;
+    return true;
+  });
+  var byV = {};
+  recs.forEach(function(r){ (byV[r.v] = byV[r.v] || []).push(r); });
+  Object.keys(byV).forEach(function(v){ byV[v].sort(function(a,b){ return a.t < b.t ? -1 : 1; }); });
+  // global x-axis labels (mode-dependent)
+  var labelSet = {};
+  if (trendMode === 'rob') {
+    recs.forEach(function(r){ if (r[oil] !== null && r[oil] !== undefined) labelSet[r.t] = 1; });
+  } else {
+    Object.keys(byV).forEach(function(v){
+      alignDaily(byV[v], oil, anchor).forEach(function(d){ labelSet[d.day] = 1; });
+    });
+  }
+  var globalLabels = Object.keys(labelSet).sort();
+  var palette = ['#1F4E79','#2E75B6','#d64545','#F6A623','#2e8b57','#8e44ad','#16a085','#e67e22','#2980b9','#c0392b'];
+  var datasets = [], vi = 0, summary = [];
+  Object.keys(byV).forEach(function(v){
+    var arr = byV[v];
+    var color = palette[vi % palette.length]; vi++;
+    var lane = arr.length ? arr[arr.length - 1].l : '';
+    var dataPts = globalLabels.map(function(){ return null; });
+    if (trendMode === 'rob') {
+      var m = {}; arr.forEach(function(r){ m[r.t] = r[oil]; });
+      globalLabels.forEach(function(t, i){ if (t in m) dataPts[i] = m[t]; });
+    } else {
+      var daily = alignDaily(arr, oil, anchor);
+      var cons = {};
+      for (var i = 1; i < daily.length; i++) {
+        cons[daily[i].day] = Math.round((daily[i-1].rob - daily[i].rob) * 100) / 100; // stock drop = consumed
+      }
+      globalLabels.forEach(function(t, i){ if (t in cons) dataPts[i] = cons[t]; });
+    }
+    datasets.push({ label:v, data:dataPts, borderColor:color, backgroundColor:color, spanGaps:true, tension:0.15, pointRadius:2, borderWidth:2 });
+    // summary from aligned daily series (same-time ROB)
+    var daily = alignDaily(arr, oil, anchor);
+    if (daily.length >= 1) {
+      var first = daily[0], last = daily[daily.length - 1];
+      var totalCons = first.rob - last.rob, bunkerCnt = 0, minRob = Infinity, sumDaily = 0;
+      for (var j = 1; j < daily.length; j++) {
+        var df = daily[j-1].rob - daily[j].rob;
+        sumDaily += df;
+        if (df < 0) bunkerCnt++;
+        if (daily[j].rob < minRob) minRob = daily[j].rob;
+      }
+      if (first.rob < minRob) minRob = first.rob;
+      var avgDaily = (daily.length - 1) > 0 ? sumDaily / (daily.length - 1) : 0;
+      var daysLeft = (avgDaily > 0) ? (last.rob / avgDaily) : null;
+      summary.push({ v:v, lane:lane, first:first.rob, last:last.rob, total:totalCons, avg:avgDaily, bunker:bunkerCnt, min:minRob, daysLeft:daysLeft });
+    }
+  });
+  if (trendChartObj) trendChartObj.destroy();
+  var ctx = document.getElementById('trendChart').getContext('2d');
+  trendChartObj = new Chart(ctx, {
+    type: trendMode === 'consum' ? 'bar' : 'line',
+    data: { labels: globalLabels, datasets: datasets },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ tooltip:{ mode:'index', intersect:false } },
+      scales:{ x:{ ticks:{ maxRotation:60, minRotation:30, font:{size:10} } },
+        y:{ title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day)':'ROB (MT)') } } } }
+  });
+  document.getElementById('trendChartTitle').textContent = (trendMode==='consum'?'Daily Consumption (aligned to ' + anchor + ':00)':'ROB Trend') + ' — ' + oil.toUpperCase();
+  renderSummary(summary);
+  renderLane(byV, oil);
+  renderIntegrity(recs);
+}
+function renderSummary(s) {
+  if (!s.length) { document.getElementById('trendSummary').innerHTML = '<p>No data.</p>'; return; }
+  var h = '<table class="trendtbl"><tr><th>Vessel</th><th>Lane</th><th>First</th><th>Last</th><th>Δ Total</th><th>Avg/day</th><th>Min</th><th>Bunker#</th><th>Days Left</th></tr>';
+  s.sort(function(a,b){ return (a.daysLeft==null?1e9:a.daysLeft) - (b.daysLeft==null?1e9:b.daysLeft); });
+  s.forEach(function(r){
+    var dl = (r.daysLeft == null) ? '—' : Math.floor(r.daysLeft);
+    var warn = (r.daysLeft != null && r.daysLeft < 7) ? ' class="warn"' : '';
+    h += '<tr><td>' + r.v + '</td><td>' + r.lane + '</td><td>' + fmt(r.first) + '</td><td>' + fmt(r.last) +
+         '</td><td>' + fmt(r.total) + '</td><td>' + fmt(r.avg) + '</td><td>' + fmt(r.min) + '</td><td>' + r.bunker +
+         '</td><td' + warn + '>' + (dl === '—' ? '—' : dl) + '</td></tr>';
+  });
+  h += '</table>';
+  document.getElementById('trendSummary').innerHTML = h;
+}
+function renderLane(byV, oil) {
+  var anchor = parseFloat(document.getElementById('trendAnchor').value);
+  var laneMap = {};
+  Object.keys(byV).forEach(function(v){
+    var arr = byV[v]; if (!arr.length) return;
+    var last = arr[arr.length - 1]; var lane = last.l || '—';
+    var daily = alignDaily(arr, oil, anchor);
+    if (daily.length < 1) return;
+    var lv = daily[daily.length - 1].rob;
+    var sumDaily = 0;
+    for (var i = 1; i < daily.length; i++) sumDaily += (daily[i-1].rob - daily[i].rob);
+    var ad = (daily.length - 1) > 0 ? sumDaily / (daily.length - 1) : 0;
+    if (!laneMap[lane]) laneMap[lane] = { rob:0, cons:0, cnt:0 };
+    laneMap[lane].rob += lv; laneMap[lane].cons += ad; laneMap[lane].cnt++;
+  });
+  var h = '<table class="trendtbl"><tr><th>Lane</th><th>Vessels</th><th>Total ROB (' + oil.toUpperCase() + ')</th><th>Avg Daily Consumption</th></tr>';
+  Object.keys(laneMap).sort().forEach(function(l){
+    var m = laneMap[l];
+    h += '<tr><td>' + l + '</td><td>' + m.cnt + '</td><td>' + fmt(m.rob) + '</td><td>' + fmt(m.cons) + '</td></tr>';
+  });
+  h += '</table>';
+  document.getElementById('trendLane').innerHTML = h;
+}
+function renderIntegrity(recs) {
+  var miss = recs.filter(function(r){ return r.f === 0; });
+  if (!miss.length) { document.getElementById('trendIntegrity').innerHTML = '<p class="ok">All reports present in selected range.</p>'; return; }
+  var h = '<table class="trendtbl"><tr><th>Vessel</th><th>Run Time</th><th>Report Time</th></tr>';
+  miss.slice(0, 200).forEach(function(r){ h += '<tr><td>' + r.v + '</td><td>' + r.t + '</td><td>' + r.rt + '</td></tr>'; });
+  h += '</table>';
+  if (miss.length > 200) h += '<p>... showing 200 of ' + miss.length + '</p>';
+  document.getElementById('trendIntegrity').innerHTML = h;
+}
 </script>
 </body>
 </html>
 """
+
+
+def _num(x):
+    try:
+        if x is None or x == "":
+            return None
+        return float(x)
+    except Exception:
+        return None
 
 
 def build_html(results):
@@ -757,15 +844,38 @@ def build_html(results):
             "remark": "No ROB report from Master found in mailbox" if not r.get("found") else "",
             "report_time": (r.get("report_time") or "")[:19],
         })
+    # ---- 历史存档(供网页趋势/消耗分析) ----
+    history = []
+    if os.path.exists(HISTORY_CSV):
+        try:
+            with open(HISTORY_CSV, encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    history.append({
+                        "t": (row.get("snapshot_time") or "")[:16],   # 运行时间 YYYY-MM-DD HH:MM
+                        "v": row.get("vessel", ""),
+                        "c": row.get("code", ""),
+                        "l": row.get("lane", ""),
+                        "ls": _num(row.get("rob_lsfo")),
+                        "hs": _num(row.get("rob_hsfo")),
+                        "mg": _num(row.get("rob_mgo")),
+                        "f": int(row.get("found") or 0),
+                        "rt": (row.get("report_time") or "")[:19],    # 船长报告接收时间
+                    })
+        except Exception as e:
+            print("[WARN] read history csv failed:", e)
     payload = {"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
-               "vessels": vessels}
+               "vessels": vessels,
+               "history": history}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)
     back = cryptojs_decrypt(enc, PASSWORD)
     assert json.loads(back)["updated"] == payload["updated"]
+    assert "history" in json.loads(back)
     html = HTML_TEMPLATE.replace("__ENC__", enc)
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
+    print("HTML -> %s (%d vessels, history=%d rows, encrypted OK, %d bytes)"
+          % (OUT_HTML, len(vessels), len(history), len(html)))
     print("HTML -> %s (%d vessels, encrypted OK, %d bytes)" % (OUT_HTML, len(vessels), len(html)))
 
 
@@ -839,129 +949,50 @@ def build_xlsx(results):
             print("[WARN] CULINES sync failed:", e)
 
 
-# ---------------------------------------------------------------- main
-# ---------------------------------------------------------------- 3b. 每日存档(供分析统计) + MISS 警告
-def write_daily_history(merged, today=None):
-    """把当天每艘船的 ROB 写入累计历史 CSV(供后续分析统计), 并生成当日完整快照 JSON。
-    每天每艘船只保留一行(同日多次运行取最新)。"""
-    import csv
-    if today is None:
-        today = datetime.now().strftime("%Y-%m-%d")
-    hist = os.path.join(ROB_DIR, "rob_history.csv")
-    cols = ["date", "vessel", "code", "lane", "pic",
-            "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
-            "found", "report_time"]
-    rows = {}
-    if os.path.exists(hist):
-        try:
-            with open(hist, encoding="utf-8") as f:
-                for row in csv.DictReader(f):
-                    rows[(row["date"], row["vessel"])] = row
-        except Exception:
-            rows = {}
-    for r in merged:
-        v = r.get("vessel", "")
-        rows[(today, v)] = {
-            "date": today,
-            "vessel": v,
-            "code": r.get("code", ""),
-            "lane": r.get("lane", ""),
-            "pic": r.get("pic", ""),
-            "lsfo": r.get("rob_lsfo"),
-            "hsfo": r.get("rob_hsfo"),
-            "mgo": r.get("rob_mgo"),
-            "ulsfo": r.get("rob_ulsfo"),
-            "bw": r.get("rob_bw"),
-            "fw": r.get("rob_fw"),
-            "refeer": r.get("rob_refeer"),
-            "found": "1" if r.get("found") else "0",
-            "report_time": (r.get("report_time") or "")[:19],
-        }
-    out = sorted(rows.values(), key=lambda x: (x["date"], x["vessel"]))
-    with open(hist, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
-        w.writeheader()
-        w.writerows(out)
-    print("HISTORY -> %s (%d rows, today %s)" % (hist, len(out), today))
-    # 当日完整快照(JSON, 含 sender/source 便于追溯)
-    snap = os.path.join(ROB_DIR, "history", "rob_%s.json" % today)
-    os.makedirs(os.path.dirname(snap), exist_ok=True)
-    payload = {
-        "date": today,
-        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "vessels": merged,
-    }
-    with open(snap, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    print("SNAPSHOT -> %s" % snap)
-
-
-def write_miss_report(merged, today=None):
-    if today is None:
-        today = datetime.now().strftime("%Y-%m-%d")
-    miss = [r for r in merged if not r.get("found")]
-    path = os.path.join(ROB_DIR, "miss_vessels_%s.txt" % today)
-    jpath = os.path.join(ROB_DIR, "miss_vessels_%s.json" % today)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write("MISS VESSELS @ %s (%d)\n" % (today, len(miss)))
-        for r in miss:
-            f.write("- %s (%s)  last=%s\n"
-                    % (r.get("vessel"), r.get("code"), r.get("report_time") or "NONE"))
-    with open(jpath, "w", encoding="utf-8") as f:
-        json.dump({"date": today, "miss": miss}, f, ensure_ascii=False, indent=2)
-    if miss:
-        print("[MISS WARNING] %d vessels have NO ROB report today:" % len(miss))
-        for r in miss:
-            print("   - %s (%s) last=%s"
-                  % (r.get("vessel"), r.get("code"), r.get("report_time") or "NONE"))
-    else:
-        print("[MISS WARNING] all vessels have ROB today")
-    return len(miss)
-
-
-def write_stale_report(merged, today=None):
-    """列出『已找到报告但报告时间不是最近两天』的船 —— 这些船可能没抓到最新那份,
-    需人工复核(确认船长 26 号确实发了、且主题/代码可被搜到)。"""
-    if today is None:
-        today = datetime.now().strftime("%Y-%m-%d")
-    from datetime import timedelta
+# ---------------------------------------------------------------- 6. 每日历史存档(累加)
+def write_daily_history(results):
+    """累加式每日历史, 两份产物:
+       - rob_data/history/rob_YYYY-MM-DD.json : 当天完整快照(按运行覆盖当天)
+       - rob_data/history/rob_history.csv      : 逐船逐次快照, 追加(不覆盖历史,
+         可随时按 snapshot_time / vessel 筛选任意历史日)
+    """
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+    now = datetime.now()
+    snap_time = now.strftime("%Y-%m-%d %H:%M")
+    date_tag = now.strftime("%Y-%m-%d")
+    # 1) 当日 json 快照(覆盖当天, 不同日期是不同文件 => 自然累积)
+    day_file = os.path.join(HISTORY_DIR, "rob_%s.json" % date_tag)
     try:
-        cutoff = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    except Exception:
-        cutoff = today
-    stale = []
-    for r in merged:
-        if not r.get("found"):
-            continue
-        rt = (r.get("report_time") or "")[:10]
-        if rt and rt < cutoff:
-            stale.append(r)
-    path = os.path.join(ROB_DIR, "stale_vessels_%s.txt" % today)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write("STALE / NOT-LATEST ROB @ %s (%d)  (cutoff < %s)\n"
-                % (today, len(stale), cutoff))
-        for r in stale:
-            f.write("- %s (%s)  report_time=%s  sender=%s\n"
-                    % (r.get("vessel"), r.get("code"),
-                       r.get("report_time") or "NONE", r.get("sender") or "?"))
-    if stale:
-        print("[STALE CHECK] %d vessels have ROB older than %s (verify nothing newer was sent):"
-              % (len(stale), cutoff))
-        for r in stale:
-            print("   - %s (%s) report=%s sender=%s"
-                  % (r.get("vessel"), r.get("code"),
-                     r.get("report_time") or "NONE", r.get("sender") or "?"))
-    else:
-        print("[STALE CHECK] all found vessels have ROB within last 2 days")
-    return len(stale)
+        with open(day_file, "w", encoding="utf-8") as f:
+            json.dump({"snapshot_time": snap_time, "vessels": results},
+                      f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("[WARN] write daily json failed:", e)
+    # 2) 累加 csv(追加, 绝不覆盖历史行)
+    write_header = not os.path.exists(HISTORY_CSV)
+    try:
+        with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            if write_header:
+                w.writerow(SNAP_FIELDS)
+            for r in results:
+                w.writerow([
+                    snap_time, r.get("vessel", ""), r.get("code", ""), r.get("lane", ""),
+                    r.get("rob_lsfo"), r.get("rob_hsfo"), r.get("rob_mgo"),
+                    r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
+                    int(bool(r.get("found"))), (r.get("report_time") or "")[:19],
+                    r.get("sender") or "",
+                ])
+        print("history -> %s (+%d rows, day=%s)" % (HISTORY_CSV, len(results), day_file))
+    except Exception as e:
+        print("[WARN] write history csv failed:", e)
 
 
+# ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-outlook", action="store_true", help="不抓 Outlook, 只重建网页")
     ap.add_argument("--vessel", default=None, help="只刷新指定船(名称子串)")
-    ap.add_argument("--start", type=int, default=1, help="分批: 从第 N 艘(1-based)开始")
-    ap.add_argument("--limit", type=int, default=0, help="分批: 最多处理 N 艘(0=全部)")
     args = ap.parse_args()
 
     os.makedirs(ROB_DIR, exist_ok=True)
@@ -997,7 +1028,6 @@ def main():
             print("[WARN] CULINES Outlook store not found, keep old data")
         else:
             inbox = store.GetDefaultFolder(6)
-            NS = store.Session
             cache = build_folder_cache(inbox)
             print("Outlook store OK, Vessel folders: %d, sender map: %d"
                   % (len(cache), len(sender_map)))
@@ -1005,12 +1035,8 @@ def main():
             targets = merged
             if args.vessel:
                 targets = [r for r in merged if args.vessel.upper() in r["vessel"].upper()]
-            if args.start > 1:
-                targets = targets[args.start - 1:]
-            if args.limit > 0:
-                targets = targets[:args.limit]
             for i, rec in enumerate(targets, 1):
-                got = refresh_vessel(inbox, cache, rec, sender_map, NS)
+                got = refresh_vessel(inbox, cache, rec, sender_map)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
@@ -1023,10 +1049,6 @@ def main():
                     if s and norm(rec["vessel"]) not in sender_map:
                         sender_map[norm(rec["vessel"])] = s
                         print("   + learned sender for %s: %s" % (rec["vessel"], s))
-                # 每船抓完即落盘 + 释放 COM 对象, 防 Outlook 原生崩溃丢失整轮成果
-                json.dump(merged, open(RESULTS, "w", encoding="utf-8"),
-                          ensure_ascii=False, indent=2)
-                gc.collect()
             save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
 
@@ -1036,11 +1058,7 @@ def main():
 
     build_html(merged)
     build_xlsx(merged)
-    # 每日历史存档(供分析统计) + MISS 船清单每日警告
-    today = datetime.now().strftime("%Y-%m-%d")
-    write_daily_history(merged, today)
-    write_miss_report(merged, today)
-    write_stale_report(merged, today)
+    write_daily_history(merged)
     print("DONE")
 
 
