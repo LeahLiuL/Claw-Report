@@ -205,22 +205,28 @@ def extract_rob(att):
             pass
 
 
-def scan_for_rob(items, max_attach=20, max_walk=600, subject_token=None):
-    """倒序遍历邮件, 返回最新一封报告附件含 ROB 的 (rob, receivedTime, subject, sender)。
-    subject_token: 若设置(norm 后的船名), 邮件主题必须含该 token 才候选 —— 用于共用文件夹
-    防止误抓其他船的报告(如 MEDKON 文件夹里 MEDKON DON 的邮件)。"""
+def scan_for_rob(items, max_attach=20, max_walk=600, subject_tokens=None):
+    """倒序遍历邮件(调用方需保证已按 ReceivedTime 倒序), 返回最新一封报告附件含 ROB
+    的 (rob, receivedTime, subject, sender)。
+    subject_tokens: 若设置(可传单个 token 或 token 列表, norm 后), 邮件主题必须含其中
+    至少一个 token 才候选 —— 用于共用/前缀文件夹或共用发件人时防止误抓其他船的报告
+    (如 MEDKON 文件夹里 MEDKON DON 的邮件; 或 M. ODYSSEY 主题只写代码 MODS 而非全称)。"""
+    if subject_tokens and not isinstance(subject_tokens, (list, tuple, set)):
+        subject_tokens = [subject_tokens]
+    subject_tokens = [t for t in (subject_tokens or []) if t]
     tried = walked = 0
     for it in items:
         walked += 1
         if walked > max_walk:
             break
         try:
-            if subject_token:
+            if subject_tokens:
                 try:
                     subj0 = it.Subject or ""
                 except Exception:
                     subj0 = ""
-                if subject_token not in norm(subj0):
+                ns = norm(subj0)
+                if not any(t in ns for t in subject_tokens):
                     continue
             att = pick_report_attachment(it)
             if att is None:
@@ -308,66 +314,91 @@ def _search_sender_recursive(inbox, sender):
     return out
 
 
-def refresh_vessel(inbox, cache, rec, sender_map=None):
-    vname = rec["vessel"]
-    nv = norm(vname)
-    sender_map = sender_map or {}
-    # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
-    eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
-    # 该发件人是否对应多艘船(共用邮箱, 如 MEDKON DON/LIA)——需主题过滤防误抓
-    shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
-    # ① Vessel/<船名> 子文件夹(最可靠: 文件夹即船, 换船长邮箱也能抓到)
-    folder, exact = match_folder(cache, vname)
+def _collect_candidates(inbox, cache, rec, nv, eff_sender, shared):
+    """汇总该船所有可能来源的邮件(船文件夹 / 主题含船名 / 主题含代码 / 已知发件人),
+    去重后按 ReceivedTime 全局倒序, 返回 (有序邮件列表, 主题过滤 token 列表)。
+    关键修复:
+      · 旧逻辑在 ② 用 [SenderEmailAddress]='内部邮箱' 做 Restrict —— 内部 Exchange 账号
+        的 SenderEmailAddress 是 X.500 而非 SMTP, 查询恒为空, 内邮船只能靠 ③ 兜底;
+      · 旧逻辑 ③ 把各文件夹结果按『收件箱→子文件夹』顺序拼接, 未全局排序, 导致子文件夹
+        里更新的报告被收件箱里的旧报告压住;
+      · 旧逻辑主题搜索只用『去空格小写』token(如 culhochiminh), 但实际报告主题多为
+        『CUL HOCHIMINH』『ZHONG LIAN SHAN TOU』(带空格), 落在收件箱(非 Vessel 文件夹)
+        的报告因此永远匹配不到 —— 这正是 CUHC / ZLST 卡在旧日期的根因。现补充『保留空格
+        小写』token 一起搜, 保证收件箱里的报告也能被命中。
+    现统一合并 + 全局倒序 + 取最新一封含 ROB 附件的, 保证拿到『真正最新』的报告。"""
+    items = []
+    # ① Vessel/<船名> 文件夹(若有): 该船邮件最集中处, 取最近 80 封即可覆盖最新
+    folder, exact = match_folder(cache, rec["vessel"])
     if folder is not None:
         try:
-            items = folder.Items
-            items.Sort("[ReceivedTime]", True)
-            # 精确匹配(独立文件夹)直接信任; 共用/前缀文件夹或共用发件人时,
-            # 要求主题含船名防误抓(如 MEDKON 文件夹放多船)。
-            need_subj = (not exact) and (eff_sender is None or shared > 1)
-            token = nv if need_subj else None
-            hit = scan_for_rob(items, subject_token=token)
-            if hit:
-                return apply_hit(rec, hit)
+            fis = folder.Items
+            fis.Sort("[ReceivedTime]", True)
+            cnt = 0
+            for it in fis:
+                items.append(it)
+                cnt += 1
+                if cnt >= 80:
+                    break
         except Exception:
             pass
-    # ② 已知船长 sender 邮箱(按发件人筛, 不依赖子文件夹/主题含船名)
-    if eff_sender:
-        try:
-            items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
-            items.Sort("[ReceivedTime]", True)
-            token2 = nv if shared > 1 else None
-            hit = scan_for_rob(items, subject_token=token2)
-            if hit:
-                rec["sender"] = eff_sender
-                return apply_hit(rec, hit)
-        except Exception:
-            pass
-        # 收件箱根目录没命中(报告可能在子文件夹), 递归所有子文件夹按 sender 找
-        try:
-            items = _search_sender_recursive(inbox, eff_sender)
-            token2 = nv if shared > 1 else None
-            hit = scan_for_rob(items, subject_token=token2)
-            if hit:
-                rec["sender"] = eff_sender
-                return apply_hit(rec, hit)
-        except Exception:
-            pass
-    # ③ 收件箱 + 所有子文件夹, 主题含船名 / 船代码(兜底发现, 顺便学习 sender)
-    #    · 船长邮件主题常只写代码(如 M. ODYSSEY 的主题写 "MODS"), 故同时按代码搜;
-    #    · 报告可能在子文件夹(如 Vessel\\ODESSY, CUHP\\CUHP Master), 故递归所有子文件夹;
-    #    · 首跑发现后 apply_hit 回写 sender, 后续运行即走 ② sender 主路径。
+    # ② 主题搜索: 同时用『去空格小写』和『保留空格小写』两种 token。
+    #    船代码(如 cuhc / zlst)通常连写, 去空格 token 即可命中; 船名(如 cul hochiminh)
+    #    多带空格, 必须保留空格才能命中收件箱里直接发来的报告。
+    name_lower = (rec.get("vessel") or "").lower().strip()
     code = norm(rec.get("code", ""))
-    for token in (vname, code):
-        if not token:
-            continue
+    toks = []
+    for tok in (nv, code, name_lower):
+        if tok and tok not in toks:
+            toks.append(tok)
+    for tok in toks:
+        items += _search_subject_recursive(inbox, tok)
+    # ③ 已知发件人(尽力而为: 内部 Exchange 账号 SenderEmailAddress 常为 X.500, Restrict
+    #    可能漏, 这里仅作补充来源, 主路径靠主题搜索)
+    if eff_sender:
+        items += _search_sender_recursive(inbox, eff_sender)
+    # 去重 + 全局按 ReceivedTime 倒序
+    seen = set()
+    uniq = []
+    for it in items:
         try:
-            items = _search_subject_recursive(inbox, token)
-            hit = scan_for_rob(items)
-            if hit:
-                return apply_hit(rec, hit)
+            eid = it.EntryID
         except Exception:
-            pass
+            eid = id(it)
+        if eid in seen:
+            continue
+        seen.add(eid)
+        uniq.append(it)
+
+    def _rt(it):
+        try:
+            return it.ReceivedTime
+        except Exception:
+            return datetime.min
+
+    uniq.sort(key=_rt, reverse=True)
+    # 共用/前缀文件夹 或 共用发件人 时, 要求主题含船名或代码防误抓(同样要把空格 token 纳入)
+    need_filter = (not exact) or (shared > 1)
+    tokens = toks if need_filter else None
+    return uniq, tokens
+
+
+def refresh_vessel(inbox, cache, rec, sender_map=None):
+    sender_map = sender_map or {}
+    nv = norm(rec["vessel"])
+    # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
+    eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(rec["vessel"])
+    shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
+    # 合并所有来源, 全局倒序取最新一封含 ROB 的邮件
+    try:
+        cands, tokens = _collect_candidates(inbox, cache, rec, nv, eff_sender, shared)
+        hit = scan_for_rob(cands, subject_tokens=tokens)
+        if hit:
+            if eff_sender:
+                rec["sender"] = eff_sender
+            return apply_hit(rec, hit)
+    except Exception as e:
+        print("   [WARN] refresh %s failed: %s" % (rec["vessel"], e))
     return False
 
 
@@ -826,6 +857,43 @@ def write_miss_report(merged, today=None):
     return len(miss)
 
 
+def write_stale_report(merged, today=None):
+    """列出『已找到报告但报告时间不是最近两天』的船 —— 这些船可能没抓到最新那份,
+    需人工复核(确认船长 26 号确实发了、且主题/代码可被搜到)。"""
+    if today is None:
+        today = datetime.now().strftime("%Y-%m-%d")
+    from datetime import timedelta
+    try:
+        cutoff = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    except Exception:
+        cutoff = today
+    stale = []
+    for r in merged:
+        if not r.get("found"):
+            continue
+        rt = (r.get("report_time") or "")[:10]
+        if rt and rt < cutoff:
+            stale.append(r)
+    path = os.path.join(ROB_DIR, "stale_vessels_%s.txt" % today)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("STALE / NOT-LATEST ROB @ %s (%d)  (cutoff < %s)\n"
+                % (today, len(stale), cutoff))
+        for r in stale:
+            f.write("- %s (%s)  report_time=%s  sender=%s\n"
+                    % (r.get("vessel"), r.get("code"),
+                       r.get("report_time") or "NONE", r.get("sender") or "?"))
+    if stale:
+        print("[STALE CHECK] %d vessels have ROB older than %s (verify nothing newer was sent):"
+              % (len(stale), cutoff))
+        for r in stale:
+            print("   - %s (%s) report=%s sender=%s"
+                  % (r.get("vessel"), r.get("code"),
+                     r.get("report_time") or "NONE", r.get("sender") or "?"))
+    else:
+        print("[STALE CHECK] all found vessels have ROB within last 2 days")
+    return len(stale)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-outlook", action="store_true", help="不抓 Outlook, 只重建网页")
@@ -909,6 +977,7 @@ def main():
     today = datetime.now().strftime("%Y-%m-%d")
     write_daily_history(merged, today)
     write_miss_report(merged, today)
+    write_stale_report(merged, today)
     print("DONE")
 
 
