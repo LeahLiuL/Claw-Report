@@ -487,7 +487,8 @@ def load_maint_data():
     else:
         src, src_mtime = src_ret, ''
     out = {'date': '', 'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
-           'source': src or '(no source)', 'records': [], 'sourceMtime': src_mtime}
+           'source': src or '(no source)', 'records': [], 'sourceMtime': src_mtime,
+           'vschedAvailable': False}
     if not src or not os.path.exists(src):
         print('  [MAINT] no source available -> empty records')
         return out
@@ -536,6 +537,7 @@ def load_maint_data():
 
         recs = []
         etds = []
+        vsched_seen = False
         for row in rows[data_start:]:
             svc = _get(row, 'service')
             port = _get(row, 'port')
@@ -551,6 +553,8 @@ def load_maint_data():
             vsched_raw = _get(row, 'vsched')
             plog_raw = _get(row, 'plog')
             vsched_s = '' if vsched_raw is None else str(vsched_raw).strip().lower()
+            if vsched_s:
+                vsched_seen = True   # 上游仍导出 Vessel Schedule 列(存在非空值)
             recs.append({
                 'service':  '' if svc is None else str(svc).strip(),
                 'vessel':   '' if _get(row, 'vessel') is None else str(_get(row, 'vessel')).strip(),
@@ -564,6 +568,7 @@ def load_maint_data():
                 'vsched':   1 if vsched_s == 'maintain timely' else 0,
             })
         out['records'] = recs
+        out['vschedAvailable'] = vsched_seen
         out['date'] = (min(etds) + ' ~ ' + max(etds)) if etds else ''
         out['source'] = src + f"  ·  {len(recs)} rows  ·  ETD {out['date']}"
         print(f'  [MAINT] source OK: {len(recs)} rows from {os.path.basename(src)}')
@@ -574,12 +579,15 @@ def load_maint_data():
 
 # ── 防回退保护：坏源(有记录却 vsched 全 0) 时恢复 last-good 数据 ──────────
 def _maint_is_broken(maint):
-    """坏源特征：记录数充足但 vsched 全部为 0。
-    典型为 culadmin 从 SFTP 下载的 .cache 坏文件（vsched 列整列缺失/非 'Maintain timely'，
-    与正确台账约 54% 维护率不符）。正确台账永远有相当比例的 maintain-timely。"""
+    """坏源特征：记录数充足、且 Vessel Schedule 列【存在】却全 0。
+    2026-08 起上游 SFTP 导出删除了 'Vessel Schedule' 列(新格式)——列缺失
+    (vschedAvailable=False)属正常格式：照常采用最新数据，前端 vsched 部分显示 '—'，
+    不算坏源。仅当列有值却没有任何一条 'Maintain timely'(疑似坏下载)才回退 last-good。"""
     recs = maint.get('records') or []
     if len(recs) < 50:
         return False
+    if not maint.get('vschedAvailable', True):
+        return False   # 新格式：Vessel Schedule 列已停供，数据本身有效
     vsched_ok = sum(1 for r in recs if r.get('vsched') == 1)
     return vsched_ok == 0
 
@@ -3616,6 +3624,8 @@ function doLogin(){
    Vessel Schedule (Actual Schedule) 维护率 = vsched==1 ("Maintain timely") / total
    ═══════════════════════════════════════════════════════════════════ */
 var MAINT_RECORDS = ((typeof MAINT_DATA !== 'undefined') && MAINT_DATA && MAINT_DATA.records) || [];
+// 上游是否仍导出 Vessel Schedule(Maintain timely) 列; 2026-08 起该列停供时, vsched 相关统计显示 '—'
+var VSCHED_AVAILABLE = !(MAINT_DATA && MAINT_DATA.vschedAvailable === false);
   document.getElementById('maintSourceTs').textContent = (MAINT_DATA && MAINT_DATA.sourceMtime) ? MAINT_DATA.sourceMtime : '—';
 var maintOpFilter = 'CUL';      // 默认 CUL（用户要求）
 var selMaintFrom = '', selMaintTo = '';
@@ -3850,8 +3860,10 @@ function renderMaintChips(recs){
   document.getElementById('maintChipTotal').textContent = total.toLocaleString();
   document.getElementById('maintChipPortLog').textContent = plog.toLocaleString() + ' (' + plogPct.toFixed(1) + '%)';
   document.getElementById('maintChipPortLogNo').textContent = plogNo.toLocaleString() + ' (' + maintPct(plogNo, total).toFixed(1) + '%)';
-  document.getElementById('maintChipVSched').textContent = vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)';
-  document.getElementById('maintChipVSchedNo').textContent = vsNo.toLocaleString() + ' (' + maintPct(vsNo, total).toFixed(1) + '%)';
+  document.getElementById('maintChipVSched').textContent = VSCHED_AVAILABLE
+    ? vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)' : '— (列已停供)';
+  document.getElementById('maintChipVSchedNo').textContent = VSCHED_AVAILABLE
+    ? vsNo.toLocaleString() + ' (' + maintPct(vsNo, total).toFixed(1) + '%)' : '—';
   document.getElementById('statMaint').textContent = total.toLocaleString() + ' calls';
 }
 
@@ -3864,13 +3876,15 @@ function buildMaintDetailBlocks(g){
   });
   var h = '<div style="font-size:11px;font-weight:600;color:#1F4E79;margin:8px 0 2px;">All calls (' + arr.length + ') &mdash; ' +
     'Port Log: <b style="color:#2E7D32;">Y</b> maintained / <b style="color:#C0392B;">N</b> not maintained; ' +
-    'Vessel Sched: <b style="color:#2E7D32;">Maintain timely</b> / <b style="color:#C0392B;">Not maintained</b></div>' +
+    (VSCHED_AVAILABLE
+      ? 'Vessel Sched: <b style="color:#2E7D32;">Maintain timely</b> / <b style="color:#C0392B;">Not maintained</b>'
+      : 'Vessel Sched: <b style="color:#8a9bb0;">— 列已停供(上游不再导出)</b>') + '</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:2px 0 8px;">' +
     '<thead><tr style="background:#e8eff6;color:#1F4E79;"><th style="padding:3px 6px;text-align:left;">Service</th><th style="padding:3px 6px;text-align:left;">Vessel</th><th style="padding:3px 6px;text-align:left;">Voyage</th><th style="padding:3px 6px;text-align:left;">Dir</th><th style="padding:3px 6px;text-align:left;">Operator</th><th style="padding:3px 6px;text-align:left;">Port</th><th style="padding:3px 6px;text-align:left;">ETD</th><th style="padding:3px 6px;text-align:left;">Port Log</th><th style="padding:3px 6px;text-align:left;">Vessel Sched</th></tr></thead><tbody>';
   arr.forEach(function(r, i){
     var bg = (i % 2 === 0) ? '' : ' style="background:#f0f6fc;"';
     var plogCls = (r.plog === 'Y') ? 'color:#2E7D32;' : 'color:#C0392B;font-weight:600;';
-    var vsCls   = (r.vsched === 1) ? 'color:#2E7D32;' : 'color:#C0392B;font-weight:600;';
+    var vsCls   = !VSCHED_AVAILABLE ? 'color:#8a9bb0;' : ((r.vsched === 1) ? 'color:#2E7D32;' : 'color:#C0392B;font-weight:600;');
     h += '<tr' + bg + '>' +
       '<td style="padding:3px 6px;">' + (r.service||'') + '</td>' +
       '<td style="padding:3px 6px;">' + (r.vessel||'') + '</td>' +
@@ -3880,7 +3894,7 @@ function buildMaintDetailBlocks(g){
       '<td style="padding:3px 6px;">' + (r.port||'') + '</td>' +
       '<td style="padding:3px 6px;">' + (r.etd||'') + '</td>' +
       '<td style="padding:3px 6px;' + plogCls + '">' + (r.plog==='Y' ? 'Y' : 'N') + '</td>' +
-      '<td style="padding:3px 6px;' + vsCls + '">' + (r.vsched===1 ? 'Maintain timely' : 'Not maintained') + '</td></tr>';
+      '<td style="padding:3px 6px;' + vsCls + '">' + (!VSCHED_AVAILABLE ? '—' : (r.vsched===1 ? 'Maintain timely' : 'Not maintained')) + '</td></tr>';
   });
   return h + '</tbody></table>';
 }
@@ -3920,7 +3934,7 @@ function renderMaintByPort(){
     g.all.push(r);
     if(r.plog === 'Y') g.plog++;
     if(r.vsched === 1) g.vs++;
-    if(r.plog !== 'Y' || r.vsched !== 1) g.unmaintained.push(r);
+    if(r.plog !== 'Y' || (VSCHED_AVAILABLE && r.vsched !== 1)) g.unmaintained.push(r);
   });
   var rows = Object.keys(groups).map(function(k){ return groups[k]; });
   rows.sort(function(a,b){ return b.calls - a.calls; });
@@ -3947,7 +3961,9 @@ function renderMaintByPort(){
       '<td style="text-align:center;width:24px;">' + arrow + '</td>' +
       '<td>' + g.key + '</td>' +
       maintNumCell(g.calls) + maintNumCell(g.plog) + maintRateCell(plogPct) +
-      maintNumCell(g.vs) + maintRateCell(vsPct) + maintNumCell(g.unmaintained.length) + '</tr>';
+      (VSCHED_AVAILABLE ? maintNumCell(g.vs) + maintRateCell(vsPct)
+                        : '<td class="num" style="color:#8a9bb0;">—</td><td class="num" style="color:#8a9bb0;">—</td>') +
+      maintNumCell(g.unmaintained.length) + '</tr>';
     if(hasDetail){
       html += '<tr class="detail-wrap" id="' + maintPortId(g.key) + '" style="display:none;"><td colspan="8" style="padding:4px 8px 4px 28px;background:#fafcff;">' +
         buildMaintDetailBlocks(g) + '</td></tr>';
@@ -4018,7 +4034,7 @@ function renderMaintPortRate(){
       '<td>' + g.key + '</td>' +
       maintNumCell(g.calls) +
       maintRateBar(g.plogRate) +
-      maintRateBar(g.vsRate) + '</tr>';
+      (VSCHED_AVAILABLE ? maintRateBar(g.vsRate) : '<td class="num" style="color:#8a9bb0;">—</td>') + '</tr>';
   });
   tbody.innerHTML = html;
 }
@@ -4036,7 +4052,7 @@ function renderMaintUnmaintained(){
   var plogNo = [], vsNo = [];
   recs.forEach(function(r){
     if(r.plog !== 'Y') plogNo.push(r);
-    if(r.vsched !== 1) vsNo.push(r);
+    if(VSCHED_AVAILABLE && r.vsched !== 1) vsNo.push(r);
   });
 
   // Search filters (match any text column, case-insensitive)
@@ -4110,9 +4126,11 @@ function renderMaintUnmaintained(){
     return h;
   }
   document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N', !!qPlog);
-  document.getElementById('maintVsNoTbody').innerHTML = rowsHtml(vsNo, 'Not maintained', !!qVs);
+  document.getElementById('maintVsNoTbody').innerHTML = VSCHED_AVAILABLE
+    ? rowsHtml(vsNo, 'Not maintained', !!qVs)
+    : '<tr><td colspan="9" style="text-align:center;color:#8a9bb0;padding:12px;">Vessel Schedule 列已停供（上游 2026-08 起不再导出），无法统计 Not maintained。</td></tr>';
   document.getElementById('maintPlogNoCount').textContent = '(' + plogNo.length.toLocaleString() + ' calls)';
-  document.getElementById('maintVsNoCount').textContent = '(' + vsNo.length.toLocaleString() + ' calls)';
+  document.getElementById('maintVsNoCount').textContent = VSCHED_AVAILABLE ? '(' + vsNo.length.toLocaleString() + ' calls)' : '—';
 }
 
 function renderMaintMonth(){
@@ -4139,10 +4157,12 @@ function renderMaintMonth(){
         '<span style="display:inline-block;width:92px;font-size:10px;color:#1F4E79;text-align:right;">Port Log</span>' +
         '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;overflow:hidden;"><div style="width:' + plogPct.toFixed(1) + '%;background:#2E75B6;height:100%;"></div></div>' +
         '<span style="width:50px;font-size:10px;color:#2E75B6;">' + plogPct.toFixed(1) + '%</span></div>' +
-      '<div style="display:flex;align-items:center;gap:6px;margin:2px 0 6px;">' +
-        '<span style="display:inline-block;width:92px;font-size:10px;color:#C55A11;text-align:right;">Vessel Sched</span>' +
-        '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;overflow:hidden;"><div style="width:' + vsPct.toFixed(1) + '%;background:#ED7D31;height:100%;"></div></div>' +
-        '<span style="width:50px;font-size:10px;color:#C55A11;">' + vsPct.toFixed(1) + '%</span></div>';
+      (VSCHED_AVAILABLE
+        ? '<div style="display:flex;align-items:center;gap:6px;margin:2px 0 6px;">' +
+          '<span style="display:inline-block;width:92px;font-size:10px;color:#C55A11;text-align:right;">Vessel Sched</span>' +
+          '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;overflow:hidden;"><div style="width:' + vsPct.toFixed(1) + '%;background:#ED7D31;height:100%;"></div></div>' +
+          '<span style="width:50px;font-size:10px;color:#C55A11;">' + vsPct.toFixed(1) + '%</span></div>'
+        : '');
   });
   document.getElementById('maintMonthBars').innerHTML = barsHtml ||
     '<div style="color:#8a9bb0;font-size:11px;">No data for current filters.</div>';
@@ -4159,7 +4179,8 @@ function renderMaintMonth(){
     var g = byMonth[m];
     var plogPct = maintPct(g.plog, g.calls), vsPct = maintPct(g.vs, g.calls);
     var bg = (i % 2 === 0) ? ' style="background:#EBF3FB;"' : '';
-    html += '<tr' + bg + '><td>' + m + '</td>' + maintNumCell(g.calls) + maintRateCell(plogPct) + maintRateCell(vsPct) + '</tr>';
+    html += '<tr' + bg + '><td>' + m + '</td>' + maintNumCell(g.calls) + maintRateCell(plogPct) +
+      (VSCHED_AVAILABLE ? maintRateCell(vsPct) : '<td class="num" style="color:#8a9bb0;">—</td>') + '</tr>';
   });
   tbody.innerHTML = html;
 }
