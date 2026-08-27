@@ -171,18 +171,44 @@ def pick_report_attachment(it):
 
 
 def _scan_rob(wb):
-    """从已加载 workbook 提取 ROB 油种(扫 'ROB <油种>' 取右一格)。"""
+    """从已加载 workbook 提取 ROB 油种。
+    支持两类标签写法:
+      · 行首型  'ROB LSFO'                 (NOON / SAILING 报告常见)
+      · 阶段前缀型 'POB ROB LSFO' / 'FWE ROB MGO' / 'DROP ANCHOR ROB LSFO'
+        (BERTH 报告常见, ROB 前带作业阶段前缀)
+    只要单元格含独立词 'ROB' 且含已知油种代码, 即取其右一格数值;
+    同油种多阶段快照时取最后(最下游)一处作为当前存油。
+    现代低硫船常只报 ULSFO/VLSFO, 归一为 LSFO 以免漏抓。"""
     rob = {}
+    oil_codes = ("LSFO", "HSFO", "MGO", "ULSFO", "ULSGO", "VLSFO", "IFO", "MDO", "LSMGO")
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             for i, c in enumerate(row):
                 if c and isinstance(c, str):
                     cu = c.upper().strip()
-                    if cu.startswith("ROB ") and i + 1 < len(row):
-                        try:
-                            rob[cu[4:].strip()] = float(row[i + 1])
-                        except Exception:
-                            pass
+                    if "ROB" not in cu:            # 必须含独立词 ROB(排除 PROBABLY 等)
+                        continue
+                    oil = None
+                    for code in oil_codes:
+                        if code in cu:
+                            oil = code
+                            break
+                    if oil is None:
+                        continue
+                    if i + 1 >= len(row):
+                        continue
+                    val = row[i + 1]
+                    if val is None or val == "":
+                        continue
+                    try:
+                        rob[oil] = float(val)      # 同油种多次出现 -> 最后(最下游)一处生效
+                    except Exception:
+                        pass
+    # ULSFO/VLSFO/ULSGO/LSMGO 归一为 LSFO(本表无独立列)
+    for alt in ("ULSFO", "VLSFO", "ULSGO", "LSMGO"):
+        if alt in rob and "LSFO" not in rob:
+            rob["LSFO"] = rob[alt]
+            break
     return rob
 
 
