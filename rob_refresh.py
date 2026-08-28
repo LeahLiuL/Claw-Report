@@ -534,7 +534,7 @@ function _loadXlsx(cb) {
     <div class="trendgrid">
       <div class="panel">
         <h3 id="trendChartTitle">ROB Trend</h3>
-        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to view daily burn as bars. Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
+        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to see daily burn as a line. <b>加油 (bunkering) days</b> show as a green ▲ at the top (never negative) and are <b>excluded from the Avg/day</b> in Vessel Summary. Bunkering is currently inferred from ROB increases; to record explicit bunkering events, add them to <code>rob_data/bunkering.json</code> ({"船名": {"YYYY-MM-DD": 加油量MT}}). Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
         <canvas id="trendChart"></canvas>
       </div>
       <div class="panel">
@@ -787,7 +787,7 @@ function renderTrend() {
   }
   var globalLabels = Object.keys(labelSet).sort();
   var palette = ['#1F4E79','#2E75B6','#d64545','#F6A623','#2e8b57','#8e44ad','#16a085','#e67e22','#2980b9','#c0392b'];
-  var datasets = [], vi = 0, summary = [];
+  var datasets = [], vi = 0, summary = [], bunkerByV = {};
   Object.keys(byV).forEach(function(v){
     var arr = byV[v];
     var color = palette[vi % palette.length]; vi++;
@@ -798,26 +798,37 @@ function renderTrend() {
       globalLabels.forEach(function(t, i){ if (t in m) dataPts[i] = m[t]; });
     } else {
       var daily = alignDaily(arr, oil, anchor);
-      var cons = {};
+      var cons = {}, bunker = {};
       for (var i = 1; i < daily.length; i++) {
-        cons[daily[i].day] = Math.round((daily[i-1].rob - daily[i].rob) * 100) / 100; // stock drop = consumed
+        var drop = Math.round((daily[i-1].rob - daily[i].rob) * 100) / 100;
+        if (drop < 0) bunker[daily[i].day] = Math.round(-drop * 100) / 100; // 库存上升 = 加油(bunkering)
+        else cons[daily[i].day] = drop; // 库存下降 = 消耗
       }
-      globalLabels.forEach(function(t, i){ if (t in cons) dataPts[i] = cons[t]; });
+      // 用户后续提供的明确加油事件覆盖自动识别
+      var eb = (DATA.bunkering && DATA.bunkering[v]) ? DATA.bunkering[v] : null;
+      if (eb) Object.keys(eb).forEach(function(day){ if (day in cons) delete cons[day]; bunker[day] = eb[day]; });
+      bunkerByV[v] = bunker;
+      globalLabels.forEach(function(t, i){ dataPts[i] = (t in cons) ? cons[t] : null; });
     }
     datasets.push({ label:v, data:dataPts, borderColor:color, backgroundColor:color, spanGaps:true, tension:0.15, pointRadius:2, borderWidth:2 });
+    if (trendMode === 'consum' && bunkerByV[v] && Object.keys(bunkerByV[v]).length) {
+      datasets.push({ label:v + ' ⛽', data:globalLabels.map(function(t){ return (t in bunkerByV[v]) ? bunkerByV[v][t] : null; }),
+        showLine:false, pointStyle:'triangle', pointRadius:7, pointHoverRadius:9,
+        pointBackgroundColor:'#1ca05a', pointBorderColor:'#0f7a43', borderWidth:0, _bunker:true });
+    }
     // summary from aligned daily series (same-time ROB)
     var daily = alignDaily(arr, oil, anchor);
     if (daily.length >= 1) {
       var first = daily[0], last = daily[daily.length - 1];
-      var totalCons = first.rob - last.rob, bunkerCnt = 0, minRob = Infinity, sumDaily = 0;
+      var totalCons = first.rob - last.rob, bunkerCnt = 0, minRob = Infinity, sumDaily = 0, burnDays = 0;
       for (var j = 1; j < daily.length; j++) {
         var df = daily[j-1].rob - daily[j].rob;
-        sumDaily += df;
-        if (df < 0) bunkerCnt++;
+        if (df < 0) { bunkerCnt++; continue; } // 加油日: 不计入平均消耗
+        sumDaily += df; burnDays++;
         if (daily[j].rob < minRob) minRob = daily[j].rob;
       }
       if (first.rob < minRob) minRob = first.rob;
-      var avgDaily = (daily.length - 1) > 0 ? sumDaily / (daily.length - 1) : 0;
+      var avgDaily = burnDays > 0 ? sumDaily / burnDays : 0;
       var daysLeft = (avgDaily > 0) ? (last.rob / avgDaily) : null;
       summary.push({ v:v, lane:lane, first:first.rob, last:last.rob, total:totalCons, avg:avgDaily, bunker:bunkerCnt, min:minRob, daysLeft:daysLeft });
     }
@@ -825,12 +836,20 @@ function renderTrend() {
   if (trendChartObj) trendChartObj.destroy();
   var ctx = document.getElementById('trendChart').getContext('2d');
   trendChartObj = new Chart(ctx, {
-    type: trendMode === 'consum' ? 'bar' : 'line',
+    type: 'line',
     data: { labels: globalLabels, datasets: datasets },
     options: { responsive:true, maintainAspectRatio:false,
-      plugins:{ tooltip:{ mode:'index', intersect:false } },
+      plugins:{
+        legend:{ labels:{ filter: function(item, data){ return !data.datasets[item.datasetIndex]._bunker; } } },
+        tooltip:{ mode:'index', intersect:false,
+          callbacks:{ label: function(c){
+            var name = c.dataset.label.replace(' ⛽','');
+            if (c.dataset._bunker) return name + ': 加油 +' + c.parsed.y + ' MT';
+            return name + ': ' + c.parsed.y + ' MT/day';
+          } } }
+      },
       scales:{ x:{ ticks:{ maxRotation:60, minRotation:30, font:{size:10} } },
-        y:{ title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day)':'ROB (MT)') } } } }
+        y:{ title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day) — 加油 days shown as green ▲':'ROB (MT)') } } } }
   });
   document.getElementById('trendChartTitle').textContent = (trendMode==='consum'?'Daily Consumption (aligned to ' + anchor + ':00)':'ROB Trend') + ' — ' + oil.toUpperCase();
   renderSummary(summary);
@@ -933,9 +952,20 @@ def build_html(results):
                     })
         except Exception as e:
             print("[WARN] read history csv failed:", e)
+    # ---- 加油事件(可选, 由用户后续提供; 当前为空则按 ROB 增幅自动识别) ----
+    # 文件格式: {"船名": {"YYYY-MM-DD": 加油量MT, ...}, ...}
+    bunkering = {}
+    BUNKER_JSON = os.path.join(ROB_DIR, "bunkering.json")
+    if os.path.exists(BUNKER_JSON):
+        try:
+            with open(BUNKER_JSON, encoding="utf-8") as f:
+                bunkering = json.load(f)
+        except Exception as e:
+            print("[WARN] read bunkering.json failed:", e)
     payload = {"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
                "vessels": vessels,
-               "history": history}
+               "history": history,
+               "bunkering": bunkering}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)
     back = cryptojs_decrypt(enc, PASSWORD)
