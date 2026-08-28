@@ -134,25 +134,91 @@ def save_sender_map(m):
 
 
 def build_folder_cache(inbox):
-    """Vessel 子文件夹: norm(文件夹名) -> folder"""
+    """Vessel 子文件夹(递归多层): norm(文件夹名) -> folder"""
     cache = {}
     try:
         vf = inbox.Folders["Vessel"]
-        for c in vf.Folders:
-            cache[norm(c.Name)] = c
+        def walk(f):
+            for c in f.Folders:
+                cache[norm(c.Name)] = c
+                try:
+                    walk(c)
+                except Exception:
+                    pass
+        walk(vf)
     except Exception:
         pass
     return cache
 
 
-def match_folder(cache, vessel):
+def build_folder_list(inbox):
+    """收件箱下全部子文件夹(含 Vessel/ 及与其并列的顶层船文件夹如 SHTG/ZLST,
+    递归多层, 同名不去重)。build_folder_cache 的 dict 只收 Vessel 下且同名子文件夹
+    (如多处 'Master')互相覆盖会漏扫, sender 索引/主题搜索必须用这个完整列表。"""
+    out = []
+    def walk(f):
+        for c in f.Folders:
+            out.append(c)
+            try:
+                walk(c)
+            except Exception:
+                pass
+    try:
+        walk(inbox)
+    except Exception:
+        pass
+    return out
+
+
+def build_sender_index(inbox, folder_list, sender_map, per_folder=250, cap_per_sender=12):
+    """一次性预扫描 收件箱 + 所有 Vessel 子文件夹(含嵌套/同名), 用 get_sender()
+    解析真实 SMTP(含 Exchange X.500 兜底), 为每一个已知 sender 收集最近若干封邮件
+    (最新在前)。这样 refresh_vessel 就能按用户提供的 sender, 在任意文件夹里精确
+    定位最新 ROB 报告, 不再受 '只搜收件箱'/'文件夹按代码命名'/'Master同名覆盖' 的限制。"""
+    targets = set(v.lower() for v in sender_map.values() if v)
+    if not targets:
+        return {}
+    folders = [inbox] + list(folder_list)
+    idx = {}
+    for fobj in folders:
+        try:
+            items = fobj.Items
+            items.Sort("[ReceivedTime]", True)
+        except Exception:
+            continue
+        cnt = 0
+        for it in items:
+            if cnt >= per_folder:
+                break
+            cnt += 1
+            sa = get_sender(it)
+            if not sa:
+                continue
+            key = sa.lower()
+            if key not in targets:
+                continue
+            lst = idx.get(key)
+            if lst is None:
+                lst = []
+                idx[key] = lst
+            if len(lst) < cap_per_sender:
+                lst.append(it)
+    return idx
+
+
+def match_folder(cache, vessel, code=None):
     """返回 (folder, exact)。exact=False 表示前缀匹配的共用/变体文件夹(如 'MEDKON'
-    同时放 MEDKON DON / MEDKON LIA 的邮件), 需按主题过滤防误抓。"""
+    同时放 MEDKON DON / MEDKON LIA 的邮件), 需按主题过滤防误抓。
+    支持按船代码匹配(很多文件夹以代码命名, 如 SHTG/ZLST)。"""
     nv = norm(vessel)
     if not nv:
         return None, False
     if nv in cache:
         return cache[nv], True
+    # 船代码精确命中(如 SHENGTANG -> SHTG)
+    nc = norm(code or "")
+    if nc and nc in cache and nc != nv:
+        return cache[nc], True
     for k, f in cache.items():
         if len(k) >= 6 and (k.startswith(nv) or nv.startswith(k)):
             return f, False
@@ -173,6 +239,11 @@ def pick_report_attachment(it, strict=False):
     return None
 
 
+# ROB 键可带阶段前缀: POB/FWE/DROP ANCHOR/ANCHOR AWEIGH/RESUME SAILING 等,
+# 匹配规则 = 单元格含 "ROB" 且含油种代码(先 ULSFO 后 LSFO, 避免子串误判)
+OIL_CODES = ("ULSFO", "LSFO", "HSFO", "MGO", "BW", "FW", "REFEER")
+
+
 def extract_rob(att):
     import openpyxl
     fd, p = tempfile.mkstemp(suffix=".xlsx")
@@ -189,14 +260,46 @@ def extract_rob(att):
     rob = {}
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
-            for i, c in enumerate(row):
-                if c and isinstance(c, str):
-                    cu = c.upper().strip()
-                    if cu.startswith("ROB ") and i + 1 < len(row):
-                        try:
-                            rob[cu[4:].strip()] = float(row[i + 1])
-                        except Exception:
-                            pass
+            vals = list(row)
+            for i, c in enumerate(vals):
+                if not (c and isinstance(c, str)):
+                    continue
+                cu = c.upper()
+                if "ROB" not in cu:
+                    continue
+                oil = None
+                for code in OIL_CODES:
+                    if code in cu:
+                        oil = code
+                        break
+                if oil is None:
+                    continue
+                # 值 = 键右侧第一个非空单元格; 若它是纯油种代码(如 'ROB|LSFO|598.17'
+                # 拆三格的模板)则再右移一格。同一油种多次出现(POB/FWE/AWEIGH 等
+                # 阶段)后出现的覆盖先出现的, 即保留文件中最后(最晚阶段)的值。
+                for j in range(i + 1, min(i + 3, len(vals))):
+                    v = vals[j]
+                    if v is None:
+                        continue
+                    if isinstance(v, (int, float)):
+                        rob[oil] = float(v)
+                        break
+                    s = str(v).strip()
+                    if not s:
+                        continue
+                    try:
+                        rob[oil] = float(s)
+                        break
+                    except ValueError:
+                        if s.upper().strip() in OIL_CODES and j + 1 < len(vals):
+                            v2 = vals[j + 1]
+                            if isinstance(v2, (int, float)):
+                                rob[oil] = float(v2)
+                                break
+                        break
+    # 低硫归一: 船只烧 ULSFO 报告无 LSFO 时, 把 ULSFO 记作 LSFO
+    if "LSFO" not in rob and "ULSFO" in rob:
+        rob["LSFO"] = rob["ULSFO"]
     try:
         os.remove(p)
     except Exception:
@@ -252,7 +355,11 @@ def apply_hit(rec, hit):
     return True
 
 
-def refresh_vessel(inbox, cache, rec, sender_map=None):
+def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder_list=None):
+    """多来源合并取全局最新: ①船名/代码文件夹树 ②sender索引 ③收件箱sender Restrict
+    ④主题Restrict(全文件夹)。所有候选按 EntryID 去重、ReceivedTime 全局倒序后,
+    从最新一封往下找第一份能解析出 ROB 的报告 —— 无论报告落在哪个文件夹/由哪个
+    发件人发出, 永远取时间上最新的那份, 避免某一分支先命中旧报告导致数据回退。"""
     vname = rec["vessel"]
     nv = norm(vname)
     sender_map = sender_map or {}
@@ -260,43 +367,103 @@ def refresh_vessel(inbox, cache, rec, sender_map=None):
     eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
     # 该发件人是否对应多艘船(共用邮箱, 如 MEDKON DON/LIA)——需主题过滤防误抓
     shared = sum(1 for v in sender_map.values() if v == eff_sender) if eff_sender else 0
-    # ① Vessel/<船名> 子文件夹(最可靠: 文件夹即船, 换船长邮箱也能抓到)
-    folder, exact = match_folder(cache, vname)
-    if folder is not None:
+
+    cands = {}  # entryID -> (receivedTime, item)
+
+    def add_items(items, token=None, limit=400):
+        n = 0
         try:
-            items = folder.Items
-            items.Sort("[ReceivedTime]", True)
-            # 精确匹配(独立文件夹)直接信任; 共用/前缀文件夹或共用发件人时,
-            # 要求主题含船名防误抓(如 MEDKON 文件夹放多船)。
-            need_subj = (not exact) and (eff_sender is None or shared > 1)
-            token = nv if need_subj else None
-            hit = scan_for_rob(items, subject_token=token)
-            if hit:
-                return apply_hit(rec, hit)
+            for it in items:
+                n += 1
+                if n > limit:
+                    break
+                try:
+                    eid = it.EntryID
+                    rt = it.ReceivedTime
+                except Exception:
+                    continue
+                if token is not None:
+                    try:
+                        subj0 = it.Subject or ""
+                    except Exception:
+                        subj0 = ""
+                    if token not in norm(subj0):
+                        continue
+                old = cands.get(eid)
+                if old is None or rt > old[0]:
+                    cands[eid] = (rt, it)
         except Exception:
             pass
-    # ② 已知船长 sender 邮箱(全收件箱按发件人筛, 不依赖子文件夹/主题含船名)
+
+    # ① 船名/代码命名的文件夹树(Vessel/ 下 + 收件箱顶层如 SHTG/ZLST)
+    folder, exact = match_folder(cache, vname, rec.get("code"))
+    if folder is None and folder_list:
+        nc2 = norm(rec.get("code") or "")
+        for fo in folder_list:
+            try:
+                fn2 = norm(fo.Name)
+            except Exception:
+                continue
+            if fn2 == nv or (nc2 and fn2 == nc2):
+                folder, exact = fo, True
+                break
+    if folder is not None:
+        scan_folders = [folder]
+        try:
+            stack = list(folder.Folders)
+            while stack:
+                sub = stack.pop(0)
+                scan_folders.append(sub)
+                try:
+                    stack.extend(sub.Folders)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        # 共用/前缀文件夹或共用发件人时, 主题须含船名防误抓
+        need_subj = (not exact) and (eff_sender is None or shared > 1)
+        token1 = nv if need_subj else None
+        for fo in scan_folders:
+            try:
+                fo.Items.Sort("[ReceivedTime]", True)
+            except Exception:
+                pass
+            add_items(fo.Items, token=token1)
+
+    # ②' sender 预建索引(收件箱+全部子文件夹, 已解析 X.500); 共用邮箱跳过
+    if eff_sender and sender_index and shared <= 1:
+        add_items(sender_index.get(eff_sender.lower()) or [])
+
+    # ② 收件箱 sender Restrict 兜底(仅 SMTP 外部发件人落在收件箱时有效)
     if eff_sender:
         try:
             items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
             items.Sort("[ReceivedTime]", True)
-            token2 = nv if shared > 1 else None
-            hit = scan_for_rob(items, subject_token=token2)
-            if hit:
-                rec["sender"] = eff_sender
-                return apply_hit(rec, hit)
+            add_items(items, token=(nv if shared > 1 else None))
         except Exception:
             pass
-    # ③ 收件箱主题含船名(兜底)
+
+    # ③ 主题含船名(收件箱 + 全部子文件夹, 含顶层船文件夹/嵌套/同名)
     try:
-        items = inbox.Items.Restrict(
-            "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % vname)
-        items.Sort("[ReceivedTime]", True)
-        hit = scan_for_rob(items, max_walk=1500, max_attach=40)
-        if hit:
-            return apply_hit(rec, hit)
+        token_sql = "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % vname
+        for fo in [inbox] + (list(folder_list) if folder_list else list(cache.values())):
+            try:
+                items = fo.Items.Restrict(token_sql)
+                items.Sort("[ReceivedTime]", True)
+                add_items(items, limit=60)
+            except Exception:
+                continue
     except Exception:
         pass
+
+    if not cands:
+        return False
+    ordered = sorted(cands.values(), key=lambda x: x[0], reverse=True)
+    hit = scan_for_rob([it for _, it in ordered], max_walk=400)
+    if hit:
+        if eff_sender:
+            rec["sender"] = eff_sender
+        return apply_hit(rec, hit)
     return False
 
 
@@ -1317,14 +1484,16 @@ def main():
         else:
             inbox = store.GetDefaultFolder(6)
             cache = build_folder_cache(inbox)
-            print("Outlook store OK, Vessel folders: %d, sender map: %d"
-                  % (len(cache), len(sender_map)))
+            folder_list = build_folder_list(inbox)
+            sender_index = build_sender_index(inbox, folder_list, sender_map)
+            print("Outlook store OK, Vessel folders: %d(dict)/%d(list), sender map: %d, sender index: %d"
+                  % (len(cache), len(folder_list), len(sender_map), len(sender_index)))
             n_new = 0
             targets = merged
             if args.vessel:
                 targets = [r for r in merged if args.vessel.upper() in r["vessel"].upper()]
             for i, rec in enumerate(targets, 1):
-                got = refresh_vessel(inbox, cache, rec, sender_map)
+                got = refresh_vessel(inbox, cache, rec, sender_map, sender_index, folder_list)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
