@@ -2681,7 +2681,7 @@ function buildPortWaitData(){
     }
 
     // Filtered call — add to stats
-    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:era, rawPort:rawPort});
+    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:era, rawPort:rawPort, port:port});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
@@ -2730,24 +2730,28 @@ function buildPortWaitData(){
   remarkCatTotals=catTotals;
 
   // ── Monthly Trend Aggregation ──────────────────────────────────────
+  // Per-month berth rate = (calls berthed on time) / (total calls in month)
   var byMonth={};
   allFilteredCalls.forEach(function(cl){
     // dateKey is the selected date-basis raw ("YYYY-MM-DD" format)
     var dk=cl.dateKey||'';
     if(!dk || dk.length<7) return;
     var m=dk.substring(0,7); // "YYYY-MM"
-    if(!byMonth[m]) byMonth[m]={month:m, totalWait:0, count:0, maxWait:0, calls:[]};
+    if(!byMonth[m]) byMonth[m]={month:m, totalWait:0, count:0, maxWait:0, berthCalls:0, calls:[]};
     var mr=byMonth[m];
     mr.totalWait+=cl.wait;
     mr.count++;
     if(cl.wait>mr.maxWait) mr.maxWait=cl.wait;
+    if(cl.wait < berthThreshold(cl.port||'')) mr.berthCalls++;
     mr.calls.push(cl);
   });
   // Sort months
   var months=Object.keys(byMonth).sort();
   monthlyTrendData=months.map(function(m){
     var mr=byMonth[m];
-    return {month:m, totalWait:mr.totalWait, count:mr.count, avgWait:mr.totalWait/mr.count, maxWait:mr.maxWait};
+    return {month:m, totalWait:mr.totalWait, count:mr.count, avgWait:mr.totalWait/mr.count,
+            maxWait:mr.maxWait, berthCalls:mr.berthCalls,
+            berthRate: mr.count>0 ? Math.round(mr.berthCalls/mr.count*100) : 0};
   });
 }
 
@@ -3126,28 +3130,30 @@ function renderMonthlyTrend(){
     return;
   }
 
-  var maxW=0, totalCalls=0;
-  data.forEach(function(m){if(m.totalWait>maxW)maxW=m.totalWait; totalCalls+=m.count;});
-  maxW=maxW||1;
+  var totalCalls=0, totalBerth=0;
+  data.forEach(function(m){ totalCalls+=m.count; totalBerth+=m.berthCalls; });
+  var overallRate = totalCalls>0 ? Math.round(totalBerth/totalCalls*100) : 0;
 
   // Summary header
   var html='<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;font-size:12px;">';
   html+='<span>Months: <b>'+data.length+'</b></span>';
   html+='<span>Total Calls: <b>'+totalCalls+'</b></span>';
+  html+='<span>Berth Rate: <b style="color:'+berthRateColor(overallRate)+';">'+overallRate+'%</b></span>';
   html+='<span>Total Wait: <b style="color:#c00000;">'+data.reduce(function(s,m){return s+m.totalWait;},0).toFixed(1)+'h</b></span>';
   html+='</div>';
 
-  // Bars
+  // Bars — width = monthly berth rate (berthed on time / total calls); color follows berthRateColor
   data.forEach(function(m){
-    var pct=Math.round(m.totalWait/maxW*100);
+    var pct=m.berthRate; // 0-100
     var avg=m.avgWait.toFixed(1);
+    var c=berthRateColor(pct);
     html+='<div style="display:flex;align-items:center;gap:8px;font-size:12px;">';
     html+='<span style="width:80px;text-align:right;font-weight:600;flex-shrink:0;">'+m.month+'</span>';
     html+='<div style="flex:1;height:22px;background:#e8e8e8;border-radius:4px;overflow:hidden;min-width:80px;">';
-    html+='<div style="width:'+(pct||1)+'%;height:100%;background:linear-gradient(90deg,#1F4E79,#2980b9);border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:600;min-width:'+(pct>0?pct*0.5:1)+'px;">'+(pct>=10?pct+'%':'')+'</div>';
+    html+='<div style="width:'+(pct||1)+'%;height:100%;background:'+c+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:600;min-width:'+(pct>0?Math.max(pct*0.5,18):1)+'px;">'+pct+'%</div>';
     html+='</div>';
-    html+='<span style="font-weight:700;color:#1F4E79;width:56px;text-align:right;flex-shrink:0;">'+m.totalWait.toFixed(1)+'h</span>';
-    html+='<span style="color:#8a9bb0;width:64px;text-align:right;flex-shrink:0;">'+m.count+' call'+(m.count>1?'s':'')+'</span>';
+    html+='<span style="font-weight:700;color:'+c+';width:44px;text-align:right;flex-shrink:0;">'+pct+'%</span>';
+    html+='<span style="color:#8a9bb0;width:84px;text-align:right;flex-shrink:0;">'+m.berthCalls+'/'+m.count+' berthed</span>';
     html+='<span style="color:#6a7b8d;width:64px;text-align:right;flex-shrink:0;">avg '+avg+'h</span>';
     html+='</div>';
   });
