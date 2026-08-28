@@ -444,7 +444,8 @@ function _loadXlsx(cb) {
   .trendgrid .panel { width: 100%; }
   #trendChart { width: 100% !important; height: 420px !important; }
   .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
-  .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 10px; }
+  .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 6px; }
+  .panel-note { font-size: 11.5px; line-height: 1.5; color: #5a6e82; background: #f3f7fb; border-left: 3px solid #2E75B6; padding: 7px 10px; border-radius: 4px; margin-bottom: 12px; }
   .trendtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
   .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: left; }
   .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; }
@@ -504,12 +505,13 @@ function _loadXlsx(cb) {
   <div id="trend" style="display:none">
     <div class="trendbar">
       <span class="lbl">Vessels:</span>
-      <input id="trendVSearch" placeholder="search…" oninput="trendFilterDrop()" style="width:110px">
+      <input id="trendVSearch" placeholder="search…" oninput="trendFilterDrop()" onfocus="trendToggleDrop()" style="width:110px">
       <span class="vwrap">
         <button type="button" onclick="trendToggleDrop()" id="trendVBtn">Select ▾</button>
         <div id="trendVDrop" class="vdrop"></div>
       </span>
       <button onclick="trendSelAll()">All</button>
+      <button onclick="trendClearAll()" title="Uncheck all vessels and clear search">Clear</button>
       <span class="lbl">Oil:</span>
       <select id="trendOil">
         <option value="ls">LSFO</option>
@@ -530,9 +532,21 @@ function _loadXlsx(cb) {
       <button onclick="showTable()">Back to Table</button>
     </div>
     <div class="trendgrid">
-      <div class="panel"><h3 id="trendChartTitle">ROB Trend</h3><canvas id="trendChart"></canvas></div>
-      <div class="panel"><h3>Vessel Summary (selected range)</h3><div id="trendSummary" style="max-height:360px;overflow:auto"></div></div>
-      <div class="panel"><h3>Data Integrity (missing reports)</h3><div id="trendIntegrity" style="max-height:300px;overflow:auto"></div></div>
+      <div class="panel">
+        <h3 id="trendChartTitle">ROB Trend</h3>
+        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to view daily burn as bars. Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Vessel Summary (selected range)</h3>
+        <div class="panel-note">Per-vessel stats over the selected date range, derived from same-time daily ROB aligned to the <b>Daily anchor</b> hour. Hover a column header for its meaning.</div>
+        <div id="trendSummary" style="max-height:360px;overflow:auto"></div>
+      </div>
+      <div class="panel">
+        <h3>Data Integrity (missing reports)</h3>
+        <div class="panel-note">Records where the Master's ROB report was <b>not found</b> in the mailbox (flag = 0). Verify these vessels manually — they are excluded from the summary averages.</div>
+        <div id="trendIntegrity" style="max-height:300px;overflow:auto"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -678,6 +692,7 @@ function initTrend() {
   trendSelAll();
 }
 var trendVSet = new Set();
+var trendVQ = '';
 function buildVesselDrop() {
   var vs = {};
   DATA.history.forEach(function(r){ vs[r.v] = r.l || ''; });
@@ -697,13 +712,23 @@ function buildVesselDrop() {
 function trendToggleDrop(){ var d = document.getElementById('trendVDrop'); d.style.display = (d.style.display === 'none' || !d.style.display) ? 'block' : 'none'; }
 function trendFilterDrop() {
   var q = (document.getElementById('trendVSearch').value || '').toLowerCase();
+  trendVQ = q;
   document.querySelectorAll('#trendVDrop .vopt').forEach(function(l){
     l.style.display = l.dataset.v.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
   });
+  renderTrend();
 }
 function trendSelAll() {
   document.querySelectorAll('#trendVDrop input[type=checkbox]').forEach(function(cb){ cb.checked = true; trendVSet.add(cb.value); });
   document.getElementById('trendVDrop').style.display = 'none';
+}
+function trendClearAll() {
+  trendVQ = '';
+  document.getElementById('trendVSearch').value = '';
+  document.querySelectorAll('#trendVDrop input[type=checkbox]').forEach(function(cb){ cb.checked = false; });
+  trendVSet = new Set();
+  document.getElementById('trendVDrop').style.display = 'none';
+  renderTrend();
 }
 document.addEventListener('click', function(e){
   var drop = document.getElementById('trendVDrop');
@@ -741,6 +766,7 @@ function renderTrend() {
   var from = document.getElementById('trendFrom').value;
   var to = document.getElementById('trendTo').value;
   var sel = Array.from(trendVSet);
+  if (trendVQ) sel = sel.filter(function(v){ return v.toLowerCase().indexOf(trendVQ) >= 0; });
   var recs = DATA.history.filter(function(r){
     if (sel.length && sel.indexOf(r.v) < 0) return false;
     if (from && (r.rt || r.t).slice(0, 10) < from) return false;
@@ -812,7 +838,17 @@ function renderTrend() {
 }
 function renderSummary(s) {
   if (!s.length) { document.getElementById('trendSummary').innerHTML = '<p>No data.</p>'; return; }
-  var h = '<table class="trendtbl"><tr><th>Vessel</th><th>Lane</th><th>First</th><th>Last</th><th>Δ Total</th><th>Avg/day</th><th>Min</th><th>Bunker#</th><th>Days Left</th></tr>';
+  var h = '<table class="trendtbl"><tr>'
+    + '<th title="Ship name">Vessel</th>'
+    + '<th title="Trade lane code">Lane</th>'
+    + '<th title="ROB (MT) on the first day of the range, at the anchor hour">First</th>'
+    + '<th title="ROB (MT) on the last day of the range">Last</th>'
+    + '<th title="First − Last = total consumption over the range (MT)">Δ Total</th>'
+    + '<th title="Average daily consumption (MT/day)">Avg/day</th>'
+    + '<th title="Lowest ROB observed in the range (MT)">Min</th>'
+    + '<th title="Number of days ROB increased (bunker / fuel taken on board)">Bunker#</th>'
+    + '<th title="Last ROB ÷ Avg/day = estimated days of fuel remaining (red if < 7)">Days Left</th>'
+    + '</tr>';
   s.sort(function(a,b){ return (a.daysLeft==null?1e9:a.daysLeft) - (b.daysLeft==null?1e9:b.daysLeft); });
   s.forEach(function(r){
     var dl = (r.daysLeft == null) ? '—' : Math.floor(r.daysLeft);
@@ -827,7 +863,11 @@ function renderSummary(s) {
 function renderIntegrity(recs) {
   var miss = recs.filter(function(r){ return r.f === 0; });
   if (!miss.length) { document.getElementById('trendIntegrity').innerHTML = '<p class="ok">All reports present in selected range.</p>'; return; }
-  var h = '<table class="trendtbl"><tr><th>Vessel</th><th>Run Time</th><th>Report Time</th></tr>';
+  var h = '<table class="trendtbl"><tr>'
+    + '<th title="Ship name">Vessel</th>'
+    + '<th title="Date the record row was generated by the script">Run Time</th>'
+    + '<th title="Master\'s report timestamp received from the mailbox">Report Time</th>'
+    + '</tr>';
   miss.slice(0, 200).forEach(function(r){ h += '<tr><td>' + r.v + '</td><td>' + r.t + '</td><td>' + r.rt + '</td></tr>'; });
   h += '</table>';
   if (miss.length > 200) h += '<p>... showing 200 of ' + miss.length + '</p>';
