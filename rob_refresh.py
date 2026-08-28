@@ -440,11 +440,11 @@ function _loadXlsx(cb) {
   .vopt { display: block; padding: 4px 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
   .vopt:hover { background: #eef4fb; }
   .vopt input { margin-right: 6px; vertical-align: middle; }
-  .trendgrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 16px; padding: 16px 28px; }
-  @media (max-width: 1100px) { .trendgrid { grid-template-columns: 1fr; } }
+  .trendgrid { display: grid; grid-template-columns: 1fr; gap: 18px; padding: 16px 28px; }
+  .trendgrid .panel { width: 100%; }
+  #trendChart { width: 100% !important; height: 420px !important; }
   .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
   .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 10px; }
-  #trendChart { width: 100% !important; height: 360px !important; }
   .trendtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
   .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: left; }
   .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; }
