@@ -535,7 +535,7 @@ function _loadXlsx(cb) {
     <div class="trendgrid">
       <div class="panel">
         <h3 id="trendChartTitle">ROB Trend</h3>
-        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to see daily burn as a line. When vessels have very different ROB magnitudes (a big-value vessel flattens the others), click <b>Scale: Log</b> (top-right) — it compresses the Y axis so every curve stays visible. <b>加油 (bunkering) days</b> show as a green ▲ at the top (never negative) and are <b>excluded from the Avg/day</b> in Vessel Summary. Bunkering is currently inferred from ROB increases; to record explicit bunkering events, add them to <code>rob_data/bunkering.json</code> ({"船名": {"YYYY-MM-DD": 加油量MT}}). Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
+        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to see daily burn as a line. When vessels have very different ROB magnitudes (a big-value vessel flattens the others), click <b>Scale: Log</b> (top-right) — it compresses the Y axis so every curve stays visible. In Consumption mode, bunkering spikes (often 50–200 MT) use a separate <b>right Y axis</b> so they no longer flatten the 0–20 MT/day consumption line on the left. <b>加油 (bunkering) days</b> show as a green ▲ at the top and are <b>excluded from the Avg/day</b> in Vessel Summary. Bunkering is currently inferred from ROB increases; to record explicit bunkering events, add them to <code>rob_data/bunkering.json</code> ({"船名": {"YYYY-MM-DD": 加油量MT}}). Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
         <canvas id="trendChart"></canvas>
       </div>
       <div class="panel">
@@ -817,11 +817,12 @@ function renderTrend() {
       bunkerByV[v] = bunker;
       globalLabels.forEach(function(t, i){ dataPts[i] = (t in cons) ? ((trendScale === 'log' && cons[t] <= 0) ? null : cons[t]) : null; });
     }
-    datasets.push({ label:v, data:dataPts, borderColor:color, backgroundColor:color, spanGaps:true, tension:0.15, pointRadius:2, borderWidth:2 });
+    datasets.push({ label:v, data:dataPts, borderColor:color, backgroundColor:color, spanGaps:true, tension:0.15, pointRadius:2, borderWidth:2,
+      yAxisID: (trendMode === 'consum' ? 'y' : 'y') });
     if (trendMode === 'consum' && bunkerByV[v] && Object.keys(bunkerByV[v]).length) {
       datasets.push({ label:v + ' ⛽', data:globalLabels.map(function(t){ return (t in bunkerByV[v]) ? bunkerByV[v][t] : null; }),
         showLine:false, pointStyle:'triangle', pointRadius:7, pointHoverRadius:9,
-        pointBackgroundColor:'#1ca05a', pointBorderColor:'#0f7a43', borderWidth:0, _bunker:true });
+        pointBackgroundColor:'#1ca05a', pointBorderColor:'#0f7a43', borderWidth:0, _bunker:true, yAxisID:'y1' });
     }
     // summary from aligned daily series (same-time ROB)
     var daily = alignDaily(arr, oil, anchor);
@@ -857,7 +858,10 @@ function renderTrend() {
       },
       scales:{ x:{ ticks:{ maxRotation:60, minRotation:30, font:{size:10} } },
         y:{ type:(trendScale === 'log' ? 'logarithmic' : 'linear'),
-            title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day) — 加油 days shown as green ▲':'ROB (MT)') + (trendScale==='log'?' (log)':'') } } } }
+            title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day) — 加油 days shown as green ▲':'ROB (MT)') + (trendScale==='log'?' (log)':'') } },
+        y1:{ type:(trendScale === 'log' ? 'logarithmic' : 'linear'), position:'right',
+            title:{ display:true, text:'加油 Bunker (MT)' }, grid:{ drawOnChartArea:false },
+            display: (trendMode === 'consum') } } }
   });
   document.getElementById('trendChartTitle').textContent = (trendMode==='consum'?'Daily Consumption (aligned to ' + anchor + ':00)':'ROB Trend') + ' — ' + oil.toUpperCase();
   renderSummary(summary);
