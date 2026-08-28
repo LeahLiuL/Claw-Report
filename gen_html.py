@@ -1128,7 +1128,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls with wait &lt; threshold / total calls (CNSHA &amp; CNNGB &lt; 12h, others &lt; 6h; always based on all calls in time range). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = berthed calls (with ETB) / total calls in selected range. Remark filters apply to both numerator and denominator. Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -2653,19 +2653,6 @@ function buildPortWaitData(){
     var remark=sr.remark||'';
     var cat=classifyRemark(remark)||'other';
 
-    // Initialize port record if needed
-    if(!byPort[port]){
-      byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
-                    calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthCalls:0,  // filtered stats
-                    allCalls:0, allBerthCalls:0,  // unfiltered (for berth rate)
-                    remarks:{}, excludedCalls:[]};
-    }
-    var rec=byPort[port];
-
-    // Track unfiltered (all calls within date range) for berth rate
-    rec.allCalls++;
-    if(wait < berthThreshold(port)) rec.allBerthCalls++;
-
     // If remark filter is active, ONLY include calls whose remark matches selected categories
     if(selRemarkCats){
       var match=false;
@@ -2674,19 +2661,33 @@ function buildPortWaitData(){
         if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match){
-        rec.excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
+        // Ensure port record exists so excluded calls can still be inspected
+        if(!byPort[port]){
+          byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
+                        calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
+                        remarks:{}, excludedCalls:[]};
+        }
+        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
         totalExcludedByRemark++;
-        return;  // skip this call for wait/calls aggregation
+        return;  // excluded calls do not count in berth rate numerator or denominator
       }
     }
 
+    // Initialize port record if needed
+    if(!byPort[port]){
+      byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
+                    calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
+                    remarks:{}, excludedCalls:[]};
+    }
+    var rec=byPort[port];
+
     // Filtered call — add to stats
-    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, dateKey:era, rawPort:rawPort, port:port});
+    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
     if(portOverInRange(wait, port)) rec.overCalls++;
-    if(wait < berthThreshold(port)) rec.berthCalls++;
+    if(sr.etbRaw) rec.berthedCalls++;  // berthed = has ETB
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -2699,8 +2700,8 @@ function buildPortWaitData(){
   for(var p in byPort){
     var rec=byPort[p];
     rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
-    // Berth rate = all berth calls / all total calls (unfiltered by remark)
-    rec.berthRate=rec.allCalls>0 ? Math.round(rec.allBerthCalls/rec.allCalls*100) : 0;
+    // Berth rate = berthed calls (with ETB) / total filtered calls; remark filter applies to both
+    rec.berthRate=rec.calls.length>0 ? Math.round(rec.berthedCalls/rec.calls.length*100) : 0;
     rec.catLabels=Object.keys(rec.remarks).map(function(k){
       var found=REMARK_CATEGORIES.find(function(c){return c.key===k;});
       return found ? found.label : k;
@@ -2730,19 +2731,19 @@ function buildPortWaitData(){
   remarkCatTotals=catTotals;
 
   // ── Monthly Trend Aggregation ──────────────────────────────────────
-  // Per-month berth rate = (calls berthed on time) / (total calls in month)
+  // Per-month berth rate = (calls with ETB) / (total filtered calls in month)
   var byMonth={};
   allFilteredCalls.forEach(function(cl){
     // dateKey is the selected date-basis raw ("YYYY-MM-DD" format)
     var dk=cl.dateKey||'';
     if(!dk || dk.length<7) return;
     var m=dk.substring(0,7); // "YYYY-MM"
-    if(!byMonth[m]) byMonth[m]={month:m, totalWait:0, count:0, maxWait:0, berthCalls:0, calls:[]};
+    if(!byMonth[m]) byMonth[m]={month:m, totalWait:0, count:0, maxWait:0, berthedCalls:0, calls:[]};
     var mr=byMonth[m];
     mr.totalWait+=cl.wait;
     mr.count++;
     if(cl.wait>mr.maxWait) mr.maxWait=cl.wait;
-    if(cl.wait < berthThreshold(cl.port||'')) mr.berthCalls++;
+    if(cl.etbRaw) mr.berthedCalls++;  // berthed = has ETB
     mr.calls.push(cl);
   });
   // Sort months
@@ -3142,7 +3143,7 @@ function renderMonthlyTrend(){
   html+='<span>Total Wait: <b style="color:#c00000;">'+data.reduce(function(s,m){return s+m.totalWait;},0).toFixed(1)+'h</b></span>';
   html+='</div>';
 
-  // Bars — width = monthly berth rate (berthed on time / total calls); color follows berthRateColor
+  // Bars — width = monthly berth rate (calls with ETB / total calls); color follows berthRateColor
   data.forEach(function(m){
     var pct=m.berthRate; // 0-100
     var avg=m.avgWait.toFixed(1);
@@ -3378,7 +3379,8 @@ function buildBoaCalls(){
       r: BOA_PORT_REGION[port] || 'Unknown',
       l: route || '(blank)',
       p: port,
-      w: wait
+      w: wait,
+      etbRaw: sr.etbRaw || ''
     });
   });
   return calls;
@@ -3389,7 +3391,7 @@ var BOA_HEADERS = {
   boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
 };
-function boaIsBerth(c){ return c.w <= berthThreshold(c.p); }
+function boaIsBerth(c){ return !!(c.etbRaw); }  // berthed = has ETB
 function boaOverInRange(c){
   if(boaIsBerth(c)) return false;
   switch(BOA_RANGE){
@@ -3404,7 +3406,7 @@ function boaAgg(items){
   items.forEach(function(c){
     if(boaIsBerth(c)) berth++; else if(boaOverInRange(c)) over++;
   });
-  var total = berth + over;
+  var total = items.length;  // total calls in selected range
   return {berth:berth, over:over, total:total, rate: total>0 ? berth/total : 0};
 }
 function boaRateCls(r){ return r>=0.8 ? 'rate-good' : (r>=0.5 ? 'rate-mid' : 'rate-bad'); }
