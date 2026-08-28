@@ -1128,7 +1128,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = berthed calls (with ETB) / total calls in selected range. Remark filters apply to both numerator and denominator. Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls berthed within threshold (wait &#8804; 12h for CNSHA/CNNGB, &#8804; 6h for other ports) / total calls in selected range. Remark filters apply to both numerator and denominator. Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -2686,8 +2686,8 @@ function buildPortWaitData(){
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
-    if(portOverInRange(wait, port)) rec.overCalls++;
-    if(sr.etbRaw) rec.berthedCalls++;  // berthed = has ETB
+    if(portOverInRange(wait, port))     rec.overCalls++;
+    if(wait <= berthThreshold(port)) rec.berthedCalls++;  // berthed = waited within threshold (SHA/NGB 12h, others 6h)
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -2731,7 +2731,7 @@ function buildPortWaitData(){
   remarkCatTotals=catTotals;
 
   // ── Monthly Trend Aggregation ──────────────────────────────────────
-  // Per-month berth rate = (calls with ETB) / (total filtered calls in month)
+  // Per-month berth rate = (calls berthed within threshold) / (total filtered calls in month)
   var byMonth={};
   allFilteredCalls.forEach(function(cl){
     // dateKey is the selected date-basis raw ("YYYY-MM-DD" format)
@@ -2743,7 +2743,7 @@ function buildPortWaitData(){
     mr.totalWait+=cl.wait;
     mr.count++;
     if(cl.wait>mr.maxWait) mr.maxWait=cl.wait;
-    if(cl.etbRaw) mr.berthedCalls++;  // berthed = has ETB
+    if(cl.wait <= berthThreshold(cl.port||'')) mr.berthedCalls++;  // berthed = waited within threshold
     mr.calls.push(cl);
   });
   // Sort months
@@ -2751,8 +2751,8 @@ function buildPortWaitData(){
   monthlyTrendData=months.map(function(m){
     var mr=byMonth[m];
     return {month:m, totalWait:mr.totalWait, count:mr.count, avgWait:mr.totalWait/mr.count,
-            maxWait:mr.maxWait, berthCalls:mr.berthCalls,
-            berthRate: mr.count>0 ? Math.round(mr.berthCalls/mr.count*100) : 0};
+            maxWait:mr.maxWait, berthCalls:mr.berthedCalls,
+            berthRate: mr.count>0 ? Math.round(mr.berthedCalls/mr.count*100) : 0};
   });
 }
 
@@ -3143,7 +3143,7 @@ function renderMonthlyTrend(){
   html+='<span>Total Wait: <b style="color:#c00000;">'+data.reduce(function(s,m){return s+m.totalWait;},0).toFixed(1)+'h</b></span>';
   html+='</div>';
 
-  // Bars — width = monthly berth rate (calls with ETB / total calls); color follows berthRateColor
+  // Bars — width = monthly berth rate (berthed-within-threshold calls / total calls); color follows berthRateColor
   data.forEach(function(m){
     var pct=m.berthRate; // 0-100
     var avg=m.avgWait.toFixed(1);
@@ -3391,7 +3391,7 @@ var BOA_HEADERS = {
   boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
   boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
 };
-function boaIsBerth(c){ return !!(c.etbRaw); }  // berthed = has ETB
+function boaIsBerth(c){ return c.w <= berthThreshold(c.p); }  // berthed = waited within threshold (SHA/NGB 12h, others 6h)
 function boaOverInRange(c){
   if(boaIsBerth(c)) return false;
   switch(BOA_RANGE){
