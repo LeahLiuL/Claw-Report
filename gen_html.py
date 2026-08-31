@@ -833,6 +833,14 @@ function _loadXlsx(cb){
   }
   .filter-btn:hover { background: #EBF3FB; border-color: #2E75B6; }
   .filter-btn.has-selection { background: #EBF3FB; border-color: #2E75B6; color: #0d3b5e; }
+  .decom-toggle {
+    display: inline-flex; align-items: center; gap: 5px; height: 34px;
+    padding: 0 10px; border: 1px solid #c9d5e2; border-radius: 5px;
+    background: #fff; color: #1F4E79; font-size: 12px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  .decom-toggle:hover { background: #EBF3FB; border-color: #2E75B6; }
+  .decom-toggle input { cursor: pointer; margin: 0; }
   .filter-dropdown { min-width: 200px; }
   .filter-dropdown .filter-actions {
     display: flex; gap: 0; border-bottom: 1px solid #e4ecf5; padding: 4px 8px;
@@ -1046,6 +1054,9 @@ function _loadXlsx(cb){
       <button class="col-toggle-btn" id="colToggleBtn1" onclick="toggleColDropdown('1')">&#9881; Columns</button>
       <div class="col-dropdown" id="colDropdown1"></div>
     </div>
+    <label class="decom-toggle" title="Show decommissioned vessels (已下线)">
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    </label>
     <span class="stat-chip" id="statTotal">&#8212; vessels</span>
     <span class="delay-chip" id="statDelay">&#8212; delayed</span>
   </div>
@@ -1087,6 +1098,9 @@ function _loadXlsx(cb){
       <div class="col-dropdown" id="colDropdown2"></div>
     </div>
     <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
+    <label class="decom-toggle" title="Show decommissioned vessels (已下线)">
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    </label>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
   </div>
   <div class="table-wrap">
@@ -1695,12 +1709,48 @@ function switchTab(viewId, btn){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   DECOMMISSIONED VESSELS (已下线)
+   源 Excel 中已退租/下线的船，船名带 "-已下线" 后缀。
+   Summary 与 Full Schedule 默认隐藏这些船（含其筛选下拉、导出、统计数）；
+   需要查看历史时勾选工具栏的 "Show 已下线" 即可临时显示。
+   ═══════════════════════════════════════════════════════════════════ */
+var DECOM_MARK = '已下线';
+var SHOW_DECOM = false;
+try{ SHOW_DECOM = sessionStorage.getItem('showDecom')==='1'; }catch(e){ SHOW_DECOM=false; }
+
+function isDecommissioned(v){ return typeof v==='string' && v.indexOf(DECOM_MARK)>=0; }
+
+/* 按当前 SHOW_DECOM 状态重建 Summary / Full Schedule 的数据源 */
+function applyDecomFilter(){
+  summaryData = (TODAY_DATA.vessels||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
+  fullData    = (TODAY_DATA.fullSchedule||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
+}
+
+/* 工具栏 "Show 已下线" 勾选框 —— 两个视图共用，状态存 sessionStorage */
+function onDecomToggle(cb){
+  SHOW_DECOM = !!(cb && cb.checked);
+  try{ sessionStorage.setItem('showDecom', SHOW_DECOM?'1':'0'); }catch(e){}
+  applyDecomFilter();
+  // 重建 vessel 分组底色（Full Schedule 交替色带）
+  let seen={}, gi=0;
+  fullData.forEach(function(r){ if(!(r.vessel in seen)){ seen[r.vessel]=gi%2; gi++; } });
+  vesselGroupMap = seen;
+  var boxes = document.querySelectorAll('.decom-cb');
+  boxes.forEach(function(b){ if(b!==cb) b.checked = SHOW_DECOM; });
+  ['route','vessel','pic'].forEach(function(t){
+    updateFilterButton(t,'1'); updateFilterButton(t,'2');
+  });
+  renderSummary();
+  renderFullSchedule();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SUMMARY VIEW
    ═══════════════════════════════════════════════════════════════════ */
 let summaryData=[], summarySortCol=-1, summarySortDir=1;
 
 function initSummary(){
-  summaryData = TODAY_DATA.vessels;
+  applyDecomFilter();
   buildColDropdown('1');
   updateFilterButton('route', '1');
   updateFilterButton('vessel', '1');
@@ -1824,7 +1874,7 @@ let fullData=[], fullSortCol=-1, fullSortDir=1;
 let vesselGroupMap = {};
 
 function initFullSchedule(){
-  fullData = TODAY_DATA.fullSchedule || [];
+  applyDecomFilter();
   loadLaneOrder();
   let seen = {}, gi = 0;
   fullData.forEach(function(r){
@@ -4254,7 +4304,9 @@ window.addEventListener('resize', updateCtrlH);
 
 function init(){
   loadSnapshots(); saveSnapshot(TODAY_DATA);
-  document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+TODAY_DATA.vessels.length+' vessels  |  '+TODAY_DATA.fullSchedule.length+' schedule rows';
+  var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){return !isDecommissioned(r.vessel);});
+  var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){return !isDecommissioned(r.vessel);});
+  document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+_hdrV.length+' vessels  |  '+_hdrF.length+' schedule rows';
   document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
   initFullSchedule();
