@@ -632,6 +632,15 @@ function exportExcel() {
   var vs = DATA.vessels.filter(function(v) {
     return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
   });
+  // 与表格完全一致的排序(排好序之后导出同样的顺序)
+  vs = vs.slice().sort(function(a, b) {
+    var x = a[sortKey], y = b[sortKey];
+    if (x === null || x === undefined) x = '';
+    if (y === null || y === undefined) y = '';
+    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
+    x = String(x); y = String(y);
+    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
+  });
   var rows = [EXPORT_HEADERS.slice()];
   vs.forEach(function(v) {
     rows.push([v.seq, v.vessel, v.code, v.lane, '', v.pic,
