@@ -35,8 +35,25 @@ import json
 REPO = os.path.dirname(os.path.abspath(__file__))
 HTML = "cul_daily_movement.html"
 
-# 需要从远端 HTML 中"原样搬运"的数据块（行首 const 声明）
-DATA_BLOCKS = ("TODAY_DATA", "SNAPSHOTS")
+# 数据块搬运计划: (块名, 取值来源)
+#   remote = 用 culadmin(远端)HTML 的值
+#   local  = 保留本机重生成的值
+#
+# 2026-08-31 实测结论（务必遵守，否则会丢数据）：
+#   TODAY_DATA    -> remote  本机 CUL DAILY MOVEMENT.rebuilt.xlsx 是残缺快照
+#                            (44 船、无"-已下线"标记)，远端 54 船、含 8 艘已下线
+#   MAINT_DATA    -> remote  本机 MAINT 源只有 9283 条，远端 24774 条
+#   AGENT_BY_PORT -> local   culadmin 机器读不到 P: 盘联系人表，远端该块是空 {}
+#   SNAPSHOTS     -> remote
+BLOCK_PLAN = (
+    ("TODAY_DATA",    "remote"),
+    ("MAINT_DATA",    "remote"),
+    ("AGENT_BY_PORT", "local"),
+    ("SNAPSHOTS",     "remote"),
+)
+
+# 本机重生成会把 maint_snapshot.json 写成残缺版本，必须回退远端版本
+SNAPSHOT_FILE = "maint_snapshot.json"
 
 
 def run(cmd, check=True, capture=True):
@@ -130,12 +147,16 @@ def replace_data_block(text, name, new_value):
 
 
 def fetch_remote_html():
-    """从远端 main 分支拿到 culadmin 上传的最新 HTML 文本。"""
+    """从远端 main 分支拿到 culadmin 上传的最新 HTML 文本。
+
+    注意：本 sandbox 环境下 `origin/main` 跟踪引用会滞后，必须用 `FETCH_HEAD`
+    （git fetch 写入的真实远端 hash）读取，否则会拿到旧版本。
+    """
     log("fetch origin ...")
     run("git fetch origin")
-    rc, out = run("git show origin/main:{}".format(HTML), check=False)
+    rc, out = run("git show FETCH_HEAD:{}".format(HTML), check=False)
     if rc != 0:
-        raise RuntimeError("cannot read {} from origin/main: {}".format(HTML, out))
+        raise RuntimeError("cannot read {} from FETCH_HEAD: {}".format(HTML, out))
     return out
 
 
@@ -153,23 +174,26 @@ def main():
         with open(os.path.join(REPO, HTML), "r", encoding="utf-8") as f:
             local_html = f.read()
 
-        # 2) 从远端 HTML 抽取数据块，注入到本地生成的 HTML
+        # 2) 按 BLOCK_PLAN 逐块决定取远端还是保留本机
         changed = []
-        for name in DATA_BLOCKS:
+        for name, direction in BLOCK_PLAN:
             remote_val = extract_data_block(remote_html, name)
-            if remote_val is None:
-                log("  skip {} (not present in remote HTML)".format(name))
-                continue
             local_val = extract_data_block(local_html, name)
-            if local_val is None:
-                log("  skip {} (not present in local HTML)".format(name))
+            if remote_val is None or local_val is None:
+                log("  skip {} (remote={} local={})".format(
+                    name, remote_val is not None, local_val is not None))
+                continue
+            if direction == "local":
+                log("  {:<16} keep LOCAL  ({} bytes; remote was {} — known to be worse)".format(
+                    name, len(local_val), len(remote_val)))
                 continue
             if remote_val == local_val:
-                log("  {} identical, nothing to do".format(name))
+                log("  {:<16} identical, nothing to do".format(name))
                 continue
             local_html = replace_data_block(local_html, name, remote_val)
             changed.append(name)
-            log("  {} replaced with culadmin's latest data".format(name))
+            log("  {:<16} <- REMOTE ({} bytes, local was {})".format(
+                name, len(remote_val), len(local_val)))
 
         if not changed:
             log("data already up to date; no rewrite needed")
@@ -187,23 +211,40 @@ def main():
                 f.write(local_html)
             log("wrote HTML: latest code + culadmin data ({})".format(", ".join(changed)))
 
-        # 3) 校验关键修复仍在（防止 gen_html.py 被回退导致修复丢失）
+        # 3) 回退 maint_snapshot.json 到远端版本（本机重生成会截断它，必须还原）
+        rc, out = run("git show FETCH_HEAD:{}".format(SNAPSHOT_FILE), check=False)
+        if rc == 0 and out:
+            with open(os.path.join(REPO, SNAPSHOT_FILE), "w", encoding="utf-8", newline="") as f:
+                f.write(out)
+            log("restored {} from FETCH_HEAD ({} bytes)".format(SNAPSHOT_FILE, len(out)))
+        else:
+            log("WARN: cannot restore {} — leaving as-is".format(SNAPSHOT_FILE))
+
+        # 4) 校验关键修复仍在（防止 gen_html.py 被回退导致修复丢失）
         for token, label in (("AGENT_BY_PORT", "Agent/OP column"),
-                             ("berthedCalls", "Berth Rate fix")):
+                             ("berthedCalls", "Berth Rate fix"),
+                             ("isDecommissioned", "decommissioned-vessel filter")):
             if token in local_html:
                 log("  OK  {}".format(label))
             else:
                 raise RuntimeError("{} missing after regeneration -- aborting to avoid shipping a broken page".format(label))
 
-        # 4) 提交并推送（只推 HTML，不动代码）
+        # 5) 提交并推送（只推 HTML + 脚本，不动 maint_snapshot.json）
         run("git add {}".format(HTML))
         rc, out = run("git diff --cached --quiet", check=False)
         if rc == 0:
             log("no changes to commit")
             return 0
         run('git commit -m "resync: latest culadmin data + latest gen_html.py code (data-only resync, no logic regression)"')
+        # 推送前先确认工作区是远端的直系后代（fast-forward 可推）。
+        # 刻意不用 git rebase：本 sandbox 环境下 rebase 会损坏 .git/refs 与 objects
+        # （已复现 2 次，只能重新 clone 修复）。非直系时报错让人手工处理。
         run("git fetch origin")
-        run("git rebase origin/main")
+        rc, _ = run("git merge-base --is-ancestor FETCH_HEAD HEAD", check=False)
+        if rc != 0:
+            raise RuntimeError(
+                "local branch is NOT a descendant of remote ({}). ".format(HTML) +
+                "Run manually: git reset --hard FETCH_HEAD, re-apply your gen_html.py edits, then re-run this script.")
         run("git push origin main")
         log("pushed")
         return 0
