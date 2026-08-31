@@ -66,8 +66,23 @@ install_rob_task.bat        REM 双击运行：装依赖 + 注册计划任务
 3. **偏旧深度兜底**：常规检索后仍是 MISS、或报告时间超过 **26 小时**的船，再按 `ReceivedTime` 窗口对全部 169 个文件夹 Restrict 扫描一次（不受"每文件夹前 N 封"上限影响）。
    例：2026-08-31 自动把卡在 08-26 的 M. ODYSSEY 补到 08-30。
 
+## 主表列（改列要同时改 4 处）
+
+`No. / Vessel Name / Vessel Code / Lane / Bunker PIC / PIC / ROB LSFO / ROB HSFO /
+ROB ULSFO / ROB MGO / Order Status / Order Details / REMARK / Special / Planned Bunkering Date / ROB Report Time`
+
+改列必须同步：`templates/rob.html` 的表头 `<th>`、行渲染 `<td>`、`EXPORT_HEADERS`+导出行+列宽，
+以及 `rob_refresh.py` 的 `build_html()` payload 和 `build_xlsx()` 表头/数据行。
+（2026-08-31 加 ULSFO 列时就是改这 5 处；表头列数与行 `<td>` 数必须相等，否则整表错位。）
+
+> 为什么需要 ULSFO 列：ASR、MEDKON DON 等船实际烧 ULSFO，主表只有三列时它们在主表里
+> 显示成 LSFO 0（船上其实有 158.3 / 468.9 MT）。
+
 ## 已知注意事项
 
+- **共用文件夹会串船数据**：如 MEDKON 文件夹同时放 MEDKON DON / MEDKON LIA 的报告，
+  命中这类文件夹时会强制按主题（船名或船代码）认船。新增船文件夹时注意别让两船共用一个
+  且文件夹名是其中一艘名字的前缀。
 - **已下线船不显示**：船名带「已下线」后缀的船（船期表里的标记）在读入船清单时直接剔除，不进主表/趋势/Data Integrity（历史 CSV 归档行保留，不删）。
 - **两台电脑不要同时跑**：只让 culadmin 的计划任务自动跑。leahliu 本机想手动刷新，跑 `python rob_refresh.py` 生成页面即可，但**不要同时 push**（会互相冲突）。
 - **密码说明**：页面数据经 AES 加密，网页源码看不到明文。但本仓库是公开的，密码写在脚本里（jimmy）——知道仓库地址的人可以推出密码。这是「防路人」级别，不是安全级别；如需更强隔离请把仓库转 Private（GitHub Pages Private 仓库需 Pro 账号）。
