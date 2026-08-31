@@ -152,6 +152,7 @@ function _loadXlsx(cb) {
         <th data-k="seq">No.</th><th data-k="vessel">Vessel Name</th><th data-k="code">Vessel Code</th>
         <th data-k="lane">Lane</th><th>Bunker PIC</th><th data-k="pic">PIC</th>
         <th data-k="rob_lsfo" class="n">ROB LSFO</th><th data-k="rob_hsfo" class="n">ROB HSFO</th>
+        <th data-k="rob_ulsfo" class="n">ROB ULSFO</th>
         <th data-k="rob_mgo" class="n">ROB MGO</th><th>Order Status</th><th>Order Details</th>
         <th data-k="remark">REMARK</th><th>Special</th><th>Planned Bunkering Date</th><th data-k="report_time">ROB Report Time</th>
       </tr></thead>
@@ -178,6 +179,7 @@ function _loadXlsx(cb) {
       <select id="trendOil">
         <option value="ls">LSFO</option>
         <option value="hs">HSFO</option>
+        <option value="us">ULSFO</option>
         <option value="mg">MGO</option>
       </select>
       <span class="lbl">Daily anchor:</span>
@@ -279,6 +281,7 @@ function renderRows() {
          '<td class="c">' + v.code + '</td><td class="c">' + v.lane + '</td><td></td>' +
          '<td>' + v.pic + '</td>' +
          '<td class="n">' + fmt(v.rob_lsfo) + '</td><td class="n">' + fmt(v.rob_hsfo) + '</td>' +
+         '<td class="n">' + fmt(v.rob_ulsfo) + '</td>' +
          '<td class="n">' + fmt(v.rob_mgo) + '</td><td></td><td></td>' +
          '<td class="' + (v.found ? '' : 'miss') + '">' + (v.found ? '' : v.remark) + '</td>' +
          '<td></td><td></td><td class="c">' + v.report_time + '</td></tr>';
@@ -286,8 +289,9 @@ function renderRows() {
   document.getElementById('rows').innerHTML = h;
 }
 var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC', 'PIC',
-                      'ROB LSFO', 'ROB HSFO', 'ROB MGO', 'Order Status', 'Order Details',
-                      'REMARK', 'Special', 'Planned Bunkering Date', 'ROB Report Time'];
+                      'ROB LSFO', 'ROB HSFO', 'ROB ULSFO', 'ROB MGO', 'Order Status',
+                      'Order Details', 'REMARK', 'Special', 'Planned Bunkering Date',
+                      'ROB Report Time'];
 function exportExcel() {
   if (!window.XLSX) { _loadXlsx(exportExcel); return; }
   var q = (document.getElementById('q').value || '').toLowerCase();
@@ -299,12 +303,13 @@ function exportExcel() {
     rows.push([v.seq, v.vessel, v.code, v.lane, '', v.pic,
                v.rob_lsfo === null ? '' : v.rob_lsfo,
                v.rob_hsfo === null ? '' : v.rob_hsfo,
+               v.rob_ulsfo === null ? '' : v.rob_ulsfo,
                v.rob_mgo === null ? '' : v.rob_mgo,
                '', '', v.found ? '' : v.remark, '', '', v.report_time]);
   });
   var ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{wch:5},{wch:22},{wch:14},{wch:8},{wch:12},{wch:16},
-                 {wch:10},{wch:10},{wch:10},{wch:13},{wch:14},
+                 {wch:10},{wch:10},{wch:10},{wch:10},{wch:13},{wch:14},
                  {wch:36},{wch:8},{wch:21},{wch:20}];
   if (_xlsxStyled) {
     for (var c = 0; c < EXPORT_HEADERS.length; c++) {

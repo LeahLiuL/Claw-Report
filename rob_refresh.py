@@ -690,7 +690,7 @@ def build_html(results):
             "seq": i, "vessel": r.get("vessel", ""), "code": r.get("code", ""),
             "lane": r.get("lane", ""), "pic": r.get("pic", ""),
             "rob_lsfo": r.get("rob_lsfo"), "rob_hsfo": r.get("rob_hsfo"),
-            "rob_mgo": r.get("rob_mgo"),
+            "rob_ulsfo": r.get("rob_ulsfo"), "rob_mgo": r.get("rob_mgo"),
             "found": bool(r.get("found")),
             "remark": "No ROB report from Master found in mailbox" if not r.get("found") else "",
             "report_time": (r.get("report_time") or "")[:19],
@@ -764,8 +764,8 @@ def build_xlsx(results):
     ws.cell(1, 1, snap).font = Font(bold=True, size=14)
     ws.cell(1, 2, "盘油记录（ROB 取自各船船长 Noon/Berth/Sailing Report）").font = Font(bold=True, size=11)
     headers = ["序号", "Vessel Name全称", "Vessel Code", "Lane Code", "燃油负责人", "PIC",
-               "ROB LSFO", "ROB HSFO", "ROB MGO", "订油状态", "订油情况", "REMARK",
-               "特殊", "拟采购日期", "ROB报告时间"]
+               "ROB LSFO", "ROB HSFO", "ROB ULSFO", "ROB MGO", "订油状态", "订油情况",
+               "REMARK", "特殊", "拟采购日期", "ROB报告时间"]
     hdr_fill = PatternFill("solid", fgColor="1F4E79")
     hdr_font = Font(bold=True, color="FFFFFF")
     thin = Side(style="thin", color="BFBFBF")
@@ -786,15 +786,16 @@ def build_xlsx(results):
     r = 3
     for i, rec in enumerate(ordered, 1):
         rowvals = [i, rec.get("vessel"), rec.get("code"), rec.get("lane"), "", rec.get("pic"),
-                   fmt_num(rec.get("rob_lsfo")), fmt_num(rec.get("rob_hsfo")), fmt_num(rec.get("rob_mgo")),
+                   fmt_num(rec.get("rob_lsfo")), fmt_num(rec.get("rob_hsfo")),
+                   fmt_num(rec.get("rob_ulsfo")), fmt_num(rec.get("rob_mgo")),
                    "", "", "", "", "",
                    (rec.get("report_time") or "")[:19]]
         if not rec.get("found"):
-            rowvals[11] = "邮箱未找到船长存油报告"
+            rowvals[12] = "邮箱未找到船长存油报告"
         for c, val in enumerate(rowvals, 1):
             cell = ws.cell(r, c, val)
             cell.border = border
-            if c in (1, 2, 3, 4, 7, 8, 9, 15):
+            if c in (1, 2, 3, 4, 7, 8, 9, 10, 16):
                 cell.alignment = Alignment(horizontal="center")
         r += 1
     for col, w in zip("ABCDEFGHIJKLMNO", [6, 22, 16, 12, 12, 16, 11, 11, 11, 10, 18, 28, 8, 14, 22]):
