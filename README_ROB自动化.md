@@ -48,8 +48,27 @@ install_rob_task.bat        REM 双击运行：装依赖 + 注册计划任务
 | `git push failed` | git 凭证过期；手动 `git push` 一次重新登录 GitHub |
 | 网页打开是旧数据 | GitHub CDN 缓存，等 5-10 分钟或强制刷新（Ctrl+F5） |
 
+## 文件结构（抓取逻辑 vs 页面模板）
+
+| 文件 | 职责 | 谁改 |
+|---|---|---|
+| `rob_refresh.py` | Outlook 抓邮件、解析 ROB、写 JSON/CSV、注入数据生成网页 | 数据侧 |
+| `templates/rob.html` | 网页前端（HTML/CSS/JS，含 `__ENC__` 占位符） | 页面侧 |
+| `rob_data/rob_results.json` | 每船最新一条 ROB（覆写） | 自动生成 |
+| `rob_data/rob_history.csv` | 逐船逐次快照，**累加**（按 `vessel+report_time` 幂等去重） | 自动生成 |
+
+两台电脑分工改页面 / 改数据互不冲突：改页面只动 `templates/rob.html`，改抓取逻辑只动 `rob_refresh.py`。
+
+## 抓最新的三重保障
+
+1. **sender 全局索引**：按 `rob_data/vessel_senders.json` 里 44 个船长邮箱，在全部文件夹预建索引（内部 Exchange 的 X.500 地址会解析回 SMTP）。
+2. **多来源合并**：文件夹树 + sender 索引 + 收件箱 Restrict + 全文件夹主题搜索，候选按 `ReceivedTime` **全局倒序**，永远取时间上最新的那份。
+3. **偏旧深度兜底**：常规检索后仍是 MISS、或报告时间超过 **26 小时**的船，再按 `ReceivedTime` 窗口对全部 169 个文件夹 Restrict 扫描一次（不受"每文件夹前 N 封"上限影响）。
+   例：2026-08-31 自动把卡在 08-26 的 M. ODYSSEY 补到 08-30。
+
 ## 已知注意事项
 
+- **已下线船不显示**：船名带「已下线」后缀的船（船期表里的标记）在读入船清单时直接剔除，不进主表/趋势/Data Integrity（历史 CSV 归档行保留，不删）。
 - **两台电脑不要同时跑**：只让 culadmin 的计划任务自动跑。leahliu 本机想手动刷新，跑 `python rob_refresh.py` 生成页面即可，但**不要同时 push**（会互相冲突）。
 - **密码说明**：页面数据经 AES 加密，网页源码看不到明文。但本仓库是公开的，密码写在脚本里（jimmy）——知道仓库地址的人可以推出密码。这是「防路人」级别，不是安全级别；如需更强隔离请把仓库转 Private（GitHub Pages Private 仓库需 Pro 账号）。
 - **新船 / 船退出**：船清单每天从 `cul_daily_movement.html`（Daily Movement 网页数据）自动解析，新船自动加入、退出的船自动消失，无需改脚本。

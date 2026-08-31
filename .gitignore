@@ -17,3 +17,7 @@ _site/
 
 # ROB auto pipeline local artifacts (xlsx regenerated daily, not for git)
 rob_data/*.xlsx
+
+# ROB 历史 CSV 的一次性备份(已入库, 不重复提交)
+rob_data/rob_history*.bak*
+rob_data/rob_history.backup_*.csv

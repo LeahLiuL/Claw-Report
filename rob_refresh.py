@@ -49,6 +49,28 @@ def norm(s):
 
 
 # ---------------------------------------------------------------- 1. 船清单
+# 已下线船舶: 船名带『已下线』后缀(船期表 cul_daily_movement.html 里就是这么标的)。
+# 这些船已退租/停航, 船长不再发 ROB 报告, 留着只会占主表、拉低 Data Integrity 统计。
+OFFLINE_MARK = "已下线"
+
+
+def is_offline(name):
+    return OFFLINE_MARK in (name or "")
+
+
+def drop_offline(fleet):
+    keep, dropped = [], []
+    for v in fleet:
+        if is_offline(v.get("vessel")):
+            dropped.append(v["vessel"])
+        else:
+            keep.append(v)
+    if dropped:
+        print("Fleet: drop %d offline vessels -> %s"
+              % (len(dropped), ", ".join(dropped)))
+    return keep
+
+
 def load_fleet():
     if os.path.exists(DM_HTML):
         try:
@@ -64,13 +86,13 @@ def load_fleet():
                 if fleet:
                     print("Fleet: %d vessels from cul_daily_movement.html (date %s)"
                           % (len(fleet), data.get("date")))
-                    return fleet
+                    return drop_offline(fleet)
         except Exception as e:
             print("[WARN] parse cul_daily_movement.html failed:", e)
     if os.path.exists(DM_FALLBACK):
         fleet = json.load(open(DM_FALLBACK, encoding="utf-8"))
         print("Fleet: %d vessels from fallback rob_data/dm_summary.json" % len(fleet))
-        return fleet
+        return drop_offline(fleet)
     raise SystemExit("No fleet source: neither cul_daily_movement.html nor rob_data/dm_summary.json")
 
 
@@ -267,6 +289,21 @@ def extract_rob(att):
     # 最晚阶段即最新存量)。
     oil_codes = ("LSFO", "HSFO", "ULSFO", "MGO", "BW", "FW", "REFEER", "REEFER")
 
+    import re as _re
+
+    def _as_num(v):
+        """单元格 -> float, 非数字返回 None。支持 '1,234.5' / ' 598.17 ' / 数字类型。"""
+        if v is None:
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        s = str(v).strip().replace(",", "")
+        if not s:
+            return None
+        if not _re.match(r"^-?\d+(\.\d+)?$", s):
+            return None
+        return float(s)
+
     def _take(cu, i, row):
         if "ROB" not in cu:
             return None
@@ -277,14 +314,21 @@ def extract_rob(att):
         tok = tail.split()[0].strip(" :|-")
         if tok not in oil_codes:
             return None
+        # 向右找数值, 但遇到"有内容的文本"(单位 MT / 下一个键名 'POB ROB HSFO')
+        # 必须停止 —— BERTH 报告一行放多组 "键 | 值 | MT", 若跨过 MT 继续扫,
+        # 空值会误抓到下一组的 0(例: 'POB ROB LSFO | (空) | MT | POB ROB HSFO | 0')
+        # 导致整船 ROB 被清零(2026-08-30 CUL HAIPHONG / KAI DA HONG ZHOU 事故)。
+        # 空单元格跳过(合并单元格/排版留白), 非空非数字立即终止。
         for j in range(i + 1, len(row)):
             v = row[j]
             if v is None:
                 continue
-            try:
-                return (tok, float(v))
-            except (TypeError, ValueError):
+            if isinstance(v, str) and not v.strip():
                 continue
+            n = _as_num(v)
+            if n is None:
+                break
+            return (tok, round(n, 3))   # 收敛浮点尾巴(3651.5230000000006 -> 3651.523)
         return None
 
     rob = {}
@@ -467,6 +511,91 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
     return False
 
 
+# ---- 偏旧兜底 ----
+# 常规多来源检索每条分支都有扫描上限(每文件夹前 N 封 / sender 最近 15 封), 个别船的
+# 报告如果落在很深的层级或被大量别的邮件挡住, 就会一直停在旧日期(例: M. ODYSSEY
+# 卡在 08-26)。下面按 ReceivedTime 窗口对全部文件夹 Restrict 一次(不受"前 N 封"限制),
+# 再按 sender / 主题精确匹配, 保证只要邮箱里有更新的报告就一定能捞出来。
+STALE_HOURS = 26          # 报告时间超过这个小时数(或压根没抓到)才进深度扫描
+DEEP_LOOKBACK_DAYS = 6    # 深度扫描的回看天数
+
+
+def is_stale(rec, now=None):
+    rt = rec.get("report_time")
+    if not rt:
+        return True
+    try:
+        t = datetime.strptime(rt[:19], "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return True
+    return ((now or datetime.now()) - t).total_seconds() > STALE_HOURS * 3600
+
+
+def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None):
+    """对"报告偏旧/抓不到"的船做一次全文件夹深度扫描, 返回补抓成功的条数。"""
+    if not recs:
+        return 0
+    lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
+    cutoff = (datetime.now() - timedelta(days=lookback_days)).strftime("%m/%d/%Y %H:%M %p")
+    folders = [inbox] + list(folder_list or [])
+    pool = []
+    for fo in folders:
+        try:
+            items = fo.Items.Restrict("[ReceivedTime] >= '%s'" % cutoff)
+        except Exception:
+            continue
+        try:
+            items.Sort("[ReceivedTime]", True)
+        except Exception:
+            pass
+        try:
+            for it in items:
+                try:
+                    pool.append((it.ReceivedTime, it))
+                except Exception:
+                    continue
+        except Exception:
+            continue
+    pool.sort(key=lambda x: x[0], reverse=True)
+    print("deep scan: %d items (last %dd, %d folders), %d stale vessels"
+          % (len(pool), lookback_days, len(folders), len(recs)))
+    fixed = 0
+    for rec in recs:
+        vname = rec.get("vessel", "")
+        nv, nc = norm(vname), norm(rec.get("code") or "")
+        eff = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
+        shared = sum(1 for v in (sender_map or {}).values() if v == eff) if eff else 0
+        hits = []
+        for _, it in pool:
+            try:
+                subj = norm(it.Subject or "")
+            except Exception:
+                subj = ""
+            ok = bool(nv and nv in subj) or bool(nc and len(nc) >= 4 and nc in subj)
+            if not ok and eff:
+                try:
+                    se = (get_sender(it) or "").lower()
+                except Exception:
+                    se = ""
+                ok = (se == eff.lower())
+            if ok:
+                hits.append(it)
+        if not hits:
+            continue
+        hit = scan_for_rob(hits, max_walk=200,
+                           subject_token=(nv if (shared > 1 or not eff) else None))
+        if hit:
+            old_t = rec.get("report_time")
+            apply_hit(rec, hit)
+            if eff:
+                rec["sender"] = eff
+            fixed += 1
+            print("   [DEEP] %-24s %s -> %s  (LSFO=%s MGO=%s)"
+                  % (vname[:24], (old_t or "MISS")[:16], rec["report_time"][:16],
+                     rec.get("rob_lsfo"), rec.get("rob_mgo")))
+    print("deep scan fixed: %d/%d" % (fixed, len(recs)))
+    return fixed
+
 
 # ---------------------------------------------------------------- 3. AES (CryptoJS 兼容)
 def evp_bytes_to_key(password, salt, key_len=32, iv_len=16):
@@ -504,578 +633,17 @@ def cryptojs_decrypt(enc, passphrase):
 
 
 # ---------------------------------------------------------------- 4. HTML
-HTML_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CUL ROB Bunker Report</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"
-        onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/crypto-js/4.2.0/crypto-js.min.js';document.head.appendChild(s);"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
-        onerror="var s=document.createElement('script');s.src='https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';document.head.appendChild(s);"></script>
-<script>
-/* lazy-load xlsx-js-style for Excel export (same CDN fallback chain as cul_daily_movement.html) */
-var _xlsxStyled = true;
-function _loadXlsx(cb) {
-  if (window.XLSX) { cb(); return; }
-  var s = document.createElement('script');
-  s.src = 'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
-  s.onerror = function() {
-    _xlsxStyled = false;
-    s.src = 'https://cdn.bootcdn.net/ajax/libs/SheetJS/xlsx.full.min.js';
-    s.onerror = function() {
-      s.src = 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
-      s.onerror = function() { alert('Failed to load Excel library. Please check your network.'); };
-      document.head.appendChild(s);
-    };
-    document.head.appendChild(s);
-  };
-  s.onload = cb;
-  document.head.appendChild(s);
-}
-</script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a2332; }
-  /* ---- lock screen ---- */
-  #lock { position: fixed; inset: 0; z-index: 999; background: linear-gradient(135deg,#1F4E79 0%,#2E75B6 100%);
-          display: flex; align-items: center; justify-content: center; }
-  .lock-card { background: #fff; border-radius: 10px; padding: 36px 40px; width: 340px;
-               box-shadow: 0 12px 40px rgba(0,0,0,.3); text-align: center; }
-  .lock-card h2 { font-size: 18px; color: #1F4E79; margin-bottom: 6px; }
-  .lock-card .sub { font-size: 12px; color: #8a99ab; margin-bottom: 22px; }
-  .lock-card input { width: 100%; padding: 10px 14px; border: 1px solid #c9d5e2; border-radius: 6px;
-                     font-size: 14px; outline: none; margin-bottom: 14px; }
-  .lock-card input:focus { border-color: #2E75B6; }
-  .lock-card button { width: 100%; padding: 10px; border: none; border-radius: 6px; background: #1F4E79;
-                      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .lock-card button:hover { background: #2E75B6; }
-  #lockErr { color: #d64545; font-size: 12px; margin-top: 10px; min-height: 16px; }
-  /* ---- main app ---- */
-  .header { background: linear-gradient(135deg,#1F4E79 0%,#2E75B6 100%); color: #fff;
-            padding: 14px 28px 10px; box-shadow: 0 3px 12px rgba(31,78,121,.35);
-            display: flex; justify-content: space-between; align-items: center; }
-  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
-  .header .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
-  .header .updated { font-size: 13px; font-weight: 600; background: rgba(255,255,255,.16);
-                     padding: 6px 14px; border-radius: 5px; border: 1px solid rgba(255,255,255,.35); }
-  .header-right { display: flex; gap: 10px; align-items: center; }
-  .btn-export { background: #F6A623; color: #fff; border: none; border-radius: 5px; padding: 8px 18px;
-                font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
-  .btn-export:hover { background: #d4891a; }
-  .stats { display: flex; gap: 14px; padding: 16px 28px; flex-wrap: wrap; }
-  .stat { background: #fff; border-radius: 8px; padding: 12px 20px; min-width: 130px;
-          box-shadow: 0 2px 8px rgba(31,78,121,.10); }
-  .stat .num { font-size: 22px; font-weight: 700; color: #1F4E79; }
-  .stat .num.miss { color: #d64545; }
-  .stat .lbl { font-size: 12px; color: #5a6e82; margin-top: 2px; }
-  .toolbar { padding: 0 28px 12px; display: flex; gap: 12px; }
-  .toolbar input { padding: 8px 14px; border: 1px solid #c9d5e2; border-radius: 6px; font-size: 13px;
-                   outline: none; width: 300px; }
-  .toolbar input:focus { border-color: #2E75B6; }
-  .toolbar .hint { font-size: 12px; color: #8a99ab; align-self: center; }
-  .tablewrap { padding: 0 28px 30px; overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden;
-          box-shadow: 0 2px 10px rgba(31,78,121,.10); font-size: 13px; }
-  thead th { background: #1F4E79; color: #fff; padding: 10px 10px; font-weight: 600; white-space: nowrap;
-             position: sticky; top: 0; cursor: pointer; user-select: none; }
-  thead th:hover { background: #2E75B6; }
-  tbody td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; white-space: nowrap; }
-  tbody tr:nth-child(even) { background: #f8fafc; }
-  tbody tr:hover { background: #eaf2fa; }
-  td.c { text-align: center; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
-  td.miss { color: #d64545; font-size: 12px; }
-  td.vessel { font-weight: 600; color: #1F4E79; }
-  .footer { padding: 10px 28px 26px; font-size: 11px; color: #8a99ab; }
-  /* ---- trend tab ---- */
-  .btn-trend { background: #2E75B6; color: #fff; border: none; border-radius: 5px; padding: 8px 16px;
-               font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 10px; }
-  .btn-trend:hover { background: #1F4E79; }
-  .trendbar { padding: 14px 28px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
-              background: #fff; box-shadow: 0 2px 8px rgba(31,78,121,.10); margin: 0 0 4px; }
-  .trendbar select, .trendbar input { padding: 7px 10px; border: 1px solid #c9d5e2; border-radius: 6px;
-              font-size: 13px; outline: none; }
-  .trendbar select[multiple] { min-width: 200px; height: 120px; }
-  .trendbar button { padding: 7px 14px; border: none; border-radius: 6px; background: #1F4E79; color: #fff;
-              font-size: 13px; cursor: pointer; }
-  .trendbar button:hover { background: #2E75B6; }
-  .trendbar .lbl { font-size: 12px; color: #5a6e82; }
-  .vwrap { position: relative; display: inline-block; }
-  .vdrop { position: absolute; left: 0; top: 100%; z-index: 50; background: #fff; border: 1px solid #c9d5e2;
-           border-radius: 6px; box-shadow: 0 4px 12px rgba(31,78,121,.18); padding: 6px; margin-top: 2px;
-           max-height: 260px; overflow: auto; min-width: 240px; }
-  .vopt { display: block; padding: 4px 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
-  .vopt:hover { background: #eef4fb; }
-  .vopt input { margin-right: 6px; vertical-align: middle; }
-  .trendgrid { display: grid; grid-template-columns: 1fr; gap: 18px; padding: 16px 28px; }
-  .trendgrid .panel { width: 100%; }
-  #trendChart { width: 100% !important; height: 420px !important; }
-  .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
-  .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 6px; }
-  .panel-note { font-size: 11.5px; line-height: 1.5; color: #5a6e82; background: #f3f7fb; border-left: 3px solid #2E75B6; padding: 7px 10px; border-radius: 4px; margin-bottom: 12px; }
-  .trendtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: left; }
-  .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; }
-  .trendtbl tr:nth-child(even) { background: #f8fafc; }
-  .warn { color: #d64545; font-weight: 700; }
-  .ok { color: #2e8b57; }
-  .bunker { color: #c77d00; font-weight: 700; }
-</style>
-</head>
-<body>
+# 前端模板独立文件: templates/rob.html
+# 抓取逻辑(本文件)与页面(HTML/CSS/JS)彻底解耦 —— 另一台电脑改页面只需动
+# templates/rob.html, 不会和抓邮件的 Python 逻辑互相覆盖; 本脚本只负责读模板并
+# 把加密数据注入 __ENC__ 占位符。
+TEMPLATE_FILE = os.path.join(BASE, "templates", "rob.html")
 
-<div id="lock">
-  <div class="lock-card">
-    <h2>CUL ROB Bunker Report</h2>
-    <div class="sub">This page is encrypted. Enter password to continue.</div>
-    <input id="pwd" type="password" placeholder="Password" autofocus>
-    <button onclick="doUnlock()">Unlock</button>
-    <div id="lockErr"></div>
-  </div>
-</div>
 
-<div id="app" style="display:none">
-  <div class="header">
-    <div>
-      <h1>CUL ROB Bunker Report</h1>
-      <div class="sub">ROB from Masters' Noon / Berth / Sailing Reports · Auto-updated daily at 13:00 / 01:00</div>
-    </div>
-    <div class="header-right">
-      <button class="btn-export" onclick="exportExcel()">Export Excel</button>
-      <button class="btn-trend" onclick="showTrend()">Trend</button>
-      <div class="updated" id="updatedAt"></div>
-    </div>
-  </div>
-  <div class="stats" id="stats"></div>
-  <div class="toolbar">
-    <input id="q" type="text" placeholder="Search vessel / code / lane / PIC..." oninput="renderRows()">
-    <span class="hint">Click column headers to sort</span>
-  </div>
-  <div class="tablewrap">
-    <table id="tbl">
-      <thead><tr>
-        <th data-k="seq">No.</th><th data-k="vessel">Vessel Name</th><th data-k="code">Vessel Code</th>
-        <th data-k="lane">Lane</th><th>Bunker PIC</th><th data-k="pic">PIC</th>
-        <th data-k="rob_lsfo" class="n">ROB LSFO</th><th data-k="rob_hsfo" class="n">ROB HSFO</th>
-        <th data-k="rob_mgo" class="n">ROB MGO</th><th>Order Status</th><th>Order Details</th>
-        <th data-k="remark">REMARK</th><th>Special</th><th>Planned Bunkering Date</th><th data-k="report_time">ROB Report Time</th>
-      </tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-  </div>
-  <div class="footer">
-    Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
-    Missing vessels flagged in REMARK · Time = report received time ·
-    Authorized personnel only - do not share the password
-  </div>
-
-  <div id="trend" style="display:none">
-    <div class="trendbar">
-      <span class="lbl">Vessels:</span>
-      <input id="trendVSearch" placeholder="search…" oninput="trendFilterDrop()" onfocus="trendToggleDrop()" style="width:110px">
-      <span class="vwrap">
-        <button type="button" onclick="trendToggleDrop()" id="trendVBtn">Select ▾</button>
-        <div id="trendVDrop" class="vdrop"></div>
-      </span>
-      <button onclick="trendSelAll()">All</button>
-      <button onclick="trendClearAll()" title="Uncheck all vessels and clear search">Clear</button>
-      <span class="lbl">Oil:</span>
-      <select id="trendOil">
-        <option value="ls">LSFO</option>
-        <option value="hs">HSFO</option>
-        <option value="mg">MGO</option>
-      </select>
-      <span class="lbl">Daily anchor:</span>
-      <select id="trendAnchor" title="Align each vessel to one ROB per day at this hour (consumption = daily diff)">
-        <option value="12" selected>Noon (12:00)</option>
-        <option value="8">Morning (08:00)</option>
-        <option value="18">Evening (18:00)</option>
-        <option value="0">Midnight (00:00)</option>
-      </select>
-      <span class="lbl">From:</span><input type="date" id="trendFrom">
-      <span class="lbl">To:</span><input type="date" id="trendTo">
-      <button onclick="renderTrend()">Apply</button>
-      <button onclick="toggleTrendMode()" id="trendModeBtn">Mode: ROB</button>
-      <button onclick="toggleTrendScale()" id="trendScaleBtn" title="Linear: absolute MT. Log: compresses large values so small vessels' curves stay visible">Scale: Linear</button>
-      <button onclick="showTable()">Back to Table</button>
-    </div>
-    <div class="trendgrid">
-      <div class="panel">
-        <h3 id="trendChartTitle">ROB Trend</h3>
-        <div class="panel-note">Each line = one selected vessel. Y axis = Remaining Onboard (ROB) in metric tonnes (MT) at each report time. Switch to <b>Consumption</b> mode (top-right) to see daily burn as a line. When vessels have very different ROB magnitudes (a big-value vessel flattens the others), click <b>Scale: Log</b> (top-right) — it compresses the Y axis so every curve stays visible. In Consumption mode, bunkering spikes (often 50–200 MT) use a separate <b>right Y axis</b> so they no longer flatten the 0–20 MT/day consumption line on the left. <b>加油 (bunkering) days</b> show as a green ▲ at the top and are <b>excluded from the Avg/day</b> in Vessel Summary. Bunkering is currently inferred from ROB increases; to record explicit bunkering events, add them to <code>rob_data/bunkering.json</code> ({"船名": {"YYYY-MM-DD": 加油量MT}}). Use <b>Oil</b> to pick the product and <b>Daily anchor</b> to align every vessel to the same time-of-day so daily differences are comparable.</div>
-        <canvas id="trendChart"></canvas>
-      </div>
-      <div class="panel">
-        <h3>Vessel Summary (selected range)</h3>
-        <div class="panel-note">Per-vessel stats over the selected date range, derived from same-time daily ROB aligned to the <b>Daily anchor</b> hour. Hover a column header for its meaning.</div>
-        <div id="trendSummary" style="max-height:360px;overflow:auto"></div>
-      </div>
-      <div class="panel">
-        <h3>Data Integrity (missing reports)</h3>
-        <div class="panel-note">Records where the Master's ROB report was <b>not found</b> in the mailbox (flag = 0). Verify these vessels manually — they are excluded from the summary averages.</div>
-        <div id="trendIntegrity" style="max-height:300px;overflow:auto"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-var ENC = "__ENC__";
-var DATA = null, sortKey = "seq", sortAsc = true;
-
-function tryUnlock(pwd) {
-  try {
-    var dec = CryptoJS.AES.decrypt(ENC, pwd).toString(CryptoJS.enc.Utf8);
-    if (!dec) return null;
-    return JSON.parse(dec);
-  } catch (e) { return null; }
-}
-function doUnlock() {
-  var pwd = document.getElementById('pwd').value;
-  var d = tryUnlock(pwd);
-  if (d) {
-    DATA = d; enterApp();
-  } else {
-    document.getElementById('lockErr').textContent = 'Wrong password, please try again';
-  }
-}
-function enterApp() {
-  document.getElementById('lock').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('updatedAt').textContent = 'Updated ' + DATA.updated;
-  var found = DATA.vessels.filter(function(v){return v.found;}).length;
-  document.getElementById('stats').innerHTML =
-    stat(DATA.vessels.length, 'Total Vessels') + stat(found, 'ROB Received') +
-    stat(DATA.vessels.length - found, 'Missing / No Report', true);
-  renderRows();
-  document.querySelectorAll('thead th[data-k]').forEach(function(th) {
-    th.onclick = function() {
-      var k = th.dataset.k;
-      if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = true; }
-      renderRows();
-    };
-  });
-}
-function stat(n, lbl, miss) {
-  return '<div class="stat"><div class="num' + (miss ? ' miss' : '') + '">' + n +
-         '</div><div class="lbl">' + lbl + '</div></div>';
-}
-function fmt(v) {
-  if (v === null || v === undefined) return '';
-  if (typeof v === 'number') return (v % 1 === 0) ? v.toString() : v.toFixed(2);
-  return v;
-}
-function renderRows() {
-  var q = (document.getElementById('q').value || '').toLowerCase();
-  var vs = DATA.vessels.filter(function(v) {
-    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
-  });
-  vs = vs.slice().sort(function(a, b) {
-    var x = a[sortKey], y = b[sortKey];
-    if (x === null || x === undefined) x = '';
-    if (y === null || y === undefined) y = '';
-    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
-    x = String(x); y = String(y);
-    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
-  });
-  var h = '';
-  vs.forEach(function(v) {
-    h += '<tr><td class="c">' + v.seq + '</td><td class="vessel">' + v.vessel + '</td>' +
-         '<td class="c">' + v.code + '</td><td class="c">' + v.lane + '</td><td></td>' +
-         '<td>' + v.pic + '</td>' +
-         '<td class="n">' + fmt(v.rob_lsfo) + '</td><td class="n">' + fmt(v.rob_hsfo) + '</td>' +
-         '<td class="n">' + fmt(v.rob_mgo) + '</td><td></td><td></td>' +
-         '<td class="' + (v.found ? '' : 'miss') + '">' + (v.found ? '' : v.remark) + '</td>' +
-         '<td></td><td></td><td class="c">' + v.report_time + '</td></tr>';
-  });
-  document.getElementById('rows').innerHTML = h;
-}
-var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC', 'PIC',
-                      'ROB LSFO', 'ROB HSFO', 'ROB MGO', 'Order Status', 'Order Details',
-                      'REMARK', 'Special', 'Planned Bunkering Date', 'ROB Report Time'];
-function exportExcel() {
-  if (!window.XLSX) { _loadXlsx(exportExcel); return; }
-  var q = (document.getElementById('q').value || '').toLowerCase();
-  var vs = DATA.vessels.filter(function(v) {
-    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
-  });
-  var rows = [EXPORT_HEADERS.slice()];
-  vs.forEach(function(v) {
-    rows.push([v.seq, v.vessel, v.code, v.lane, '', v.pic,
-               v.rob_lsfo === null ? '' : v.rob_lsfo,
-               v.rob_hsfo === null ? '' : v.rob_hsfo,
-               v.rob_mgo === null ? '' : v.rob_mgo,
-               '', '', v.found ? '' : v.remark, '', '', v.report_time]);
-  });
-  var ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:5},{wch:22},{wch:14},{wch:8},{wch:12},{wch:16},
-                 {wch:10},{wch:10},{wch:10},{wch:13},{wch:14},
-                 {wch:36},{wch:8},{wch:21},{wch:20}];
-  if (_xlsxStyled) {
-    for (var c = 0; c < EXPORT_HEADERS.length; c++) {
-      var cell = ws[XLSX.utils.encode_cell({r: 0, c: c})];
-      if (cell) cell.s = { fill: { fgColor: { rgb: '1F4E79' } },
-                           font: { color: { rgb: 'FFFFFF' }, bold: true },
-                           alignment: { horizontal: 'center' } };
-    }
-  }
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'ROB Report');
-  XLSX.writeFile(wb, 'CUL_ROB_Report_' + DATA.updated.replace(/[^0-9]/g, '').slice(0, 12) + '.xlsx');
-}
-document.getElementById('pwd').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') doUnlock();
-});
-
-/* ================= Trend / Consumption analysis ================= */
-var trendMode = 'rob';
-var trendScale = 'linear';
-var trendChartObj = null;
-function daysBetween(a, b) {
-  var da = new Date(a.replace(/-/g, '/'));
-  var db = new Date(b.replace(/-/g, '/'));
-  return Math.max(0, (db - da) / 86400000);
-}
-function showTrend() {
-  document.querySelector('.stats').style.display = 'none';
-  document.querySelector('.toolbar').style.display = 'none';
-  document.querySelector('.tablewrap').style.display = 'none';
-  document.querySelector('.footer').style.display = 'none';
-  document.getElementById('trend').style.display = 'block';
-  initTrend(); renderTrend();
-}
-function showTable() {
-  document.querySelector('.stats').style.display = '';
-  document.querySelector('.toolbar').style.display = '';
-  document.querySelector('.tablewrap').style.display = '';
-  document.querySelector('.footer').style.display = '';
-  document.getElementById('trend').style.display = 'none';
-}
-function initTrend() {
-  buildVesselDrop();
-  var ts = DATA.history.map(function(r){ return r.t.slice(0, 10); }).sort();
-  var mn = ts[0], mx = ts[ts.length - 1];
-  ['trendFrom','trendTo'].forEach(function(id){ var el = document.getElementById(id); el.min = mn; el.max = mx; });
-  document.getElementById('trendFrom').value = mn;
-  document.getElementById('trendTo').value = mx;
-  trendSelAll();
-}
-var trendVSet = new Set();
-var trendVQ = '';
-function buildVesselDrop() {
-  var vs = {};
-  DATA.history.forEach(function(r){ vs[r.v] = r.l || ''; });
-  var drop = document.getElementById('trendVDrop');
-  drop.innerHTML = '';
-  Object.keys(vs).sort().forEach(function(v){
-    var lab = document.createElement('label');
-    lab.className = 'vopt'; lab.dataset.v = v;
-    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = v; cb.checked = true;
-    cb.onchange = function(){ if (cb.checked) trendVSet.add(v); else trendVSet.delete(v); };
-    lab.appendChild(cb);
-    lab.appendChild(document.createTextNode(' ' + v + (vs[v] ? ' (' + vs[v] + ')' : '')));
-    drop.appendChild(lab);
-  });
-  trendVSet = new Set(Object.keys(vs));
-}
-function trendToggleDrop(){ var d = document.getElementById('trendVDrop'); d.style.display = (d.style.display === 'none' || !d.style.display) ? 'block' : 'none'; }
-function trendFilterDrop() {
-  var q = (document.getElementById('trendVSearch').value || '').toLowerCase();
-  trendVQ = q;
-  document.querySelectorAll('#trendVDrop .vopt').forEach(function(l){
-    l.style.display = l.dataset.v.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
-  });
-  renderTrend();
-}
-function trendSelAll() {
-  document.querySelectorAll('#trendVDrop input[type=checkbox]').forEach(function(cb){ cb.checked = true; trendVSet.add(cb.value); });
-  document.getElementById('trendVDrop').style.display = 'none';
-}
-function trendClearAll() {
-  trendVQ = '';
-  document.getElementById('trendVSearch').value = '';
-  document.querySelectorAll('#trendVDrop input[type=checkbox]').forEach(function(cb){ cb.checked = false; });
-  trendVSet = new Set();
-  document.getElementById('trendVDrop').style.display = 'none';
-  renderTrend();
-}
-document.addEventListener('click', function(e){
-  var drop = document.getElementById('trendVDrop');
-  if (!drop) return;
-  if (drop.style.display === 'block' && !drop.contains(e.target) && e.target.id !== 'trendVBtn' && e.target.id !== 'trendVSearch') {
-    drop.style.display = 'none';
-  }
-});
-function toggleTrendMode(){
-  trendMode = (trendMode === 'rob') ? 'consum' : 'rob';
-  document.getElementById('trendModeBtn').textContent = 'Mode: ' + (trendMode === 'rob' ? 'ROB' : 'Consumption');
-  renderTrend();
-}
-function toggleTrendScale(){
-  trendScale = (trendScale === 'linear') ? 'log' : 'linear';
-  document.getElementById('trendScaleBtn').textContent = 'Scale: ' + (trendScale === 'linear' ? 'Linear' : 'Log');
-  renderTrend();
-}
-function hoursOf(s) { var m = (s || '').match(/(\d{1,2}):(\d{2})/); return m ? (+m[1] + (+m[2]) / 60) : 12; }
-// Align each vessel's history to ONE ROB per calendar day, choosing the row
-// whose time-of-day is closest to the anchor hour (default Noon = the Master's
-// daily Noon report). This gives "same time each day" ROB for clean daily diff.
-function alignDaily(rows, oil, anchor) {
-  var byDay = {};
-  rows.forEach(function(r) {
-    if (r[oil] === null || r[oil] === undefined) return;
-    var day = (r.rt && r.rt.length >= 10) ? r.rt.slice(0, 10) : (r.t || '').slice(0, 10);
-    if (!day) return;
-    var h = hoursOf(r.rt || r.t);
-    var score = Math.abs(h - anchor);
-    if (!byDay[day] || score < byDay[day].score) byDay[day] = { rob: r[oil], score: score };
-  });
-  var days = Object.keys(byDay).sort();
-  return days.map(function(d) { return { day: d, rob: byDay[d].rob }; });
-}
-function renderTrend() {
-  if (!DATA || !DATA.history) return;
-  var oil = document.getElementById('trendOil').value;
-  var anchor = parseFloat(document.getElementById('trendAnchor').value);
-  var from = document.getElementById('trendFrom').value;
-  var to = document.getElementById('trendTo').value;
-  var sel = Array.from(trendVSet);
-  if (trendVQ) sel = sel.filter(function(v){ return v.toLowerCase().indexOf(trendVQ) >= 0; });
-  var recs = DATA.history.filter(function(r){
-    if (sel.length && sel.indexOf(r.v) < 0) return false;
-    if (from && (r.rt || r.t).slice(0, 10) < from) return false;
-    if (to && (r.rt || r.t).slice(0, 10) > to) return false;
-    return true;
-  });
-  var byV = {};
-  recs.forEach(function(r){ (byV[r.v] = byV[r.v] || []).push(r); });
-  Object.keys(byV).forEach(function(v){ byV[v].sort(function(a,b){ return a.t < b.t ? -1 : 1; }); });
-  // global x-axis labels (mode-dependent)
-  var labelSet = {};
-  if (trendMode === 'rob') {
-    recs.forEach(function(r){ if (r[oil] !== null && r[oil] !== undefined) labelSet[r.t] = 1; });
-  } else {
-    Object.keys(byV).forEach(function(v){
-      alignDaily(byV[v], oil, anchor).forEach(function(d){ labelSet[d.day] = 1; });
-    });
-  }
-  var globalLabels = Object.keys(labelSet).sort();
-  var palette = ['#1F4E79','#2E75B6','#d64545','#F6A623','#2e8b57','#8e44ad','#16a085','#e67e22','#2980b9','#c0392b'];
-  var datasets = [], vi = 0, summary = [], bunkerByV = {};
-  Object.keys(byV).forEach(function(v){
-    var arr = byV[v];
-    var color = palette[vi % palette.length]; vi++;
-    var lane = arr.length ? arr[arr.length - 1].l : '';
-    var dataPts = globalLabels.map(function(){ return null; });
-    if (trendMode === 'rob') {
-      var m = {}; arr.forEach(function(r){ m[r.t] = r[oil]; });
-      globalLabels.forEach(function(t, i){ if (t in m) dataPts[i] = (trendScale === 'log' && m[t] <= 0) ? null : m[t]; });
-    } else {
-      var daily = alignDaily(arr, oil, anchor);
-      var cons = {}, bunker = {};
-      for (var i = 1; i < daily.length; i++) {
-        var drop = Math.round((daily[i-1].rob - daily[i].rob) * 100) / 100;
-        if (drop < 0) bunker[daily[i].day] = Math.round(-drop * 100) / 100; // 库存上升 = 加油(bunkering)
-        else cons[daily[i].day] = drop; // 库存下降 = 消耗
-      }
-      // 用户后续提供的明确加油事件覆盖自动识别
-      var eb = (DATA.bunkering && DATA.bunkering[v]) ? DATA.bunkering[v] : null;
-      if (eb) Object.keys(eb).forEach(function(day){ if (day in cons) delete cons[day]; bunker[day] = eb[day]; });
-      bunkerByV[v] = bunker;
-      globalLabels.forEach(function(t, i){ dataPts[i] = (t in cons) ? ((trendScale === 'log' && cons[t] <= 0) ? null : cons[t]) : null; });
-    }
-    datasets.push({ label:v, data:dataPts, borderColor:color, backgroundColor:color, spanGaps:true, tension:0.15, pointRadius:2, borderWidth:2,
-      yAxisID: (trendMode === 'consum' ? 'y' : 'y') });
-    if (trendMode === 'consum' && bunkerByV[v] && Object.keys(bunkerByV[v]).length) {
-      datasets.push({ label:v + ' ⛽', data:globalLabels.map(function(t){ return (t in bunkerByV[v]) ? bunkerByV[v][t] : null; }),
-        showLine:false, pointStyle:'triangle', pointRadius:7, pointHoverRadius:9,
-        pointBackgroundColor:'#1ca05a', pointBorderColor:'#0f7a43', borderWidth:0, _bunker:true, yAxisID:'y1' });
-    }
-    // summary from aligned daily series (same-time ROB)
-    var daily = alignDaily(arr, oil, anchor);
-    if (daily.length >= 1) {
-      var first = daily[0], last = daily[daily.length - 1];
-      var totalCons = first.rob - last.rob, bunkerCnt = 0, minRob = Infinity, sumDaily = 0, burnDays = 0;
-      for (var j = 1; j < daily.length; j++) {
-        var df = daily[j-1].rob - daily[j].rob;
-        if (df < 0) { bunkerCnt++; continue; } // 加油日: 不计入平均消耗
-        sumDaily += df; burnDays++;
-        if (daily[j].rob < minRob) minRob = daily[j].rob;
-      }
-      if (first.rob < minRob) minRob = first.rob;
-      var avgDaily = burnDays > 0 ? sumDaily / burnDays : 0;
-      var daysLeft = (avgDaily > 0) ? (last.rob / avgDaily) : null;
-      summary.push({ v:v, lane:lane, first:first.rob, last:last.rob, total:totalCons, avg:avgDaily, bunker:bunkerCnt, min:minRob, daysLeft:daysLeft });
-    }
-  });
-  if (trendChartObj) trendChartObj.destroy();
-  var ctx = document.getElementById('trendChart').getContext('2d');
-  trendChartObj = new Chart(ctx, {
-    type: 'line',
-    data: { labels: globalLabels, datasets: datasets },
-    options: { responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{ labels:{ filter: function(item, data){ return !data.datasets[item.datasetIndex]._bunker; } } },
-        tooltip:{ mode:'index', intersect:false,
-          callbacks:{ label: function(c){
-            var name = c.dataset.label.replace(' ⛽','');
-            if (c.dataset._bunker) return name + ': 加油 +' + c.parsed.y + ' MT';
-            return name + ': ' + c.parsed.y + ' MT/day';
-          } } }
-      },
-      scales:{ x:{ ticks:{ maxRotation:60, minRotation:30, font:{size:10} } },
-        y:{ type:(trendScale === 'log' ? 'logarithmic' : 'linear'),
-            title:{ display:true, text:(trendMode==='consum'?'Daily consumption (MT/day) — 加油 days shown as green ▲':'ROB (MT)') + (trendScale==='log'?' (log)':'') } },
-        y1:{ type:(trendScale === 'log' ? 'logarithmic' : 'linear'), position:'right',
-            title:{ display:true, text:'加油 Bunker (MT)' }, grid:{ drawOnChartArea:false },
-            display: (trendMode === 'consum') } } }
-  });
-  document.getElementById('trendChartTitle').textContent = (trendMode==='consum'?'Daily Consumption (aligned to ' + anchor + ':00)':'ROB Trend') + ' — ' + oil.toUpperCase();
-  renderSummary(summary);
-  renderIntegrity(recs);
-}
-function renderSummary(s) {
-  if (!s.length) { document.getElementById('trendSummary').innerHTML = '<p>No data.</p>'; return; }
-  var h = '<table class="trendtbl"><tr>'
-    + '<th title="Ship name">Vessel</th>'
-    + '<th title="Trade lane code">Lane</th>'
-    + '<th title="ROB (MT) on the first day of the range, at the anchor hour">First</th>'
-    + '<th title="ROB (MT) on the last day of the range">Last</th>'
-    + '<th title="First − Last = total consumption over the range (MT)">Δ Total</th>'
-    + '<th title="Average daily consumption (MT/day)">Avg/day</th>'
-    + '<th title="Lowest ROB observed in the range (MT)">Min</th>'
-    + '<th title="Number of days ROB increased (bunker / fuel taken on board)">Bunker#</th>'
-    + '<th title="Last ROB ÷ Avg/day = estimated days of fuel remaining (red if < 7)">Days Left</th>'
-    + '</tr>';
-  s.sort(function(a,b){ return (a.daysLeft==null?1e9:a.daysLeft) - (b.daysLeft==null?1e9:b.daysLeft); });
-  s.forEach(function(r){
-    var dl = (r.daysLeft == null) ? '—' : Math.floor(r.daysLeft);
-    var warn = (r.daysLeft != null && r.daysLeft < 7) ? ' class="warn"' : '';
-    h += '<tr><td>' + r.v + '</td><td>' + r.lane + '</td><td>' + fmt(r.first) + '</td><td>' + fmt(r.last) +
-         '</td><td>' + fmt(r.total) + '</td><td>' + fmt(r.avg) + '</td><td>' + fmt(r.min) + '</td><td>' + r.bunker +
-         '</td><td' + warn + '>' + (dl === '—' ? '—' : dl) + '</td></tr>';
-  });
-  h += '</table>';
-  document.getElementById('trendSummary').innerHTML = h;
-}
-function renderIntegrity(recs) {
-  var miss = recs.filter(function(r){ return r.f === 0; });
-  if (!miss.length) { document.getElementById('trendIntegrity').innerHTML = '<p class="ok">All reports present in selected range.</p>'; return; }
-  var h = '<table class="trendtbl"><tr>'
-    + '<th title="Ship name">Vessel</th>'
-    + '<th title="Date the record row was generated by the script">Run Time</th>'
-    + '<th title="Master\'s report timestamp received from the mailbox">Report Time</th>'
-    + '</tr>';
-  miss.slice(0, 200).forEach(function(r){ h += '<tr><td>' + r.v + '</td><td>' + r.t + '</td><td>' + r.rt + '</td></tr>'; });
-  h += '</table>';
-  if (miss.length > 200) h += '<p>... showing 200 of ' + miss.length + '</p>';
-  document.getElementById('trendIntegrity').innerHTML = h;
-}
-</script>
-</body>
-</html>
-"""
+def load_template():
+    if not os.path.exists(TEMPLATE_FILE):
+        raise SystemExit("Missing template: %s (前端模板缺失, 请从仓库恢复)" % TEMPLATE_FILE)
+    return open(TEMPLATE_FILE, encoding="utf-8").read()
 
 
 def _num(x):
@@ -1116,15 +684,18 @@ def build_html(results):
             with open(HISTORY_CSV, encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     # 14 列规范: date,vessel,code,lane,pic,lsfo,hsfo,mgo,ulsfo,bw,fw,refeer,found,report_time
+                    if is_offline(row.get("vessel", "")):
+                        continue          # 已下线船的历史不再展示(CSV 归档行保留, 不删)
+                    oils = (_num(row.get("lsfo")), _num(row.get("hsfo")),
+                            _num(row.get("mgo")), _num(row.get("ulsfo")))
+                    if int(row.get("found") or 0) and all(o is None for o in oils):
+                        continue          # 脏行: 标记为抓到但四个油种全空(写入时被清零)
                     history.append({
                         "t": (row.get("report_time") or row.get("date") or "")[:16],
                         "v": row.get("vessel", ""),
                         "c": row.get("code", ""),
                         "l": row.get("lane", ""),
-                        "ls": _num(row.get("lsfo")),
-                        "hs": _num(row.get("hsfo")),
-                        "mg": _num(row.get("mgo")),
-                        "us": _num(row.get("ulsfo")),
+                        "ls": oils[0], "hs": oils[1], "mg": oils[2], "us": oils[3],
                         "bw": _num(row.get("bw")),
                         "fw": _num(row.get("fw")),
                         "f": int(row.get("found") or 0),
@@ -1151,7 +722,7 @@ def build_html(results):
     back = cryptojs_decrypt(enc, PASSWORD)
     assert json.loads(back)["updated"] == payload["updated"]
     assert "history" in json.loads(back)
-    html = HTML_TEMPLATE.replace("__ENC__", enc)
+    html = load_template().replace("__ENC__", enc)
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
     print("HTML -> %s (%d vessels, history=%d rows, encrypted OK, %d bytes)"
@@ -1561,6 +1132,13 @@ def main():
                     if s and norm(rec["vessel"]) not in sender_map:
                         sender_map[norm(rec["vessel"])] = s
                         print("   + learned sender for %s: %s" % (rec["vessel"], s))
+            # 兜底: 常规检索后仍偏旧/没抓到的船, 再做一次全文件夹深度扫描
+            stale = [r for r in targets if is_stale(r)]
+            if stale:
+                print("stale vessels (older than %dh or MISS): %d -> %s"
+                      % (STALE_HOURS, len(stale),
+                         ", ".join(r["vessel"] for r in stale)))
+                deep_refresh_stale(inbox, folder_list, stale, sender_map)
             save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
 
