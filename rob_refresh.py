@@ -398,7 +398,8 @@ def apply_hit(rec, hit):
     return True
 
 
-def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder_list=None):
+def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder_list=None,
+                   fleet_norms=None):
     """多来源合并取全局最新: ①船名/代码文件夹树 ②sender 索引 ③收件箱 sender Restrict
     ④主题 Restrict(全文件夹)。所有候选按 EntryID 去重、ReceivedTime 全局倒序后,
     从最新一封往下找第一份能解析出 ROB 的报告 —— 无论报告落在哪个文件夹、由哪个发件人
@@ -406,6 +407,7 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
     (旧实现是"哪个分支先命中就用谁", 文件夹里的旧报告会压过 sender 找到的新报告。)"""
     vname = rec["vessel"]
     nv = norm(vname)
+    nc = norm(rec.get("code") or "")
     sender_map = sender_map or {}
     # 有效发件人: 运行时历史 优先, 否则用固化映射(换电脑也能用)
     eff_sender = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
@@ -431,7 +433,9 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
                         subj0 = it.Subject or ""
                     except Exception:
                         subj0 = ""
-                    if token not in norm(subj0):
+                    ns = norm(subj0)
+                    toks = token if isinstance(token, (list, tuple, set)) else (token,)
+                    if not any(t and t in ns for t in toks):
                         continue
                 old = cands.get(eid)
                 if old is None or rt > old[0]:
@@ -464,9 +468,23 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
                     pass
         except Exception:
             pass
-        # 共用/前缀文件夹或共用发件人时, 主题须含船名防误抓
-        need_subj = (not exact) and (eff_sender is None or shared > 1)
-        token1 = nv if need_subj else None
+        # 主题过滤判定 —— 三种情况都强制按主题认船, 否则会串船:
+        #   a) 前缀匹配到的共用文件夹(不精确命中)
+        #   b) 共用发件人(一个邮箱发多艘船)
+        #   c) **共用文件夹**: 文件夹名还是别的船名/代码的前缀。
+        #      例: MEDKON 文件夹同时放 MEDKON DON 与 MEDKON LIA 的报告, 两者都
+        #      "精确"命中该文件夹, 谁也不过滤主题 -> 两船都取到文件夹里最新那份
+        #      (2026-08-30 实测两船显示完全相同的 276.4/103.3, 实为 DON 的数据)。
+        try:
+            fnm = norm(folder.Name)
+        except Exception:
+            fnm = ""
+        shared_folder = bool(fnm) and len(fnm) >= 5 and any(
+            o and o != fnm and o != nv and o.startswith(fnm)
+            for o in (fleet_norms or ()))
+        need_subj = shared_folder or (not exact) or shared > 1
+        tokens = [t for t in (nv, nc if len(nc) >= 4 else "") if t]
+        token1 = tokens if need_subj else None
         for fo in scan_folders:
             try:
                 fo.Items.Sort("[ReceivedTime]", True)
@@ -1110,6 +1128,13 @@ def main():
             # 全量文件夹列表(含收件箱顶层船文件夹 + 嵌套 + 同名不去重), 供 sender 索引和主题兜底
             folder_list = build_folder_list(inbox)
             sender_index = build_sender_index([inbox] + folder_list, sender_map)
+            # 全船队 norm(船名 + 船代码): 用于识别"共用文件夹"(MEDKON 里同时有
+            # MEDKON DON / MEDKON LIA), 命中这类文件夹时必须按主题认船防串数据
+            fleet_norms = set()
+            for v in merged:
+                fleet_norms.add(norm(v["vessel"]))
+                if v.get("code"):
+                    fleet_norms.add(norm(v["code"]))
             print("Outlook store OK, Vessel folders: %d, all folders: %d, "
                   "sender map: %d, sender index: %d"
                   % (len(cache), len(folder_list), len(sender_map), len(sender_index)))
@@ -1119,7 +1144,7 @@ def main():
                 targets = [r for r in merged if args.vessel.upper() in r["vessel"].upper()]
             for i, rec in enumerate(targets, 1):
                 got = refresh_vessel(inbox, cache, rec, sender_map,
-                                     sender_index, folder_list)
+                                     sender_index, folder_list, fleet_norms)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
