@@ -834,13 +834,23 @@ function _loadXlsx(cb){
   .filter-btn:hover { background: #EBF3FB; border-color: #2E75B6; }
   .filter-btn.has-selection { background: #EBF3FB; border-color: #2E75B6; color: #0d3b5e; }
   .decom-toggle {
-    display: inline-flex; align-items: center; gap: 5px; height: 34px;
-    padding: 0 10px; border: 1px solid #c9d5e2; border-radius: 5px;
-    background: #fff; color: #1F4E79; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 34px; padding: 0 10px;
+    border: 1px solid #c9d5e2; border-radius: 5px;
+    background: #fff; color: #8a9bb0; font-size: 12px; font-weight: 600;
     cursor: pointer; white-space: nowrap; user-select: none;
+    transition: .15s;
   }
-  .decom-toggle:hover { background: #EBF3FB; border-color: #2E75B6; }
-  .decom-toggle input { cursor: pointer; margin: 0; }
+  .decom-toggle:hover { background: #F5F8FB; }
+  .decom-toggle .decom-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #e4ecf5; color: #fff; font-size: 9px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: .15s;
+  }
+  .decom-toggle.on { color: #1F4E79; border-color: #2E75B6; background: #EBF3FB; }
+  .decom-toggle.on .decom-dot { background: #2E75B6; }
+  .decom-toggle input { display: none; }
   .filter-dropdown { min-width: 200px; }
   .filter-dropdown .filter-actions {
     display: flex; gap: 0; border-bottom: 1px solid #e4ecf5; padding: 4px 8px;
@@ -1054,8 +1064,10 @@ function _loadXlsx(cb){
       <button class="col-toggle-btn" id="colToggleBtn1" onclick="toggleColDropdown('1')">&#9881; Columns</button>
       <div class="col-dropdown" id="colDropdown1"></div>
     </div>
-    <label class="decom-toggle" title="Show decommissioned vessels (已下线)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
+      <span class="decom-dot">+</span>
+      <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal">&#8212; vessels</span>
     <span class="delay-chip" id="statDelay">&#8212; delayed</span>
@@ -1098,8 +1110,10 @@ function _loadXlsx(cb){
       <div class="col-dropdown" id="colDropdown2"></div>
     </div>
     <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
-    <label class="decom-toggle" title="Show decommissioned vessels (已下线)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
+      <span class="decom-dot">+</span>
+      <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
   </div>
@@ -1735,7 +1749,14 @@ function onDecomToggle(cb){
   let seen={}, gi=0;
   fullData.forEach(function(r){ if(!(r.vessel in seen)){ seen[r.vessel]=gi%2; gi++; } });
   vesselGroupMap = seen;
+  // 同步两个工具栏的勾选框 + 视觉指示
   var boxes = document.querySelectorAll('.decom-cb');
+  var onFlag = SHOW_DECOM ? 'on' : '';
+  var dotText = SHOW_DECOM ? '✓' : '+';
+  document.querySelectorAll('.decom-toggle').forEach(function(lbl){
+    lbl.classList.toggle('on', SHOW_DECOM);
+    var d=lbl.querySelector('.decom-dot'); if(d) d.textContent=dotText;
+  });
   boxes.forEach(function(b){ if(b!==cb) b.checked = SHOW_DECOM; });
   ['route','vessel','pic'].forEach(function(t){
     updateFilterButton(t,'1'); updateFilterButton(t,'2');
@@ -4304,6 +4325,12 @@ window.addEventListener('resize', updateCtrlH);
 
 function init(){
   loadSnapshots(); saveSnapshot(TODAY_DATA);
+  // 同步 "Show 已下线" 勾选框的初始视觉与状态
+  document.querySelectorAll('.decom-cb').forEach(function(b){ b.checked = SHOW_DECOM; });
+  document.querySelectorAll('.decom-toggle').forEach(function(lbl){
+    lbl.classList.toggle('on', SHOW_DECOM);
+    var d=lbl.querySelector('.decom-dot'); if(d) d.textContent = SHOW_DECOM ? '✓' : '+';
+  });
   var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){return !isDecommissioned(r.vessel);});
   var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){return !isDecommissioned(r.vessel);});
   document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+_hdrV.length+' vessels  |  '+_hdrF.length+' schedule rows';
