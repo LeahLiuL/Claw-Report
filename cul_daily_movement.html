@@ -1014,10 +1014,7 @@ function onDecomToggle(cb){
   SHOW_DECOM = !!(cb && cb.checked);
   try{ sessionStorage.setItem('showDecom', SHOW_DECOM?'1':'0'); }catch(e){}
   applyDecomFilter();
-  // 重建 vessel 分组底色（Full Schedule 交替色带）
-  let seen={}, gi=0;
-  fullData.forEach(function(r){ if(!(r.vessel in seen)){ seen[r.vessel]=gi%2; gi++; } });
-  vesselGroupMap = seen;
+  refreshFullGrouping();   // 重建 lane 定位 + vessel 分组底色（Full Schedule 交替色带）
   // 同步两个工具栏的勾选框 + 视觉指示
   var boxes = document.querySelectorAll('.decom-cb');
   var onFlag = SHOW_DECOM ? 'on' : '';
@@ -1162,15 +1159,52 @@ function sortSummary(col){
    ═══════════════════════════════════════════════════════════════════ */
 let fullData=[], fullSortCol=-1, fullSortDir=1;
 let vesselGroupMap = {};
+let vesselLaneRank = {};   // vessel -> 该船所有航线中最靠前的 lane 序号（基于全量 fullData，不受筛选影响）
+
+// 预计算每艘船的"主 lane"：取该船所有记录里 lane 顺序最靠前的那条。
+// 一艘船跨多条航线时用它定位 —— 这样 Lane 大顺序（用户默认序或 Lane Order 里的自定义序）不变，
+// 同时同船的所有航次聚成一簇，簇内按 ETA 升序（最早在上）。
+function buildVesselLaneRank(){
+  vesselLaneRank = {};
+  fullData.forEach(function(r){
+    var k = routeOrderKey(r.route);
+    if(!(r.vessel in vesselLaneRank) || k < vesselLaneRank[r.vessel]) vesselLaneRank[r.vessel] = k;
+  });
+}
+
+function laneRankOf(r){
+  return (r.vessel in vesselLaneRank) ? vesselLaneRank[r.vessel] : routeOrderKey(r.route);
+}
+
+// Full Schedule 默认排序：Lane 顺序 → 船名 → ETA 升序 → Route
+function defaultFullSort(data){
+  data.sort(function(a,b){
+    var la = laneRankOf(a), lb = laneRankOf(b);
+    if(la!==lb) return la-lb;                                  // 1. Lane（用户默认/自定义序）
+    var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
+    if(v!==0) return v;
+    var ea = a.etbRaw||a.etaRaw||'', eb = b.etbRaw||b.etaRaw||'';
+    if(ea!==eb) return ea.localeCompare(eb);                   // 3. 同船 → ETA 升序
+    return routeOrderKey(a.route)-routeOrderKey(b.route);      // 4. 兜底 → Route
+  });
+  return data;
+}
+
+/* 重建 Lane 定位 + vessel 分组底色。fullData 变化（已下线筛选）或 Lane 顺序变化后调用 */
+function refreshFullGrouping(){
+  buildVesselLaneRank();
+  // 按默认排序后的顺序分配交替底色，保证视觉上相邻船连续换色
+  var seen = {}, gi = 0;
+  defaultFullSort(fullData.slice()).forEach(function(r){
+    if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
+  });
+  vesselGroupMap = seen;
+}
 
 function initFullSchedule(){
   applyDecomFilter();
   loadLaneOrder();
-  let seen = {}, gi = 0;
-  fullData.forEach(function(r){
-    if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
-  });
-  vesselGroupMap = seen;
+  refreshFullGrouping();
 
   // Set default ETA date range
   document.getElementById('etaFrom2').value = TODAY_DATA.defaultEtaFrom || '';
@@ -1222,18 +1256,7 @@ function getFilteredFull(){
       }
     }
   } else {
-    // 默认排序：船名（让同船的所有航线聚簇）+ ETA（让同船的多次航次按时间排成一条）
-    // 解决截图问题：ZHI YING HE SHUN 跨 NF2/SGX 两线时按船分组、按 ETA 升序，而不是 Route 字母序
-    data.sort(function(a,b){
-      var v = (a.vessel||'').localeCompare(b.vessel||'');
-      if(v!==0) return v;
-      // 同船 → ETA 升序（最早的在最上）
-      var ea = a.etbRaw||a.etaRaw||'';
-      var eb = b.etbRaw||b.etaRaw||'';
-      if(ea!==eb) return ea.localeCompare(eb);
-      // ETA 相同 → Route
-      return routeOrderKey(a.route)-routeOrderKey(b.route);
-    });
+    defaultFullSort(data);
   }
   return data;
 }
@@ -1666,6 +1689,7 @@ function moveLane(idx, dir){
   var tmp = list[idx]; list[idx] = list[ni]; list[ni] = tmp;
   LANE_ORDER_OVERRIDE = list;
   saveLaneOrder();
+  refreshFullGrouping();          // lane 序变了 → 重算每艘船的主 lane + 交替底色
   renderLaneOrderList();          // re-render modal with new order
   renderFullSchedule();           // live-update the table below
 }
@@ -1673,6 +1697,7 @@ function moveLane(idx, dir){
 function resetLaneOrder(){
   LANE_ORDER_OVERRIDE = null;
   saveLaneOrder();
+  refreshFullGrouping();
   renderLaneOrderList();
   renderFullSchedule();
 }
