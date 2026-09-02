@@ -40,3 +40,21 @@
 - PPT 忌用红色
 - 文件路径使用正斜杠 `/`
 - 开发环境：Node.js v22.12.0，Python 3.13.12
+
+---
+
+## Bapfile 站点每日自动化
+
+### 数据管线
+1. SFTP 下载 `Vessel Bapfile.xlsx`（`sftp_fetch.py`，端口 6622，需 VPN）
+2. 增量叠加进 `bapfile.db`（`process_all.py --append`，17 列整行去重）
+3. 生成 gzip 静态分片（`gen_static.py`：按箱号前缀、航线、月份）
+4. 部署到 `LeahLiuL/cul-bapfile-site` main 分支（`deploy_site.py`）
+5. 公开地址：https://leahliul.github.io/cul-bapfile-site/
+
+### 故障应急
+- 若 SFTP 文件为截断 ZIP（缺中央目录），使用 `repair_bapfile.py` 重建有效 xlsx：
+  ```bash
+  python repair_bapfile.py <corrupt.xlsx> <repaired.xlsx>
+  ```
+- 该脚本解析本地文件头、解压 deflate 流、验证 CRC，并在最后一个完整 `</row>` 处安全截断截断的 sheet XML。
