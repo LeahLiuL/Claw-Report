@@ -1530,10 +1530,11 @@ var EXPORT_TABLES = [
     {id:'speedTable', label:'Vessel Speed', sheet:'Vessel Speed'},
   ]},
   {group:'Maintenance', items:[
-    {id:'maintPortTable', label:'Maintenance by Port (all-call detail)', sheet:'Maint by Port'},
+    {id:'maintPortTable', label:'Maintenance by Port (aggregated)', sheet:'Maint by Port'},
     {id:'maintPlogNoTable', label:'Port Log Unmaintained Detail', sheet:'Maint PLog No'},
     {id:'maintVsNoTable', label:'Vessel Schedule Unmaintained Detail', sheet:'Maint VS No'},
     {id:'maintMonthTable', label:'Maintenance Monthly Trend', sheet:'Maint Monthly'},
+    {id:'maintVvdTable', label:'VVD Call Detail (every call behind the filtered ports)', sheet:'Maint VVD', rich:'maintvvd'},
   ]},
 ];
 
@@ -1659,6 +1660,26 @@ function exportPortWaitVvdExcel(wb){
   var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
   var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
 
+  // Pre-build ONE style set per band (even/odd) and reuse it for every row —
+  // per-row allocation would otherwise create tens of thousands of style
+  // objects and slow the xlsx serialiser right down.
+  function rowStyles(fc){
+    return {
+      txt   :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
+      ctr   :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')},
+      wait  :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center'),numFmt:'0.0'},
+      stOk  :{font:{name:'Arial',sz:9,bold:true,color:{rgb:'1E7145'}},fill:F(fc),border:B,alignment:A('center','center')},
+      stOver:{font:{name:'Arial',sz:9,bold:true,color:{rgb:'C00000'}},fill:F(fc),border:B,alignment:A('center','center')},
+      incYes:{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
+      incNo :{font:{name:'Arial',sz:9},fill:F('FFF2E8'),border:B,alignment:A('left','center')},
+      vvdOk :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
+      // Amber = vessel Code missing/non-standard in Master Data, so the VVD fell
+      // back to the full name. Never silently invent an abbreviation.
+      vvdGap:{font:{name:'Arial',sz:9,bold:true,color:{rgb:'9C5700'}},fill:F('FFF2CC'),border:B,alignment:A('left','center')}
+    };
+  }
+  var SE=rowStyles('EBF3FB'), SO=rowStyles('FFFFFF');
+
   var sheetData=[];
   var tr=[]; for(var c=0;c<numCols;c++) tr[c]={v:(c===0?titleText:''),s:tS};
   sheetData.push(tr);
@@ -1696,36 +1717,25 @@ function exportPortWaitVvdExcel(wb){
   });
 
   rows.forEach(function(r,i){
-    var fc=(i%2===0)?'EBF3FB':'FFFFFF';
-    var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
-    var cS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')};
-    var wS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center'),numFmt:'0.0'};
-    var stS={font:{name:'Arial',sz:9,bold:true,color:{rgb:r.status==='Over'?'C00000':'1E7145'}},
-             fill:F(fc),border:B,alignment:A('center','center')};
-    var incS={font:{name:'Arial',sz:9},fill:F(r.included==='Yes'?fc:'FFF2E8'),border:B,alignment:A('left','center')};
-    // Amber = vessel Code missing/non-standard in Master Data, so the VVD fell
-    // back to the full name. Never silently invent an abbreviation.
-    var vvdStd=isStdVesselCode(r.code);
-    var vvdS={font:{name:'Arial',sz:9,bold:!vvdStd,color:{rgb:vvdStd?'000000':'9C5700'}},
-              fill:F(vvdStd?fc:'FFF2CC'),border:B,alignment:A('left','center')};
+    var S=(i%2===0)?SE:SO;
     var catLabel='';
     (REMARK_CATEGORIES||[]).forEach(function(c){ if(c.key===r.cat && !catLabel) catLabel=c.label; });
     sheetData.push([
-      {v:r.port,   s:cS},
-      {v:r.region, s:cS},
-      {v:r.vessel, s:nS},
-      {v:r.voy,    s:cS},
+      {v:r.port,   s:S.ctr},
+      {v:r.region, s:S.ctr},
+      {v:r.vessel, s:S.txt},
+      {v:r.voy,    s:S.ctr},
       // VVD = vessel CODE + voyage, no separator: CUL HAIPHONG 2630W -> CUHP2630W.
       // Falls back to the full vessel name when code is empty (rare, e.g. MEDKON DON).
-      {v:(r.code||r.vessel||'')+(r.voy||''), s:vvdS},
-      {v:r.eta,    s:cS},
-      {v:r.etb,    s:cS},
-      {v:r.etd,    s:cS},
-      {v:Number(r.wait.toFixed(1)), s:wS},
-      {v:r.status, s:stS},
-      {v:r.included, s:incS},
-      {v:(catLabel||r.cat||''), s:cS},
-      {v:(r.remark||''), s:nS}
+      {v:(r.code||r.vessel||'')+(r.voy||''), s:(isStdVesselCode(r.code)?S.vvdOk:S.vvdGap)},
+      {v:r.eta,    s:S.ctr},
+      {v:r.etb,    s:S.ctr},
+      {v:r.etd,    s:S.ctr},
+      {v:Number(r.wait.toFixed(1)), s:S.wait},
+      {v:r.status, s:(r.status==='Over'?S.stOver:S.stOk)},
+      {v:r.included, s:(r.included==='Yes'?S.incYes:S.incNo)},
+      {v:(catLabel||r.cat||''), s:S.ctr},
+      {v:(r.remark||''), s:S.txt}
     ]);
   });
 
@@ -1739,6 +1749,120 @@ function exportPortWaitVvdExcel(wb){
   ws['!freeze']={xSplit:0,ySplit:2};
   XLSX.utils.book_append_sheet(wb,ws,'Port Wait VVD');
   return true;
+}
+
+// ── Maintenance VVD detail sheet ────────────────────────────────────
+// Mirrors the Port Wait VVD sheet: one row per maintenance call behind the
+// CURRENT Maintenance filters, so the aggregated "Maint by Port" rows can be
+// drilled into. Needed because _tabSheetFromDom() skips `detail-wrap` rows —
+// i.e. the on-page "All calls (N)" sub-tables were never exported before.
+//
+// NOTE (differs from Port Wait!): MAINT_RECORDS.vessel is ALREADY the 4-char
+// vessel code (100% of 24.9k rows), and voyage + dir are SEPARATE columns, so
+//   VVD = vessel + voyage + dir      e.g. BFCP + 2526 + E -> BFCP2526E
+// No code lookup table and no amber gap flag is needed here.
+function exportMaintVvdExcel(wb){
+  var recs = [];
+  try{ recs = maintFiltered() || []; }catch(e){ recs = MAINT_RECORDS || []; }
+  if(!recs.length) return false;
+
+  var headers=['Port','Region','Service','Vessel','Voyage','Dir','VVD','Operator','ETD',
+               'Port Log','Vessel Sched','Agent / OP'];
+  var numCols=headers.length;
+
+  var nPlog=0, nVs=0, ports={};
+  recs.forEach(function(r){
+    if(r.plog==='Y') nPlog++;
+    if(r.vsched===1) nVs++;
+    if(r.port) ports[r.port]=true;
+  });
+  var titleText='CUL DAILY MOVEMENT — Maintenance VVD Call Detail  —  '+Object.keys(ports).length+
+                ' ports · '+recs.length+' calls · Port Log '+maintPct(nPlog,recs.length).toFixed(1)+'% maintained'+
+                (VSCHED_AVAILABLE ? (' · Vessel Sched '+maintPct(nVs,recs.length).toFixed(1)+'% maintained') : '')+
+                '  —  As of '+TODAY_DATA.date;
+
+  function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
+  var B=thinBorder();
+  function F(rgb){return{patternType:'solid',fgColor:{rgb:rgb}};}
+  function A(h,v,wrap){var o={horizontal:h,vertical:v};if(wrap)o.wrapText=true;return o;}
+  var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
+  var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
+
+  // Pre-build ONE style set per band (even/odd) and reuse it for every row.
+  // Allocating ~8 objects per row would create 200k+ style objects at the
+  // 24.9k-row "operator = ALL" case and make the xlsx serialiser crawl.
+  function rowStyles(fc){
+    return {
+      txt  :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
+      ctr  :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')},
+      // Unmaintained is the actionable state — red bold on a pale red band.
+      plogY:{font:{name:'Arial',sz:9,color:{rgb:'1E7145'}},fill:F(fc),border:B,alignment:A('center','center')},
+      plogN:{font:{name:'Arial',sz:9,bold:true,color:{rgb:'C00000'}},fill:F('FDF2F2'),border:B,alignment:A('center','center')},
+      vsOk :{font:{name:'Arial',sz:9,color:{rgb:'1E7145'}},fill:F(fc),border:B,alignment:A('center','center')},
+      vsNo :{font:{name:'Arial',sz:9,bold:true,color:{rgb:'C00000'}},fill:F('FDF2F2'),border:B,alignment:A('center','center')},
+      vsNA :{font:{name:'Arial',sz:9,color:{rgb:'8A9BB0'}},fill:F(fc),border:B,alignment:A('center','center')},
+      agent:{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','top',true)}
+    };
+  }
+  var SE=rowStyles('EBF3FB'), SO=rowStyles('FFFFFF');
+
+  var sheetData=[];
+  var tr=[]; for(var c=0;c<numCols;c++) tr[c]={v:(c===0?titleText:''),s:tS};
+  sheetData.push(tr);
+  sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
+
+  // Deterministic order: port asc → ETD asc → vessel → voyage
+  var rows=recs.slice().sort(function(a,b){
+    return String(a.port||'').localeCompare(String(b.port||''))
+        || String(a.etd||'').localeCompare(String(b.etd||''))
+        || String(a.vessel||'').localeCompare(String(b.vessel||''))
+        || String(a.voyage||'').localeCompare(String(b.voyage||''));
+  });
+
+  rows.forEach(function(r,i){
+    var S=(i%2===0)?SE:SO;
+    var vsOk=(r.vsched===1);
+    sheetData.push([
+      {v:r.port||'',                        s:S.ctr},
+      {v:BOA_PORT_REGION[r.port]||'Unknown',s:S.ctr},
+      {v:r.service||'',                     s:S.ctr},
+      {v:r.vessel||'',                      s:S.ctr},
+      {v:r.voyage||'',                      s:S.ctr},
+      {v:r.dir||'',                         s:S.ctr},
+      {v:(r.vessel||'')+(r.voyage||'')+(r.dir||''), s:S.txt},
+      {v:r.operator||'',                    s:S.ctr},
+      {v:r.etd||'',                         s:S.ctr},
+      {v:(r.plog==='Y'?'Y':'N'),            s:(r.plog==='Y'?S.plogY:S.plogN)},
+      {v:(!VSCHED_AVAILABLE?'—':(vsOk?'Maintain timely':'Not maintained')),
+       s:(!VSCHED_AVAILABLE?S.vsNA:(vsOk?S.vsOk:S.vsNo))},
+      {v:maintAgentText(r.port),            s:S.agent}
+    ]);
+  });
+
+  var totalRows=sheetData.length;
+  var ws=XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
+  ws['!cols']=[{wch:10},{wch:15},{wch:10},{wch:10},{wch:9},{wch:6},{wch:13},{wch:10},{wch:13},
+               {wch:9},{wch:16},{wch:46}];
+  ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
+  ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
+  ws['!freeze']={xSplit:0,ySplit:2};
+  XLSX.utils.book_append_sheet(wb,ws,'Maint VVD');
+  return true;
+}
+
+// Flat text for the Maintenance "Agent / OP" export column: one contact per
+// line, each line "Name | email | Tel: … | Mob: …".
+function maintAgentText(port){
+  var list=(typeof AGENT_BY_PORT!=='undefined' && AGENT_BY_PORT[port]) || [];
+  if(!list.length) return '';
+  return list.map(function(c){
+    var bits=[c.name||''];
+    if(c.email)  bits.push(c.email);
+    if(c.tel)    bits.push('Tel: '+c.tel);
+    if(c.mobile) bits.push('Mob: '+c.mobile);
+    return bits.join(' | ');
+  }).join('\n');
 }
 
 function exportSelectedTables(){
@@ -1755,6 +1879,7 @@ function exportSelectedTables(){
       if(it.rich==='summary'){ exportSummaryExcel(wb); count++; }
       else if(it.rich==='full'){ exportFullScheduleExcel(wb); count++; }
       else if(it.rich==='vvd'){ if(exportPortWaitVvdExcel(wb)) count++; }
+      else if(it.rich==='maintvvd'){ if(exportMaintVvdExcel(wb)) count++; }
       else { if(_tabSheetFromDom(it.id, 'CUL DAILY MOVEMENT — '+it.label+'  —  As of '+todayStr, it.sheet, wb, it.skipFirst)) count++; }
     });
     if(count===0){ alert('请至少勾选一张表再导出。'); return; }
