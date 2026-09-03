@@ -591,17 +591,54 @@ def _maint_is_broken(maint):
     vsched_ok = sum(1 for r in recs if r.get('vsched') == 1)
     return vsched_ok == 0
 
-def _maint_shrunk(maint, ref, ratio=0.6):
-    """源数据相对 last-good 大幅缩水（默认 <60% 行数）→ 判定为上游导出范围变窄/
-    坏导出，不能发布。
+def _maint_shrunk(maint, ref, ratio=0.8):
+    """源数据相对 last-good 明显缩水（默认 <80% 行数）→ 上游导出范围变窄/坏导出。
 
     2026-09-03 实例：C:\\CULINES\\Claw Report\\Vessel Schedule Maintain Over Time.xlsx
-    被上游刷新后从 24,917 行（2025-01-01 起）掉到 9,283 行（只剩 2026 年），
-    vsched 列仍然有值所以 _maint_is_broken() 抓不到 —— 发布后 Maintenance 板块
-    会「大面积消失」。行数缩水必须单独挡一道。"""
+    被上游刷新后从 24,917 行（2025-01-01 ~ 2026-08）掉到 9,283 行（只剩 2026 年），
+    vsched 列仍然有值所以 _maint_is_broken() 抓不到 —— 直接发布会让 2025 年历史
+    整个消失。缩水时不硬拒绝（那会让看板永久冻结在旧数据），而是走 _maint_merge()
+    做并集：老记录保住、新记录补进来。"""
     n_new = len(maint.get('records') or [])
     n_ref = len((ref or {}).get('records') or [])
     return n_ref >= 200 and n_new < n_ref * ratio
+
+def _maint_key(r):
+    """一条维护记录的唯一键：同一艘船同一个航次同一个港口同一天只应有一条。"""
+    return (str(r.get('vessel') or '').strip(), str(r.get('voyage') or '').strip(),
+            str(r.get('dir') or '').strip(),     str(r.get('port') or '').strip(),
+            str(r.get('etd') or '').strip())
+
+def _maint_merge(old, new):
+    """并集合并 last-good(old) 与新源(new)，键 = _maint_key()。
+      · old 独有的键  → 保留（2025 历史不会因上游导出范围缩到 2026 而消失）
+      · 两边都有      → 采用 new（上游是更晚的导出，维护状态以新为准）
+      · new 独有的键  → 追加（新增航次能进来，看板不会被冻结）
+    返回合并后的 dict，并带上 _merged 统计供日志核对。"""
+    merged, order = {}, []
+    for r in (old.get('records') or []):
+        k = _maint_key(r)
+        merged[k] = r
+        order.append(k)
+    n_add = n_upd = 0
+    for r in (new.get('records') or []):
+        k = _maint_key(r)
+        if k in merged:
+            n_upd += 1
+        else:
+            n_add += 1
+            order.append(k)
+        merged[k] = r
+    recs = [merged[k] for k in order]
+    out = dict(new)
+    out['records'] = recs
+    # date / source 要按合并后的记录重算，否则前端显示的范围会跟数据对不上
+    etds = sorted({str(r.get('etd') or '') for r in recs if r.get('etd')})
+    out['date'] = (etds[0] + ' ~ ' + etds[-1]) if etds else ''
+    out['source'] = (new.get('source') or '') + '  ·  MERGED with last-good'
+    out['_merged'] = {'kept': len(order) - n_add - n_upd, 'updated': n_upd,
+                      'added': n_add, 'total': len(recs)}
+    return out
 
 def _extract_maint_from_html(html_path):
     """从已生成的 HTML 抽取 const MAINT_DATA = {...}; 返回 dict 或 None。"""
@@ -960,12 +997,18 @@ def resolve_maint(out_path):
     if not _maint_is_broken(maint):
         ref, src = _last_good_maint(out_path)
         if ref and _maint_shrunk(maint, ref):
+            n_ref = len(ref.get('records') or [])
+            n_new = len(maint.get('records') or [])
+            merged = _maint_merge(ref, maint)
+            m = merged['_merged']
             print('  [MAINT] WARNING: source shrank %d -> %d rows (%.0f%% of last-good) — '
-                  'keeping last-good data from %s to avoid shipping a gutted dashboard.'
-                  % (len(ref.get('records') or []), len(maint.get('records') or []),
-                     100.0 * len(maint.get('records') or []) / max(1, len(ref.get('records') or [])),
-                     src), file=sys.stderr, flush=True)
-            return ref
+                  'MERGING with last-good from %s: kept %d historical, updated %d, added %d, '
+                  'total %d rows (ETD %s)'
+                  % (n_ref, n_new, 100.0 * n_new / max(1, n_ref), src,
+                     m['kept'], m['updated'], m['added'], m['total'], merged['date']),
+                  file=sys.stderr, flush=True)
+            _save_maint_snapshot(merged)
+            return merged
         _save_maint_snapshot(maint)   # 源正常 → 刷新快照
         return maint
     print('  [MAINT] WARNING: source looks broken (records present but vsched all 0). '
