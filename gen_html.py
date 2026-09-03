@@ -591,6 +591,18 @@ def _maint_is_broken(maint):
     vsched_ok = sum(1 for r in recs if r.get('vsched') == 1)
     return vsched_ok == 0
 
+def _maint_shrunk(maint, ref, ratio=0.6):
+    """源数据相对 last-good 大幅缩水（默认 <60% 行数）→ 判定为上游导出范围变窄/
+    坏导出，不能发布。
+
+    2026-09-03 实例：C:\\CULINES\\Claw Report\\Vessel Schedule Maintain Over Time.xlsx
+    被上游刷新后从 24,917 行（2025-01-01 起）掉到 9,283 行（只剩 2026 年），
+    vsched 列仍然有值所以 _maint_is_broken() 抓不到 —— 发布后 Maintenance 板块
+    会「大面积消失」。行数缩水必须单独挡一道。"""
+    n_new = len(maint.get('records') or [])
+    n_ref = len((ref or {}).get('records') or [])
+    return n_ref >= 200 and n_new < n_ref * ratio
+
 def _extract_maint_from_html(html_path):
     """从已生成的 HTML 抽取 const MAINT_DATA = {...}; 返回 dict 或 None。"""
     try:
@@ -616,10 +628,25 @@ def _save_maint_snapshot(maint):
         print('  [MAINT] snapshot save failed:', e, file=sys.stderr)
 
 def load_agent_contacts(src=None):
-    """从《CUL Agent Contact List》xlsx 抽取各港口「操作岗(operation/ops)」代理联系人，
-    返回 {PORT_CODE: [{'name','email','tel','mobile'}, ...]}。
+    """从《CUL Agent Contact List》xlsx 抽取各港口「操作岗(operation/ops)」联系人。
+
+    返回 {PORT_CODE: [{'name','desig','src','email','tel','mobile'}, ...]}
     港口码 = 分表名（与 MAINT_DATA.port 一致：EGSOK / SAJED / THLCH …）。
-    无操作岗联系人的港口不进入结果（前端显示 —）。"""
+    无操作岗联系人的港口不进入结果（前端显示 —）。
+
+    ── 2026-08-31 重写（Leah 反馈：TRIZT 只抓到船东代表 Nick Tian，当地代理的
+       operations 人员一个都没抓到）。三条关键改动 ──────────────────────
+    1) 抓全部区块，不再只有「船东代表处」：
+         · 船东代表处 Owner's Representative Office（我司驻外代表，如 Nick Tian）
+         · General Agent（当地代理，如 TRIZT 的 Sertaç KURT 等 Operations 组）
+         · Cargo Agent / Sub Agent（第三方代理里挂 operation 头衔的人）
+       用 src 字段区分来源，前端与导出都会标出来。
+    2) Department 列 forward-fill：General Agent 区块只在「区块首行」写部门名
+       （如 "Operations"），后续行留空表示同部门。旧版逐行判断 → 每行都要自带
+       部门值才被收录 → 这就是漏人的根因（TRIZT 11 人只进了 1 个）。
+    3) email / tel / mobile 拆成独立字段（前端与 Excel 导出各占一列），
+       不再挤在一个单元格里。
+    """
     import re as _re, glob as _glob
     if src is None:
         src = AGENT_SRC
@@ -638,59 +665,210 @@ def load_agent_contacts(src=None):
     except Exception as e:
         print('  [AGENT] WARN: failed to open %s: %s' % (src, e), file=sys.stderr, flush=True)
         return {}
-    OP_RE = _re.compile(r'(operation|ops|vsl operation)', _re.I)
+
+    # Operation 岗判定：英文 operation(s)/ops，中文 操作/船务/现场
+    OP_RE    = _re.compile(r'(operat|\bops\b|操作|船务|现场)', _re.I)
+    # 简写 "OP"（如青岛「销售副经理兼OP / Assistant Sales Manager & OP」）。
+    # 必须前后都不是英文字母，否则 SHOP / TOP / COOP 会误命中；中文紧邻时 \b 失效，
+    # 所以用 lookaround 而不是 \b。
+    OP_ABBR_RE = _re.compile(r'(?<![A-Za-z])OP(?![A-Za-z])')
+    def is_op(dept, desig):
+        t = (dept or '') + ' ' + (desig or '')
+        return bool(OP_RE.search(t) or OP_ABBR_RE.search(t))
     EMAIL_RE = _re.compile(r'@')
-    def norm(s): return _re.sub(r'[^a-z0-9]', '', str(s or '').strip().lower())
-    def find_header(row):
-        cells = [str(v or '').strip() for v in row]
-        nh = [norm(c) for c in cells]
-        h = {'name':None,'email':None,'tel':None,'mobile':None,'pos':None}
-        for i,c in enumerate(nh):
-            if 'name' in c and h['name'] is None: h['name']=i
-            if ('email' in c or 'e-mail' in c) and h['email'] is None: h['email']=i
-            if ('telephone' in c or c=='tel' or '电话' in c) and h['tel'] is None: h['tel']=i
-            if ('mobile' in c or '手机' in c) and h['mobile'] is None: h['mobile']=i
-            if ('position' in c or 'designation' in c or '岗位' in c or '部门' in c or 'department' in c) and h['pos'] is None: h['pos']=i
-        if h['name'] is not None and h['email'] is not None:
-            return h
+    ADDR_RE  = _re.compile(r'(地址|Office\s*address|Postal|邮编)', _re.I)
+
+    def norm(s):
+        return _re.sub(r'[^a-z0-9]', '', str(s or '').strip().lower())
+
+    def _nkey(s):
+        """姓名归一：小写 + 去掉所有非字母数字/汉字，用于判断「是不是同一个人」。"""
+        return _re.sub(r'[^a-z0-9\u4e00-\u9fff]', '', str(s or '').lower())
+
+    # 列识别：关键字按 (字段, 英文关键字, 中文关键字) 顺序匹配，每列只认领一个角色。
+    # 顺序有意：dept/desig 先于 name，mobile 先于 tel（否则 "Mobile Phone" 会被
+    # phone 抢去当固话），email 最后（"E-mail" 里没有 dept/desig/tel 关键字）。
+    KW = [
+        ('dept',   ('department', 'branch'),              ('部门', '分支')),
+        ('desig',  ('position', 'designation', 'jobtitle'), ('岗位', '职务', '职衔')),
+        ('name',   ('name',),                             ('姓名', '名字')),
+        ('mobile', ('mobile', 'handphone', 'cellphone'),  ('手机', '移动电话')),
+        ('tel',    ('telephone', 'directline', 'tel', 'phone', 'line'), ('电话', '座机', '直线', '固话')),
+        ('email',  ('email', 'mail'),                     ('邮件', '邮箱', '电子信箱')),
+    ]
+    def scan_header(cells):
+        h = dict((k, None) for k, _, _ in KW)
+        for i, raw in enumerate(cells):
+            n = norm(raw); s = str(raw or '').strip()
+            if not n and not s:
+                continue
+            for key, en, cn in KW:
+                if h[key] is not None:
+                    continue
+                if any(k in n for k in en) or any(k in s for k in cn):
+                    h[key] = i
+                    break
+        # 必须能认出「姓名」列，且至少有一种联系方式，否则不是联系人表
+        if h['name'] is None:
+            return None
+        if h['email'] is None and h['tel'] is None and h['mobile'] is None:
+            return None
+        return h
+
+    # 区块标题行（占 1~2 个单元格、短文本），决定 src 归属
+    SEC_PAT = [
+        (_re.compile(r"(船东代表|owner'?s?\s*rep)", _re.I),   'Owner Rep'),
+        (_re.compile(r"cargo\s*agent", _re.I),                'Cargo Agent'),
+        (_re.compile(r"sub[\s\-]*agent", _re.I),              'Sub Agent'),
+        (_re.compile(r"general\s*agent", _re.I),              'General Agent'),
+    ]
+    # 代理公司名/办事处名不能当成区块标题（否则会覆盖掉上一行的 "General Agent"）
+    NOT_SEC_RE = _re.compile(r'(ltd|llc|inc|co\.|corp|公司|办事处|office|branch|@|pte|sdn|jsc)', _re.I)
+    def section_of(cells):
+        ne = [c for c in cells if c]
+        if not ne or len(ne) > 2:
+            return None
+        txt = ' '.join(ne).strip()
+        if len(txt) > 60:
+            return None
+        # 已知区块名优先（"Owner's Representative Office" 里也带 Office，
+        # 所以必须在公司名排除规则之前判断，否则会被误当成公司名丢掉）
+        for pat, label in SEC_PAT:
+            if pat.search(txt):
+                return label
+        if NOT_SEC_RE.search(txt):
+            return None
+        if _re.search(r'(agent|代理|代表处)', txt, _re.I):
+            return txt[:24]
         return None
+
+    SRC_ORDER = {'Owner Rep': 0, 'General Agent': 1, 'Cargo Agent': 2, 'Sub Agent': 3}
+
+    def clean(v):
+        v = _re.sub(r'\s+', ' ', str(v or '')).strip()
+        return '' if v in ('/', '-', '—', '–', 'N/A', 'n/a') else v
+
     result = {}
     for sheet in wb.sheetnames:
         if norm(sheet) == 'masterlist':
             continue
         ws = wb[sheet]
         port = sheet.strip().upper()
-        contacts = []
-        header = None
+        contacts, by_name, by_email = [], {}, {}
+        header = None      # 当前表头（列索引 dict）
+        head_cells = []    # 表头那一行的原始文本（用于找「姓名」后面那个无表头列）
+        ff_dept = ''       # Department 列向下填充值
+        cur_sec = ''
+
         for row in ws.iter_rows(values_only=True):
-            h = find_header(row)
+            cells = [("" if v is None else
+                      (v.strftime('%Y-%m-%d') if hasattr(v, 'strftime') else str(v)).strip())
+                     for v in row]
+            if not any(cells):
+                continue
+
+            sec = section_of(cells)
+            if sec:
+                cur_sec = sec
+                continue
+
+            h = scan_header(cells)
             if h:
-                header = h
+                header, head_cells = h, cells
+                ff_dept = ''          # 换表头 → 部门填充从头开始
                 continue
             if header is None:
                 continue
-            cells = [("" if v is None else (v.strftime('%Y-%m-%d') if hasattr(v,'strftime') else str(v)).strip()) for v in row]
+
             def get(k):
                 i = header[k]
                 return cells[i] if (i is not None and i < len(cells)) else ''
-            pos_val = get('pos'); name = get('name'); email = get('email')
-            tel = get('tel'); mobile = get('mobile')
-            if not OP_RE.search(pos_val or ''):
-                continue
+
+            raw_dept = get('dept')
+            if raw_dept:
+                ff_dept = raw_dept          # ← forward-fill 的关键
+            desig = get('desig')
+            name  = get('name')
+
+            # 很多表把「英文名」放在姓名列右边一个「无表头」的列里
+            # （如 TRIZT：田益君 | Nick Tian；CNSHA：李佳 | Laszlo Li）→ 拼上
+            ni = header['name']
+            nxt = (ni + 1) if ni is not None else None
+            if (nxt is not None and nxt < len(head_cells)
+                    and not str(head_cells[nxt] or '').strip()
+                    and nxt not in [header['email'], header['tel'], header['mobile'],
+                                    header['dept'], header['desig']]):
+                n2 = cells[nxt] if nxt < len(cells) else ''
+                if n2 and len(n2) <= 40 and not _re.search(r'[@\d]', n2):
+                    name = (name + ' ' + n2).strip()
+
             if not name or not _re.search(r'[A-Za-z\u4e00-\u9fff]', name):
                 continue
-            if name.lower().startswith('department') or norm(name) in ('ops','operation','operations'):
+            if ADDR_RE.search(name):                       # 地址行 / 备注行
                 continue
-            if not (EMAIL_RE.search(email or '') or tel or mobile):
+            if norm(name) in ('ops', 'operation', 'operations'):
                 continue
-            em  = (email.split(';')[0].split(',')[0].strip()  if email  else '')
-            em  = em if EMAIL_RE.search(em) else ''
-            t1  = (tel.split(';')[0].split(',')[0].strip()     if tel    else '')
-            m1  = (mobile.split(';')[0].split(',')[0].strip()  if mobile else '')
-            contacts.append({'name':name.strip(), 'email':em, 'tel':t1, 'mobile':m1})
+
+            # 部门（含向下填充）或岗位命中 operation 才算「操作岗」
+            if not is_op(ff_dept, desig):
+                continue
+
+            email  = clean(get('email'))
+            tel    = clean(get('tel'))
+            mobile = clean(get('mobile'))
+            if not (EMAIL_RE.search(email) or tel or mobile):
+                continue
+
+            em = ''
+            for part in _re.split(r'[;,\s/]+', email):
+                if EMAIL_RE.search(part):
+                    em = part.strip().strip('.,;')
+                    break
+            if not em:
+                for part in _re.split(r'[\n;]+', email):
+                    if EMAIL_RE.search(part):
+                        em = part.strip()
+                        break
+
+            # ── 去重 ──────────────────────────────────────────────────
+            # 只合并「确属同一人」，命中时补全新信息而不是简单丢弃：
+            #   a) 姓名归一后相同；
+            #   b) 邮箱相同 且 两个姓名互相包含（CNXMN 的「王永煜 JeremyWang」与
+            #      「Jeremy Wang」——同一人在两个区块各写了一遍）。
+            # ⚠️ 不能只按 email 去重：INKOL 的 Kolkata Operations 五个人共用部门
+            #    邮箱 ssacal.eqp@… ，按 email 去重会把 5 人压成 1 人。
+            nk = _nkey(name)
+            dup = by_name.get(nk) if nk else None
+            if dup is None and em:
+                for cand in by_email.get(em.lower(), []):
+                    a, b = _nkey(cand['name']), nk
+                    if a and b and (a in b or b in a):
+                        dup = cand
+                        break
+            if dup is not None:
+                if tel    and not dup['tel']:    dup['tel']    = tel
+                if mobile and not dup['mobile']: dup['mobile'] = mobile
+                if desig  and not dup['desig']:  dup['desig']  = desig
+                if len(name.strip()) > len(dup['name']): dup['name'] = name.strip()
+                continue
+            # 船东代表处区块常见「岗位列留空、只有部门列有值」（如 TRIZT 的 Nick Tian
+            # 部门=Operation Representative、岗位为空）→ 岗位回退用部门名
+            rec = {'name': name.strip(), 'desig': (desig or ff_dept or '').strip(),
+                   'src': cur_sec or 'Agent',
+                   'email': em, 'tel': tel, 'mobile': mobile}
+            if nk:
+                by_name[nk] = rec
+            if em:
+                by_email.setdefault(em.lower(), []).append(rec)
+            contacts.append(rec)
+
         if contacts:
+            contacts.sort(key=lambda c: SRC_ORDER.get(c['src'], 9))
             result[port] = contacts
-    print('  [AGENT] loaded OP contacts for %d ports from %s' % (len(result), os.path.basename(src)))
+
+    n = sum(len(v) for v in result.values())
+    print('  [AGENT] loaded OP contacts: %d ports / %d people from %s'
+          % (len(result), n, os.path.basename(src)))
     return result
 
 AGENT_SNAPSHOT = os.path.join(SCRIPT_DIR, 'agent_snapshot.json')
@@ -752,36 +930,51 @@ def resolve_agent(out_path):
           file=sys.stderr, flush=True)
     return agent
 
+def _last_good_maint(out_path):
+    """取 last-good MAINT_DATA → (dict|None, 来源说明)。
+    优先复用现有 HTML 里已嵌入的数据（不依赖 git pull / VPN），其次用内置快照。"""
+    if os.path.exists(out_path):
+        rec = _extract_maint_from_html(out_path)
+        if rec and not _maint_is_broken(rec):
+            return rec, 'existing HTML'
+    if os.path.exists(MAINT_SNAPSHOT):
+        try:
+            with open(MAINT_SNAPSHOT, 'r', encoding='utf-8') as f:
+                rec = json.load(f)
+            if not _maint_is_broken(rec):
+                return rec, 'bundled snapshot'
+        except Exception:
+            pass
+    return None, ''
+
 def resolve_maint(out_path):
-    """加载 MAINT；若检测到坏源(有记录却 vsched 全 0)，从「现有 HTML 已嵌入数据」或
-    「仓库内置快照」恢复，避免发布错误的 0% 维护率。源正常时刷新内置快照供其他机器回退。
+    """加载 MAINT；两道保护都命中 last-good 才回退：
+      1) 坏源 —— 有记录却 vsched 全 0（会显示成 0% 维护率）；
+      2) 缩水 —— 行数掉到 last-good 的 60% 以下（Maintenance 板块大面积消失）。
+    源正常时刷新内置快照供其他机器回退。
 
     注意：本保护对「运行本脚本」的机器生效。culadmin 机器若长期不 git pull 旧代码，
     仍需先修复 SFTP 源文件(见技能文档)才能根除——因为 culadmin 的坏数据来自 SFTP 下载，
     而非本脚本逻辑。"""
     maint = load_maint_data()
     if not _maint_is_broken(maint):
+        ref, src = _last_good_maint(out_path)
+        if ref and _maint_shrunk(maint, ref):
+            print('  [MAINT] WARNING: source shrank %d -> %d rows (%.0f%% of last-good) — '
+                  'keeping last-good data from %s to avoid shipping a gutted dashboard.'
+                  % (len(ref.get('records') or []), len(maint.get('records') or []),
+                     100.0 * len(maint.get('records') or []) / max(1, len(ref.get('records') or [])),
+                     src), file=sys.stderr, flush=True)
+            return ref
         _save_maint_snapshot(maint)   # 源正常 → 刷新快照
         return maint
     print('  [MAINT] WARNING: source looks broken (records present but vsched all 0). '
           'Recovering last-good MAINT_DATA to avoid shipping 0% rate...',
           file=sys.stderr, flush=True)
-    # 1) 复用现有 HTML 内已嵌入的正确 MAINT_DATA（不依赖 git pull / VPN）
-    if os.path.exists(out_path):
-        rec = _extract_maint_from_html(out_path)
-        if rec and not _maint_is_broken(rec):
-            print('  [MAINT] recovered from existing HTML (kept last-good data).', flush=True)
-            return rec
-    # 2) 回退到内置快照
-    if os.path.exists(MAINT_SNAPSHOT):
-        try:
-            with open(MAINT_SNAPSHOT, 'r', encoding='utf-8') as f:
-                rec = json.load(f)
-            if not _maint_is_broken(rec):
-                print('  [MAINT] recovered from bundled snapshot.', flush=True)
-                return rec
-        except Exception:
-            pass
+    rec, src = _last_good_maint(out_path)
+    if rec:
+        print('  [MAINT] recovered from %s (kept last-good data).' % src, flush=True)
+        return rec
     print('  [MAINT] no recoverable MAINT_DATA; shipping source data as-is (rate may be 0).',
           file=sys.stderr, flush=True)
     return maint
@@ -2556,8 +2749,11 @@ function exportMaintVvdExcel(wb){
   try{ recs = maintFiltered() || []; }catch(e){ recs = MAINT_RECORDS || []; }
   if(!recs.length) return false;
 
+  // Agent contact info is SPLIT into 3 columns (name+role / email / tel) —
+  // previously it was one blob cell, which made it impossible to copy an
+  // address list or filter by it.
   var headers=['Port','Region','Service','Vessel','Voyage','Dir','VVD','Operator','ETD',
-               'Port Log','Vessel Sched','Agent / OP'];
+               'Port Log','Vessel Sched','Agent / OP','Agent Email','Agent Tel / Mobile'];
   var numCols=headers.length;
 
   var nPlog=0, nVs=0, ports={};
@@ -2591,7 +2787,10 @@ function exportMaintVvdExcel(wb){
       vsOk :{font:{name:'Arial',sz:9,color:{rgb:'1E7145'}},fill:F(fc),border:B,alignment:A('center','center')},
       vsNo :{font:{name:'Arial',sz:9,bold:true,color:{rgb:'C00000'}},fill:F('FDF2F2'),border:B,alignment:A('center','center')},
       vsNA :{font:{name:'Arial',sz:9,color:{rgb:'8A9BB0'}},fill:F(fc),border:B,alignment:A('center','center')},
-      agent:{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','top',true)}
+      agent:{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','top',true)},
+      // Email gets its own column (Leah 2026-08-31) so it can be copied straight
+      // into an Outlook "To:" field — blue text to match the on-page mailto link.
+      mail :{font:{name:'Arial',sz:9,color:{rgb:'1F4E79'}},fill:F(fc),border:B,alignment:A('left','top',true)}
     };
   }
   var SE=rowStyles('EBF3FB'), SO=rowStyles('FFFFFF');
@@ -2612,6 +2811,7 @@ function exportMaintVvdExcel(wb){
   rows.forEach(function(r,i){
     var S=(i%2===0)?SE:SO;
     var vsOk=(r.vsched===1);
+    var ap=maintAgentParts(r.port);
     sheetData.push([
       {v:r.port||'',                        s:S.ctr},
       {v:BOA_PORT_REGION[r.port]||'Unknown',s:S.ctr},
@@ -2625,7 +2825,9 @@ function exportMaintVvdExcel(wb){
       {v:(r.plog==='Y'?'Y':'N'),            s:(r.plog==='Y'?S.plogY:S.plogN)},
       {v:(!VSCHED_AVAILABLE?'—':(vsOk?'Maintain timely':'Not maintained')),
        s:(!VSCHED_AVAILABLE?S.vsNA:(vsOk?S.vsOk:S.vsNo))},
-      {v:maintAgentText(r.port),            s:S.agent}
+      {v:ap.agent,                          s:S.agent},
+      {v:ap.email,                          s:S.mail},
+      {v:ap.tel,                            s:S.agent}
     ]);
   });
 
@@ -2633,7 +2835,7 @@ function exportMaintVvdExcel(wb){
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
   ws['!cols']=[{wch:10},{wch:15},{wch:10},{wch:10},{wch:9},{wch:6},{wch:13},{wch:10},{wch:13},
-               {wch:9},{wch:16},{wch:46}];
+               {wch:9},{wch:16},{wch:34},{wch:30},{wch:26}];
   ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
   ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
   ws['!freeze']={xSplit:0,ySplit:2};
@@ -2641,18 +2843,23 @@ function exportMaintVvdExcel(wb){
   return true;
 }
 
-// Flat text for the Maintenance "Agent / OP" export column: one contact per
-// line, each line "Name | email | Tel: … | Mob: …".
-function maintAgentText(port){
+// Flat text for the Maintenance VVD export — three SEPARATE cell values so the
+// Excel sheet gets one column each (was one blob cell before 2026-08-31).
+// Line n of `agent`, `email` and `tel` all describe the same contact.
+function maintAgentParts(port){
+  var empty={agent:'',email:'',tel:''};
   var list=(typeof AGENT_BY_PORT!=='undefined' && AGENT_BY_PORT[port]) || [];
-  if(!list.length) return '';
-  return list.map(function(c){
-    var bits=[c.name||''];
-    if(c.email)  bits.push(c.email);
-    if(c.tel)    bits.push('Tel: '+c.tel);
-    if(c.mobile) bits.push('Mob: '+c.mobile);
-    return bits.join(' | ');
-  }).join('\n');
+  if(!list.length) return empty;
+  var a=[],e=[],t=[];
+  list.forEach(function(c){
+    // [Owner Rep] / [General Agent] / [Cargo Agent] tag keeps the owner's own
+    // representative distinguishable from the local agent's operations staff.
+    a.push((c.name||'') + (c.desig ? '  ('+c.desig+')' : '') + (c.src ? '  ['+c.src+']' : ''));
+    e.push(c.email||'');
+    var tt=[]; if(c.tel) tt.push('T: '+c.tel); if(c.mobile) tt.push('M: '+c.mobile);
+    t.push(tt.join(' / '));
+  });
+  return {agent:a.join('\n'), email:e.join('\n'), tel:t.join('\n')};
 }
 
 function exportSelectedTables(){
@@ -4608,37 +4815,80 @@ function renderMaintUnmaintained(){
   // Search filters (match any text column, case-insensitive)
   var qPlog = (document.getElementById('maintPlogNoSearch').value || '').trim().toLowerCase();
   var qVs   = (document.getElementById('maintVsNoSearch').value || '').trim().toLowerCase();
+  // AGENT_BY_PORT is fixed for the page's lifetime, so cache the flattened text
+  // per port — sorting 24.9k rows would otherwise rebuild it ~350k times.
+  var _apCache = {};
+  function apOf(port){
+    if(!_apCache[port]) _apCache[port] = maintAgentParts(port);
+    return _apCache[port];
+  }
   function match(r, q){
     if(!q) return true;
-    return ['service','vessel','voyage','dir','operator','port','etd'].some(function(k){
+    var hit = ['service','vessel','voyage','dir','operator','port','etd'].some(function(k){
       return String(r[k]||'').toLowerCase().indexOf(q) !== -1;
+    });
+    if(hit) return true;
+    // 也能按代理姓名/邮箱搜 —— 追 Port Log 时经常是「找某个人负责的所有港口」
+    return (AGENT_BY_PORT[r.port] || []).some(function(c){
+      return ((c.name||'') + ' ' + (c.desig||'') + ' ' + (c.email||'')).toLowerCase().indexOf(q) !== -1;
     });
   }
   if(qPlog) plogNo = plogNo.filter(function(r){ return match(r, qPlog); });
   if(qVs)   vsNo   = vsNo.filter(function(r){ return match(r, qVs); });
 
-  // Sort by current column/direction
+  // Sort by current column/direction. The three agent columns have no
+  // counterpart on the record itself, so sort on the first contact's text.
+  var AGENT_SORT_KEY = {agent:'agent', agentmail:'email', agenttel:'tel'};
   function sortArr(arr, st){
+    var sk = AGENT_SORT_KEY[st.key];
     arr.sort(function(a,b){
-      return String(a[st.key]||'').localeCompare(String(b[st.key]||''), 'zh', {numeric:true}) * st.dir;
+      var va = sk ? (apOf(a.port)[sk].split('\n')[0] || '') : String(a[st.key]||'');
+      var vb = sk ? (apOf(b.port)[sk].split('\n')[0] || '') : String(b[st.key]||'');
+      return va.localeCompare(vb, 'zh', {numeric:true}) * st.dir;
     });
   }
   sortArr(plogNo, maintSort.plogNo);
   sortArr(vsNo, maintSort.vsNo);
 
+  // Agent contact info is 3 separate columns (2026-08-31): name+role / email /
+  // tel. Two sources are merged into one list — the owner's own representative
+  // (Owner Rep) and the local agent's operations staff (General Agent /
+  // Cargo Agent) — so the src badge matters.
   var COLS = [['service','Service'],['vessel','Vessel'],['voyage','Voyage'],['dir','Dir'],
-              ['operator','Operator'],['port','Port'],['etd','ETD'],['agent','Agent / OP']];
-  function agentCellHtml(port){
-    var list = AGENT_BY_PORT[port] || [];
-    if(!list.length) return '<td style="color:#8a9bb0;font-size:11px;">—</td>';
-    var inner = list.map(function(c){
-      var bits = ['<b>'+escapeHtml(c.name||'')+'</b>'];
-      if(c.email)  bits.push('<a href="mailto:'+escapeHtml(c.email)+'" style="color:#1F4E79;">'+escapeHtml(c.email)+'</a>');
-      if(c.tel)    bits.push('Tel: '+escapeHtml(c.tel));
-      if(c.mobile) bits.push('Mob: '+escapeHtml(c.mobile));
-      return '<div style="line-height:1.4;margin:2px 0;">'+bits.join('<br>')+'</div>';
+              ['operator','Operator'],['port','Port'],['etd','ETD'],
+              ['agent','Agent / OP'],['agentmail','Email'],['agenttel','Tel / Mobile']];
+  var SRC_COLOR = {'Owner Rep':'#1F4E79','General Agent':'#B26B00',
+                   'Cargo Agent':'#6B3FA0','Sub Agent':'#0B6B5E'};
+  function agentParts(port){
+    return (AGENT_BY_PORT[port] || []).map(function(c){
+      var src = c.src || '';
+      var badge = src
+        ? ' <span style="display:inline-block;padding:0 4px;border-radius:3px;font-size:9px;' +
+          'color:#fff;background:' + (SRC_COLOR[src] || '#8a9bb0') + ';">' + escapeHtml(src) + '</span>'
+        : '';
+      var tel = [];
+      if(c.tel)    tel.push('T: ' + escapeHtml(c.tel));
+      if(c.mobile) tel.push('M: ' + escapeHtml(c.mobile));
+      return {
+        name : '<b>' + escapeHtml(c.name||'') + '</b>' + badge +
+               (c.desig ? '<div style="color:#8a9bb0;font-size:10px;line-height:1.3;">'
+                          + escapeHtml(c.desig) + '</div>' : ''),
+        email: c.email
+                 ? '<a href="mailto:' + escapeHtml(c.email) + '" style="color:#1F4E79;">'
+                   + escapeHtml(c.email) + '</a>'
+                 : '<span style="color:#c3ccd8;">—</span>',
+        tel  : tel.length ? tel.join('<br>') : '<span style="color:#c3ccd8;">—</span>'
+      };
+    });
+  }
+  function agentCellHtml(port, part){
+    var lines = agentParts(port);
+    if(!lines.length) return '<td style="color:#8a9bb0;font-size:11px;">—</td>';
+    var inner = lines.map(function(L, i){
+      var sep = (i < lines.length - 1) ? 'border-bottom:1px dotted #e6ebf2;padding-bottom:3px;' : '';
+      return '<div style="line-height:1.35;margin:3px 0;' + sep + '">' + L[part] + '</div>';
     }).join('');
-    return '<td style="font-size:11px;vertical-align:top;">'+inner+'</td>';
+    return '<td style="font-size:11px;vertical-align:top;">' + inner + '</td>';
   }
   function headHtml(which){
     var st = maintSort[which], h = '<tr>';
@@ -4657,7 +4907,7 @@ function renderMaintUnmaintained(){
       var msg = isFiltered
         ? 'No rows match the current search filter.'
         : 'All maintained &#8212; no unmaintained calls for current filters.';
-      return '<tr><td colspan="9" style="text-align:center;color:#8a9bb0;padding:12px;">' + msg + '</td></tr>';
+      return '<tr><td colspan="11" style="text-align:center;color:#8a9bb0;padding:12px;">' + msg + '</td></tr>';
     }
     var h = '';
     arr.forEach(function(r, i){
@@ -4670,7 +4920,9 @@ function renderMaintUnmaintained(){
         '<td>' + (r.operator||'') + '</td>' +
         '<td>' + (r.port||'') + '</td>' +
         '<td>' + (r.etd||'') + '</td>' +
-        agentCellHtml(r.port) +
+        agentCellHtml(r.port, 'name') +
+        agentCellHtml(r.port, 'email') +
+        agentCellHtml(r.port, 'tel') +
         '<td style="color:#C0392B;font-weight:600;">' + statusTxt + '</td></tr>';
     });
     return h;
@@ -4678,7 +4930,7 @@ function renderMaintUnmaintained(){
   document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N', !!qPlog);
   document.getElementById('maintVsNoTbody').innerHTML = VSCHED_AVAILABLE
     ? rowsHtml(vsNo, 'Not maintained', !!qVs)
-    : '<tr><td colspan="9" style="text-align:center;color:#8a9bb0;padding:12px;">Vessel Schedule 列已停供（上游 2026-08 起不再导出），无法统计 Not maintained。</td></tr>';
+    : '<tr><td colspan="11" style="text-align:center;color:#8a9bb0;padding:12px;">Vessel Schedule 列已停供（上游 2026-08 起不再导出），无法统计 Not maintained。</td></tr>';
   document.getElementById('maintPlogNoCount').textContent = '(' + plogNo.length.toLocaleString() + ' calls)';
   document.getElementById('maintVsNoCount').textContent = VSCHED_AVAILABLE ? '(' + vsNo.length.toLocaleString() + ' calls)' : '—';
 }
