@@ -1518,6 +1518,7 @@ var EXPORT_TABLES = [
     {id:'portWaitRegionTable', label:'Wait by Port Region', sheet:'Wait by Region'},
     {id:'callCountLaneTable', label:'Port Call Count by Lane', sheet:'Call Count by Lane'},
     {id:'callCountRegionTable', label:'Port Call Count by Region', sheet:'Call Count by Region'},
+    {id:'portWaitVvdTable', label:'VVD Call Detail (every call behind the filtered ports)', sheet:'Port Wait VVD', rich:'vvd'},
   ]},
   {group:'BOA', items:[
     {id:'boaTblTrade', label:'BOA by Trade', sheet:'BOA by Trade'},
@@ -1616,6 +1617,111 @@ function _tabSheetFromDom(tableId, title, sheetName, wb, skipFirst){
   return true;
 }
 
+// ── Port Wait VVD detail sheet ────────────────────────────────────────
+// The Port Wait main table only exports its aggregated rows (one row per
+// port). This sheet flattens EVERY individual call behind those ports:
+// one row per VVD call, so the user can drill into which vessel/voyage
+// drove a port's wait / berth rate.
+//   - Respects the current Port Wait filters (date range, port filter,
+//     port search) because it re-runs buildPortWaitData().
+//   - Calls dropped by the remark filter are kept but flagged in the
+//     "Included" column, so nothing silently disappears from the export.
+function exportPortWaitVvdExcel(wb){
+  try{ buildPortWaitData(); }catch(e){ /* fall back to whatever is cached */ }
+  var data = portWaitData || [];
+  if(!data.length) return false;
+
+  var headers=['Port','Region','Vessel','Voy','VVD','ETA','ETB','ETD',
+               'Wait (hrs)','Status','Included','Remark Category','Remark'];
+  var numCols=headers.length;
+  var nIn=0, nEx=0;
+  data.forEach(function(r){ nIn+=(r.calls||[]).length; nEx+=(r.excludedCalls||[]).length; });
+  var titleText='CUL DAILY MOVEMENT — Port Wait VVD Call Detail  —  '+data.length+' ports · '+
+                nIn+' calls'+(nEx?(' · '+nEx+' excluded by remark filter'):'')+
+                '  —  As of '+TODAY_DATA.date;
+
+  function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
+  var B=thinBorder();
+  function F(rgb){return{patternType:'solid',fgColor:{rgb:rgb}};}
+  function A(h,v,wrap){var o={horizontal:h,vertical:v};if(wrap)o.wrapText=true;return o;}
+  var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:A('center','center'),border:B};
+  var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
+
+  var sheetData=[];
+  var tr=[]; for(var c=0;c<numCols;c++) tr[c]={v:(c===0?titleText:''),s:tS};
+  sheetData.push(tr);
+  sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
+
+  var rows=[];
+  data.forEach(function(rec){
+    var port=rec.port||'';
+    var region=rec.region||'Unknown';
+    var th=berthThreshold(port);
+    (rec.calls||[]).forEach(function(cl){
+      rows.push({port:port, region:region, vessel:cl.vessel||'', voy:cl.voy||'',
+                 eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
+                 wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
+                 included:'Yes', cat:cl.cat||'', remark:cl.remark||'',
+                 sortKey:cl.dateKey||''});
+    });
+    (rec.excludedCalls||[]).forEach(function(cl){
+      rows.push({port:port, region:region, vessel:cl.vessel||'', voy:cl.voy||'',
+                 eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
+                 wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
+                 included:'No (excluded by remark filter)', cat:cl.cat||'', remark:cl.remark||'',
+                 sortKey:''});
+    });
+  });
+  if(!rows.length) return false;
+
+  // Deterministic order: port asc → included calls first (chronological by
+  // the selected date basis) → then the remark-filtered-out calls.
+  rows.sort(function(a,b){
+    if(a.port!==b.port) return a.port.localeCompare(b.port);
+    if(a.included!==b.included) return a.included==='Yes' ? -1 : 1;
+    if(a.sortKey!==b.sortKey) return (a.sortKey||'~').localeCompare(b.sortKey||'~');
+    return a.vessel.localeCompare(b.vessel);
+  });
+
+  rows.forEach(function(r,i){
+    var fc=(i%2===0)?'EBF3FB':'FFFFFF';
+    var nS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')};
+    var cS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center')};
+    var wS={font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('center','center'),numFmt:'0.0'};
+    var stS={font:{name:'Arial',sz:9,bold:true,color:{rgb:r.status==='Over'?'C00000':'1E7145'}},
+             fill:F(fc),border:B,alignment:A('center','center')};
+    var incS={font:{name:'Arial',sz:9},fill:F(r.included==='Yes'?fc:'FFF2E8'),border:B,alignment:A('left','center')};
+    var catLabel='';
+    (REMARK_CATEGORIES||[]).forEach(function(c){ if(c.key===r.cat && !catLabel) catLabel=c.label; });
+    sheetData.push([
+      {v:r.port,   s:cS},
+      {v:r.region, s:cS},
+      {v:r.vessel, s:nS},
+      {v:r.voy,    s:cS},
+      {v:(r.vessel||'')+(r.voy?(' '+r.voy):''), s:nS},
+      {v:r.eta,    s:cS},
+      {v:r.etb,    s:cS},
+      {v:r.etd,    s:cS},
+      {v:Number(r.wait.toFixed(1)), s:wS},
+      {v:r.status, s:stS},
+      {v:r.included, s:incS},
+      {v:(catLabel||r.cat||''), s:cS},
+      {v:(r.remark||''), s:nS}
+    ]);
+  });
+
+  var totalRows=sheetData.length;
+  var ws=XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
+  ws['!cols']=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:36},{wch:17},{wch:17},{wch:17},
+               {wch:11},{wch:9},{wch:28},{wch:16},{wch:44}];
+  ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
+  ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
+  ws['!freeze']={xSplit:0,ySplit:2};
+  XLSX.utils.book_append_sheet(wb,ws,'Port Wait VVD');
+  return true;
+}
+
 function exportSelectedTables(){
   _loadXlsx(function(){
     var sel={};
@@ -1629,6 +1735,7 @@ function exportSelectedTables(){
       if(!sel[it.id]) return;            // unselected → skip
       if(it.rich==='summary'){ exportSummaryExcel(wb); count++; }
       else if(it.rich==='full'){ exportFullScheduleExcel(wb); count++; }
+      else if(it.rich==='vvd'){ if(exportPortWaitVvdExcel(wb)) count++; }
       else { if(_tabSheetFromDom(it.id, 'CUL DAILY MOVEMENT — '+it.label+'  —  As of '+todayStr, it.sheet, wb, it.skipFirst)) count++; }
     });
     if(count===0){ alert('请至少勾选一张表再导出。'); return; }
