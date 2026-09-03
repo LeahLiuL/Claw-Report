@@ -2416,6 +2416,12 @@ function _tabSheetFromDom(tableId, title, sheetName, wb, skipFirst){
 //     port search) because it re-runs buildPortWaitData().
 //   - Calls dropped by the remark filter are kept but flagged in the
 //     "Included" column, so nothing silently disappears from the export.
+//   - VVD = vessel CODE + voyage with no separator (CUL HAIPHONG 2630W ->
+//     CUHP2630W). A few vessels have a bad Code in Master Data (full name or
+//     blank) — those are highlighted amber instead of being silently invented.
+function isStdVesselCode(code){
+  return /^[A-Z0-9]{2,8}$/.test((code||'').trim());
+}
 function exportPortWaitVvdExcel(wb){
   try{ buildPortWaitData(); }catch(e){ /* fall back to whatever is cached */ }
   var data = portWaitData || [];
@@ -2424,10 +2430,16 @@ function exportPortWaitVvdExcel(wb){
   var headers=['Port','Region','Vessel','Voy','VVD','ETA','ETB','ETD',
                'Wait (hrs)','Status','Included','Remark Category','Remark'];
   var numCols=headers.length;
-  var nIn=0, nEx=0;
-  data.forEach(function(r){ nIn+=(r.calls||[]).length; nEx+=(r.excludedCalls||[]).length; });
+  var nIn=0, nEx=0, nGap=0;
+  data.forEach(function(r){
+    nIn+=(r.calls||[]).length; nEx+=(r.excludedCalls||[]).length;
+    (r.calls||[]).concat(r.excludedCalls||[]).forEach(function(cl){
+      if(!isStdVesselCode(cl.code)) nGap++;
+    });
+  });
   var titleText='CUL DAILY MOVEMENT — Port Wait VVD Call Detail  —  '+data.length+' ports · '+
                 nIn+' calls'+(nEx?(' · '+nEx+' excluded by remark filter'):'')+
+                (nGap?(' · '+nGap+' VVD code gaps (amber)'):'')+
                 '  —  As of '+TODAY_DATA.date;
 
   function thinBorder(){var s={style:'thin',color:{rgb:'BFBFBF'}};return{top:s,bottom:s,left:s,right:s};}
@@ -2448,14 +2460,14 @@ function exportPortWaitVvdExcel(wb){
     var region=rec.region||'Unknown';
     var th=berthThreshold(port);
     (rec.calls||[]).forEach(function(cl){
-      rows.push({port:port, region:region, vessel:cl.vessel||'', voy:cl.voy||'',
+      rows.push({port:port, region:region, vessel:cl.vessel||'', code:cl.code||'', voy:cl.voy||'',
                  eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
                  wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
                  included:'Yes', cat:cl.cat||'', remark:cl.remark||'',
                  sortKey:cl.dateKey||''});
     });
     (rec.excludedCalls||[]).forEach(function(cl){
-      rows.push({port:port, region:region, vessel:cl.vessel||'', voy:cl.voy||'',
+      rows.push({port:port, region:region, vessel:cl.vessel||'', code:cl.code||'', voy:cl.voy||'',
                  eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
                  wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
                  included:'No (excluded by remark filter)', cat:cl.cat||'', remark:cl.remark||'',
@@ -2481,6 +2493,11 @@ function exportPortWaitVvdExcel(wb){
     var stS={font:{name:'Arial',sz:9,bold:true,color:{rgb:r.status==='Over'?'C00000':'1E7145'}},
              fill:F(fc),border:B,alignment:A('center','center')};
     var incS={font:{name:'Arial',sz:9},fill:F(r.included==='Yes'?fc:'FFF2E8'),border:B,alignment:A('left','center')};
+    // Amber = vessel Code missing/non-standard in Master Data, so the VVD fell
+    // back to the full name. Never silently invent an abbreviation.
+    var vvdStd=isStdVesselCode(r.code);
+    var vvdS={font:{name:'Arial',sz:9,bold:!vvdStd,color:{rgb:vvdStd?'000000':'9C5700'}},
+              fill:F(vvdStd?fc:'FFF2CC'),border:B,alignment:A('left','center')};
     var catLabel='';
     (REMARK_CATEGORIES||[]).forEach(function(c){ if(c.key===r.cat && !catLabel) catLabel=c.label; });
     sheetData.push([
@@ -2488,7 +2505,9 @@ function exportPortWaitVvdExcel(wb){
       {v:r.region, s:cS},
       {v:r.vessel, s:nS},
       {v:r.voy,    s:cS},
-      {v:(r.vessel||'')+(r.voy?(' '+r.voy):''), s:nS},
+      // VVD = vessel CODE + voyage, no separator: CUL HAIPHONG 2630W -> CUHP2630W.
+      // Falls back to the full vessel name when code is empty (rare, e.g. MEDKON DON).
+      {v:(r.code||r.vessel||'')+(r.voy||''), s:vvdS},
       {v:r.eta,    s:cS},
       {v:r.etb,    s:cS},
       {v:r.etd,    s:cS},
@@ -2503,7 +2522,7 @@ function exportPortWaitVvdExcel(wb){
   var totalRows=sheetData.length;
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
-  ws['!cols']=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:36},{wch:17},{wch:17},{wch:17},
+  ws['!cols']=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:14},{wch:17},{wch:17},{wch:17},
                {wch:11},{wch:9},{wch:28},{wch:16},{wch:44}];
   ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
   ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
@@ -3024,7 +3043,7 @@ function buildPortWaitData(){
                         calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
                         remarks:{}, excludedCalls:[]};
         }
-        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
+        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
         totalExcludedByRemark++;
         return;  // excluded calls do not count in berth rate numerator or denominator
       }
@@ -3039,7 +3058,7 @@ function buildPortWaitData(){
     var rec=byPort[port];
 
     // Filtered call — add to stats
-    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
+    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
     rec.totalWait+=wait;
     if(wait>rec.maxWait) rec.maxWait=wait;
     if(wait>=24) rec.longWaitCalls++;
