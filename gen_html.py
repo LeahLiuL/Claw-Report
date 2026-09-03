@@ -693,6 +693,65 @@ def load_agent_contacts(src=None):
     print('  [AGENT] loaded OP contacts for %d ports from %s' % (len(result), os.path.basename(src)))
     return result
 
+AGENT_SNAPSHOT = os.path.join(SCRIPT_DIR, 'agent_snapshot.json')
+
+def _extract_agent_from_html(html_path):
+    """从已生成的 HTML 抽取 const AGENT_BY_PORT = {...}; 返回 dict 或 None。"""
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            txt = f.read()
+    except Exception:
+        return None
+    m = re.search(r'const AGENT_BY_PORT\s*=\s*(\{.*\})\s*;$', txt, re.M)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except Exception:
+        return None
+
+def _save_agent_snapshot(agent):
+    try:
+        with open(AGENT_SNAPSHOT, 'w', encoding='utf-8') as f:
+            json.dump(agent, f, ensure_ascii=False)
+    except Exception as e:
+        print('  [AGENT] snapshot save failed:', e, file=sys.stderr)
+
+def resolve_agent(out_path):
+    """加载代理联系人；若为空（典型：culadmin 机器读不到 P: 盘的 CUL Agent Contact
+    List，生成的 AGENT_BY_PORT 是 {}），从「现有 HTML 已嵌入数据」或「仓库内置快照」
+    恢复，避免 Maintenance 未维护明细的 Agent / OP 列整列变成 —。
+    源正常时刷新内置快照，供其他机器（culadmin）回退。
+
+    与 resolve_maint() 同模式：本保护对「运行本脚本」的机器生效，
+    且 agent_snapshot.json 已提交进仓库 —— culadmin pull 后即便读不到 P: 盘也能恢复。"""
+    agent = load_agent_contacts()
+    if agent:
+        _save_agent_snapshot(agent)   # 源正常 → 刷新快照
+        return agent
+    print('  [AGENT] WARNING: no OP contacts loaded (P: drive contact list unreachable). '
+          'Recovering last-good AGENT_BY_PORT to keep Agent/OP column populated...',
+          file=sys.stderr, flush=True)
+    # 1) 复用现有 HTML 内已嵌入的联系人（不依赖 git pull / VPN / P: 盘）
+    if os.path.exists(out_path):
+        rec = _extract_agent_from_html(out_path)
+        if rec:
+            print('  [AGENT] recovered %d ports from existing HTML.' % len(rec), flush=True)
+            return rec
+    # 2) 回退到内置快照（随仓库分发，culadmin 也能拿到）
+    if os.path.exists(AGENT_SNAPSHOT):
+        try:
+            with open(AGENT_SNAPSHOT, 'r', encoding='utf-8') as f:
+                rec = json.load(f)
+            if rec:
+                print('  [AGENT] recovered %d ports from bundled snapshot.' % len(rec), flush=True)
+                return rec
+        except Exception:
+            pass
+    print('  [AGENT] no recoverable contacts; Agent/OP column will be empty.',
+          file=sys.stderr, flush=True)
+    return agent
+
 def resolve_maint(out_path):
     """加载 MAINT；若检测到坏源(有记录却 vsched 全 0)，从「现有 HTML 已嵌入数据」或
     「仓库内置快照」恢复，避免发布错误的 0% 维护率。源正常时刷新内置快照供其他机器回退。
@@ -4545,7 +4604,7 @@ def main():
     data['portRegionMap'] = boa_port_region
 
     maint = resolve_maint(out_path)
-    agent = load_agent_contacts()
+    agent = resolve_agent(out_path)
 
     # 生成后自检：MAINT 有数据但 port 列超一半是时间戳 → 列映射错位，禁止发布
     _maint_recs = maint.get('records') or []
