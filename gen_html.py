@@ -2707,10 +2707,8 @@ function onPortDateChange(){
   selPortDateFrom=document.getElementById('portDateFrom').value||null;
   selPortDateTo=document.getElementById('portDateTo').value||null;
   selPortDateBasis=document.getElementById('portDateBasis').value||'eta';
+  // renderPortWaitAll() 内部已刷新 BOA（含日期/port/remark 全部筛选）
   renderPortWaitAll();
-  // BOA follows the same date range (and basis) as Port Wait
-  BOA_CALLS=buildBoaCalls();
-  boaRefresh();
 }
 
 // ── Speed Vessel Filter (independent filter for Speed tab) ──────────
@@ -3492,6 +3490,13 @@ function renderPortWaitAll(){
   renderPortWaitByRegion();
   renderPortCallCountByLane();
   renderPortCallCountByRegion();
+  // BOA 板块同样跟随 Port Wait 的 port / remark / 日期筛选。
+  // 原先 BOA 只在 onPortDateChange() 里刷新 → 改 port 或 remark 时它不更新。
+  // boaInit() 在 initPortView() 之后才跑，这里用存在性判断兜底，避免首次调用时表头未建。
+  if(document.getElementById('boaChipTotal')){
+    BOA_CALLS=buildBoaCalls();
+    boaRefresh();
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
@@ -3564,6 +3569,21 @@ function buildBoaCalls(){
     if(!era) return;
     if(df && era<df) return;
     if(dt && era>dt) return;
+    // ── Port filter (same as Port Wait) ──────────────────────────────
+    if(selPortFilter && selPortFilter.indexOf(port)<0) return;
+    if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
+    // ── Remark filter (same rule as Port Wait: excluded calls drop out of
+    //    BOTH numerator and denominator, they are not counted at all) ──
+    if(selRemarkCats){
+      var remark=sr.remark||'';
+      var cat=classifyRemark(remark)||'other';
+      var match=false;
+      for(var i=0;i<selRemarkCats.length;i++){
+        if(cat===selRemarkCats[i]){match=true;break;}
+        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
+      }
+      if(!match) return;
+    }
     var wait=parseFloat(sr.wait);
     if(isNaN(wait)) return;   // same rule as before: only numeric WAIT counts
     var route=sr.route||'';
