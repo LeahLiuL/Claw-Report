@@ -3492,8 +3492,11 @@ function renderPortWaitAll(){
   renderPortCallCountByRegion();
   // BOA 板块同样跟随 Port Wait 的 port / remark / 日期筛选。
   // 原先 BOA 只在 onPortDateChange() 里刷新 → 改 port 或 remark 时它不更新。
-  // boaInit() 在 initPortView() 之后才跑，这里用存在性判断兜底，避免首次调用时表头未建。
-  if(document.getElementById('boaChipTotal')){
+  // boaInit() 在 initPortView() 之后才跑，boaSortState 也还没建，
+  // 这里必须用 BOA_READY 标志位兜底，否则 boaRefresh() 会在 sort
+  // comparator 里抛 TypeError，阻断 init 链导致 initMaintView 不执行
+  // （症状：Maintenance 数据不见 + BOA 板块空）。
+  if(typeof BOA_READY!=='undefined' && BOA_READY && document.getElementById('boaChipTotal')){
     BOA_CALLS=buildBoaCalls();
     boaRefresh();
   }
@@ -3773,7 +3776,19 @@ function boaRenderLane(){ boaRenderGrouped('boaTblLane', 't', 'l'); }
 function boaRenderPort(){ boaRenderGrouped('boaTblPort', 'r', 'p'); }
 
 var BOA_STAT = {berth:0, over:0, total:0, rate:0};
+var BOA_READY = false;  // boaInit() 完成时设 true；renderPortWaitAll 据此决定是否刷新 BOA
 function boaRefresh(){
+  // 防御性兜底：若被 renderPortWaitAll() 早于 boaInit() 触发，
+  // 四个表的 sort state 可能都未建（rows>1 时 sort comparator 会抛 TypeError）。
+  // 这里按默认 "Rate 降序" 补齐，确保 render 至少不崩（即便 BOA_READY 守卫漏掉）。
+  if(!BOA_HEADERS) return;
+  var ids = Object.keys(BOA_HEADERS);
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i];
+    if(!boaSortState[id]){
+      boaSortState[id] = {col: BOA_HEADERS[id].indexOf('Rate'), dir: -1};
+    }
+  }
   BOA_STAT = boaAgg(BOA_CALLS);
   document.getElementById('boaChipTotal').textContent = BOA_CALLS.length;
   document.getElementById('boaChipBerth').textContent = BOA_STAT.berth;
@@ -3815,6 +3830,10 @@ function boaInit(){
     });
   });
   boaRefresh();
+  // ★ BOA_READY 必须在 boaInit() 末尾才置 true，这样后续的 renderPortWaitAll()
+  // 才会刷新 BOA；initPortView() 阶段 renderPortWaitAll 看到 BOA_READY=false
+  // 就会跳过 BOA 刷新，避免 boaSortState 未建时 sort comparator 抛错。
+  BOA_READY = true;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
