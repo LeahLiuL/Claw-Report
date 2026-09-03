@@ -1745,10 +1745,7 @@ function onDecomToggle(cb){
   SHOW_DECOM = !!(cb && cb.checked);
   try{ sessionStorage.setItem('showDecom', SHOW_DECOM?'1':'0'); }catch(e){}
   applyDecomFilter();
-  // 重建 vessel 分组底色（Full Schedule 交替色带）
-  let seen={}, gi=0;
-  fullData.forEach(function(r){ if(!(r.vessel in seen)){ seen[r.vessel]=gi%2; gi++; } });
-  vesselGroupMap = seen;
+  refreshFullGrouping();   // 重建 lane 定位 + vessel 分组底色（Full Schedule 交替色带）
   // 同步两个工具栏的勾选框 + 视觉指示
   var boxes = document.querySelectorAll('.decom-cb');
   var onFlag = SHOW_DECOM ? 'on' : '';
@@ -1893,15 +1890,52 @@ function sortSummary(col){
    ═══════════════════════════════════════════════════════════════════ */
 let fullData=[], fullSortCol=-1, fullSortDir=1;
 let vesselGroupMap = {};
+let vesselLaneRank = {};   // vessel -> 该船所有航线中最靠前的 lane 序号（基于全量 fullData，不受筛选影响）
+
+// 预计算每艘船的"主 lane"：取该船所有记录里 lane 顺序最靠前的那条。
+// 一艘船跨多条航线时用它定位 —— 这样 Lane 大顺序（用户默认序或 Lane Order 里的自定义序）不变，
+// 同时同船的所有航次聚成一簇，簇内按 ETA 升序（最早在上）。
+function buildVesselLaneRank(){
+  vesselLaneRank = {};
+  fullData.forEach(function(r){
+    var k = routeOrderKey(r.route);
+    if(!(r.vessel in vesselLaneRank) || k < vesselLaneRank[r.vessel]) vesselLaneRank[r.vessel] = k;
+  });
+}
+
+function laneRankOf(r){
+  return (r.vessel in vesselLaneRank) ? vesselLaneRank[r.vessel] : routeOrderKey(r.route);
+}
+
+// Full Schedule 默认排序：Lane 顺序 → 船名 → ETA 升序 → Route
+function defaultFullSort(data){
+  data.sort(function(a,b){
+    var la = laneRankOf(a), lb = laneRankOf(b);
+    if(la!==lb) return la-lb;                                  // 1. Lane（用户默认/自定义序）
+    var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
+    if(v!==0) return v;
+    var ea = a.etbRaw||a.etaRaw||'', eb = b.etbRaw||b.etaRaw||'';
+    if(ea!==eb) return ea.localeCompare(eb);                   // 3. 同船 → ETA 升序
+    return routeOrderKey(a.route)-routeOrderKey(b.route);      // 4. 兜底 → Route
+  });
+  return data;
+}
+
+/* 重建 Lane 定位 + vessel 分组底色。fullData 变化（已下线筛选）或 Lane 顺序变化后调用 */
+function refreshFullGrouping(){
+  buildVesselLaneRank();
+  // 按默认排序后的顺序分配交替底色，保证视觉上相邻船连续换色
+  var seen = {}, gi = 0;
+  defaultFullSort(fullData.slice()).forEach(function(r){
+    if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
+  });
+  vesselGroupMap = seen;
+}
 
 function initFullSchedule(){
   applyDecomFilter();
   loadLaneOrder();
-  let seen = {}, gi = 0;
-  fullData.forEach(function(r){
-    if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
-  });
-  vesselGroupMap = seen;
+  refreshFullGrouping();
 
   // Set default ETA date range
   document.getElementById('etaFrom2').value = TODAY_DATA.defaultEtaFrom || '';
@@ -1953,7 +1987,7 @@ function getFilteredFull(){
       }
     }
   } else {
-    data.sort((a,b)=>routeOrderKey(a.route)-routeOrderKey(b.route));
+    defaultFullSort(data);
   }
   return data;
 }
@@ -2386,6 +2420,7 @@ function moveLane(idx, dir){
   var tmp = list[idx]; list[idx] = list[ni]; list[ni] = tmp;
   LANE_ORDER_OVERRIDE = list;
   saveLaneOrder();
+  refreshFullGrouping();          // lane 序变了 → 重算每艘船的主 lane + 交替底色
   renderLaneOrderList();          // re-render modal with new order
   renderFullSchedule();           // live-update the table below
 }
@@ -2393,6 +2428,7 @@ function moveLane(idx, dir){
 function resetLaneOrder(){
   LANE_ORDER_OVERRIDE = null;
   saveLaneOrder();
+  refreshFullGrouping();
   renderLaneOrderList();
   renderFullSchedule();
 }
@@ -2408,53 +2444,70 @@ function escapeHtml(s){
 }
 
 // Remark classification: 16 类。按顺序匹配，先命中先归 —— 越具体的类排越前。
-// patterns = 正则（整句形态匹配），keywords = 子串包含匹配（已 lower-case 比较）。
+// R1–R10 不再单独成类，而是在 classifyRemark() 开头先按 R_CODE_MAP 映射到语义类别。
+// ── R1–R10 → 语义类别映射（按 reason 本质归类，用户 2026-09-01 确认）──────────
+//   R1  = Force majeure: port congestion                     → congestion
+//   R2  = Force majeure: port closed                         → portclosure
+//   R3  = Change terminal to TCHP (CAT LAI severe congestion)→ congestion
+//   R4  = Omission (CAT LAI congestion seriously)            → congestion
+//   R5  = Force majeure: sea conditions & weather            → weather
+//   R6  = Force majeure: terminal equipment malfunction      → equipment
+//   R7  = Force majeure: terminal operation efficiency low   → berthops
+//   R8  = Change terminal to NBCT P2 (P3 severe congestion)  → congestion
+//   R9  = COR to call SHA then NGB, P/O RBC1                 → phase
+//   R10 = NGB shift to NBCT P2 (port congestion)             → congestion
+// 组合码（R1/R5、R4; R10）取第一个 R 码的映射 —— 主因通常写在前面。
+var R_CODE_MAP = {
+  R1:'congestion', R2:'portclosure', R3:'congestion', R4:'congestion',
+  R5:'weather',    R6:'equipment',   R7:'berthops',   R8:'congestion',
+  R9:'phase',      R10:'congestion'
+};
+
 var REMARK_CATEGORIES = [
-  // 1. 内部原因代码：整句仅为 R# 组合（如 "R1"、"R1/R5"、"R4; R10"）
-  {key:'reasoncode',  label:'Reason Code (R#)',
-   patterns:[/^\s*R\d{1,2}(\s*[;,\/&+]\s*R\d{1,2})*\s*$/i], keywords:[]},
-  // 2. 潮汐/水深（不含裸 tide —— "Strong tide make previous vessel working delay" 属塞港）
+  // 1. 潮汐/水深（不含裸 tide —— "Strong tide make previous vessel working delay" 属塞港）
   {key:'tide',        label:'Tide / Draft',
    keywords:['潮水','tide limit','潮位','吃水','draft limit','low water','水深']},
-  // 3. 节假日（不含 port close —— 封港多由天气引起，交给 weather 捕获）
-  {key:'holiday',     label:'Holiday / Port Closure',
+  // 2. 节假日（纯节日；封港走 portclosure，不含 port close 关键词以免误抓天气封港）
+  {key:'holiday',     label:'Holiday',
    keywords:['eid','ramadan','斋月','cny','chinese new year','春节','holiday','festival','国庆','放假']},
-  // 4. 船舶自身故障（主机/舵机/备件）
+  // 3. 船舶自身故障（主机/舵机/备件）
   {key:'vslfault',    label:'Vessel Breakdown',
    keywords:['engine failure','malfunction','主机','main engine','me failure','备件','磨合','propulsion','steering','舵机','发电机','vessel repair','修船','dry dock','进厂']},
-  // 5. 天气/不可抗力
-  {key:'weather',     label:'Weather / Force Majeure',
+  // 4. 封港 / 港口关闭（R2）。keywords 留空 —— 只由 R2 映射进入，避免误抓 "Port Closed due to fog"（实为天气）
+  {key:'portclosure', label:'Port Closure (Force Majeure)', keywords:[]},
+  // 5. 天气/海况/不可抗力（R5）
+  {key:'weather',     label:'Weather / Sea Conditions',
    keywords:['typhoon','台风','避台','大风浪','weather','storm','swell','fog','雾','monsoon','rain','暴雨','避风','shelter','cold air','wind','wave','浪']},
   // 6. 货物/中转衔接
   {key:'cargo',       label:'Cargo / Connection',
    keywords:['wait cargo','waiting for','等货','的货','备货','接箱','connection','connect','balance','t/s cargo','中转','空箱','接应','等接','同步作业']},
-  // 7. 塞港/等泊
+  // 7. 塞港/等泊（R1、R3、R4、R8、R10 均映射至此）
   {key:'congestion',  label:'Port Congestion',
    keywords:['congestion','congested','congesiton','塞港','拥堵','拥挤','压港','集中到港','前船','previous vessel','preceding','场地爆满','bunch','等泊','waiting','convoy','canal']},
-  // 8. 加油/物料供应。注意：不能用裸 'cst'（会误抓 CST 航线名），改用 "380CST" 牌号形态
+  // 7. 加油/物料供应。注意：不能用裸 'cst'（会误抓 CST 航线名），改用 "380CST" 牌号形态
   {key:'bunker',      label:'Bunker / Supply',
    patterns:[/\d+(\.\d+)?\s*mt\b/i, /\b\d{3}\s*cst\b/i],
    keywords:['bunker','加油','bunkering','fuel','lsfo','mgo','ulsfo','vlsfo','l.o','lo supply','fresh water','淡水','supply']},
-  // 9. 加班靠/虚拟挂靠
+  // 8. 加班靠/虚拟挂靠
   {key:'adhoc',       label:'Ad Hoc / Extra Call',
    keywords:['ad hoc','adhoc','ad-hoc','extra call','add call','private call','dummy','虚拟挂靠','不显示']},
-  // 10. 码头设备故障（吊机/导轨/舱盖/停电）
+  // 9. 码头设备故障（吊机/导轨/舱盖/停电）（R6 映射至此）
   {key:'equipment',   label:'Terminal Equipment Failure',
    keywords:['crane','吊机','导轨','guide rail','hatch cover','舱盖','power outage','power failure','停电','高压电','绑扎','gantry','岸桥']},
-  // 11. 泊位/码头作业安排
+  // 10. 泊位/码头作业安排 / 作业效率低（R7 映射至此）
   {key:'berthops',    label:'Berth / Terminal Ops',
    keywords:['only discharge','only load','discharging only','switch doc','doc switch','document switch','docment','switich','换单','单杆','一支杆','效率','协调靠泊','w17','not able to discharge']},
-  // 12. 航线调整（P/I、P/O、OMIT、SLIDE、改靠、COR）
+  // 11. 航线调整（P/I、P/O、OMIT、SLIDE、改靠、COR）（R9 映射至此）
   {key:'phase',       label:'Phase In/Out / Service Change',
    patterns:[/\bp\s*\/\s*[io]\b/i, /\bp\s*\/\s*s\b/i, /\bcor\b/i],
    keywords:['phase in','phase out','omit','slide','改靠','shift','suspension','reinstate','rotation','cycle','swap','换港序','换码头','reinstated']},
-  // 13. 租船交还船
+  // 12. 租船交还船
   {key:'chartering',  label:'Chartering (On/Off-hire)',
    keywords:['on hire','on-hire','off hire','off-hire','onhire','offhire','delivery','redelivery','rel-del','charter','交船','还船','租船']},
-  // 14. 检查/海关/MSA/吨税
+  // 13. 检查/海关/MSA/吨税
   {key:'inspection',  label:'Inspection / Customs / MSA',
    keywords:['inspection','检查','检疫','quarantine','customs','海关','pcs','吨税','船旗','船籍','registration','老鼠证','derat','msa','regulatory','审批']},
-  // 15. 降速等泊
+  // 14. 降速等泊
   {key:'slowsteam',   label:'Slow Steaming',
    keywords:['speed down','slow down','降速','eco speed','slowing','slow','慢速','reduce speed','减车']},
   {key:'other',       label:'Other',              keywords:[]}  // fallback
@@ -2465,13 +2518,24 @@ var REMARK_COLORS = {
   congestion:'#c0392b', weather:'#2980b9',   bunker:'#d35400',    phase:'#9b59b6',
   adhoc:'#f39c12',      cargo:'#27ae60',     berthops:'#16a085',  equipment:'#e67e22',
   vslfault:'#8e44ad',   inspection:'#7f8c8d', chartering:'#34495e', slowsteam:'#1abc9c',
-  holiday:'#e74c3c',    tide:'#3498db',      reasoncode:'#95a5a6', other:'#bdc3c7'
+  holiday:'#e74c3c',    tide:'#3498db',      portclosure:'#5dade2', other:'#bdc3c7'
 };
 function remarkColor(key){ return REMARK_COLORS[key] || '#95a5a6'; }
+
+// 纯 R 码形式：整句只由 R# 与分隔符组成（"R1"、"R1/R5"、"R4; R10"、"R9/R1/R2"）
+var PURE_RCODE_RE = /^\s*R(\d{1,2})(?:\s*[;,\/&+]\s*R\d{1,2})*\s*$/i;
 
 function classifyRemark(remark){
   if(!remark) return null;
   var r=String(remark);
+  // ① R 码优先：按 R_CODE_MAP 映射到语义类别（组合码取第一个 = 主因）
+  var rm=r.match(PURE_RCODE_RE);
+  if(rm){
+    var mapped=R_CODE_MAP['R'+parseInt(rm[1],10)];
+    if(mapped) return mapped;
+    return 'other';           // 未知 R 码（如 R11）
+  }
+  // ② 否则按语义类顺序匹配，先命中先归
   var rl=r.toLowerCase();
   for(var i=0;i<REMARK_CATEGORIES.length-1;i++){
     var cat=REMARK_CATEGORIES[i];
