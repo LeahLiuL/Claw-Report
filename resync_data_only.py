@@ -221,16 +221,31 @@ def main():
             log("WARN: cannot restore {} — leaving as-is".format(SNAPSHOT_FILE))
 
         # 4) 校验关键修复仍在（防止 gen_html.py 被回退导致修复丢失）
-        for token, label in (("AGENT_BY_PORT", "Agent/OP column"),
-                             ("berthedCalls", "Berth Rate fix"),
-                             ("isDecommissioned", "decommissioned-vessel filter")):
+        #    MUST-PRESENT = 新版特征串；MUST-ABSENT = 已被移除的旧逻辑（出现即代码是旧的）
+        must_present = (("AGENT_BY_PORT", "Agent/OP column"),
+                        ("berthedCalls", "Berth Rate fix"),
+                        ("isDecommissioned", "decommissioned-vessel filter"),
+                        ("R_CODE_MAP", "R-code semantic map"),
+                        ("portclosure", "Port Closure category"),
+                        ("buildVesselLaneRank", "Lane-first sort"),
+                        ("defaultFullSort", "Default full sort"))
+        must_absent  = (("reasoncode", "legacy reasoncode class removed"),)
+        for token, label in must_present:
             if token in local_html:
                 log("  OK  {}".format(label))
             else:
                 raise RuntimeError("{} missing after regeneration -- aborting to avoid shipping a broken page".format(label))
+        for token, label in must_absent:
+            if token not in local_html:
+                log("  OK  {}".format(label))
+            else:
+                raise RuntimeError("{} still present in regenerated HTML -- gen_html.py is stale, aborting".format(label))
 
-        # 5) 提交并推送（只推 HTML + 脚本，不动 maint_snapshot.json）
-        run("git add {}".format(HTML))
+        # 5) 提交并推送
+        #    ⚠️ gen_html.py 必须一起提交！否则远端仓库里的源程序永远是 culadmin 的旧版本，
+        #    HTML 只是"产物"被替换、源码没跟上 → culadmin 下次 pull 拿到的还是旧代码，
+        #    用它重生成又会覆盖掉修复（2026-09-03 定位到的真正根因）。
+        run("git add {} gen_html.py".format(HTML))
         rc, out = run("git diff --cached --quiet", check=False)
         if rc == 0:
             log("no changes to commit")

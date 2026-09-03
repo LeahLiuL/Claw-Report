@@ -67,14 +67,23 @@ git add 产物 → rebase → push
    ```bat
    python auto_update_sync.py --check
    ```
-   期望输出：
+   期望输出（**8 项全部 OK**）：
    ```
-   [sync] now at 7fc1869...
-   [sync]   OK  Agent/OP column
-   [sync]   OK  Berth Rate (threshold)
+   [sync] fetch origin ...
+   [sync] reset working tree to remote tip (6f9a4d2) ...
+   [sync] now at 6f9a4d2
+   [sync]   OK       Agent/OP column
+   [sync]   OK       Berth Rate (threshold)
+   [sync]   OK       Decommissioned filter
+   [sync]   OK       R-code semantic map
+   [sync]   OK       Port Closure category
+   [sync]   OK       Lane-first sort
+   [sync]   OK       Default full sort
+   [sync]   OK       legacy reasoncode class absent
    [sync] check mode: sync + verify passed, skipping generation
    ```
-   看到两个 `OK` 就说明代码已经是最新版。
+   看到 8 个 `OK` 就说明代码已是最新版。**任何一项 MISSING / STALE 都不要继续**，
+   先重跑第 2 步的 `git fetch` + `git reset --hard FETCH_HEAD`。
 
 4. **把每日任务改成跑这个脚本**：
    - 原来定时任务/计划任务里如果是 `python auto_update.py` → 改成 `python auto_update_sync.py`
@@ -107,11 +116,30 @@ subprocess.run(["git", "reset", "--hard", "origin/main"], check=True)
 
 - commit message 应含 `auto_update_sync`
 - 该 commit **只改** `cul_daily_movement.html` / `maint_snapshot.json`（这是正常的，代码本来就是最新的）
-- 打开 GitHub Pages 看板，确认这些功能都在：
-  - Maintenance 未维护明细里有 **Agent / OP** 列
-  - Port Wait 的 **Berth Rate 不是恒 100%**（如 CNSHA 约 5%、HKHKG 100%）
-  - Monthly Trend 每根柱子有 `X/Y berthed` 且比例在 55%~75% 区间
-  - Maintenance 里有 **Per-Port Rate** 表
+
+打开 GitHub Pages 看板（**Ctrl+F5 硬刷新**），逐项确认：
+
+| 检查点 | 预期 |
+|---|---|
+| Maintenance 未维护明细里有 **Agent / OP** 列 | 存在，且不是全空 |
+| Port Wait **Berth Rate 不是恒 100%** | 如 CNSHA 约 5%、YEADE 约 23% |
+| Monthly Trend 柱子的 `X/Y berthed` | 比例在 55%~75% |
+| Maintenance 里有 **Per-Port Rate** 表 | 存在 |
+| Summary / Full Schedule **默认不显示「已下线」船** | 工具栏有 `Show 已下线` 小 chip |
+| Full Schedule **Lane 顺序**保持（ST3 打头） | 同船跨 lane 时聚成一段、按 ETA 升序 |
+| Port Wait 的 **Remark 筛选下拉 = 16 类** | 见下方清单 |
+
+**Remark 下拉应有的 16 类**（顺序即匹配顺序）：
+```
+Tide / Draft · Holiday · Vessel Breakdown · Port Closure (Force Majeure)
+Weather / Sea Conditions · Cargo / Connection · Port Congestion
+Bunker / Supply · Ad Hoc / Extra Call · Terminal Equipment Failure
+Berth / Terminal Ops · Phase In/Out / Service Change
+Chartering (On/Off-hire) · Inspection / Customs / MSA
+Slow Steaming · Other
+```
+
+**⚠️ 出现 "Reason Code (R#)" 就说明代码还是旧的** —— 重跑第 2、3 步。
 
 只要这几项第二天还在，就说明修复生效了。
 
