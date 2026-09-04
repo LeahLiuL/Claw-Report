@@ -1490,7 +1490,7 @@ function _loadXlsx(cb){
   <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
     <div class="table-wrap" style="flex:1;min-width:380px;">
       <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128202; Wait Time by Remark Category</h4>
-      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Category breakdown of port wait within selected filters and time range.</p>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Category breakdown of port wait within selected filters and time range. Calls with <b>no remark</b> are excluded here &mdash; they have no attributable delay cause.</p>
       <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div class="table-wrap" style="flex:1;min-width:380px;">
@@ -3070,7 +3070,11 @@ var REMARK_CATEGORIES = [
   // 14. 降速等泊
   {key:'slowsteam',   label:'Slow Steaming',
    keywords:['speed down','slow down','降速','eco speed','slowing','slow','慢速','reduce speed','减车']},
-  {key:'other',       label:'Other',              keywords:[]}  // fallback
+  // 15. 无备注（干净靠泊）。不靠关键词匹配 —— 由 classifyRemark() 在开头特判。
+  //     单独成档是因为它占了绝大多数记录（实测 1483 条里 1065 条无备注，占 72%），
+  //     混进 Other 会让「取消勾选 Other」连带排掉所有正常靠泊。
+  {key:'noremark',    label:'No Remark (clean call)', keywords:[]},
+  {key:'other',       label:'Other (unclassified)',   keywords:[]}  // fallback：有备注但归类不出
 ];
 
 // 各分类配色（Wait Time by Remark Category 图表用）。新增分类只需在此补色，缺失回退灰色。
@@ -3078,7 +3082,8 @@ var REMARK_COLORS = {
   congestion:'#c0392b', weather:'#2980b9',   bunker:'#d35400',    phase:'#9b59b6',
   adhoc:'#f39c12',      cargo:'#27ae60',     berthops:'#16a085',  equipment:'#e67e22',
   vslfault:'#8e44ad',   inspection:'#7f8c8d', chartering:'#34495e', slowsteam:'#1abc9c',
-  holiday:'#e74c3c',    tide:'#3498db',      portclosure:'#5dade2', other:'#bdc3c7'
+  holiday:'#e74c3c',    tide:'#3498db',      portclosure:'#5dade2', other:'#bdc3c7',
+  noremark:'#aab7c4'
 };
 function remarkColor(key){ return REMARK_COLORS[key] || '#95a5a6'; }
 
@@ -3086,7 +3091,9 @@ function remarkColor(key){ return REMARK_COLORS[key] || '#95a5a6'; }
 var PURE_RCODE_RE = /^\s*R(\d{1,2})(?:\s*[;,\/&+]\s*R\d{1,2})*\s*$/i;
 
 function classifyRemark(remark){
-  if(!remark) return null;
+  // 无备注（含纯空白）→ 独立成档 'noremark'，不再混进 'other'。
+  // 'other' 现在只代表「有备注但归类不出」，实测只有 12 条。
+  if(!String(remark||'').trim()) return 'noremark';
   var r=String(remark);
   // ① R 码优先：按 R_CODE_MAP 映射到语义类别（组合码取第一个 = 主因）
   var rm=r.match(PURE_RCODE_RE);
@@ -3097,8 +3104,11 @@ function classifyRemark(remark){
   }
   // ② 否则按语义类顺序匹配，先命中先归
   var rl=r.toLowerCase();
-  for(var i=0;i<REMARK_CATEGORIES.length-1;i++){
+  // 末尾两项不参与关键词匹配：'noremark' 由开头特判，'other' 是全部落空时的兜底。
+  // 原先写成 length-1 只跳过最后一项，新增分类时会静默错位。
+  for(var i=0;i<REMARK_CATEGORIES.length;i++){
     var cat=REMARK_CATEGORIES[i];
+    if(cat.key==='noremark' || cat.key==='other') continue;
     // 先试正则（整句形态），再试关键词子串
     if(cat.patterns){
       for(var p=0;p<cat.patterns.length;p++){
@@ -3409,7 +3419,6 @@ function buildPortWaitData(){
       var match=false;
       for(var i=0;i<selRemarkCats.length;i++){
         if(cat===selRemarkCats[i]){match=true;break;}
-        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match){
         // Ensure port record exists so excluded calls can still be inspected
@@ -3450,6 +3459,10 @@ function buildPortWaitData(){
   var allFilteredCalls=[];
   for(var p in byPort){
     var rec=byPort[p];
+    // Calls 列在过滤态下渲染成「计入 / 过滤前总数」。allCalls 曾因 commit 0998a62
+    // 改 berth rate 口径时删掉了赋值、却漏删渲染层引用而恒为 undefined（页面显示
+    // "2 / undefined"，底部统计 "NaN total calls in range"）。补回来。
+    rec.allCalls=rec.calls.length + rec.excludedCalls.length;
     rec.avgWait=rec.calls.length>0 ? (rec.totalWait/rec.calls.length) : 0;
     // Berth rate = berthed calls (with ETB) / total filtered calls; remark filter applies to both
     rec.berthRate=rec.calls.length>0 ? Math.round(rec.berthedCalls/rec.calls.length*100) : 0;
@@ -3751,7 +3764,6 @@ function getFilteredCalls(){
       var match=false;
       for(var i=0;i<selRemarkCats.length;i++){
         if(cat===selRemarkCats[i]){match=true;break;}
-        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match) return;
     }
@@ -3821,8 +3833,13 @@ function renderPortCallCountByRegion(){
 
 function renderRemarkSummary(){
   var totals=remarkCatTotals;
+  // 归因图只统计「有备注」的靠泊：无备注代表没有可归因的延误原因，放进来会占掉
+  // 七成篇幅（实测 1065/1483），把真正的成因分类挤到看不见。
   var totalWait=0, totalCalls=0;
-  for(var k in totals){ totalWait+=totals[k].wait; totalCalls+=totals[k].calls; }
+  for(var k in totals){
+    if(k==='noremark') continue;
+    totalWait+=totals[k].wait; totalCalls+=totals[k].calls;
+  }
 
   var cont=document.getElementById('remarkSummary');
   if(totalWait===0){
@@ -3833,6 +3850,7 @@ function renderRemarkSummary(){
   // Build sorted list by wait desc
   var items=[];
   REMARK_CATEGORIES.forEach(function(cat){
+    if(cat.key==='noremark') return;
     var t=totals[cat.key]||{wait:0,calls:0};
     if(t.calls>0 || cat.key==='other') items.push({key:cat.key, label:cat.label, wait:t.wait, calls:t.calls});
   });
@@ -4143,7 +4161,6 @@ function buildBoaCalls(){
       var match=false;
       for(var i=0;i<selRemarkCats.length;i++){
         if(cat===selRemarkCats[i]){match=true;break;}
-        if(selRemarkCats[i]==='other' && !remark){match=true;break;}
       }
       if(!match) return;
     }
