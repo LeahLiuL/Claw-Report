@@ -1169,6 +1169,25 @@ function _loadXlsx(cb){
   }
   .col-dropdown label:hover { background: #f0f7ff; }
   .col-dropdown input[type="checkbox"] { accent-color: #1F4E79; width: 15px; height: 15px; }
+  /* ── Remark handling: three-way switch per category ──────────────────────
+     计入 = counted normally · 剔除 = out of numerator AND denominator ·
+     BOA  = stays in the denominator and counts as berth-on-arrival (wait 0) */
+  .rm-row { display:flex; align-items:center; gap:10px; padding:4px 16px; font-size:12.5px; }
+  .rm-row:hover { background:#f0f7ff; }
+  .rm-name { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rm-cnt { flex:none; font-size:10.5px; color:#8a9bb0; font-variant-numeric:tabular-nums; }
+  .rm-seg { flex:none; display:flex; border:1px solid #c9d5e2; border-radius:5px; overflow:hidden; }
+  .rm-seg button {
+    border:none; background:#fff; font-size:10.5px; padding:3px 7px; cursor:pointer;
+    color:#6a7b8d; font-weight:600; border-left:1px solid #e4ecf5; transition:.1s;
+  }
+  .rm-seg button:first-child { border-left:none; }
+  .rm-seg button:hover { background:#EBF3FB; }
+  .rm-seg button.on { background:#1F4E79; color:#fff; }
+  .rm-seg button.on.rm-ex  { background:#C0392B; }
+  .rm-seg button.on.rm-boa { background:#1E7145; }
+  .rm-hint { font-size:10.5px; color:#8a9bb0; padding:2px 16px 6px; line-height:1.55; }
+  .rm-hint b { color:#5a697a; }
   .stat-chip { margin-left: auto; background: #EBF3FB; border: 1px solid #c3d9f0; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #1F4E79; font-weight: 600; }
   .delay-chip { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #c00000; font-weight: 600; }
   td.delay { background: #fff0f0 !important; color: #c00000; font-weight: 700; }
@@ -1451,7 +1470,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls berthed within threshold (wait &#8804; 12h for CNSHA/CNNGB, &#8804; 6h for other ports) / total calls in selected range. Remark filters apply to both numerator and denominator. Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls berthed within threshold (wait &#8804; 12h for CNSHA/CNNGB, &#8804; 6h for other ports) / total calls in selected range. Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -1490,7 +1509,7 @@ function _loadXlsx(cb){
   <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
     <div class="table-wrap" style="flex:1;min-width:380px;">
       <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128202; Wait Time by Remark Category</h4>
-      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Category breakdown of port wait within selected filters and time range. Calls with <b>no remark</b> are excluded here &mdash; they have no attributable delay cause.</p>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Category breakdown of port wait within selected filters and time range. Calls with <b>no remark</b> are excluded here &mdash; they have no attributable delay cause. A category switched to <b>BOA</b> contributes 0h and disappears from this chart.</p>
       <div id="remarkSummary" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div class="table-wrap" style="flex:1;min-width:380px;">
@@ -2664,8 +2683,19 @@ function exportPortWaitVvdExcel(wb){
   var data = portWaitData || [];
   if(!data.length) return false;
 
+  // Count how many in-denominator calls were forced to berth-on-arrival by the
+  // per-category remark handling (their wait is zeroed for the rate).
+  var nBoa=0;
+  data.forEach(function(r){
+    (r.calls||[]).forEach(function(cl){ if(cl.boaExempt) nBoa++; });
+  });
+  // The raw-wait column only earns its place when something was actually
+  // exempted — otherwise it would just duplicate the wait column.
+  var showRaw = nBoa>0;
   var headers=['Port','Region','Vessel','Voy','VVD','ETA','ETB','ETD',
-               'Wait (hrs)','Status','Included','Remark Category','Remark'];
+               'Wait (hrs)'];
+  if(showRaw) headers.push('Wait (raw hrs)');
+  headers.push('Status','Included','Remark Category','Remark');
   var numCols=headers.length;
   var nIn=0, nEx=0, nGap=0;
   data.forEach(function(r){
@@ -2676,6 +2706,7 @@ function exportPortWaitVvdExcel(wb){
   });
   var titleText='CUL DAILY MOVEMENT — Port Wait VVD Call Detail  —  '+data.length+' ports · '+
                 nIn+' calls'+(nEx?(' · '+nEx+' excluded by remark filter'):'')+
+                (nBoa?(' · '+nBoa+' counted as BOA (wait zeroed)'):'')+
                 (nGap?(' · '+nGap+' VVD code gaps (amber)'):'')+
                 '  —  As of '+TODAY_DATA.date;
 
@@ -2698,6 +2729,8 @@ function exportPortWaitVvdExcel(wb){
       stOver:{font:{name:'Arial',sz:9,bold:true,color:{rgb:'C00000'}},fill:F(fc),border:B,alignment:A('center','center')},
       incYes:{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
       incNo :{font:{name:'Arial',sz:9},fill:F('FFF2E8'),border:B,alignment:A('left','center')},
+      // Green = kept in the denominator but exempted to berth-on-arrival
+      incBoa:{font:{name:'Arial',sz:9,bold:true,color:{rgb:'1E7145'}},fill:F('E8F5EC'),border:B,alignment:A('left','center')},
       vvdOk :{font:{name:'Arial',sz:9},fill:F(fc),border:B,alignment:A('left','center')},
       // Amber = vessel Code missing/non-standard in Master Data, so the VVD fell
       // back to the full name. Never silently invent an abbreviation.
@@ -2717,27 +2750,35 @@ function exportPortWaitVvdExcel(wb){
     var region=rec.region||'Unknown';
     var th=berthThreshold(port);
     (rec.calls||[]).forEach(function(cl){
+      var w=parseFloat(cl.wait)||0;
       rows.push({port:port, region:region, vessel:cl.vessel||'', code:cl.code||'', voy:cl.voy||'',
                  eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
-                 wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
-                 included:'Yes', cat:cl.cat||'', remark:cl.remark||'',
+                 wait:w, waitRaw:(cl.waitRaw!=null?parseFloat(cl.waitRaw):w)||0,
+                 boa:!!cl.boaExempt,
+                 status:(w<=th?'Berth':'Over'),
+                 included:cl.boaExempt?'Yes (BOA exempt)':'Yes',
+                 cat:cl.cat||'', remark:cl.remark||'',
                  sortKey:cl.dateKey||''});
     });
     (rec.excludedCalls||[]).forEach(function(cl){
+      var w=parseFloat(cl.wait)||0;
       rows.push({port:port, region:region, vessel:cl.vessel||'', code:cl.code||'', voy:cl.voy||'',
                  eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
-                 wait:parseFloat(cl.wait)||0, status:(cl.wait<=th?'Berth':'Over'),
+                 wait:w, waitRaw:w, boa:false,
+                 status:(w<=th?'Berth':'Over'),
                  included:'No (excluded by remark filter)', cat:cl.cat||'', remark:cl.remark||'',
                  sortKey:''});
     });
   });
   if(!rows.length) return false;
 
-  // Deterministic order: port asc → included calls first (chronological by
-  // the selected date basis) → then the remark-filtered-out calls.
+  // Deterministic order: port asc → included calls first (BOA-exempt right
+  // after them) → then the remark-filtered-out calls.
+  function incRank(v){ return v==='Yes'?0 : (v==='Yes (BOA exempt)'?1 : 2); }
   rows.sort(function(a,b){
     if(a.port!==b.port) return a.port.localeCompare(b.port);
-    if(a.included!==b.included) return a.included==='Yes' ? -1 : 1;
+    var ra=incRank(a.included), rb=incRank(b.included);
+    if(ra!==rb) return ra-rb;
     if(a.sortKey!==b.sortKey) return (a.sortKey||'~').localeCompare(b.sortKey||'~');
     return a.vessel.localeCompare(b.vessel);
   });
@@ -2746,7 +2787,7 @@ function exportPortWaitVvdExcel(wb){
     var S=(i%2===0)?SE:SO;
     var catLabel='';
     (REMARK_CATEGORIES||[]).forEach(function(c){ if(c.key===r.cat && !catLabel) catLabel=c.label; });
-    sheetData.push([
+    var row=[
       {v:r.port,   s:S.ctr},
       {v:r.region, s:S.ctr},
       {v:r.vessel, s:S.txt},
@@ -2757,19 +2798,22 @@ function exportPortWaitVvdExcel(wb){
       {v:r.eta,    s:S.ctr},
       {v:r.etb,    s:S.ctr},
       {v:r.etd,    s:S.ctr},
-      {v:Number(r.wait.toFixed(1)), s:S.wait},
-      {v:r.status, s:(r.status==='Over'?S.stOver:S.stOk)},
-      {v:r.included, s:(r.included==='Yes'?S.incYes:S.incNo)},
-      {v:(catLabel||r.cat||''), s:S.ctr},
-      {v:(r.remark||''), s:S.txt}
-    ]);
+      {v:Number(r.wait.toFixed(1)), s:S.wait}
+    ];
+    if(showRaw) row.push({v:Number(r.waitRaw.toFixed(1)), s:S.wait});
+    row.push({v:r.status, s:(r.status==='Over'?S.stOver:S.stOk)});
+    row.push({v:r.included, s:(r.boa?S.incBoa:(r.included==='Yes'?S.incYes:S.incNo))});
+    row.push({v:(catLabel||r.cat||''), s:S.ctr});
+    row.push({v:(r.remark||''), s:S.txt});
+    sheetData.push(row);
   });
 
   var totalRows=sheetData.length;
   var ws=XLSX.utils.aoa_to_sheet(sheetData);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
-  ws['!cols']=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:14},{wch:17},{wch:17},{wch:17},
-               {wch:11},{wch:9},{wch:28},{wch:16},{wch:44}];
+  var cols=[{wch:14},{wch:14},{wch:26},{wch:10},{wch:14},{wch:17},{wch:17},{wch:17},{wch:11}];
+  if(showRaw) cols.push({wch:13});          // Wait (raw hrs)
+  ws['!cols']=cols.concat([{wch:9},{wch:28},{wch:16},{wch:44}]);
   ws['!rows']=[{hpt:26},{hpt:28}]; for(var j=2;j<totalRows;j++) ws['!rows'].push({hpt:16});
   ws['!autofilter']={ref:'A2:'+XLSX.utils.encode_col(numCols-1)+totalRows};
   ws['!freeze']={xSplit:0,ySplit:2};
@@ -3123,26 +3167,77 @@ function classifyRemark(remark){
   return 'other';
 }
 
-// Selected remark categories filter (null = show all)
-var selRemarkCats = null;
+// ── Remark handling: how each remark category feeds the berth rate ──────────
+// null                      → every category counted (no filter at all)
+// {cat:'exclude'|'boa', …}  → only the non-default categories are stored;
+//                             anything absent is implicitly 'include'.
+//   include (default) : call counted normally, berth decided by the real wait
+//   exclude           : call drops out of BOTH the numerator and the denominator
+//   boa               : call STAYS in the denominator AND counts as
+//                       berth-on-arrival; its wait is zeroed so it also stops
+//                       inflating avg / max / over-threshold figures
+// Leah 2026-09-04: she needs both behaviours, and needs to switch a category
+// between them from the page rather than have it hard-coded.
+var remarkMode = null;
+var REMARK_MODE_STORE = 'culPwRemarkMode.v1';
+
+function remarkModeOf(cat){
+  if(!remarkMode) return 'include';
+  var m=remarkMode[cat];
+  return (m==='exclude' || m==='boa') ? m : 'include';
+}
+function remarkModeActive(){
+  if(!remarkMode) return false;
+  for(var k in remarkMode){ if(remarkMode[k]==='exclude'||remarkMode[k]==='boa') return true; }
+  return false;
+}
+function loadRemarkMode(){
+  try{
+    var raw=localStorage.getItem(REMARK_MODE_STORE);
+    if(!raw) return;
+    var o=JSON.parse(raw), out={};
+    for(var k in (o||{})){ if(o[k]==='exclude'||o[k]==='boa') out[k]=o[k]; }
+    remarkMode = Object.keys(out).length ? out : null;
+  }catch(e){ remarkMode=null; }
+}
+function saveRemarkMode(){
+  try{
+    if(remarkMode) localStorage.setItem(REMARK_MODE_STORE, JSON.stringify(remarkMode));
+    else localStorage.removeItem(REMARK_MODE_STORE);
+  }catch(e){ /* private mode / quota — non-fatal */ }
+}
 
 function buildRemarkFilterDropdown(){
   var dd=document.getElementById('remarkFilterDropdown');
-  var usedCats={};
+  var usedCats={}, cnt={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var cat=classifyRemark(sr.remark);
-    if(cat) usedCats[cat]=true;
+    if(cat){ usedCats[cat]=true; cnt[cat]=(cnt[cat]||0)+1; }
   });
 
-  var html='';
+  var html='<div class="rm-hint">'+
+    '<b>计入</b> counted as-is · <b>剔除</b> out of both numerator &amp; denominator · '+
+    '<b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0)'+
+    '</div>';
   REMARK_CATEGORIES.forEach(function(cat){
     if(!usedCats[cat.key] && cat.key!=='other') return;
-    var checked = !selRemarkCats || selRemarkCats.indexOf(cat.key)>=0;
-    html+='<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">';
-    html+='<input type="checkbox" value="'+cat.key+'" '+(checked?'checked':'')+' onchange="onRemarkCatChange()">';
-    html+=cat.label+'</label>';
+    var m=remarkModeOf(cat.key);
+    html+='<div class="rm-row">'+
+      '<span class="rm-name" title="'+cat.label+'">'+cat.label+'</span>'+
+      '<span class="rm-cnt">'+(cnt[cat.key]||0)+'</span>'+
+      '<span class="rm-seg">'+
+        segBtn(cat.key,'include',m,'计入')+
+        segBtn(cat.key,'exclude',m,'剔除','rm-ex')+
+        segBtn(cat.key,'boa',    m,'BOA','rm-boa')+
+      '</span></div>';
   });
+  html+='<div class="filter-actions" style="border-top:1px solid #e4ecf5;border-bottom:none;margin:6px 0 0;padding-top:6px;">'+
+        '<button onclick="resetRemarkMode()">Reset all to 计入</button></div>';
   dd.innerHTML=html;
+}
+function segBtn(cat,mode,cur,label,cls){
+  return '<button class="'+(cur===mode?'on ':'')+(cls||'')+'" '+
+         'onclick="setRemarkMode(\''+cat+'\',\''+mode+'\')">'+label+'</button>';
 }
 
 function toggleRemarkFilter(){
@@ -3152,23 +3247,43 @@ function toggleRemarkFilter(){
   document.querySelectorAll('.filter-dropdown').forEach(function(d){if(d!==dd) d.classList.remove('open');});
 }
 
-function onRemarkCatChange(){
-  var checks=document.querySelectorAll('#remarkFilterDropdown input[type=checkbox]');
-  var sel=[];
-  checks.forEach(function(cb){if(cb.checked) sel.push(cb.value);});
-  // Denominator = actual visible checkboxes, not the full category list
-  selRemarkCats = sel.length===checks.length ? null : sel;
-  // Update button text
-  var btn=document.getElementById('remarkFilterBtn');
-  if(selRemarkCats===null){
-    btn.textContent='All Remarks';
-    btn.style.background='';
-  } else {
-    btn.textContent=sel.length+'/'+checks.length+' categories';
-    btn.style.background='#fff3e0';
-    btn.style.borderColor='#e67e22';
-  }
+function setRemarkMode(cat, mode){
+  if(!remarkMode) remarkMode={};
+  if(mode==='include') delete remarkMode[cat];
+  else remarkMode[cat]=mode;
+  if(!Object.keys(remarkMode).length) remarkMode=null;
+  saveRemarkMode();
+  updateRemarkFilterBtn();
+  buildRemarkFilterDropdown();   // keep the open dropdown in sync
   renderPortWaitAll();
+}
+function resetRemarkMode(){
+  remarkMode=null;
+  saveRemarkMode();
+  updateRemarkFilterBtn();
+  buildRemarkFilterDropdown();
+  renderPortWaitAll();
+}
+function updateRemarkFilterBtn(){
+  var btn=document.getElementById('remarkFilterBtn');
+  if(!btn) return;
+  var nEx=0, nBoa=0;
+  for(var k in (remarkMode||{})){
+    if(remarkMode[k]==='exclude') nEx++;
+    else if(remarkMode[k]==='boa') nBoa++;
+  }
+  if(!nEx && !nBoa){
+    btn.textContent='All Remarks';
+    btn.style.background=''; btn.style.borderColor=''; btn.style.color='';
+    return;
+  }
+  var bits=[];
+  if(nEx)  bits.push(nEx+' 剔除');
+  if(nBoa) bits.push(nBoa+' BOA');
+  btn.textContent=bits.join(' · ');
+  btn.style.background='#fff3e0';
+  btn.style.borderColor='#e67e22';
+  btn.style.color='#b35c00';
 }
 var selPortFilter = null;  // null = show all ports
 var selPortSearch = '';    // free-text port name search (AND with checkbox filter)
@@ -3382,10 +3497,12 @@ function isBunkeringPort(p){
   return /bunker/i.test(p||'');
 }
 
-var totalExcludedByRemark=0;
+var totalExcludedByRemark=0;   // calls dropped out of both numerator & denominator
+var totalBoaExemptByRemark=0;  // calls kept in the denominator but forced to BOA
 function buildPortWaitData(){
   var byPort={};
   totalExcludedByRemark=0;
+  totalBoaExemptByRemark=0;
   var todayStr=TODAY_DATA.date;
 
   // Pre-compute date range bounds
@@ -3414,24 +3531,28 @@ function buildPortWaitData(){
     var remark=sr.remark||'';
     var cat=classifyRemark(remark)||'other';
 
-    // If remark filter is active, ONLY include calls whose remark matches selected categories
-    if(selRemarkCats){
-      var match=false;
-      for(var i=0;i<selRemarkCats.length;i++){
-        if(cat===selRemarkCats[i]){match=true;break;}
+    // ── Remark handling ────────────────────────────────────────────────────
+    // Three modes, chosen per category in the Remark dropdown:
+    //   exclude → out of the numerator AND the denominator (visible as struck
+    //             through rows in the port detail, orange in the Excel export)
+    //   boa     → stays in the denominator and counts as berth-on-arrival;
+    //             wait is zeroed so it stops inflating avg / max / over counts
+    //   include → counted as-is (default)
+    var mode = remarkModeOf(cat);
+    if(mode==='exclude'){
+      // Ensure port record exists so excluded calls can still be inspected
+      if(!byPort[port]){
+        byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
+                      calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
+                      remarks:{}, excludedCalls:[]};
       }
-      if(!match){
-        // Ensure port record exists so excluded calls can still be inspected
-        if(!byPort[port]){
-          byPort[port]={port:port, region:BOA_PORT_REGION[port]||'Unknown',
-                        calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
-                        remarks:{}, excludedCalls:[]};
-        }
-        byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
-        totalExcludedByRemark++;
-        return;  // excluded calls do not count in berth rate numerator or denominator
-      }
+      byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
+      totalExcludedByRemark++;
+      return;  // excluded calls do not count in berth rate numerator or denominator
     }
+    var exempt = (mode==='boa');
+    if(exempt) totalBoaExemptByRemark++;
+    var effWait = exempt ? 0 : wait;   // BOA-exempt call is treated as berthing on arrival
 
     // Initialize port record if needed
     if(!byPort[port]){
@@ -3442,12 +3563,12 @@ function buildPortWaitData(){
     var rec=byPort[port];
 
     // Filtered call — add to stats
-    rec.calls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
-    rec.totalWait+=wait;
-    if(wait>rec.maxWait) rec.maxWait=wait;
-    if(wait>=24) rec.longWaitCalls++;
-    if(portOverInRange(wait, port))     rec.overCalls++;
-    if(wait <= berthThreshold(port)) rec.berthedCalls++;  // berthed = waited within threshold (SHA/NGB 12h, others 6h)
+    rec.calls.push({wait:effWait, waitRaw:wait, boaExempt:exempt, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
+    rec.totalWait+=effWait;
+    if(effWait>rec.maxWait) rec.maxWait=effWait;
+    if(effWait>=24) rec.longWaitCalls++;
+    if(portOverInRange(effWait, port))     rec.overCalls++;
+    if(effWait <= berthThreshold(port)) rec.berthedCalls++;  // berthed = waited within threshold (SHA/NGB 12h, others 6h); effWait 0 always qualifies
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -3585,6 +3706,13 @@ function renderPortWaitTable(){
       var wClass=w>=24?'delay':(w<6?'ontime':'');
       var wDisp=w.toFixed(1);
       if(wClass==='delay') wDisp='<b>'+wDisp+'</b>';
+      if(cl.boaExempt){
+        // Counted as berth-on-arrival, so the rate sees 0h. The struck-through
+        // figure is the real wait — never hide the raw number.
+        wClass='ontime';
+        wDisp='<span style="color:#1E7145;font-weight:600;" title="Counted as berth-on-arrival — wait forced to 0 for the rate. Actual wait '+Number(cl.waitRaw||0).toFixed(1)+'h.">0.0</span>'+
+              ' <span style="font-size:9.5px;color:#a0aab5;text-decoration:line-through;">'+Number(cl.waitRaw||0).toFixed(1)+'</span>';
+      }
       callRows+='<tr class="detail-row" style="background:#fff;">'+
         '<td style="color:#8a9bb0;font-size:11px;">'+(i2+1)+'</td>'+
         '<td style="font-size:12px;">'+escapeHtml(cl.vessel||'')+'</td>'+
@@ -3596,9 +3724,9 @@ function renderPortWaitTable(){
         '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':'color:#8a9bb0;')+'">'+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
         '</tr>';
     });
-    // Show excluded calls if remark filter is active
+    // Show excluded calls if remark handling is active
     var excludedRows='';
-    if(selRemarkCats && r.excludedCalls && r.excludedCalls.length>0){
+    if(remarkModeActive() && r.excludedCalls && r.excludedCalls.length>0){
       excludedRows='<tr><td colspan="8" style="padding:6px 8px;color:#999;font-size:11px;border-top:1px dashed #e0e0e0;">'+
         '<span style="color:#e67e22;">&#9888;</span> Filtered out ('+r.excludedCalls.length+' calls excluded by remark filter):</td></tr>';
       r.excludedCalls.forEach(function(cl){
@@ -3641,7 +3769,9 @@ function renderPortWaitTable(){
       '<td class="center" style="color:#8a9bb0;font-size:12px;">'+(idx+1)+'</td>'+
       '<td><strong>'+r.port+'</strong></td>'+
       '<td class="center">'+r.region+'</td>'+
-      '<td class="center">'+(selRemarkCats?r.calls.length+' <span style="font-size:10px;color:#999;">/ '+r.allCalls+'</span>':r.calls.length)+'</td>'+
+      // "计入 / 总数" only says something when calls were actually dropped;
+      // with BOA exemptions alone the two numbers are identical.
+      '<td class="center">'+(r.excludedCalls.length?r.calls.length+' <span style="font-size:10px;color:#999;">/ '+r.allCalls+'</span>':r.calls.length)+'</td>'+
       '<td class="center">'+r.totalWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.avgWait.toFixed(1)+'</td>'+
       '<td class="center">'+r.maxWait.toFixed(1)+'</td>'+
@@ -3655,8 +3785,11 @@ function renderPortWaitTable(){
   // Compute total calls across all ports (unfiltered by remark)
   var totalAllCalls=0;
   data.forEach(function(r){totalAllCalls+=r.allCalls;});
-  if(selRemarkCats && totalExcludedByRemark>0){
-    statText+=' · <span style="color:#e67e22;">'+totalExcludedByRemark+' calls filtered</span>';
+  if(totalExcludedByRemark>0 || totalBoaExemptByRemark>0){
+    if(totalExcludedByRemark>0)
+      statText+=' · <span style="color:#e67e22;">'+totalExcludedByRemark+' filtered out</span>';
+    if(totalBoaExemptByRemark>0)
+      statText+=' · <span style="color:#1E7145;">'+totalBoaExemptByRemark+' counted as BOA</span>';
     statText+=' · '+totalAllCalls+' total calls in range';
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
@@ -3760,13 +3893,11 @@ function getFilteredCalls(){
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
     var cat=classifyRemark(remark)||'other';
-    if(selRemarkCats){
-      var match=false;
-      for(var i=0;i<selRemarkCats.length;i++){
-        if(cat===selRemarkCats[i]){match=true;break;}
-      }
-      if(!match) return;
-    }
+    // Same three-way remark handling as the Port Wait table: exclude drops the
+    // call entirely, boa keeps it with wait 0 (see remarkModeOf).
+    var mode=remarkModeOf(cat);
+    if(mode==='exclude') return;
+    if(mode==='boa') wait=0;
     var route=sr.route||'(blank)';
     out.push({port:port, region:BOA_PORT_REGION[port]||'Unknown', route:route, trade:BOA_LANE_TRADE[route]||'Unknown', wait:wait});
   });
@@ -4091,7 +4222,9 @@ function initPortView(){
   selPortDateFrom = selPortDateFrom || yearStart;
   selPortDateTo = selPortDateTo || todayStr;
   buildPortFilterDropdown();
+  loadRemarkMode();              // restore last session's 剔除 / BOA choices
   buildRemarkFilterDropdown();
+  updateRemarkFilterBtn();
   renderPortWaitAll();
 }
 
@@ -4153,19 +4286,13 @@ function buildBoaCalls(){
     // ── Port filter (same as Port Wait) ──────────────────────────────
     if(selPortFilter && selPortFilter.indexOf(port)<0) return;
     if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
-    // ── Remark filter (same rule as Port Wait: excluded calls drop out of
-    //    BOTH numerator and denominator, they are not counted at all) ──
-    if(selRemarkCats){
-      var remark=sr.remark||'';
-      var cat=classifyRemark(remark)||'other';
-      var match=false;
-      for(var i=0;i<selRemarkCats.length;i++){
-        if(cat===selRemarkCats[i]){match=true;break;}
-      }
-      if(!match) return;
-    }
-    var wait=parseFloat(sr.wait);
-    if(isNaN(wait)) return;   // same rule as before: only numeric WAIT counts
+    // ── Remark handling (same three-way rule as the Port Wait table) ──
+    // exclude → dropped; boa → kept but wait forced to 0, i.e. berth on arrival
+    var mode=remarkModeOf(classifyRemark(sr.remark||'')||'other');
+    if(mode==='exclude') return;
+    var rawWait=parseFloat(sr.wait);
+    if(isNaN(rawWait)) return;   // same rule as before: only numeric WAIT counts
+    var wait = (mode==='boa') ? 0 : rawWait;
     var route=sr.route||'';
     calls.push({
       t: BOA_LANE_TRADE[route] || 'Unknown',
