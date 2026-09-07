@@ -4290,8 +4290,11 @@ function buildBoaCalls(){
     // exclude → dropped; boa → kept but wait forced to 0, i.e. berth on arrival
     var mode=remarkModeOf(classifyRemark(sr.remark||'')||'other');
     if(mode==='exclude') return;
-    var rawWait=parseFloat(sr.wait);
-    if(isNaN(rawWait)) return;   // same rule as before: only numeric WAIT counts
+    // Blank/invalid WAIT → 0, consistent with buildPortWaitData / getFilteredCalls.
+    // (Real case 2026-09: ZHI YING HE SHUN 2631S return call at CNXMN, ETB 09-04,
+    //  wait empty — dropping NaN rows here made BOA count 1 call while Port Wait
+    //  counted 2 for the same port/week.)
+    var rawWait=parseFloat(sr.wait)||0;
     var wait = (mode==='boa') ? 0 : rawWait;
     var route=sr.route||'';
     calls.push({
