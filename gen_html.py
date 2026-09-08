@@ -1514,7 +1514,7 @@ function _loadXlsx(cb){
     </div>
     <div class="table-wrap" style="flex:1;min-width:380px;">
       <h4 style="margin:6px 0 10px;color:#1F4E79;font-size:13px;text-align:center;">&#128200; Monthly Port Wait Trend</h4>
-      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters. A call counts as BOA (berth-on-arrival) when wait &#8804; threshold (CNSHA/CNNGB 12h, others 6h); &#8220;x/y BOA berthed&#8221; = y calls in the month, x of them BOA.</p>
+      <p style="font-size:10px;color:#8a9bb0;margin:0 0 8px;">Monthly aggregation of port wait data within the selected time range and filters. A call counts as BOA (berth-on-arrival) when wait &#8804; threshold (CNSHA/CNNGB 12h, others 6h); &#8220;x/y BOA&#8221; = y calls in the month, x of them BOA.</p>
       <div id="monthlyTrend" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
   </div>
@@ -4054,7 +4054,7 @@ function renderMonthlyTrend(){
     html+='<div style="width:'+(pct||1)+'%;height:100%;background:'+c+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:#fff;font-weight:600;min-width:'+(pct>0?Math.max(pct*0.5,18):1)+'px;">'+pct+'%</div>';
     html+='</div>';
     html+='<span style="font-weight:700;color:'+c+';width:44px;text-align:right;flex-shrink:0;">'+pct+'%</span>';
-    html+='<span style="color:#8a9bb0;width:118px;text-align:right;flex-shrink:0;">'+m.berthCalls+'/'+m.count+' BOA berthed</span>';
+    html+='<span style="color:#8a9bb0;width:84px;text-align:right;flex-shrink:0;">'+m.berthCalls+'/'+m.count+' BOA</span>';
     html+='<span style="color:#6a7b8d;width:64px;text-align:right;flex-shrink:0;">avg '+avg+'h</span>';
     html+='</div>';
   });
