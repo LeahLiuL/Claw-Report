@@ -2204,16 +2204,31 @@ function sortSummary(col){
    ═══════════════════════════════════════════════════════════════════ */
 let fullData=[], fullSortCol=-1, fullSortDir=1;
 let vesselGroupMap = {};
-let vesselLaneRank = {};   // vessel -> 该船所有航线中最靠前的 lane 序号（基于全量 fullData，不受筛选影响）
+let vesselLaneRank = {};   // vessel -> 该船整簇锚定的 lane 序号（基于全量 fullData，不受视图筛选影响）
 
-// 预计算每艘船的"主 lane"：取该船所有记录里 lane 顺序最靠前的那条。
-// 一艘船跨多条航线时用它定位 —— 这样 Lane 大顺序（用户默认序或 Lane Order 里的自定义序）不变，
-// 同时同船的所有航次聚成一簇，簇内按 ETA 升序（最早在上）。
+// 预计算每艘船的"锚定 lane"（2026-09-10 起按下一航次定位，用户确认）：
+//   ① 有未来航次（ETA >= 报表日期）→ 取最早那条未来航次所在的 lane。
+//      船换过航线时，整簇跟着它"现在在跑的航线"走，而不是被历史老航线拖着
+//      （旧规则取历史最早 lane：CUL LAEMCHABANG 有 NSX/REX/RTS/SGX 却被钉在 NSX 段）。
+//   ② 没有未来航次（已跑完 / 已下线）→ 回退到历史所有航次里 lane 顺序最靠前那条。
 function buildVesselLaneRank(){
   vesselLaneRank = {};
+  var todayStr = TODAY_DATA.date || '';
+  var upcoming = {};   // vessel -> {k: lane 序号, eta: 'YYYY-MM-DD'}
+  var fallback = {};   // vessel -> 历史最小的 lane 序号
   fullData.forEach(function(r){
+    var v = r.vessel;
+    if(!v) return;
     var k = routeOrderKey(r.route);
-    if(!(r.vessel in vesselLaneRank) || k < vesselLaneRank[r.vessel]) vesselLaneRank[r.vessel] = k;
+    if(!(v in fallback) || k < fallback[v]) fallback[v] = k;
+    var eta = r.etaRaw || '';
+    if(todayStr && eta && eta >= todayStr){
+      var cur = upcoming[v];
+      if(!cur || eta < cur.eta || (eta === cur.eta && k < cur.k)) upcoming[v] = {k:k, eta:eta};
+    }
+  });
+  Object.keys(fallback).forEach(function(v){
+    vesselLaneRank[v] = (v in upcoming) ? upcoming[v].k : fallback[v];
   });
 }
 
@@ -2221,16 +2236,20 @@ function laneRankOf(r){
   return (r.vessel in vesselLaneRank) ? vesselLaneRank[r.vessel] : routeOrderKey(r.route);
 }
 
-// Full Schedule 默认排序：Lane 顺序 → 船名 → ETA 升序 → Route
+// Full Schedule 默认排序：Lane 顺序 → 船名聚簇 → 簇内 lane 序 → ETA 升序 → Port/Voy
 function defaultFullSort(data){
   data.sort(function(a,b){
     var la = laneRankOf(a), lb = laneRankOf(b);
-    if(la!==lb) return la-lb;                                  // 1. Lane（用户默认/自定义序）
+    if(la!==lb) return la-lb;                                  // 1. 整簇锚定 lane（用户默认/自定义序）
     var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
     if(v!==0) return v;
+    var ka = routeOrderKey(a.route), kb = routeOrderKey(b.route);
+    if(ka!==kb) return ka-kb;                                  // 3. 簇内 → 同 lane 的航次连成一片
     var ea = a.etbRaw||a.etaRaw||'', eb = b.etbRaw||b.etaRaw||'';
-    if(ea!==eb) return ea.localeCompare(eb);                   // 3. 同船 → ETA 升序
-    return routeOrderKey(a.route)-routeOrderKey(b.route);      // 4. 兜底 → Route
+    if(ea!==eb) return ea.localeCompare(eb);                   // 4. 同 lane → ETA 升序
+    var pa = (a.port||'').localeCompare(b.port||'');           // 5. 兜底 → Port → Voy
+    if(pa!==0) return pa;
+    return (a.voy||'').localeCompare(b.voy||'');
   });
   return data;
 }
