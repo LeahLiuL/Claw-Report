@@ -1444,12 +1444,11 @@ function exportFullScheduleExcel(wb){
   var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:A('center','center',true),border:B};
   var sepS={font:{name:'Arial',sz:6},fill:F('D9D9D9'),border:B};
 
-  // Sort by route (custom order) then vessel for grouping (copy to avoid affecting UI sort state)
-  var exportData = data.slice().sort(function(a,b){
-    var dr = routeOrderKey(a.route)-routeOrderKey(b.route);
-    if(dr!==0) return dr;
-    return (a.vessel||'').localeCompare(b.vessel||'');
-  });
+  // Sort exactly like the UI default view: vessel clusters anchored to their
+  // next-voyage lane (defaultFullSort). A vessel serving several lanes keeps
+  // ALL its rows in ONE section; the Route column still shows each row's lane.
+  // (旧逻辑按 lane→船名 重排，跨航线的船在 Excel 里被拆成多节 —— 2026-09-10 用户确认改掉)
+  var exportData = defaultFullSort(data.slice());
 
   var sheetData=[];
   var numCols = headers.length;
@@ -1480,7 +1479,9 @@ function exportFullScheduleExcel(wb){
     if(r.vessel!==prevVessel){
       // Per-vessel title row: always show the 4 identity fields (Lane/route, Vessel, Code, PIC)
       // as one merged cell, independent of UI column hiding (detail rows still respect hiding)
-      var titleText='Lane: '+(r.route||'')+'    Vessel: '+(r.vessel||'')+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
+      // Title Lane = 该船的锚定 lane（与页面聚簇位置一致）；单航线船即其航线
+      var anchorLane=(r.vessel in vesselLaneRank) ? (getLaneOrder()[vesselLaneRank[r.vessel]]||r.route||'') : (r.route||'');
+      var titleText='Lane: '+anchorLane+'    Vessel: '+(r.vessel||'')+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
       var titleRow=[];
       for(var c=0;c<numCols;c++) titleRow[c]={v:'',s:vTitleS};
       titleRow[0]={v:titleText,s:vTitleS};
