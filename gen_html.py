@@ -88,6 +88,17 @@ def get_str(v):
     if isinstance(v, datetime): return v.strftime('%m/%d %H:%M')
     return str(v).strip()
 
+def fmt_sort(v):
+    """Minute-precision sortable key 'YYYY-MM-DD HH:MM'.
+
+    显示列（eta/etb/etd）只有 'MM/DD HH:MM'，跨年排序会错；*Raw 又有日期精度，
+    同一天多个港口/多次挂靠时排序退化成 Port 字母序（CUL HUANGPU 2636W 的
+    TWKEL/TWTXG 同一天 ETB 被排反）。所以单列一个带年份+时分的键专供排序，
+    *Raw 保持纯日期语义不动（日期筛选边界依赖它）。"""
+    if isinstance(v, datetime):
+        return v.strftime('%Y-%m-%d %H:%M')
+    return ''
+
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path):
     today = date.today()
@@ -207,6 +218,9 @@ def extract(excel_path):
             'etaRaw':      ws_src.cell(r, 9).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 9).value, datetime) else '',
             'etbRaw':      ws_src.cell(r, 10).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 10).value, datetime) else '',
             'etdRaw':      ws_src.cell(r, 11).value.strftime('%Y-%m-%d') if isinstance(ws_src.cell(r, 11).value, datetime) else '',
+            'etaSort':     fmt_sort(ws_src.cell(r, 9).value),
+            'etbSort':     fmt_sort(ws_src.cell(r, 10).value),
+            'etdSort':     fmt_sort(ws_src.cell(r, 11).value),
             'etb':         fmt_dt(ws_src.cell(r, 10).value),
             'etd':         fmt_dt(ws_src.cell(r, 11).value),
             'run':         get_str(ws_src.cell(r, 12).value),
@@ -1756,6 +1770,8 @@ const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
 var ROUTE_ORDER = ['ST3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
+// 时间列 → 分钟级排序键（显示值 'MM/DD HH:MM' 无年份，*Raw 只有日期，只有 *Sort 可精确排序）
+var TIME_SORT_KEY = {eta:'etaSort', etb:'etbSort', etd:'etdSort'};
 
 // ── User-adjustable Lane display order ──────────────────────────────────
 // Full Schedule (and the route filter dropdown) sort lanes by routeOrderKey.
@@ -2113,7 +2129,10 @@ function getFilteredSummary(){
       if(colDef.key==='route'){
         data.sort((a,b)=>(routeOrderKey(a.route)-routeOrderKey(b.route))*summarySortDir);
       } else {
-        data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*summarySortDir);
+        // eta/etb/etd 显示值只有 'MM/DD HH:MM'（无年份），排序改用带年份+时分的 *Sort 键
+        const sk = TIME_SORT_KEY[colDef.key];
+        const pick = sk ? (r=>r[sk]||r[colDef.key]||'') : (r=>r[colDef.key]||'');
+        data.sort((a,b)=>pick(a).localeCompare(pick(b))*summarySortDir);
       }
     }
   } else {
@@ -2211,7 +2230,33 @@ let vesselLaneRank = {};   // vessel -> 该船整簇锚定的 lane 序号（基�
 //      船换过航线时，整簇跟着它"现在在跑的航线"走，而不是被历史老航线拖着
 //      （旧规则取历史最早 lane：CUL LAEMCHABANG 有 NSX/REX/RTS/SGX 却被钉在 NSX 段）。
 //   ② 没有未来航次（已跑完 / 已下线）→ 回退到历史所有航次里 lane 顺序最靠前那条。
+// 分钟级排序键兜底：新数据由 Python 直接产出 etaSort/etbSort/etdSort
+// （'YYYY-MM-DD HH:MM'）；旧快照没有这些字段时用显示值('MM/DD HH:MM')+*Raw 的年份合成。
+// 显示值无年份、*Raw 无时分，两者都不能单独用来排序（同一天多港会退化成 Port 字母序）。
+function _mkSortTs(disp, raw){
+  if(!disp) return raw || '';
+  var m = /^(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/.exec(disp);
+  if(!m) return raw || '';
+  var y = parseInt((raw||'').slice(0,4), 10) || (new Date()).getFullYear();
+  var t = new Date(y, parseInt(m[1],10)-1, parseInt(m[2],10), parseInt(m[3],10), parseInt(m[4],10));
+  if(raw){
+    var d0 = new Date(raw+'T00:00:00');
+    if(!isNaN(d0) && Math.abs(t-d0) > 180*864e5) t.setFullYear(t.getFullYear() + (t<d0 ? 1 : -1));
+  }
+  var p = function(n){ return (n<10?'0':'')+n; };
+  return t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate())+' '+p(t.getHours())+':'+p(t.getMinutes());
+}
+function ensureSortKeys(){
+  var fill = function(r){
+    if(!r.etaSort) r.etaSort = _mkSortTs(r.eta, r.etaRaw);
+    if(!r.etbSort) r.etbSort = _mkSortTs(r.etb, r.etbRaw);
+    if(!r.etdSort) r.etdSort = _mkSortTs(r.etd, r.etdRaw);
+  };
+  fullData.forEach(fill);
+  if(TODAY_DATA.vessels) TODAY_DATA.vessels.forEach(fill);   // Summary 视图列头排序也用它
+}
 function buildVesselLaneRank(){
+  ensureSortKeys();
   vesselLaneRank = {};
   var todayStr = TODAY_DATA.date || '';
   var upcoming = {};   // vessel -> {k: lane 序号, eta: 'YYYY-MM-DD'}
@@ -2221,7 +2266,7 @@ function buildVesselLaneRank(){
     if(!v) return;
     var k = routeOrderKey(r.route);
     if(!(v in fallback) || k < fallback[v]) fallback[v] = k;
-    var eta = r.etaRaw || '';
+    var eta = r.etaSort || r.etaRaw || '';
     if(todayStr && eta && eta >= todayStr){
       var cur = upcoming[v];
       if(!cur || eta < cur.eta || (eta === cur.eta && k < cur.k)) upcoming[v] = {k:k, eta:eta};
@@ -2237,13 +2282,16 @@ function laneRankOf(r){
 }
 
 // Full Schedule 默认排序：Lane 顺序 → 船名聚簇 → 簇内 ETA 升序（跨 lane 交错）→ Port/Voy
+// 簇内比较用 *Sort（'YYYY-MM-DD HH:MM'）而非 *Raw：*Raw 只有日期，同一天多港会退化到
+// Port 字母序，把 TWKEL/TWTXG 这种同一天挂靠的两港排反。
 function defaultFullSort(data){
   data.sort(function(a,b){
     var la = laneRankOf(a), lb = laneRankOf(b);
     if(la!==lb) return la-lb;                                  // 1. 整簇锚定 lane（用户默认/自定义序）
     var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
     if(v!==0) return v;
-    var ea = a.etbRaw||a.etaRaw||'', eb = b.etbRaw||b.etaRaw||'';
+    var ea = a.etbSort||a.etaSort||a.etbRaw||a.etaRaw||'';
+    var eb = b.etbSort||b.etaSort||b.etbRaw||b.etaRaw||'';
     if(ea!==eb) return ea.localeCompare(eb);                   // 3. 簇内 → ETA 升序（跨 lane 交错）
     var pa = (a.port||'').localeCompare(b.port||'');           // 4. 兜底 → Port → Voy
     if(pa!==0) return pa;
@@ -2314,7 +2362,10 @@ function getFilteredFull(){
       if(colDef.key==='route'){
         data.sort((a,b)=>(routeOrderKey(a.route)-routeOrderKey(b.route))*fullSortDir);
       } else {
-        data.sort((a,b)=>((a[colDef.key]||'').localeCompare(b[colDef.key]||''))*fullSortDir);
+        // eta/etb/etd 显示值只有 'MM/DD HH:MM'（无年份），排序改用带年份+时分的 *Sort 键
+        const sk = TIME_SORT_KEY[colDef.key];
+        const pick = sk ? (r=>r[sk]||r[colDef.key]||'') : (r=>r[colDef.key]||'');
+        data.sort((a,b)=>pick(a).localeCompare(pick(b))*fullSortDir);
       }
     }
   } else {
