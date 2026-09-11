@@ -1210,18 +1210,16 @@ function laneRankOf(r){
   return (r.vessel in vesselLaneRank) ? vesselLaneRank[r.vessel] : routeOrderKey(r.route);
 }
 
-// Full Schedule 默认排序：Lane 顺序 → 船名聚簇 → 簇内 lane 序 → ETA 升序 → Port/Voy
+// Full Schedule 默认排序：Lane 顺序 → 船名聚簇 → 簇内 ETA 升序（跨 lane 交错）→ Port/Voy
 function defaultFullSort(data){
   data.sort(function(a,b){
     var la = laneRankOf(a), lb = laneRankOf(b);
     if(la!==lb) return la-lb;                                  // 1. 整簇锚定 lane（用户默认/自定义序）
     var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
     if(v!==0) return v;
-    var ka = routeOrderKey(a.route), kb = routeOrderKey(b.route);
-    if(ka!==kb) return ka-kb;                                  // 3. 簇内 → 同 lane 的航次连成一片
     var ea = a.etbRaw||a.etaRaw||'', eb = b.etbRaw||b.etaRaw||'';
-    if(ea!==eb) return ea.localeCompare(eb);                   // 4. 同 lane → ETA 升序
-    var pa = (a.port||'').localeCompare(b.port||'');           // 5. 兜底 → Port → Voy
+    if(ea!==eb) return ea.localeCompare(eb);                   // 3. 簇内 → ETA 升序（跨 lane 交错）
+    var pa = (a.port||'').localeCompare(b.port||'');           // 4. 兜底 → Port → Voy
     if(pa!==0) return pa;
     return (a.voy||'').localeCompare(b.voy||'');
   });
