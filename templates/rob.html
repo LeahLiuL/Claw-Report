@@ -73,19 +73,26 @@ function _loadXlsx(cb) {
   table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden;
           box-shadow: 0 2px 10px rgba(31,78,121,.10); font-size: 13px; }
   thead th { background: #1F4E79; color: #fff; padding: 10px 10px; font-weight: 600; white-space: nowrap;
-             position: sticky; top: 0; cursor: pointer; user-select: none; }
+             position: sticky; top: 0; cursor: pointer; user-select: none; text-align: center; }
   thead th:hover { background: #2E75B6; }
-  tbody td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; white-space: nowrap; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid #eef2f7; white-space: nowrap; text-align: center; }
   tbody tr:nth-child(even) { background: #f8fafc; }
   tbody tr:hover { background: #eaf2fa; }
-  td.c { text-align: center; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.c { text-align: center; } td.n { text-align: center; font-variant-numeric: tabular-nums; }
   td.miss { color: #d64545; font-size: 12px; }
   td.vessel { font-weight: 600; color: #1F4E79; }
   .footer { padding: 10px 28px 26px; font-size: 11px; color: #8a99ab; }
-  /* ---- trend tab ---- */
-  .btn-trend { background: #2E75B6; color: #fff; border: none; border-radius: 5px; padding: 8px 16px;
-               font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 10px; }
-  .btn-trend:hover { background: #1F4E79; }
+  /* ---- 视图切换 Tabs (对齐 Daily Movement 风格) ---- */
+  .tabs { display: flex; gap: 0; padding: 0 28px; background: #fff; border-bottom: 2px solid #dde4ed; }
+  .tab-btn {
+    padding: 10px 24px; font-size: 13px; font-weight: 600; cursor: pointer;
+    border: none; background: none; color: #5a6e82; border-bottom: 3px solid transparent;
+    transition: .15s; margin-bottom: -2px;
+  }
+  .tab-btn:hover { color: #1F4E79; }
+  .tab-btn.active { color: #1F4E79; border-bottom-color: #1F4E79; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
   .trendbar { padding: 14px 28px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
               background: #fff; box-shadow: 0 2px 8px rgba(31,78,121,.10); margin: 0 0 4px; }
   .trendbar select, .trendbar input { padding: 7px 10px; border: 1px solid #c9d5e2; border-radius: 6px;
@@ -109,12 +116,20 @@ function _loadXlsx(cb) {
   .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 6px; }
   .panel-note { font-size: 11.5px; line-height: 1.5; color: #5a6e82; background: #f3f7fb; border-left: 3px solid #2E75B6; padding: 7px 10px; border-radius: 4px; margin-bottom: 12px; }
   .trendtbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: left; }
-  .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; }
+  .trendtbl th { background: #1F4E79; color: #fff; padding: 6px 8px; text-align: center; }
+  .trendtbl td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; text-align: center; }
   .trendtbl tr:nth-child(even) { background: #f8fafc; }
   .warn { color: #d64545; font-weight: 700; }
   .ok { color: #2e8b57; }
   .bunker { color: #c77d00; font-weight: 700; }
+  /* ---- voyage rotation 展开 ---- */
+  .caret { cursor: pointer; font-size: 13px; color: #1F4E79; user-select: none; }
+  .caret:hover { color: #F6A623; }
+  .rotbox { text-align: left; padding: 6px 2px 10px; }
+  .rottitle { font-size: 12.5px; color: #1F4E79; margin-bottom: 5px; }
+  .rotsub { color: #8a99ab; font-size: 11.5px; font-weight: 400; }
+  .trendtbl.rot { width: auto; min-width: 560px; margin-top: 2px; background: #fbfdff; }
+  .trendtbl.rot th { background: #e8eff6; color: #1F4E79; }
 </style>
 </head>
 <body>
@@ -137,10 +152,16 @@ function _loadXlsx(cb) {
     </div>
     <div class="header-right">
       <button class="btn-export" onclick="exportExcel()">Export Excel</button>
-      <button class="btn-trend" onclick="showTrend()">Trend</button>
       <div class="updated" id="updatedAt"></div>
     </div>
   </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="viewDash" onclick="switchTab('viewDash',this)">&#128202; Dashboard</button>
+    <button class="tab-btn" data-tab="trend" onclick="switchTab('trend',this)">&#128200; Trend</button>
+    <button class="tab-btn" data-tab="draft" onclick="switchTab('draft',this)">&#128674; Draft</button>
+    <button class="tab-btn" data-tab="voyage" onclick="switchTab('voyage',this)">&#9973; Voyage</button>
+  </div>
+  <div id="viewDash" class="tab-content active">
   <div class="stats" id="stats"></div>
   <div class="toolbar">
     <input id="q" type="text" placeholder="Search vessel / code / lane / PIC..." oninput="renderRows()">
@@ -159,13 +180,9 @@ function _loadXlsx(cb) {
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <div class="footer">
-    Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
-    Missing vessels flagged in REMARK · Time = report received time ·
-    Authorized personnel only - do not share the password
-  </div>
+  </div><!-- /viewDash -->
 
-  <div id="trend" style="display:none">
+  <div id="trend" class="tab-content">
     <div class="trendbar">
       <span class="lbl">Vessels:</span>
       <input id="trendVSearch" placeholder="search…" oninput="trendFilterDrop()" onfocus="trendToggleDrop()" style="width:110px">
@@ -194,7 +211,7 @@ function _loadXlsx(cb) {
       <button onclick="renderTrend()">Apply</button>
       <button onclick="toggleTrendMode()" id="trendModeBtn">Mode: ROB</button>
       <button onclick="toggleTrendScale()" id="trendScaleBtn" title="Linear: absolute MT. Log: compresses large values so small vessels' curves stay visible">Scale: Linear</button>
-      <button onclick="showTable()">Back to Table</button>
+      <button onclick="showTable()">&larr; Dashboard</button>
     </div>
     <div class="trendgrid">
       <div class="panel">
@@ -213,6 +230,64 @@ function _loadXlsx(cb) {
         <div id="trendIntegrity" style="max-height:300px;overflow:auto"></div>
       </div>
     </div>
+  </div>
+  <div id="draft" class="tab-content">
+    <div class="trendbar">
+      <span class="lbl">Sort by:</span>
+      <select id="draftSort" onchange="renderDraft()">
+        <option value="max" selected>Max Draft (deepest)</option>
+        <option value="vessel">Vessel Name</option>
+        <option value="aft">Aft Draft</option>
+        <option value="lane">Lane</option>
+      </select>
+      <span class="lbl">Show:</span>
+      <select id="draftShow" onchange="renderDraft()">
+        <option value="all" selected>All vessels</option>
+        <option value="has">Only with draft data</option>
+      </select>
+      <button onclick="showTable()">&larr; Dashboard</button>
+    </div>
+    <div class="trendgrid">
+      <div class="panel">
+        <h3>Max Draft per Vessel — current reading vs. historical max</h3>
+        <div class="panel-note">吃水 (Draft) captured automatically from Masters' Noon reports (前/中/后 = FWD/MID/AFT, in metres). <b>Cur</b> = latest report's draft; <b>Max</b> = deepest reading ever recorded (max of FWD/MID/AFT across all history) with the date it occurred. The <b>Max Draft</b> column is the vessel's limiting draft for port draft restrictions — watch it closely. Highlighted cells flag the all-time deepest reading per position.</div>
+        <div id="draftTable" style="max-height:560px;overflow:auto"></div>
+      </div>
+    </div>
+  </div>
+  <div id="voyage" class="tab-content">
+    <div class="trendbar">
+      <span class="lbl">Search vessel:</span>
+      <input id="voySearch" placeholder="船名 / 代码…" oninput="renderVoyage()" style="width:180px">
+      <span class="lbl">Lane:</span>
+      <select id="voyLane" onchange="renderVoyage()"><option value="">All</option></select>
+      <label style="font-size:12px;color:#5a6e82"><input type="checkbox" id="voyOnlyData" onchange="renderVoyage()" checked> only computed</label>
+      <button onclick="showTable()">&larr; Dashboard</button>
+    </div>
+    <div class="trendgrid">
+      <div class="panel">
+        <h3>Voyage Fuel Consumption (per voyage, ROB-based)</h3>
+        <div class="panel-note"><b>航次号已合并方向</b>：<code>2630W</code> 与 <code>2630E</code> 只是方向不同，属<b>同一航次 2630</b>（Voy 列下方小字显示包含的方向）。因此航次区间 = 该航次<b>全部方向中最早的首港 Berth</b>（例：CUHP 2630 取 2630W 首港 TWKEL）→ <b>下一航次</b>最早的首港 Berth（2631W 首港 TWKEL）。<br>航次油耗 = 该区间内 ROB 的<b>下降量之和</b>（自动排除加油 —— 加油表现为 ROB 上升，不计入消耗）。点行首的 <b>▸</b> 可展开该航次的 <b>rotation 明细</b>（跨方向合并，含挂靠港所属 Voy / ETA / ETB / ETD）。<b>B.LSFO / B.HSFO / B.MGO / B.ULSFO</b> = 该航次《燃油添加日志》记录的分油种加油量（仅体积，不含价格），<b>B.Total</b> 为其合计。<b>Total</b> = LSFO+HSFO+MGO+ULSFO 消耗。单位 MT。状态: completed=已完成 / ongoing=进行中。</div>
+        <div id="voyTable" style="max-height:560px;overflow:auto"></div>
+      </div>
+      <div class="panel">
+        <h3>Custom Period Consumption (自选时间段油耗)</h3>
+        <div class="panel-note">任选时间段查看某些船的油耗：选好 <b>From / To</b>，可用 <b>Vessel</b> 框按船名或代码过滤，点 <b>Apply</b>。油耗 = 该时段内 ROB 的<b>下降量之和</b>（自动排除加油）。<b>Bunker</b> = 该时段《燃油添加日志》记录的加油量（仅体积，不含价格）。<b>Avg/day</b> = 总油耗 ÷ 天数。每条船需 ≥2 条 ROB 记录才会显示。</div>
+        <div class="trendbar" style="padding:0 0 10px;box-shadow:none;margin:0 0 8px;background:transparent">
+          <span class="lbl">From:</span><input type="date" id="perFrom">
+          <span class="lbl">To:</span><input type="date" id="perTo">
+          <span class="lbl">Vessel:</span><input id="perSearch" placeholder="船名 / 代码…" style="width:170px">
+          <button onclick="renderPeriod()">Apply</button>
+        </div>
+        <div id="periodTable" style="max-height:420px;overflow:auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
+    Missing vessels flagged in REMARK · Time = report received time ·
+    Authorized personnel only - do not share the password
   </div>
 </div>
 
@@ -289,7 +364,7 @@ function renderRows() {
   document.getElementById('rows').innerHTML = h;
 }
 var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC', 'PIC',
-                      'ROB LSFO', 'ROB HSFO', 'ROB ULSFO', 'ROB MGO', 'Order Status',
+                      'ROB LSFO', 'ROB HSFO', 'ROB ULSFO', 'ROB MGO', 'Draft FWD', 'Draft MID', 'Draft AFT', 'Order Status',
                       'Order Details', 'REMARK', 'Special', 'Planned Bunkering Date',
                       'ROB Report Time'];
 function exportExcel() {
@@ -314,6 +389,9 @@ function exportExcel() {
                v.rob_hsfo === null ? '' : v.rob_hsfo,
                v.rob_ulsfo === null ? '' : v.rob_ulsfo,
                v.rob_mgo === null ? '' : v.rob_mgo,
+               v.draft_fwd === null ? '' : v.draft_fwd,
+               v.draft_mid === null ? '' : v.draft_mid,
+               v.draft_aft === null ? '' : v.draft_aft,
                '', '', v.found ? '' : v.remark, '', '', v.report_time]);
   });
   var ws = XLSX.utils.aoa_to_sheet(rows);
@@ -345,21 +423,35 @@ function daysBetween(a, b) {
   var db = new Date(b.replace(/-/g, '/'));
   return Math.max(0, (db - da) / 86400000);
 }
-function showTrend() {
-  document.querySelector('.stats').style.display = 'none';
-  document.querySelector('.toolbar').style.display = 'none';
-  document.querySelector('.tablewrap').style.display = 'none';
-  document.querySelector('.footer').style.display = 'none';
-  document.getElementById('trend').style.display = 'block';
-  initTrend(); renderTrend();
+/* ---- 视图切换 (Tabs, 对齐 Daily Movement) ----
+   视图 = Dashboard(主表) / Trend / Draft / Voyage, 由 .tab-content.active 控制;
+   旧函数 showTable/showTrend/showDraft/showVoyage 保留为兼容包装,
+   面板内部的 "Back to Table" 按钮仍可正常工作并同步 tab 高亮。 */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  if (!btn) btn = document.querySelector('.tab-btn[data-tab="' + id + '"]');
+  if (btn) btn.classList.add('active');
+  if (id === 'trend') { initTrend(); renderTrend(); }
+  else if (id === 'draft') renderDraft();
+  else if (id === 'voyage') {
+    // 自选时间段默认近 30 天
+    var fEl = document.getElementById('perFrom'), tEl = document.getElementById('perTo');
+    if (fEl && !fEl.value) {
+      var d0 = new Date(); d0.setDate(d0.getDate() - 30);
+      fEl.value = d0.toISOString().slice(0, 10);
+      tEl.value = new Date().toISOString().slice(0, 10);
+    }
+    renderVoyage(); renderPeriod();
+  }
+  else if (id === 'viewDash') renderRows();
 }
-function showTable() {
-  document.querySelector('.stats').style.display = '';
-  document.querySelector('.toolbar').style.display = '';
-  document.querySelector('.tablewrap').style.display = '';
-  document.querySelector('.footer').style.display = '';
-  document.getElementById('trend').style.display = 'none';
-}
+function showTable() { switchTab('viewDash'); }
+function showTrend() { switchTab('trend'); }
+function showDraft() { switchTab('draft'); }
+function showVoyage() { switchTab('voyage'); }
 function initTrend() {
   buildVesselDrop();
   var ts = DATA.history.map(function(r){ return r.t.slice(0, 10); }).sort();
@@ -564,6 +656,13 @@ function renderSummary(s) {
          '</td><td>' + fmt(r.total) + '</td><td>' + fmt(r.avg) + '</td><td>' + fmt(r.min) + '</td><td>' + r.bunker +
          '</td><td' + warn + '>' + (dl === '—' ? '—' : dl) + '</td></tr>';
   });
+  var sumTotal = 0, sumBunkerDays = 0;
+  s.forEach(function(r) {
+    if (typeof r.total === 'number') sumTotal += r.total;
+    if (r.bunker) sumBunkerDays += r.bunker;
+  });
+  h += '<tr style="font-weight:700;border-top:2px solid #1F4E79"><td>TOTAL (' + s.length + ' vessels)</td><td></td><td></td><td></td>'
+     + '<td class="n">' + fmt(Math.round(sumTotal * 100) / 100) + '</td><td></td><td></td><td>' + sumBunkerDays + '</td><td></td></tr>';
   h += '</table>';
   document.getElementById('trendSummary').innerHTML = h;
 }
@@ -579,6 +678,232 @@ function renderIntegrity(recs) {
   h += '</table>';
   if (miss.length > 200) h += '<p>... showing 200 of ' + miss.length + '</p>';
   document.getElementById('trendIntegrity').innerHTML = h;
+}
+
+/* ================= Draft (吃水) view ================= */
+function renderDraft() {
+  if (!DATA) return;
+  var sortBy = document.getElementById('draftSort').value;
+  var show = document.getElementById('draftShow').value;
+  var rows = DATA.vessels.map(function(v) {
+    var dm = (DATA.draft_max && DATA.draft_max[v.vessel]) || {};
+    return {
+      vessel: v.vessel, code: v.code, lane: v.lane, pic: v.pic,
+      cur_fwd: v.draft_fwd, cur_mid: v.draft_mid, cur_aft: v.draft_aft,
+      max_fwd: dm.fwd, max_mid: dm.mid, max_aft: dm.aft,
+      max: dm.max, max_date: dm.max_date || '',
+      hasData: (v.draft_fwd != null || v.draft_mid != null || v.draft_aft != null || dm.max != null)
+    };
+  });
+  if (show === 'has') rows = rows.filter(function(r) { return r.hasData; });
+  rows.sort(function(a, b) {
+    if (sortBy === 'vessel') return a.vessel.localeCompare(b.vessel);
+    if (sortBy === 'lane') return a.lane.localeCompare(b.lane) || a.vessel.localeCompare(b.vessel);
+    if (sortBy === 'aft') {
+      var x = a.max_aft == null ? -1 : a.max_aft, y = b.max_aft == null ? -1 : b.max_aft;
+      return y - x;
+    }
+    var x = a.max == null ? -1 : a.max, y = b.max == null ? -1 : b.max;  // default: max draft desc
+    return y - x;
+  });
+  var h = '<table class="trendtbl"><tr>'
+    + '<th>Vessel</th><th>Code</th><th>Lane</th><th>PIC</th>'
+    + '<th title="Latest report FWD draft (m)">Cur FWD</th>'
+    + '<th title="Latest report MID draft (m)">Cur MID</th>'
+    + '<th title="Latest report AFT draft (m)">Cur AFT</th>'
+    + '<th title="Historical max FWD draft (m)">Max FWD</th>'
+    + '<th title="Historical max MID draft (m)">Max MID</th>'
+    + '<th title="Historical max AFT draft (m)">Max AFT</th>'
+    + '<th title="Deepest draft ever recorded (max of FWD/MID/AFT)">Max Draft</th>'
+    + '<th title="Date the max draft occurred">Max Date</th>'
+    + '</tr>';
+  rows.forEach(function(r) {
+    function cell(val, isMax) {
+      var cls = 'n' + (isMax ? ' maxcell' : '');
+      return '<td class="' + cls + '">' + fmt(val) + '</td>';
+    }
+    h += '<tr><td>' + r.vessel + '</td><td>' + r.code + '</td><td>' + r.lane + '</td><td>' + r.pic + '</td>'
+       + cell(r.cur_fwd, false) + cell(r.cur_mid, false) + cell(r.cur_aft, false)
+       + cell(r.max_fwd, r.max_fwd === r.max) + cell(r.max_mid, r.max_mid === r.max) + cell(r.max_aft, r.max_aft === r.max)
+       + '<td class="n maxcell' + ((r.max != null) ? ' hot' : '') + '">' + fmt(r.max) + '</td>'
+       + '<td>' + r.max_date + '</td></tr>';
+  });
+  document.getElementById('draftTable').innerHTML = h || '<p>No draft data.</p>';
+}
+
+/* ================= Voyage (航次油耗) view ================= */
+/* ---- rotation 展开状态(按 vessel|voy|start 唯一键) ---- */
+var voyOpen = {};
+function voyKey(r) { return (r.vessel || '') + '|' + (r.voy || '') + '|' + (r.start || ''); }
+function toggleVoyRotation(k) { voyOpen[k] = !voyOpen[k]; renderVoyage(); }
+
+function renderVoyage() {
+  if (!DATA) return;
+  var q = (document.getElementById('voySearch').value || '').toLowerCase();
+  var lane = document.getElementById('voyLane').value;
+  var only = document.getElementById('voyOnlyData').checked;
+  var rows = DATA.voyages || [];
+  if (!document.getElementById('voyLane').dataset.filled) {
+    var ls = {}; rows.forEach(function(r) { if (r.lane) ls[r.lane] = 1; });
+    var sel = document.getElementById('voyLane');
+    Object.keys(ls).sort().forEach(function(l) {
+      var o = document.createElement('option'); o.value = l; o.textContent = l; sel.appendChild(o);
+    });
+    sel.dataset.filled = '1';
+  }
+  rows = rows.filter(function(r) {
+    // 允许用带方向的航次号搜索(如 2630W), 因为 2630W/2630E 已合并到航次 2630
+    if (q) {
+      var hay = (r.vessel + ' ' + r.code + ' ' + r.voy + ' ' + r.voy).toLowerCase();
+      (r.rotation || []).forEach(function(l) { hay += ' ' + (l.voy || ''); });
+      if (hay.indexOf(q) < 0) return false;
+    }
+    if (lane && r.lane !== lane) return false;
+    if (only && !r.hasData) return false;
+    return true;
+  });
+  rows.sort(function(a, b) { return a.start < b.start ? 1 : -1; });
+  var h = '<table class="trendtbl"><tr>'
+    + '<th title="Click to expand rotation"></th>'
+    + '<th>Vessel</th><th>Code</th><th>Lane</th><th>Voy</th><th>First Port</th>'
+    + '<th title="First-port Berth time of this voyage">Start</th>'
+    + '<th title="First-port Berth time of next voyage (= voyage end)">End</th>'
+    + '<th title="Days between first-port berths">Days</th>'
+    + '<th title="LSFO consumption (MT)">LSFO</th><th title="HSFO consumption (MT)">HSFO</th>'
+    + '<th title="MGO consumption (MT)">MGO</th><th title="ULSFO consumption (MT)">ULSFO</th>'
+    + '<th title="Total LSFO+HSFO+MGO+ULSFO consumption (MT)">Total</th>'
+    + '<th title="Bunkered VLSFO in window (MT, from 燃油添加日志)">B.LSFO</th>'
+    + '<th title="Bunkered HSFO in window (MT)">B.HSFO</th>'
+    + '<th title="Bunkered MGO in window (MT)">B.MGO</th>'
+    + '<th title="Bunkered ULSFO in window (MT)">B.ULSFO</th>'
+    + '<th title="Bunkered total (all oil types)">B.Total</th>'
+    + '<th>Status</th></tr>';
+  rows.forEach(function(r) {
+    var k = voyKey(r);
+    var open = !!voyOpen[k];
+    var rot = r.rotation || [];
+    var tot = (r.ls || 0) + (r.hs || 0) + (r.mg || 0) + (r.us || 0);
+    var bt = (r.bunker_ls || 0) + (r.bunker_hs || 0) + (r.bunker_mg || 0) + (r.bunker_us || 0);
+    var cls = r.hasData ? '' : ' class="miss"';
+    var caret = rot.length
+      ? '<span class="caret" onclick="toggleVoyRotation(' + JSON.stringify(k).replace(/"/g, '&quot;') + ')">' + (open ? '▾' : '▸') + '</span>'
+      : '';
+    h += '<tr' + cls + '>'
+      + '<td class="n">' + caret + '</td>'
+      + '<td>' + r.vessel + '</td><td>' + r.code + '</td><td>' + r.lane + '</td>'
+      + '<td title="航次号已去掉方向字母: 2630W + 2630E = 同一航次 2630">' + r.voy
+      + (r.voy_dirs ? ' <span class="rotsub">' + r.voy_dirs + '</span>' : '') + '</td>'
+      + '<td>' + r.first_port + '</td>'
+      + '<td>' + r.start + '</td><td>' + (r.end || '—') + '</td><td>' + (r.days == null ? '—' : r.days) + '</td>'
+      + '<td class="n">' + fmt(r.ls) + '</td><td class="n">' + fmt(r.hs) + '</td><td class="n">' + fmt(r.mg) + '</td><td class="n">' + fmt(r.us) + '</td>'
+      + '<td class="n">' + (r.hasData ? fmt(Math.round(tot * 100) / 100) : '—') + '</td>'
+      + '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
+      + '<td class="n bunker">' + fmt(r.bunker_mg) + '</td><td class="n bunker">' + fmt(r.bunker_us) + '</td>'
+      + '<td class="n bunker">' + (bt ? fmt(Math.round(bt * 100) / 100) : '') + '</td>'
+      + '<td>' + (r.status || '') + '</td></tr>';
+    if (open && rot.length) {
+      h += '<tr class="rotdetail"><td class="n"></td><td colspan="19">'
+        + '<div class="rotbox"><div class="rottitle">Rotation — <b>' + r.vessel + '</b> '
+        + r.voy + (r.voy_dirs ? '(' + r.voy_dirs + ')' : '') + ' &nbsp;<span class="rotsub">'
+        + (r.lane || '') + ' · first port ' + (r.first_port || '') + '</span></div>'
+        + '<table class="trendtbl rot"><tr><th>No.</th><th>Voy</th><th>Port</th><th>ETA</th><th>ETB</th><th>ETD</th>'
+        + '<th>Port Stay (h)</th><th>Remark</th></tr>';
+      rot.forEach(function(l, i) {
+        h += '<tr><td class="n">' + (i + 1) + '</td><td>' + (l.voy || '') + '</td>'
+          + '<td class="vessel">' + (l.port || '') + '</td>'
+          + '<td>' + (l.eta || '—') + '</td><td>' + (l.etb || '—') + '</td><td>' + (l.etd || '—') + '</td>'
+          + '<td>' + (l.stay || '—') + '</td><td>' + (l.remark || '') + '</td></tr>';
+      });
+      h += '</table></div></td></tr>';
+    }
+  });
+  h += '</table>';
+  document.getElementById('voyTable').innerHTML = h || '<p>No voyage data.</p>';
+}
+
+/* ====== 自选时间段油耗 (Custom Period Consumption) ====== */
+function renderPeriod() {
+  if (!DATA) return;
+  var fEl = document.getElementById('perFrom'), tEl = document.getElementById('perTo');
+  var from = fEl ? fEl.value : '', to = tEl ? tEl.value : '';
+  var q = (document.getElementById('perSearch').value || '').toLowerCase();
+  var hist = DATA.history || [];
+  var byV = {};
+  hist.forEach(function(p) {
+    if (q && (p.v + ' ' + (p.c || '')).toLowerCase().indexOf(q) < 0) return;
+    (byV[p.v] = byV[p.v] || []).push(p);
+  });
+  var keys = ['ls', 'hs', 'mg', 'us'], out = [];
+  Object.keys(byV).forEach(function(v) {
+    var pts = byV[v].slice().sort(function(a, b) { return a.t < b.t ? -1 : 1; });
+    var sel = pts;
+    if (from || to) {
+      sel = pts.filter(function(p) {
+        var d = (p.t || '').slice(0, 10);
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+    }
+    if (sel.length < 2) return;
+    var cons = [0, 0, 0, 0];
+    for (var i = 1; i < sel.length; i++) {
+      var a = sel[i - 1], b = sel[i];
+      for (var k = 0; k < 4; k++) {
+        var av = a[keys[k]], bv = b[keys[k]];
+        if (av == null || bv == null) continue;
+        var d2 = av - bv;
+        if (d2 > 0) cons[k] += d2;          // 只累加下降量 = 消耗(排除加油)
+      }
+    }
+    var tot = cons[0] + cons[1] + cons[2] + cons[3];
+    var d0 = (sel[0].t || '').slice(0, 10), d1 = (sel[sel.length - 1].t || '').slice(0, 10);
+    var days = Math.round((new Date(d1) - new Date(d0)) / 86400000);
+    var bk = 0;
+    if (DATA.bunkering && DATA.bunkering[v]) {
+      Object.keys(DATA.bunkering[v]).forEach(function(d) {
+        if ((!from || d >= from) && (!to || d <= to)) bk += (DATA.bunkering[v][d] || 0);
+      });
+    }
+    out.push({ vessel: v, code: sel[0].c || '', lane: sel[0].l || '', n: sel.length,
+               ls: cons[0], hs: cons[1], mg: cons[2], us: cons[3],
+               tot: tot, days: days, bunker: Math.round(bk * 100) / 100,
+               avg: days > 0 ? tot / days : 0, from: d0, to: d1 });
+  });
+  out.sort(function(a, b) { return b.tot - a.tot; });
+  var h = '<table class="trendtbl"><tr>'
+    + '<th>Vessel</th><th>Code</th><th>Lane</th><th>From</th><th>To</th>'
+    + '<th>Days</th><th>Reports</th>'
+    + '<th>LSFO</th><th>HSFO</th><th>MGO</th><th>ULSFO</th>'
+    + '<th title="Total consumption in period (MT)">Total</th>'
+    + '<th title="Total consumption / days">Avg/day</th>'
+    + '<th title="Bunkering in period (MT, from 燃油添加日志)">Bunker</th></tr>';
+  out.forEach(function(r) {
+    h += '<tr><td>' + r.vessel + '</td><td>' + r.code + '</td><td>' + r.lane + '</td>'
+      + '<td>' + r.from + '</td><td>' + r.to + '</td><td>' + r.days + '</td><td>' + r.n + '</td>'
+      + '<td class="n">' + fmt(r.ls) + '</td><td class="n">' + fmt(r.hs) + '</td>'
+      + '<td class="n">' + fmt(r.mg) + '</td><td class="n">' + fmt(r.us) + '</td>'
+      + '<td class="n"><b>' + fmt(Math.round(r.tot * 100) / 100) + '</b></td>'
+      + '<td class="n">' + fmt(Math.round(r.avg * 100) / 100) + '</td>'
+      + '<td class="n bunker">' + fmt(r.bunker) + '</td></tr>';
+  });
+  if (out.length) {
+    var T = { ls: 0, hs: 0, mg: 0, us: 0, tot: 0, bunker: 0 };
+    out.forEach(function(r) {
+      T.ls += r.ls; T.hs += r.hs; T.mg += r.mg; T.us += r.us; T.tot += r.tot; T.bunker += r.bunker;
+    });
+    h += '<tr style="font-weight:700;background:#eef4fb"><td colspan="7">TOTAL (' + out.length + ' vessels)</td>'
+      + '<td class="n">' + fmt(Math.round(T.ls * 100) / 100) + '</td>'
+      + '<td class="n">' + fmt(Math.round(T.hs * 100) / 100) + '</td>'
+      + '<td class="n">' + fmt(Math.round(T.mg * 100) / 100) + '</td>'
+      + '<td class="n">' + fmt(Math.round(T.us * 100) / 100) + '</td>'
+      + '<td class="n">' + fmt(Math.round(T.tot * 100) / 100) + '</td>'
+      + '<td class="n">—</td>'
+      + '<td class="n bunker">' + fmt(Math.round(T.bunker * 100) / 100) + '</td></tr>';
+  }
+  h += '</table>';
+  document.getElementById('periodTable').innerHTML =
+    h || '<p>No data in this period (each vessel needs ≥2 ROB reports).</p>';
 }
 </script>
 </body>

@@ -7,21 +7,32 @@ cd /d %~dp0
 set LOG=rob_data\autoupdate.log
 echo ===== %date% %time% ===== >> %LOG%
 
-echo [1/4] git pull ...
+echo [1/5] git pull ...
 git pull --rebase --autostash >> %LOG% 2>&1
 if errorlevel 1 ( echo [WARN] git pull failed, will reconcile via safe-push >> %LOG% )
 
-echo [2/4] rob_refresh.py ...
 REM 解释器: 统一管理版 venv(含 win32com / openpyxl / pycryptodome)。
 REM 原硬编码路径 3.13.12.old.14596 已被清理, 若直接写死会导致定时任务在第2步静默失败。
 set PYEXE=C:\Users\culadmin\.workbuddy\binaries\python\envs\default\Scripts\python.exe
 if not exist "%PYEXE%" set PYEXE=C:\Users\culadmin\.workbuddy\binaries\python\versions\3.13.12\python.exe
+
+echo [2/5] sync_bunkering.py ^(加油量, 仅体积, 价格不上网^) ...
+if exist sync_bunkering.py (
+    "%PYEXE%" sync_bunkering.py >> %LOG% 2>&1
+    if errorlevel 1 (
+        echo [WARN] sync_bunkering failed - 网络盘未挂载或 openpyxl 缺失, 沿用上次 bunkering.json >> %LOG%
+    )
+) else (
+    echo [WARN] sync_bunkering.py not found, skip >> %LOG%
+)
+
+echo [3/5] rob_refresh.py ...
 "%PYEXE%" rob_refresh.py >> %LOG% 2>&1
 if errorlevel 1 ( echo [ERROR] rob_refresh.py failed >> %LOG% & exit /b 1 )
 
-echo [3/4] safe commit and push (git_safe_push.py) ...
-"C:\Users\culadmin\.workbuddy\binaries\python\envs\default\Scripts\python.exe" git_safe_push.py -m "ROB auto update %date%" >> %LOG% 2>&1
+echo [4/5] safe commit and push ^(git_safe_push.py^) ...
+"%PYEXE%" git_safe_push.py -m "ROB auto update %date%" >> %LOG% 2>&1
 if errorlevel 1 ( echo [ERROR] git_safe_push failed >> %LOG% & exit /b 1 )
 
-echo [4/4] DONE >> %LOG%
+echo [5/5] DONE >> %LOG%
 exit /b 0

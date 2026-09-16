@@ -21,3 +21,11 @@ rob_data/*.xlsx
 # ROB 历史 CSV 的一次性备份(已入库, 不重复提交)
 rob_data/rob_history*.bak*
 rob_data/rob_history.backup_*.csv
+# 同步脚本产生的各类 .bak-YYYYmmdd-HHMM 备份(含 rob_results.json 等)
+rob_data/*.bak-*
+
+# 本地临时/调试产物(不入库)
+_dm_latest.html
+cul_daily_movement.bak-*.html
+draft_preview.html
+.wip_backup*/

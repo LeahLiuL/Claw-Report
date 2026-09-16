@@ -19,6 +19,15 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
 import sys, os, re, json, base64, hashlib, argparse, tempfile, csv
 sys.stdout.reconfigure(encoding="utf-8")
 from datetime import datetime, timedelta
+# 航次油耗(纯本地计算, 不依赖 Outlook/Excel)
+# 注意: 多机协作(本机 leahliu / 自动机 culadmin)时 voyage_consumption.py 可能尚未同步到
+# 某台机器, 顶层裸 import 会让整个刷新直接崩掉。这里降级为可选依赖: 缺失时只是没有
+# 航次油耗, 其余 ROB 功能照常。
+try:
+    from voyage_consumption import compute_voyages
+except Exception as _e:                                   # pragma: no cover
+    compute_voyages = None
+    print("[WARN] voyage_consumption 不可用, 跳过航次油耗:", _e)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROB_DIR = os.path.join(BASE, "rob_data")
@@ -331,15 +340,43 @@ def extract_rob(att):
             return (tok, round(n, 3))   # 收敛浮点尾巴(3651.5230000000006 -> 3651.523)
         return None
 
+    # ---- draft 前/中/后吃水: 同行业务模板在 'DRAFT FWD|值|M|DRAFT MID|值|M|DRAFT AFT|值|M'
+    #      标签与数值在同一行相邻; 不同船模板可能不同, 这里取"含 DRAFT FWD/MID/AFT
+    #      的单元格右侧第一个数值"作为对应吃水。
+    draft_labels = ("DRAFT FWD", "DRAFT MID", "DRAFT AFT")
+
+    def _take_draft(cu, i, row):
+        if not any(l in cu for l in draft_labels):
+            return None
+        for l in draft_labels:
+            if l in cu:
+                for j in range(i + 1, len(row)):
+                    v = row[j]
+                    if v is None:
+                        continue
+                    if isinstance(v, str) and not v.strip():
+                        continue
+                    n = _as_num(v)
+                    if n is None:
+                        break
+                    return (l.replace(" ", "_"), round(n, 2))
+                return None
+        return None
+
     rob = {}
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             for i, c in enumerate(row):
                 if c and isinstance(c, str):
-                    got = _take(c.upper().strip(), i, row)
+                    cu = c.upper().strip()
+                    got = _take(cu, i, row)
                     if got:
                         k, v = got
                         rob["REFEER" if k == "REEFER" else k] = v
+                    gotd = _take_draft(cu, i, row)
+                    if gotd:
+                        k, v = gotd
+                        rob[k] = v
     # 低硫船只报 ULSFO 时归一到 LSFO, 统一主表/趋势口径
     if "ULSFO" in rob and "LSFO" not in rob:
         rob["LSFO"] = rob["ULSFO"]
@@ -392,6 +429,8 @@ def apply_hit(rec, hit):
         "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"), "rob_mgo": rob.get("MGO"),
         "rob_ulsfo": rob.get("ULSFO"), "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
         "rob_refeer": rob.get("REFEER"),
+        "rob_draft_fwd": rob.get("DRAFT_FWD"), "rob_draft_mid": rob.get("DRAFT_MID"),
+        "rob_draft_aft": rob.get("DRAFT_AFT"),
         "report_time": recv.strftime("%Y-%m-%d %H:%M:%S"),
         "source": subj, "sender": se, "found": True,
     })
@@ -683,14 +722,57 @@ def _hours_of(s):
 
 
 def build_html(results):
+    # ---- 吃水历史(必须在 vessels 之前解析) ----
+    # draft_history.csv 是【累加式】独立文件: date,vessel,draft_fwd,draft_mid,draft_aft
+    # 这里同时算出 ①每船各位置/整体的历史最大吃水 ②每船最新一条吃水。
+    # ②用于给 vessels 的"当前吃水"兜底 —— 因为 --no-outlook 重跑时 results 里没有
+    # rob_draft_* 字段(邮件没重新解析), 若只依赖 results 会把已抓到的吃水抹成 None。
+    draft_max, draft_latest = {}, {}
+    DRAFT_CSV = os.path.join(ROB_DIR, "draft_history.csv")
+    if os.path.exists(DRAFT_CSV):
+        try:
+            with open(DRAFT_CSV, encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    v = row.get("vessel", "")
+                    if is_offline(v):
+                        continue
+                    d = (row.get("date") or "")[:10]
+                    fwd = _num(row.get("draft_fwd"))
+                    mid = _num(row.get("draft_mid"))
+                    aft = _num(row.get("draft_aft"))
+                    cur = draft_max.setdefault(v, {"fwd": None, "fwd_date": "",
+                                                  "mid": None, "mid_date": "",
+                                                  "aft": None, "aft_date": "",
+                                                  "max": None, "max_date": ""})
+                    for pos, val, dv in (("fwd", fwd, d), ("mid", mid, d), ("aft", aft, d)):
+                        if val is None:
+                            continue
+                        if cur[pos] is None or val > cur[pos]:
+                            cur[pos] = val
+                            cur[pos + "_date"] = dv
+                        if cur["max"] is None or val > cur["max"]:
+                            cur["max"] = val
+                            cur["max_date"] = dv
+                    # 最新一条(按日期字典序; 同日多行取最后出现的那条)
+                    lat = draft_latest.get(v)
+                    if lat is None or d >= lat[0]:
+                        draft_latest[v] = (d, fwd, mid, aft)
+        except Exception as e:
+            print("[WARN] read draft_history.csv failed:", e)
+
     vessels = []
     ordered = sorted(results, key=lambda r: (r.get("lane", ""), r.get("code", "")))
     for i, r in enumerate(ordered, 1):
+        # 当前吃水: 优先用本次解析出的值; 没有则从 draft_history.csv 取该船最新一条兜底
+        _lat = draft_latest.get(r.get("vessel", "")) or (None, None, None, None)
         vessels.append({
             "seq": i, "vessel": r.get("vessel", ""), "code": r.get("code", ""),
             "lane": r.get("lane", ""), "pic": r.get("pic", ""),
             "rob_lsfo": r.get("rob_lsfo"), "rob_hsfo": r.get("rob_hsfo"),
             "rob_ulsfo": r.get("rob_ulsfo"), "rob_mgo": r.get("rob_mgo"),
+            "draft_fwd": r.get("rob_draft_fwd") if r.get("rob_draft_fwd") is not None else _lat[1],
+            "draft_mid": r.get("rob_draft_mid") if r.get("rob_draft_mid") is not None else _lat[2],
+            "draft_aft": r.get("rob_draft_aft") if r.get("rob_draft_aft") is not None else _lat[3],
             "found": bool(r.get("found")),
             "remark": "No ROB report from Master found in mailbox" if not r.get("found") else "",
             "report_time": (r.get("report_time") or "")[:19],
@@ -731,10 +813,31 @@ def build_html(results):
                 bunkering = json.load(f)
         except Exception as e:
             print("[WARN] read bunkering.json failed:", e)
+    # ---- 分油种加油量(来自《燃油添加日志》, 仅体积 MT) ----
+    bunker_types = {}
+    BUNKER_TYPES_JSON = os.path.join(ROB_DIR, "bunkering_types.json")
+    if os.path.exists(BUNKER_TYPES_JSON):
+        try:
+            with open(BUNKER_TYPES_JSON, encoding="utf-8") as f:
+                bunker_types = json.load(f)
+        except Exception as e:
+            print("[WARN] read bunkering_types.json failed:", e)
+    # ---- 航次油耗: 航次首港 Berth 时间 → 下一航次首港 Berth; 消耗 = ROB 窗口内下降量 ----
+    voyages = []
+    if compute_voyages:
+        try:
+            voyages = compute_voyages(bunkering=bunkering, bunker_types=bunker_types)
+        except Exception as e:
+            print("[WARN] compute voyages failed:", e)
+    else:
+        print("[WARN] 跳过航次油耗: voyage_consumption 模块不可用")
+    # (draft_max / draft_latest 已在 build_html 开头解析, 此处不再重复读取)
     payload = {"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
                "vessels": vessels,
                "history": history,
-               "bunkering": bunkering}
+               "bunkering": bunkering,
+               "voyages": voyages,
+               "draft_max": draft_max}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)
     back = cryptojs_decrypt(enc, PASSWORD)
@@ -743,8 +846,8 @@ def build_html(results):
     html = load_template().replace("__ENC__", enc)
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
-    print("HTML -> %s (%d vessels, history=%d rows, encrypted OK, %d bytes)"
-          % (OUT_HTML, len(vessels), len(history), len(html)))
+    print("HTML -> %s (%d vessels, history=%d rows, voyages=%d, encrypted OK, %d bytes)"
+          % (OUT_HTML, len(vessels), len(history), len(voyages), len(html)))
     print("HTML -> %s (%d vessels, encrypted OK, %d bytes)" % (OUT_HTML, len(vessels), len(html)))
 
 
@@ -949,6 +1052,49 @@ def append_history_rows(recs, fleet_lookup=None):
     return len(rows)
 
 
+def write_draft_history(results):
+    """累加式吃水历史(独立文件, 不污染双机共用的 14 列 ROB CSV):
+       rob_data/draft_history.csv, 列: date,vessel,draft_fwd,draft_mid,draft_aft
+       去重键 (date, vessel) —— 同一天同船只留一行(取当天最新一次报告的吃水)。"""
+    DRAFT_CSV = os.path.join(ROB_DIR, "draft_history.csv")
+    existing = set()
+    if os.path.exists(DRAFT_CSV):
+        try:
+            with open(DRAFT_CSV, encoding="utf-8", newline="") as f:
+                for row in csv.reader(f):
+                    if len(row) >= 5 and row[1]:
+                        existing.add((row[0], row[1]))
+        except Exception:
+            pass
+    new_rows = []
+    for r in results:
+        rt19 = (r.get("report_time") or "")[:19]
+        if not rt19:
+            continue
+        fwd = _num(r.get("rob_draft_fwd"))
+        mid = _num(r.get("rob_draft_mid"))
+        aft = _num(r.get("rob_draft_aft"))
+        if fwd is None and mid is None and aft is None:
+            continue
+        d = rt19[:10]
+        if (d, r.get("vessel", "")) in existing:
+            continue
+        existing.add((d, r.get("vessel", "")))
+        new_rows.append([d, r.get("vessel", ""), fwd, mid, aft])
+    try:
+        write_header = not os.path.exists(DRAFT_CSV)
+        with open(DRAFT_CSV, "a", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            if write_header:
+                w.writerow(["date", "vessel", "draft_fwd", "draft_mid", "draft_aft"])
+            for row in new_rows:
+                w.writerow(row)
+        if new_rows:
+            print("draft -> %s (+%d rows)" % (DRAFT_CSV, len(new_rows)))
+    except Exception as e:
+        print("[WARN] write draft_history.csv failed:", e)
+
+
 def backfill_history(days, sender_map, fleet_lookup=None):
     """回补过去 days 天的每一份 ROB 报告(Noon/Berth/Sailing), 按船长邮箱逆向映射识别船。
     返回 (recs 已解析, unknown 未知发件人列表)。未知发件人需交用户确认后固化进 vessel_senders.json。"""
@@ -1039,6 +1185,8 @@ def backfill_history(days, sender_map, fleet_lookup=None):
                 "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"),
                 "rob_mgo": rob.get("MGO"), "rob_ulsfo": rob.get("ULSFO"),
                 "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
+                "rob_draft_fwd": rob.get("DRAFT_FWD"), "rob_draft_mid": rob.get("DRAFT_MID"),
+                "rob_draft_aft": rob.get("DRAFT_AFT"),
             })
     return recs, unknown
 
@@ -1066,6 +1214,7 @@ def backfill_mode(days):
     for r in recs:
         r["vessel"] = disp.get(r["vessel"], r["vessel"].upper())
     added = append_history_rows(recs, fleet_lookup)
+    write_draft_history(recs)
     print("backfill: parsed %d reports, appended %d new rows (past %d days)"
           % (len(recs), added, days))
     results = []
@@ -1175,6 +1324,7 @@ def main():
     build_html(merged)
     build_xlsx(merged)
     write_daily_history(merged)
+    write_draft_history(merged)
     print("DONE")
 
 
