@@ -762,7 +762,15 @@ function renderVoyage() {
     if (only && !r.hasData) return false;
     return true;
   });
-  rows.sort(function(a, b) { return a.start < b.start ? 1 : -1; });
+  rows.sort(function(a, b) {
+    var la = (a.lane || '').trim(), lb = (b.lane || '').trim();
+    // 1) Lane 升序(空航线排最后)  2) 同航线内 Start 倒序(最新航次在前)
+    var ea = la ? 0 : 1, eb = lb ? 0 : 1;
+    if (ea !== eb) return ea - eb;
+    var ua = la.toUpperCase(), ub = lb.toUpperCase();
+    if (ua !== ub) return ua < ub ? -1 : 1;
+    return a.start < b.start ? 1 : (a.start > b.start ? -1 : 0);
+  });
   var h = '<table class="trendtbl"><tr>'
     + '<th title="Click to expand rotation"></th>'
     + '<th>Vessel</th><th>Code</th><th>Lane</th><th>Voy</th><th>First Port</th>'

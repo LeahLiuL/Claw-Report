@@ -284,7 +284,12 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 "rotation": rot.get((v, voy), []),
                 "hasData": len(pts) >= 2,
             })
+    # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后
     voyages.sort(key=lambda x: x["start"], reverse=True)
+    voyages.sort(key=lambda x: (
+        (x.get("lane") or "").strip() == "",
+        (x.get("lane") or "").strip().upper(),
+    ))
     return voyages
 
 
