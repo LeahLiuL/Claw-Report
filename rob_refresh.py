@@ -836,6 +836,7 @@ def build_html(results):
                "vessels": vessels,
                "history": history,
                "bunkering": bunkering,
+               "bunkering_types": bunker_types,
                "voyages": voyages,
                "draft_max": draft_max}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)

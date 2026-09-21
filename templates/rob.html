@@ -606,7 +606,27 @@ function renderTrend() {
       if (first.rob < minRob) minRob = first.rob;
       var avgDaily = burnDays > 0 ? sumDaily / burnDays : 0;
       var daysLeft = (avgDaily > 0) ? (last.rob / avgDaily) : null;
-      summary.push({ v:v, lane:lane, first:first.rob, last:last.rob, total:totalCons, avg:avgDaily, bunker:bunkerCnt, min:minRob, daysLeft:daysLeft });
+      // ---- 窗口内加油量(MT, 来自《燃油添加日志》) ----
+      var bkT = { ls: 0, hs: 0, mg: 0, us: 0 };
+      var bt = (DATA.bunkering_types && DATA.bunkering_types[v]) ? DATA.bunkering_types[v] : null;
+      if (bt) {
+        Object.keys(bt).forEach(function(d) {
+          if ((!from || d >= from) && (!to || d <= to)) {
+            var o = bt[d] || {};
+            bkT.ls += (o.ls || 0); bkT.hs += (o.hs || 0);
+            bkT.mg += (o.mg || 0); bkT.us += (o.us || 0);
+          }
+        });
+      }
+      var bkTotal = bkT.ls + bkT.hs + bkT.mg + bkT.us;
+      // 无分油种记录时退回合计表(老数据兼容)
+      if (!bkTotal && DATA.bunkering && DATA.bunkering[v]) {
+        Object.keys(DATA.bunkering[v]).forEach(function(d) {
+          if ((!from || d >= from) && (!to || d <= to)) bkTotal += (DATA.bunkering[v][d] || 0);
+        });
+      }
+      summary.push({ v:v, lane:lane, first:first.rob, last:last.rob, total:totalCons, avg:avgDaily,
+                     bunker:bunkerCnt, bk: Math.round(bkTotal * 100) / 100, bkT:bkT, min:minRob, daysLeft:daysLeft });
     }
   });
   if (trendChartObj) trendChartObj.destroy();
@@ -646,23 +666,31 @@ function renderSummary(s) {
     + '<th title="Average daily consumption (MT/day)">Avg/day</th>'
     + '<th title="Lowest ROB observed in the range (MT)">Min</th>'
     + '<th title="Number of days ROB increased (bunker / fuel taken on board)">Bunker#</th>'
+    + '<th title="Bunkered volume in the range (MT, from 燃油添加日志). Hover for per-grade breakdown">Bunker MT</th>'
     + '<th title="Last ROB ÷ Avg/day = estimated days of fuel remaining (red if < 7)">Days Left</th>'
     + '</tr>';
   s.sort(function(a,b){ return (a.daysLeft==null?1e9:a.daysLeft) - (b.daysLeft==null?1e9:b.daysLeft); });
   s.forEach(function(r){
     var dl = (r.daysLeft == null) ? '—' : Math.floor(r.daysLeft);
     var warn = (r.daysLeft != null && r.daysLeft < 7) ? ' class="warn"' : '';
+    var t = r.bkT || { ls:0, hs:0, mg:0, us:0 };
+    var tip = r.bk
+      ? '加油明细: LSFO ' + fmt(t.ls) + ' / HSFO ' + fmt(t.hs) + ' / MGO ' + fmt(t.mg) + ' / ULSFO ' + fmt(t.us)
+      : '该区间无加油记录';
     h += '<tr><td>' + r.v + '</td><td>' + r.lane + '</td><td>' + fmt(r.first) + '</td><td>' + fmt(r.last) +
          '</td><td>' + fmt(r.total) + '</td><td>' + fmt(r.avg) + '</td><td>' + fmt(r.min) + '</td><td>' + r.bunker +
-         '</td><td' + warn + '>' + (dl === '—' ? '—' : dl) + '</td></tr>';
+         '</td><td class="n bunker" title="' + tip + '">' + (r.bk ? fmt(r.bk) : '—') + '</td>'
+         + '<td' + warn + '>' + (dl === '—' ? '—' : dl) + '</td></tr>';
   });
-  var sumTotal = 0, sumBunkerDays = 0;
+  var sumTotal = 0, sumBunkerDays = 0, sumBunkerMT = 0;
   s.forEach(function(r) {
     if (typeof r.total === 'number') sumTotal += r.total;
     if (r.bunker) sumBunkerDays += r.bunker;
+    if (r.bk) sumBunkerMT += r.bk;
   });
   h += '<tr style="font-weight:700;border-top:2px solid #1F4E79"><td>TOTAL (' + s.length + ' vessels)</td><td></td><td></td><td></td>'
-     + '<td class="n">' + fmt(Math.round(sumTotal * 100) / 100) + '</td><td></td><td></td><td>' + sumBunkerDays + '</td><td></td></tr>';
+     + '<td class="n">' + fmt(Math.round(sumTotal * 100) / 100) + '</td><td></td><td></td><td>' + sumBunkerDays + '</td>'
+     + '<td class="n bunker">' + fmt(Math.round(sumBunkerMT * 100) / 100) + '</td><td></td></tr>';
   h += '</table>';
   document.getElementById('trendSummary').innerHTML = h;
 }
@@ -867,15 +895,26 @@ function renderPeriod() {
     var tot = cons[0] + cons[1] + cons[2] + cons[3];
     var d0 = (sel[0].t || '').slice(0, 10), d1 = (sel[sel.length - 1].t || '').slice(0, 10);
     var days = Math.round((new Date(d1) - new Date(d0)) / 86400000);
-    var bk = 0;
-    if (DATA.bunkering && DATA.bunkering[v]) {
+    var bk = 0, bkT = { ls: 0, hs: 0, mg: 0, us: 0 };
+    var bt = (DATA.bunkering_types && DATA.bunkering_types[v]) ? DATA.bunkering_types[v] : null;
+    if (bt) {
+      Object.keys(bt).forEach(function(d) {
+        if ((!from || d >= from) && (!to || d <= to)) {
+          var o = bt[d] || {};
+          bkT.ls += (o.ls || 0); bkT.hs += (o.hs || 0);
+          bkT.mg += (o.mg || 0); bkT.us += (o.us || 0);
+        }
+      });
+      bk = bkT.ls + bkT.hs + bkT.mg + bkT.us;
+    }
+    if (!bk && DATA.bunkering && DATA.bunkering[v]) {
       Object.keys(DATA.bunkering[v]).forEach(function(d) {
         if ((!from || d >= from) && (!to || d <= to)) bk += (DATA.bunkering[v][d] || 0);
       });
     }
     out.push({ vessel: v, code: sel[0].c || '', lane: sel[0].l || '', n: sel.length,
                ls: cons[0], hs: cons[1], mg: cons[2], us: cons[3],
-               tot: tot, days: days, bunker: Math.round(bk * 100) / 100,
+               tot: tot, days: days, bunker: Math.round(bk * 100) / 100, bkT: bkT,
                avg: days > 0 ? tot / days : 0, from: d0, to: d1 });
   });
   out.sort(function(a, b) { return b.tot - a.tot; });
@@ -893,7 +932,9 @@ function renderPeriod() {
       + '<td class="n">' + fmt(r.mg) + '</td><td class="n">' + fmt(r.us) + '</td>'
       + '<td class="n"><b>' + fmt(Math.round(r.tot * 100) / 100) + '</b></td>'
       + '<td class="n">' + fmt(Math.round(r.avg * 100) / 100) + '</td>'
-      + '<td class="n bunker">' + fmt(r.bunker) + '</td></tr>';
+      + '<td class="n bunker" title="' + (r.bunker
+          ? '加油明细: LSFO ' + fmt(r.bkT.ls) + ' / HSFO ' + fmt(r.bkT.hs) + ' / MGO ' + fmt(r.bkT.mg) + ' / ULSFO ' + fmt(r.bkT.us)
+          : '该区间无加油记录') + '">' + fmt(r.bunker) + '</td></tr>';
   });
   if (out.length) {
     var T = { ls: 0, hs: 0, mg: 0, us: 0, tot: 0, bunker: 0 };
