@@ -13,9 +13,16 @@
   - 合并前自动备份本地文件为 rob_history.csv.bak-YYYYmmdd-HHMM
 
 用法:
-  python sync_history_from_git.py            # 合并 rob_history.csv
+  python sync_history_from_git.py            # 合并 rob_history.csv + 同步船期/加油/吃水
   python sync_history_from_git.py --results  # 同时用远端 rob_results.json 覆盖本地
   python sync_history_from_git.py --dry-run  # 只看差异, 不写文件
+
+同步的数据文件(culadmin 才是权威数据源, 本机一律以远端为准):
+  - rob_data/rob_history.csv        并集合并(本机独有保留)
+  - rob_data/rob_results.json       覆盖(当日快照, 整体重算)
+  - cul_daily_movement.html         覆盖(船期; 不拉会导致航次 End 时间算错!)
+  - rob_data/bunkering*.json        覆盖(加油量, 来自 Z 盘燃油添加日志)
+  - rob_data/draft_history.csv      并集合并(吃水, 累加式)
 """
 import os
 import sys
@@ -29,6 +36,10 @@ ROB_DIR = os.path.join(BASE, "rob_data")
 LOCAL_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 REMOTE_CSV = os.path.join(ROB_DIR, "_remote_hist.csv")
 LOCAL_RES = os.path.join(ROB_DIR, "rob_results.json")
+LOCAL_DM = os.path.join(BASE, "cul_daily_movement.html")
+LOCAL_DRAFT = os.path.join(ROB_DIR, "draft_history.csv")
+BUNKER_FILES = ["bunkering.json", "bunkering_types.json"]
+DRAFT_KEY = ("date", "vessel")
 FIELDS = ["date", "vessel", "code", "lane", "pic", "lsfo", "hsfo", "mgo",
           "ulsfo", "bw", "fw", "refeer", "found", "report_time"]
 KEY = ("date", "vessel", "report_time")
@@ -141,6 +152,72 @@ def sync_results(dry=False):
     print("已用远端 rob_results.json 覆盖本地 (旧文件已备份)")
 
 
+def sync_simple(remote_path, local_path, dry=False):
+    """累加式/快照式数据: 直接取远端覆盖本地(culadmin 是权威来源)。"""
+    out = sh(["git", "show", "FETCH_HEAD:" + remote_path])
+    if not out:
+        print("[WARN] 远端 %s 读取失败, 跳过" % remote_path)
+        return False
+    name = os.path.basename(local_path)
+    if os.path.exists(local_path):
+        try:
+            if open(local_path, encoding="utf-8", errors="replace").read() == out:
+                print("%-28s 已是最新, 跳过" % name)
+                return True
+        except Exception:
+            pass
+    if dry:
+        print("[dry-run] 将更新 %s (%d 字符)" % (name, len(out)))
+        return True
+    if os.path.exists(local_path):
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+        shutil.copy2(local_path, local_path + ".bak-" + stamp)
+    with open(local_path, "w", encoding="utf-8", newline="") as f:
+        f.write(out)
+    print("%-28s 已更新 (%d 字符)" % (name, len(out)))
+    return True
+
+
+def merge_draft(dry=False):
+    """draft_history.csv 是累加式(每天抓一次), 与本地做并集, 不能直接覆盖。"""
+    out = sh(["git", "show", "FETCH_HEAD:rob_data/draft_history.csv"])
+    if not out:
+        print("[WARN] 远端 draft_history.csv 读取失败, 跳过")
+        return
+    rem = list(csv.DictReader(out.splitlines()))
+    if not os.path.exists(LOCAL_DRAFT):
+        if dry:
+            print("[dry-run] 将写入 draft_history.csv (%d 行)" % len(rem))
+            return
+        with open(LOCAL_DRAFT, "w", encoding="utf-8", newline="") as f:
+            f.write(out)
+        print("draft_history.csv      已写入 (%d 行)" % len(rem))
+        return
+    loc = list(csv.DictReader(open(LOCAL_DRAFT, encoding="utf-8-sig")))
+    fields = list(loc[0].keys()) if loc else list(rem[0].keys())
+    m = {tuple((r.get(k) or "").strip() for k in DRAFT_KEY): r for r in loc}
+    added = 0
+    for r in rem:
+        k = tuple((r.get(k) or "").strip() for k in DRAFT_KEY)
+        if k not in m:
+            m[k] = r
+            added += 1
+    merged = sorted(m.values(), key=lambda r: ((r.get("date") or ""), (r.get("vessel") or "")))
+    print("draft_history.csv      本地 %d 行 + 远端新增 %d 行 = %d 行"
+          % (len(loc), added, len(merged)))
+    if dry:
+        print("[dry-run] 未写入")
+        return
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    shutil.copy2(LOCAL_DRAFT, LOCAL_DRAFT + ".bak-" + stamp)
+    with open(LOCAL_DRAFT, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        for r in merged:
+            w.writerow({k: (r.get(k) or "") for k in fields})
+    print("已写入", LOCAL_DRAFT)
+
+
 if __name__ == "__main__":
     dry = "--dry-run" in sys.argv
     if not fetch_remote_csv():
@@ -148,5 +225,11 @@ if __name__ == "__main__":
     merge(dry=dry)
     if "--results" in sys.argv:
         sync_results(dry=dry)
+    # culadmin 是船期/加油/吃水的唯一生产者, 本机一律以远端为准
+    sync_simple("cul_daily_movement.html", LOCAL_DM, dry=dry)
+    for bf in BUNKER_FILES:
+        sync_simple("rob_data/" + bf, os.path.join(ROB_DIR, bf), dry=dry)
+    merge_draft(dry=dry)
     if os.path.exists(REMOTE_CSV):
         os.remove(REMOTE_CSV)
+    print("DONE")
