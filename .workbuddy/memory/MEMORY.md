@@ -46,11 +46,16 @@
 ## Bapfile 站点每日自动化
 
 ### 数据管线
-1. SFTP 下载 `Vessel Bapfile.xlsx`（`sftp_fetch.py`，端口 6622，需 VPN）
+1. SFTP 下载 `Vessel Bapfile.xlsx`（`sftp_fetch.py`，端口 6622，需 VPN；默认落盘 `Claw-Report/Vessel Bapfile.xlsx`，可用环境变量 `BAPFILE_LOCAL` 覆盖）
 2. 增量叠加进 `bapfile.db`（`process_all.py --append`，17 列整行去重）
 3. 生成 gzip 静态分片（`gen_static.py`：按箱号前缀、航线、月份）
 4. 部署到 `LeahLiuL/cul-bapfile-site` main 分支（`deploy_site.py`）
 5. 公开地址：https://leahliul.github.io/cul-bapfile-site/
+6. `C:/CULINES/Claw Report/Vessel Bapfile.xlsx` 是另一份副本（供其他分析流程用），脚本不会自动更新，需手动从 Claw-Report 副本同步
+
+### 已知坑
+- `Claw-Report/site/` 不是独立 git 仓库（父仓库 gitignore），校验 cul-bapfile-site 远端必须用 `git ls-remote https://github.com/LeahLiuL/cul-bapfile-site.git main`，不要在 site/ 目录跑 git。
+- 2026-09-15~09-20 连续 6 天空档根因：23:00 深夜本机 VPN 未连接（auto_bapfile.log 明确记录 `SFTP unreachable (VPN not connected)`），早晨 08:00-09:00 VPN 可用；WorkBuddy 自动化 09-21 08:53 补跑回填 7 天数据。
 
 ### 故障应急
 - 若 SFTP 文件为截断 ZIP（缺中央目录），使用 `repair_bapfile.py` 重建有效 xlsx：
