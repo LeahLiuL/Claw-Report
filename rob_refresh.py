@@ -106,19 +106,37 @@ def load_fleet():
 
 
 # ---------------------------------------------------------------- 2. Outlook ROB
+# Outlook 连接状态(供页面提示): 离线时数据是本地缓存, 看着"抓过了"其实没更新
+OL_STATE = {"connected": False, "offline": None, "mode": None}
+
+
 def connect_outlook():
     """返回主邮箱 store。注意: NS.Stores 里『联机存档 - leahliu@culines.com』也含
     CULINES.COM 且可能排在前面, 其收件箱是空的 —— 必须排除存档, 否则什么都抓不到。"""
     import win32com.client
     OL = win32com.client.Dispatch("Outlook.Application")
     NS = OL.GetNamespace("MAPI")
+    # 离线/缓存未同步检测: 这时 COM 能连、也能读到邮件, 但都是本地缓存的旧邮件,
+    # 刷新会"成功"却拿不到新报告 —— 必须在页面和日志上暴露, 否则看不出异常
+    try:
+        OL_STATE["offline"] = bool(NS.Offline)
+    except Exception:
+        OL_STATE["offline"] = None
+    try:
+        OL_STATE["mode"] = NS.ExchangeConnectionMode
+    except Exception:
+        OL_STATE["mode"] = None
     stores = [s for s in NS.Stores if "CULINES.COM" in (s.DisplayName or "").upper()]
     main = [s for s in stores
             if "存档" not in (s.DisplayName or "")
             and "ARCHIVE" not in (s.DisplayName or "").upper()]
     if main:
+        OL_STATE["connected"] = True
         return main[0]
-    return stores[0] if stores else None
+    if stores:
+        OL_STATE["connected"] = True
+        return stores[0]
+    return None
 
 
 def get_sender(it):
@@ -862,7 +880,13 @@ def build_html(results):
     else:
         print("[WARN] 跳过航次油耗: voyage_consumption 模块不可用")
     # (draft_max / draft_latest 已在 build_html 开头解析, 此处不再重复读取)
-    payload = {"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    _upd = datetime.now().strftime("%Y-%m-%d %H:%M")
+    if OL_STATE.get("offline"):
+        # Outlook 离线(或缓存未同步): 本次"刷新"读的是本地缓存, 数据可能根本没更新
+        _upd += "  [OUTLOOK 离线-数据未更新]"
+    elif OL_STATE.get("attempted") and not OL_STATE.get("connected"):
+        _upd += "  [未连接 Outlook]"
+    payload = {"updated": _upd,
                "vessels": vessels,
                "history": history,
                "bunkering": bunkering,
@@ -1300,11 +1324,21 @@ def main():
 
     if not args.no_outlook:
         sender_map = load_sender_map()
+        OL_STATE["attempted"] = True      # 区分"没连上"和"压根没尝试(--no-outlook 重建)"
         store = connect_outlook()
         if store is None:
             print("[WARN] CULINES Outlook store not found, keep old data")
         else:
             inbox = store.GetDefaultFolder(6)
+            if OL_STATE.get("offline"):
+                print("!" * 66)
+                print("!! [严重] Outlook 处于【离线/缓存未同步】状态 (mode=%s)" % OL_STATE.get("mode"))
+                print("!! 本次刷新读到的是本地缓存邮件, 抓不到任何新报告 ——")
+                print("!! 页面会显示旧数据但看起来像刚抓过。请连上网络/VPN 后重跑。")
+                print("!" * 66)
+            elif OL_STATE.get("mode") is not None:
+                print("Outlook 在线 (ExchangeConnectionMode=%s, Offline=%s)"
+                      % (OL_STATE.get("mode"), OL_STATE.get("offline")))
             cache = build_folder_cache(inbox)
             # 全量文件夹列表(含收件箱顶层船文件夹 + 嵌套 + 同名不去重), 供 sender 索引和主题兜底
             folder_list = build_folder_list(inbox)
