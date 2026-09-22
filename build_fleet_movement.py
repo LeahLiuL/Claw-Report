@@ -176,15 +176,11 @@ def _has_port_header(ws):
 def _pick_data_sheet(wb):
     """多 sheet 工作簿中挑选正确的船期数据表。
 
-    坑: 某些船的 xlsx 含多张表(如 ZLST 有 'ZLST Official'(陈旧 YEADE 计划) 与
-    'ZLST - OFFICIAL'(当前维护的 SAJED 计划)), 且 sheetnames[0] 恰是陈旧表。
-    规则: 优先用【激活表】(用户正在维护/查看的那张); 仅当它是 simulation 或无 PORT
-    表头时, 退回 sheetnames[0]。单 sheet 工作簿激活表==sheet[0], 行为不变。
+    规则(用户 2026-09-22 确认): 始终读取【第一个 sheet】= wb.sheetnames[0]。
+    各船源文件由用户自行保证首张表即当前维护的船期数据表(如 M.MARINER 首表=MMRN SGX)。
+    不再优先激活表, 也不做 simulation/PORT 表头兜底——若首表非数据表, 由用户整理目录。
+    单 sheet 工作簿 sheetnames[0]==唯一表, 行为不变。
     """
-    active = wb.active
-    if active is not None and _has_port_header(active) \
-       and "simulation" not in (active.title or "").lower():
-        return active
     return wb[wb.sheetnames[0]]
 
 def read_source(path, vessel_code=None, folder_name=None):
@@ -204,6 +200,7 @@ def read_source(path, vessel_code=None, folder_name=None):
         if norm(ws.cell(r, 1).value) == "PORT":
             hr = r; break
     if hr is None:
+        print(f"  [WARN] 首张表 '{ws.title}' 无 PORT 表头, 该船源文件未产出数据(请确认首表是否为船期数据)")
         return {"route": "", "code": None, "rows": []}
     # 初始航线: 从表头行往上扫描已知航线码。
     # 兼容两种源布局: 有的 R1 直接是航线码; 有的是合并大标题行
