@@ -103,6 +103,15 @@ ROB ULSFO / ROB MGO / Order Status / Order Details / REMARK / Special / Planned 
   且文件夹名是其中一艘名字的前缀。
 - **已下线船不显示**：船名带「已下线」后缀的船（船期表里的标记）在读入船清单时直接剔除，不进主表/趋势/Data Integrity（历史 CSV 归档行保留，不删）。
 - **两台电脑不要同时跑**：只让 culadmin 的计划任务自动跑。leahliu 本机想手动刷新，跑 `python rob_refresh.py` 生成页面即可，但**不要同时 push**（会互相冲突）。
+- **⚠️ 别在整点前后做 rebase / 大批量 commit**：`auto_update.py` 每 2 小时跑一次（整点前后），
+  内部会 `git gc`。曾在 `git rebase` 期间与之并发，导致**刚创建的 loose objects 被 gc 清掉**，
+  `.git` 对象库损坏（`fatal: bad object HEAD`，当天多个 commit 丢失，2026-09-22 发生过一次）。
+  恢复办法：远端有完整历史 → 备份工作区文件 → `git clone` 干净副本 → 复制改动文件进去 →
+  commit/push → 把新 `.git` 换回原目录。
+- **判断同步状态别信 `origin/main`**：本机 tracking ref 写不进盘（fetch 显示更新但
+  `git rev-parse origin/main` 不变，会误判成"本地领先几百个提交"）。始终用
+  `git ls-remote origin main` 对比 `git rev-parse HEAD`；要修就手动
+  `printf '<sha>\n' > .git/refs/remotes/origin/main`。
 - **密码说明**：页面数据经 AES 加密，网页源码看不到明文。但本仓库是公开的，密码写在脚本里（jimmy）——知道仓库地址的人可以推出密码。这是「防路人」级别，不是安全级别；如需更强隔离请把仓库转 Private（GitHub Pages Private 仓库需 Pro 账号）。
 - **新船 / 船退出**：船清单每天从 `cul_daily_movement.html`（Daily Movement 网页数据）自动解析，新船自动加入、退出的船自动消失，无需改脚本。
 - **共用邮件文件夹**：如 "MEDKON" 文件夹同时放两船邮件，脚本已按主题过滤防误抓；若发现某船数据异常，对照该船最近邮件主题确认。
