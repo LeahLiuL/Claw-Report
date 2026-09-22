@@ -595,48 +595,78 @@ def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None)
     lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
     cutoff = (datetime.now() - timedelta(days=lookback_days)).strftime("%m/%d/%Y %H:%M %p")
     folders = [inbox] + list(folder_list or [])
+    # pool 元素: [received, item, subject_norm, sender_lower(惰性, None=未计算)]
+    # 关键性能设计: Subject / Sender 每封邮件只算一次并缓存, 供所有船复用。
+    # (旧实现是"每艘船 × 每封邮件"各算一次 get_sender —— X.500 解析极慢,
+    #  48 艘船 × N 封 = 上万次 COM 调用, 单次刷新要 30+ 分钟。)
     pool = []
+    scanned = 0
     for fo in folders:
         try:
             items = fo.Items.Restrict("[ReceivedTime] >= '%s'" % cutoff)
         except Exception:
             continue
-        try:
-            items.Sort("[ReceivedTime]", True)
-        except Exception:
-            pass
+        # 不再对每个文件夹做 items.Sort(COM 端排序很慢), 最后统一在 Python 端排
         try:
             for it in items:
+                scanned += 1
                 try:
-                    pool.append((it.ReceivedTime, it))
+                    if it.Attachments.Count == 0:
+                        continue          # ROB 报告必带 Excel 附件, 无附件直接跳过
+                except Exception:
+                    pass                  # 取不到附件数就保守保留, 不误杀
+                try:
+                    rt = it.ReceivedTime
                 except Exception:
                     continue
+                try:
+                    subj = norm(it.Subject or "")
+                except Exception:
+                    subj = ""
+                pool.append([rt, it, subj, None])
         except Exception:
             continue
     pool.sort(key=lambda x: x[0], reverse=True)
-    print("deep scan: %d items (last %dd, %d folders), %d stale vessels"
-          % (len(pool), lookback_days, len(folders), len(recs)))
+    print("deep scan: %d items kept / %d scanned (last %dd, %d folders), %d stale vessels"
+          % (len(pool), scanned, lookback_days, len(folders), len(recs)))
+
+    def _sender(row):
+        """惰性解析发件人并写回缓存(每封邮件最多解析一次)。"""
+        if row[3] is None:
+            try:
+                row[3] = (get_sender(row[1]) or "").lower()
+            except Exception:
+                row[3] = ""
+        return row[3]
+
     fixed = 0
     for rec in recs:
         vname = rec.get("vessel", "")
         nv, nc = norm(vname), norm(rec.get("code") or "")
         eff = rec.get("sender") or sender_map.get(nv) or sender_map.get(vname)
         shared = sum(1 for v in (sender_map or {}).values() if v == eff) if eff else 0
-        hits = []
-        for _, it in pool:
+        # 只需要比当前报告更新的邮件: pool 已按 ReceivedTime 倒序,
+        # 一旦遇到不比当前报告新的就可以停 —— 后面只会更旧
+        cur_t = None
+        if rec.get("report_time"):
             try:
-                subj = norm(it.Subject or "")
+                cur_t = datetime.strptime(rec["report_time"][:19], "%Y-%m-%d %H:%M:%S")
             except Exception:
-                subj = ""
+                cur_t = None
+        hits = []
+        for row in pool:
+            if cur_t is not None:
+                try:
+                    if row[0].replace(tzinfo=None) <= cur_t:
+                        break
+                except Exception:
+                    pass
+            subj = row[2]
             ok = bool(nv and nv in subj) or bool(nc and len(nc) >= 4 and nc in subj)
             if not ok and eff:
-                try:
-                    se = (get_sender(it) or "").lower()
-                except Exception:
-                    se = ""
-                ok = (se == eff.lower())
+                ok = (_sender(row) == eff.lower())
             if ok:
-                hits.append(it)
+                hits.append(row[1])
         if not hits:
             continue
         hit = scan_for_rob(hits, max_walk=200,
