@@ -100,7 +100,8 @@ def fmt_sort(v):
     return ''
 
 # ── Extract data ──────────────────────────────────────────────────────────
-def extract(excel_path):
+def extract(excel_path, pic_map=None):
+    pic_map = pic_map or {}
     today = date.today()
     data_eta_min = None   # capture ALL rows from Excel (no date window)
     data_eta_max = None
@@ -108,22 +109,35 @@ def extract(excel_path):
     ws_src = wb_src.active
 
     vessel_blocks = []
+    cur_lane = ''         # 向上最近的 lane 行（col1∈ROUTE_SET 且 col9 非日期）
     rows_total = ws_src.max_row
     i = 1
     while i <= rows_total:
         c16 = ws_src.cell(i, 16).value
+        c1_i = ws_src.cell(i, 1).value
+        c9_i = ws_src.cell(i, 9).value
+        s1_i = str(c1_i).strip() if c1_i is not None else ''
+        # 外层扫描同样维护 cur_lane（lane 行可能出现在两个船块之间）
+        if s1_i in ROUTE_SET and not isinstance(c9_i, datetime):
+            cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
-            route       = VESSEL_ROUTE_OVERRIDE.get(get_str(ws_src.cell(i, 1).value), get_str(ws_src.cell(i, 1).value))
+            block_route = VESSEL_ROUTE_OVERRIDE.get(s1_i, s1_i)   # 兜底：无 lane 行时用 PIC 行 col1
             vessel_full = get_str(ws_src.cell(i, 4).value)
-            vessel_code = get_str(ws_src.cell(i, 9).value)
+            # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
+            vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
             pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
 
-            schedule_rows = []
+            schedule_rows = []   # list of (row, route) — route = 该行向上最近的 lane 行
             remark = ''
             remarks_by_row = {}  # row_number -> remark for per-row association
             j = i + 2
             while j <= rows_total:
                 c1_j = ws_src.cell(j, 1).value
+                # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）
+                s1j = str(c1_j).strip() if c1_j is not None else ''
+                c9_j0 = ws_src.cell(j, 9).value
+                if s1j in ROUTE_SET and not isinstance(c9_j0, datetime):
+                    cur_lane = s1j
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
                     remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
                     if remark_text:
@@ -134,7 +148,7 @@ def extract(excel_path):
                             # Strip the leading voyage + terminal/port tokens; keep only the remark content
                             remark_body = ' '.join(parts[2:])
                             matched = False
-                            for sr in schedule_rows:
+                            for (sr, _srt) in schedule_rows:
                                 sr_voy = get_str(ws_src.cell(sr, 7).value)
                                 sr_port = get_str(ws_src.cell(sr, 1).value)
                                 if sr_voy == target_voy and sr_port == target_port:
@@ -146,9 +160,9 @@ def extract(excel_path):
                                     break
                             if not matched:
                                 # Fallback: assign to last schedule row
-                                remarks_by_row[schedule_rows[-1]] = remark_body
+                                remarks_by_row[schedule_rows[-1][0]] = remark_body
                         elif schedule_rows:
-                            remarks_by_row[schedule_rows[-1]] = remark_text
+                            remarks_by_row[schedule_rows[-1][0]] = remark_text
                         else:
                             remark = remark_text  # fallback: no schedule rows yet
                     j += 1
@@ -164,12 +178,13 @@ def extract(excel_path):
                         data_eta_min = eta_d
                     if data_eta_max is None or eta_d > data_eta_max:
                         data_eta_max = eta_d
-                    schedule_rows.append(j)
+                    # 关键：route = 该行向上最近的 lane 行（无任何 lane 行时兜底 PIC 行 col1）
+                    schedule_rows.append((j, cur_lane or block_route))
                 j += 1
             else:
                 i = rows_total + 1
 
-            vessel_blocks.append({'route': route, 'vessel_full': vessel_full,
+            vessel_blocks.append({'route': block_route, 'vessel_full': vessel_full,
                                    'vessel_code': vessel_code, 'pic': pic,
                                    'schedule_rows': schedule_rows,
                                    'remarks_by_row': remarks_by_row})
@@ -179,12 +194,12 @@ def extract(excel_path):
     # ── Summary: nearest ETB per vessel (dedup by vessel across routes) ──
     # Rule: prefer ETB >= today (next upcoming call); among futures pick earliest;
     #       if no future ETB, pick the most recent past ETB (closest to today).
-    vessel_rows = {}  # vessel_full -> list of (etb_d, row, vb)
+    vessel_rows = {}  # vessel_full -> list of (etb_d, row, route, vb)
     for vb in vessel_blocks:
-        for r in vb['schedule_rows']:
+        for (r, rt) in vb['schedule_rows']:
             etb_v = ws_src.cell(r, 10).value
             if isinstance(etb_v, datetime):
-                vessel_rows.setdefault(vb['vessel_full'], []).append((etb_v.date(), r, vb))
+                vessel_rows.setdefault(vb['vessel_full'], []).append((etb_v.date(), r, rt, vb))
 
     vessel_best = {}
     summary_row_set = set()
@@ -194,15 +209,15 @@ def extract(excel_path):
             if etb_d >= today:
                 return (0, etb_d)          # future: always preferred, earlier = better
             return (1, today - etb_d)      # past: (1, gap); smaller gap (more recent) = better
-        best_etb, best_row, vb = sorted(entries, key=_key)[0]
-        vessel_best[vname] = (best_etb, best_row, vb)
+        best_etb, best_row, best_rt, vb = sorted(entries, key=_key)[0]
+        vessel_best[vname] = (best_etb, best_row, best_rt, vb)
 
     results = []
-    for vname, (best_etb, best_row, vb) in vessel_best.items():
+    for vname, (best_etb, best_row, best_rt, vb) in vessel_best.items():
         summary_row_set.add(best_row)
         r = best_row
         rec = {
-            'route':       vb['route'],
+            'route':       best_rt,
             'vessel':      vb['vessel_full'],
             'code':        vb['vessel_code'],
             'pic':         vb['pic'],
@@ -236,9 +251,9 @@ def extract(excel_path):
     # ── Full Schedule: ALL port rows for ALL vessels ──
     full_schedule = []
     for vb in vessel_blocks:
-        for r in vb['schedule_rows']:
+        for (r, rt) in vb['schedule_rows']:
             full_schedule.append({
-                'route':       vb['route'],
+                'route':       rt,
                 'vessel':      vb['vessel_full'],
                 'code':        vb['vessel_code'],
                 'pic':         vb['pic'],
@@ -337,6 +352,44 @@ BOA_LANE_TRADE_FALLBACK = {
 VESSEL_ROUTE_OVERRIDE = {
     'ZGCD': 'AEM',  # ZHONG GU CHENG DU 实际属 AEM 航线
 }
+
+# ── Lane 行识别（2026-09-22）：每个港口行的 route = 向上最近的 lane 行 ──────
+# 一艘船可能跨多个 lane 块（如 M. MARINER 同时有 CST 和 SGX 船期），
+# 旧逻辑按 PIC 行 col1 向下继承会把整块抓成同一个 route（SGX 块被错抓成 SL1）。
+# 正确做法：扫描时维护 cur_lane，col1∈ROUTE_SET 且 col9 非日期即 lane 行；
+# 每个港口行(route) = 该时刻的 cur_lane。
+ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA']
+ROUTE_SET = set(ROUTE_ORDER)
+
+# ── CODE 来源（2026-09-22 用户指定）：PIC汇总.xlsx 的 D 列，按船名(B列)匹配 ──
+PIC_XLSX = os.path.join(GEN_DIR, "PIC汇总.xlsx")
+
+def _norm_vessel(s):
+    return re.sub(r'[^A-Z0-9]', '', str(s).upper())
+
+def load_pic_code_map(pic_path=None):
+    """PIC汇总.xlsx: A=航线 B=船名 C=文件夹名 D=船代码 E=PIC F=状态。
+    返回 {规范化船名: 船代码}。文件不可达时返回空 dict（回退旧 col9 逻辑）。"""
+    pic_path = pic_path or PIC_XLSX
+    m = {}
+    if not os.path.exists(pic_path):
+        print('WARN: PIC汇总.xlsx 不存在，Code 回退 PIC 行 col9:', pic_path)
+        return m
+    try:
+        wb = openpyxl.load_workbook(pic_path, read_only=True, data_only=True)
+        ws = wb.active
+        for ri, row in enumerate(ws.iter_rows(values_only=True), 1):
+            if ri == 1:
+                continue  # header
+            vessel = row[1] if len(row) > 1 else None
+            code = row[3] if len(row) > 3 else None   # D 列 = 船代码
+            if vessel and code:
+                m[_norm_vessel(vessel)] = str(code).strip()
+        wb.close()
+        print(f'  -> PIC汇总 code 映射 {len(m)} 条 ({pic_path})')
+    except Exception as e:
+        print('WARN load PIC汇总 failed:', e)
+    return m
 
 # Port → Region（75 条来自映射表 + 19 条补充 = 94 条）
 BOA_PORT_REGION_FALLBACK = {
@@ -1769,7 +1822,7 @@ const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
-var ROUTE_ORDER = ['ST3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
+var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
 // 时间列 → 分钟级排序键（显示值 'MM/DD HH:MM' 无年份，*Raw 只有日期，只有 *Sort 可精确排序）
 var TIME_SORT_KEY = {eta:'etaSort', etb:'etbSort', etd:'etdSort'};
 
@@ -5356,7 +5409,8 @@ def main():
         out_path = os.path.join(SCRIPT_DIR, 'cul_daily_movement.html')
 
     print(f'Reading: {excel_path}')
-    data = extract(excel_path)
+    pic_map = load_pic_code_map()
+    data = extract(excel_path, pic_map)
     print(f'  -> {len(data["vessels"])} vessels (summary)')
     print(f'  -> {len(data["fullSchedule"])} schedule rows (full)')
     print(f'  -> date={data["date"]}')
