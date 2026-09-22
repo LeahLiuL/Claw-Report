@@ -17,8 +17,9 @@
   - 航次边界: 本仓库 cul_daily_movement.html 的 TODAY_DATA.fullSchedule
     (每条记录是一个挂靠港, 含 vessel/voy/port/etb/etbRaw; 同 vessel+voy 取最早 etb 作为首港)。
   - 油耗: rob_data/rob_history.csv 里该船的 ROB(LSFO/HSFO/MGO/ULSFO)时间序列。
-    **只累加窗口内的 ROB 下降量** → 自然排除加油(加油表现为 ROB 上升, 不计入消耗),
-    因此即便尚未拿到加油明细, 航次油耗也是准确的; 加油量另行作为 bunker 字段展示。
+    **消耗 = 期初 ROB - 期末 ROB + 期间加油量**; 加油量来自《燃油添加日志》(只含体积, 不含价格)。
+    例如期初 ROB 1000, 加了 500, 期末 ROB 1200, 则真实消耗 = 1000 - 1200 + 500 = 300。
+    航次页展示的 B.LSFO/B.HSFO/B.MGO/B.ULSFO 为期间各油种加油量(体积, MT)。
 
 不依赖 Outlook / Excel, 可独立测试。
 """
@@ -138,23 +139,50 @@ def load_history(history_csv=HISTORY_CSV):
     return hist
 
 
-def _window_consumption(pts):
-    """pts 已按时间排序; 只累加各油种相邻下降量 = 真实消耗(加油=上升被排除)。
-    返回 ( [ls,hs,mg,us], bunker_total ) 。"""
-    cons = [0.0, 0.0, 0.0, 0.0]
-    bunker = 0.0
-    for i in range(1, len(pts)):
-        prev, cur = pts[i - 1][1], pts[i][1]
-        for k in range(4):
-            a, b = prev[k], cur[k]
-            if a is None or b is None:
+def _window_consumption(pts, start_dt, end_eff, bunker_by_date):
+    """
+    计算窗口 [start_dt, end_eff] 内各油种真实消耗。
+    公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
+      - 期初 ROB = 窗口内第一个非空值; 若窗口内无点, 退而用 start 之前最近一点。
+      - 期末 ROB = 窗口内最后一个非空值; 若窗口内无点, 退而用 end 之后最近一点。
+      - 加油量   = 期间《燃油添加日志》中该油种体积合计(独立于 ROB 是否存在)。
+    返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us]); 缺失项为 None。
+    """
+    cons = [None, None, None, None]
+    first = [None, None, None, None]
+    last = [None, None, None, None]
+    inner = [p for p in pts if start_dt <= p[0] <= end_eff]
+    before = [p for p in pts if p[0] < start_dt]
+    after = [p for p in pts if p[0] > end_eff]
+    # 期间各油种加油量(分油种), 始终计算(不依赖 ROB 是否存在)
+    oils = ["ls", "hs", "mg", "us"]
+    bunker_oil = [0.0, 0.0, 0.0, 0.0]
+    if bunker_by_date:
+        for dstr, tmap in bunker_by_date.items():
+            try:
+                bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
+            except Exception:
                 continue
-            d = a - b
-            if d > 0:
-                cons[k] += d
-            elif d < 0:
-                bunker += (-d)
-    return [round(c, 2) for c in cons], round(bunker, 2)
+            if start_dt <= bd <= end_eff:
+                for k, t in enumerate(oils):
+                    bunker_oil[k] += float((tmap or {}).get(t) or 0)
+    for k in range(4):
+        # first: 窗口内最早非空 -> 否则 start 前最近
+        for p in inner + (before[-1:] if before else []):
+            v = p[1][k]
+            if v is not None:
+                first[k] = v
+                break
+        # last: 窗口内最晚非空 -> 否则 end 后最近
+        for p in reversed(inner + (after[:1] if after else [])):
+            v = p[1][k]
+            if v is not None:
+                last[k] = v
+                break
+        if first[k] is not None and last[k] is not None:
+            cons[k] = round(first[k] - last[k] + bunker_oil[k], 2)
+    bunker_total = round(sum(bunker_oil), 2)
+    return cons, bunker_total, bunker_oil
 
 
 def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None):
@@ -247,28 +275,16 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 after = [p for p in series if p[0] > end_eff]
                 if before and after:
                     pts = [before[-1], after[0]]
-            cons, bunker = _window_consumption(pts)
+            v_bunker = (bunker_types or {}).get(v)
+            cons, bunker_total, bunker_oil = _window_consumption(
+                pts, start_dt, end_eff, v_bunker)
             # 用小数天, 避免进行中航次(start 距今不足 1 天)显示 0 天
             days = round((end_eff - start_dt).total_seconds() / 86400.0, 1)
-            # ---- 加油量(分油种) 来自《燃油添加日志》 -> bunkering_types.json ----
-            b_ls = b_hs = b_mg = b_us = 0.0
-            if bunker_types and v in bunker_types:
-                for dstr, tmap in bunker_types[v].items():
-                    try:
-                        bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
-                    except Exception:
-                        continue
-                    if start_dt <= bd <= end_eff:
-                        b_ls += float(tmap.get("ls") or 0)
-                        b_hs += float(tmap.get("hs") or 0)
-                        b_mg += float(tmap.get("mg") or 0)
-                        b_us += float(tmap.get("us") or 0)
-            b_ls, b_hs = round(b_ls, 2), round(b_hs, 2)
-            b_mg, b_us = round(b_mg, 2), round(b_us, 2)
-            bunker_log = round(b_ls + b_hs + b_mg + b_us, 2)
-            # 官方加油日志优先; 无记录时退回窗口内 ROB 增幅推断值(避免重复计数)
-            if bunker_log > 0:
-                bunker = bunker_log
+            # 加油量(分油种) 来自《燃油添加日志》 -> bunkering_types.json
+            #   已在 _window_consumption 内按航次窗口合计; 此处仅做展示四舍五入
+            b_ls, b_hs, b_mg, b_us = (round(x, 2) for x in bunker_oil)
+            # Bunker 合计 = 各油种之和(展示一致); 源数据为官方加油日志体积, 不含价格
+            bunker = round(b_ls + b_hs + b_mg + b_us, 2)
             voyages.append({
                 "vessel": v, "code": code, "lane": route, "voy": voy,
                 "voy_dirs": vdirs,

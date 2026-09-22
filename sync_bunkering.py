@@ -1,8 +1,8 @@
-"""从 燃油添加日志.xlsx 抓取【加油量】(仅体积 MT, 不含价格) 生成 rob_data/bunkering.json。
+r"""从 燃油添加日志.xlsx 抓取【加油量】(仅体积 MT, 不含价格) 生成 rob_data/bunkering.json。
 
 数据源: 燃油添加日志.xlsx (多机共用同一份网络盘, 盘符不同内容相同):
-  - 本机(leahliu): P:\04 上海操作中心\01 船期管理科\加油\加油Claw文件\
-  - 自动机(culadmin): Z:/... 同一目录 (自动探测 P: -> Z: -> 相对路径)
+  - 本机(leahliu): P:\04 上海操作中心\01 船期管理科\Bunker\加油Claw文件\  (原 '加油' 目录于 2026-09 改名为 'Bunker', 脚本双路径兼容)
+  - 自动机(culadmin): Z:/... 同一目录 (自动探测 P: -> Z: -> 相对路径; 兼容 '加油'/'Bunker')
   - 列: 文件名, 船名, 航次, 加油地点, 加油时间, 申请人, 加油公司, 帐期,
         然后每种油: 价格/价格单位/数量/数量单位/合计 (VLSFO,MGO,HSFO,ULSFO,LNG,驳船费,CREDIT),
         付款总额, 已制单, 已提交, ...
@@ -22,15 +22,20 @@ from collections import defaultdict
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROB_DIR = os.path.join(BASE, "rob_data")
 HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
-_REL = r"04 上海操作中心\01 船期管理科\加油\加油Claw文件\燃油添加日志.xlsx"
+_REL_OLD = r"04 上海操作中心\01 船期管理科\加油\加油Claw文件\燃油添加日志.xlsx"   # 旧目录名(部分机器仍用)
+_REL_NEW = r"04 上海操作中心\01 船期管理科\Bunker\加油Claw文件\燃油添加日志.xlsx"  # 2026-09 起 '加油' 改名为 'Bunker'
 
 
 def find_bunker_xlsx():
-    """多机盘符自适应: 本机 P: -> culadmin Z: -> 环境变量覆盖。"""
-    cand = [os.environ.get("BUNKER_XLSX"),
-            os.path.join("P:\\", _REL),
-            os.path.join("Z:\\", _REL),
-            _REL]                      # 若已映射为其他盘符的相对路径
+    """多机盘符自适应: 本机 P: -> culadmin Z: -> 环境变量覆盖; 兼容 '加油'/'Bunker' 目录改名。"""
+    rels = [os.environ.get("BUNKER_REL"), _REL_OLD, _REL_NEW]
+    rels = [r for r in rels if r]
+    drives = [os.environ.get("BUNKER_DRIVE"), "P:\\", "Z:\\", ""]
+    drives = [d for d in drives if d is not None]
+    cand = [os.environ.get("BUNKER_XLSX")]     # 完整路径最高优先级
+    for rel in rels:
+        for drv in drives:
+            cand.append(os.path.join(drv, rel) if drv else rel)
     for c in cand:
         if c and os.path.exists(c):
             return c
