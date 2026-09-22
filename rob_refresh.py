@@ -594,6 +594,14 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
 STALE_HOURS = 26          # 报告时间超过这个小时数(或压根没抓到)才进深度扫描
 DEEP_LOOKBACK_DAYS = 6    # 深度扫描的回看天数
 
+# Outlook 同步完整性阈值。坑: Outlook 刚启动时有一段"进程在、NS.Offline=False、但缓存
+# 还没同步完"的窗口, 此时 Restrict 只返回已同步的那一小部分邮件 —— 刷新会照常跑完、
+# 页面照常生成, 但压根没抓到新报告, 且看不出任何异常(2026-09-22 踩过: 池子只有 624 封,
+# 同步完是 4224 封)。正常 6 天窗口应有 3000~4000 封带附件的邮件, 低于此阈值即判定
+# 本次抓取不可信, 直接中止、不覆盖页面(宁可留旧版, 也不出假数据)。用 --force 可绕过。
+MIN_POOL_WARN = 1500    # 低于此值: 照常写盘, 页面 updated 标记"深度兜底可能失效"
+MIN_POOL_ABORT = 400    # 低于此值: 判定严重未同步, 中止不写盘(保留上一版), --force 可绕过
+
 
 def is_stale(rec, now=None):
     rt = rec.get("report_time")
@@ -606,10 +614,13 @@ def is_stale(rec, now=None):
     return ((now or datetime.now()) - t).total_seconds() > STALE_HOURS * 3600
 
 
-def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None):
-    """对"报告偏旧/抓不到"的船做一次全文件夹深度扫描, 返回补抓成功的条数。"""
-    if not recs:
-        return 0
+def build_deep_pool(inbox, folder_list, lookback_days=None):
+    """构建深度扫描候选池(最近 N 天、带附件的邮件), 按 ReceivedTime 倒序。
+
+    池的大小同时用作** Outlook 同步完整性判据**: Outlook 刚启动时进程在、
+    NS.Offline=False, 但缓存还没同步完, Restrict 只返回已同步的小部分邮件 ——
+    刷新会照常跑完却抓不到新报告。正常 6 天窗口应有 3000~4000 封。
+    """
     lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
     cutoff = (datetime.now() - timedelta(days=lookback_days)).strftime("%m/%d/%Y %H:%M %p")
     folders = [inbox] + list(folder_list or [])
@@ -645,8 +656,34 @@ def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None)
         except Exception:
             continue
     pool.sort(key=lambda x: x[0], reverse=True)
+    return pool, scanned, len(folders)
+
+
+def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None):
+    """对"报告偏旧/抓不到"的船做一次全文件夹深度扫描, 返回补抓成功的条数。"""
+    if not recs:
+        return 0
+    lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
+    pool, scanned, nfolders = build_deep_pool(inbox, folder_list, lookback_days)
+    OL_STATE["pool_size"] = len(pool)
     print("deep scan: %d items kept / %d scanned (last %dd, %d folders), %d stale vessels"
-          % (len(pool), scanned, lookback_days, len(folders), len(recs)))
+          % (len(pool), scanned, lookback_days, nfolders, len(recs)))
+    if len(pool) < MIN_POOL_ABORT:
+        # 池子小到这个程度, 常规检索多半也不可靠 —— 由 main 决定是否写盘
+        OL_STATE["sync_suspect"] = True
+        print("!" * 68)
+        print("!! [不可信] 邮件池只有 %d 封, 中止阈值 %d —— Outlook 严重未同步"
+              % (len(pool), MIN_POOL_ABORT))
+        print("!! 本次结果将不写盘、不生成页面(保留上一版)。")
+        print("!! 请等 Outlook 同步完成后重跑; 确需写入请加 --force。")
+        print("!" * 68)
+        return 0
+    if len(pool) < MIN_POOL_WARN:
+        # 常规检索不依赖 Restrict 仍然有效, 只是深度兜底可能漏 —— 写盘但打标记
+        OL_STATE["pool_small"] = True
+        print("!! [注意] 邮件池 %d 封, 低于正常值 %d —— Outlook 索引可能未完成,"
+              % (len(pool), MIN_POOL_WARN))
+        print("!!        深度兜底可能漏抓。常规检索结果仍会写入, 页面将带标记。")
 
     def _sender(row):
         """惰性解析发件人并写回缓存(每封邮件最多解析一次)。"""
@@ -886,6 +923,8 @@ def build_html(results):
         _upd += "  [OUTLOOK 离线-数据未更新]"
     elif OL_STATE.get("attempted") and not OL_STATE.get("connected"):
         _upd += "  [未连接 Outlook]"
+    if OL_STATE.get("pool_small"):
+        _upd += "  [邮件池 %s-深度兜底可能漏抓]" % OL_STATE.get("pool_size")
     payload = {"updated": _upd,
                "vessels": vessels,
                "history": history,
@@ -1288,6 +1327,8 @@ def backfill_mode(days):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-outlook", action="store_true", help="不抓 Outlook, 只重建网页")
+    ap.add_argument("--force", action="store_true",
+                    help="忽略 Outlook 同步完整性检查(邮件池过小仍写盘, 慎用)")
     ap.add_argument("--vessel", default=None, help="只刷新指定船(名称子串)")
     ap.add_argument("--backfill", type=int, default=0,
                     help="回补过去 N 天的每份 ROB 报告(按船长邮箱识别船), 追加进历史 CSV")
@@ -1382,6 +1423,17 @@ def main():
             save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
 
+    # 同步完整性闸门: Outlook 缓存没同步完时 Restrict 只返回一小部分邮件, 刷新会
+    # "成功"却抓不到新报告。此时宁可保留上一版, 也不写假数据覆盖页面。
+    if OL_STATE.get("sync_suspect") and not args.force:
+        print("\n" + "!" * 68)
+        print("!! 已中止: 邮件池 %s 封 < 中止阈值 %d, 判定 Outlook 严重未同步。"
+              % (OL_STATE.get("pool_size"), MIN_POOL_ABORT))
+        print("!! 未写 rob_results.json / 未生成网页 / 未追加历史 —— 页面保持上一版。")
+        print("!! 等 Outlook 同步完再跑一次; 确需写入加 --force。")
+        print("!" * 68)
+        return 1
+
     json.dump(merged, open(RESULTS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     found = sum(1 for r in merged if r.get("found"))
     print("found ROB: %d/%d -> %s" % (found, len(merged), RESULTS))
@@ -1394,4 +1446,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 用 main() 的返回值作退出码: 同步不完整中止时返回 1, 让 bat / 计划任务能感知失败
+    sys.exit(main() or 0)
