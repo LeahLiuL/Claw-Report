@@ -26,7 +26,7 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
-from build_fleet_movement import GEN_DIR, KNOWN_LANES
+from build_fleet_movement import GEN_DIR, ROUTE_ORDER, is_lane_code, is_port_code, PORT_CODES
 DEFAULT_EXCEL = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
 
@@ -119,10 +119,10 @@ def extract(excel_path, pic_map=None):
         s1_i = str(c1_i).strip() if c1_i is not None else ''
         # 外层扫描同样维护 cur_lane；仅当 C1 是已知航线码(白名单, 含 WAT/KCI/GTS)才更新,
         # 端口码(CNNGB/CNTAO…)不会误判为 lane
-        if s1_i.strip().upper() in KNOWN_LANES and not isinstance(c9_i, datetime):
+        if is_lane_code(s1_i) and not isinstance(c9_i, datetime):
             cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
-            block_route = s1_i   # PIC 行 col1 即本块 route（已由 KNOWN_LANES 门控确保为合法 lane/标题码）
+            block_route = s1_i if not is_port_code(s1_i) else (cur_lane or '')   # PIC 行 col1 即本块 route; 港口码不当 lane, 回退当前 lane
             # 重置本船块的默认 lane = 块头 route。修复未知 lane(如 KCI)因不在 ROUTE_SET
             # 而无法更新 cur_lane、导致继承上一艘船 lane 的 bug；多 lane 船(如 SGX→NP2)
             # 仍由块内子 lane 行覆盖, 不受影响。
@@ -141,7 +141,7 @@ def extract(excel_path, pic_map=None):
                 # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）; 仅白名单航线码
                 s1j = str(c1_j).strip() if c1_j is not None else ''
                 c9_j0 = ws_src.cell(j, 9).value
-                if s1j.upper() in KNOWN_LANES and not isinstance(c9_j0, datetime):
+                if is_lane_code(s1j) and not isinstance(c9_j0, datetime):
                     cur_lane = s1j
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
                     remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
@@ -358,7 +358,7 @@ BOA_LANE_TRADE_FALLBACK = {
 # 旧逻辑按 PIC 行 col1 向下继承会把整块抓成同一个 route（SGX 块被错抓成 SL1）。
 # 正确做法：扫描时维护 cur_lane，col1∈ROUTE_SET 且 col9 非日期即 lane 行；
 # 每个港口行(route) = 该时刻的 cur_lane。
-ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA']
+# ROUTE_ORDER / is_lane_code / PORT_CODES 均从 build_fleet_movement 导入(单一事实来源), 不再本地重复定义。
 ROUTE_SET = set(ROUTE_ORDER)
 
 # ── CODE 来源（2026-09-22 用户指定）：PIC汇总.xlsx 的 D 列，按船名(B列)匹配 ──
@@ -1822,7 +1822,7 @@ const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
-var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
+var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','WAT','KCI','GTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
 // 时间列 → 分钟级排序键（显示值 'MM/DD HH:MM' 无年份，*Raw 只有日期，只有 *Sort 可精确排序）
 var TIME_SORT_KEY = {eta:'etaSort', etb:'etbSort', etd:'etdSort'};
 

@@ -52,7 +52,10 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 # 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
 ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
-               "SGX","SJA","JPS","SHTG","RTS","NSX","SL1","CGX","HLX","ZGCD","IMR","NAX","RES","NSCT1"]
+               "SGX","SJA","JPS","SHTG","RTS","WAT","KCI","GTS","NSX","SL1","CGX","HLX","IMR","NAX","RES","NSCT1"]
+# 注: WAT(KR CELEBES)/KCI(RACINE)/GTS(TB JINJIANG) 为用户确认的真实服务名, 已并入上表。
+# 未来出现的新 lane 由"段标题结构位置"(PIC 块头/含船名船代码的段头)识别并原样保留,
+# 并经 build_route_order / 前端 _buildLaneList 自动追加到排序末尾。
 ROUTE_FALLBACK = ""      # 源无任何段标题行时才留空(不再静默猜 RTS; 空航线由用户补)
 WINDOW_DAYS = 30
 
@@ -101,40 +104,60 @@ def norm_date_value(v):
     return s
 
 # 已知航线码集合(用于段标题检测: C1 或 C9 匹配已知航线码 = 段标题行, 不是数据行)
-# 注意: 仅含"服务/lane 码", 不含港口码(CNNGB/CNTAO…) —— 否则端口行会被误判为段标题。
-# EXTRA_LANES: 源文件中实际存在、用户确认的真实服务名(非标准白名单成员), 须纳入检测,
-# 如 RACINE=KCI, TB JINJIANG=GTS, KR CELEBES=WAT。
-EXTRA_LANES = {"KCI", "GTS", "WAT"}
-KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()} | {norm(x) for x in EXTRA_LANES}
+# 仅含"服务/lane 码", 不含港口码 —— 港口码见下方 PORT_CODES 黑名单。
+KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()}
+
+# 港口码黑名单(UN/LOCODE 等): 这些码即使出现在标题样位置也【绝不】当作 lane。
+# 这是"确认是 lane"的硬闸, 防止 CNNGB/CNTAO/TRALI/DJJIB 等港口被误判为航线。
+PORT_CODES = {
+    # 中国
+    "CNNGB","CNTAO","CNNAS","CNSHA","CNNSA","CNXMN","CNXGG","CNDLC","CNTXG","CNYTN","CNHKG",
+    # 新加坡/马来西亚
+    "SGSIN","SGTPP","SGMAL","MYTPP","MYPGU","MYPKG",
+    # 红海/中东 港口
+    "EGSOK","EGSUZ","EGSPS","EGALY","SAJED","SADMM","SAUQD","AEJEA","AEDXB","AEAUH","OMSAL","OMPSS","OMKHS",
+    # 斯里兰卡/印度
+    "LKCMB","LKTUT","INNSA","INMAA","INRTC","INIXY","INBLR","INBOM",
+    # 欧洲/地中海
+    "NLRTM","BEANR","DEHAM","GBFXT","GBSOU","ESVLC","ESALG","ITGOA","ITTPS","GRPIR","TRMER","TRIST",
+    # 美湾/北美
+    "USNYC","USLGB","USSAV","USLAX","USLGB","USHOU","USCHS",
+}
+
+def is_port_code(code):
+    """端口码硬判: 这些码即使出现在标题样位置也绝不当作 lane。"""
+    return norm(code) in PORT_CODES
+
+def is_lane_code(code):
+    """确认某文本是否为【已知航线服务码】。
+    仅接受 KNOWN_LANES(ROUTE_ORDER + 别名 + 并入的真实服务名)中的码;
+    港口码(PORT_CODES)与任何未知/杂文本一律否决 —— 绝不把端口当 lane。
+    未来出现的新 lane 由"段标题结构位置"(PIC 块头 / 含船名船代码的段头)识别并原样保留,
+    而非靠形态猜测, 因此此处只需严格白名单即可保证"确认是 lane"。
+    """
+    n = norm(code)
+    if not n:
+        return False
+    if n in PORT_CODES:
+        return False
+    return n in KNOWN_LANES
 
 def detect_route(vessel_code, c1_val, c9_val):
-    """从段标题行检测真正的航线码。
-    源文件布局不统一: 有的航线在C1、代码在C9(正常), 有的反过来(如EVERLASTING HARVEST: C1=EVHA=代码, C9=REX=航线)。
-    - 优先检查C1: 若C1是已知航线码且不是本船代码 → C1是航线
-    - 若C1匹配本船代码 → C1是代码不是航线, 检查C9
-    - C1不是已知航线码 → 检查C9
-    返回航线码字符串, 或None(未检测到)。
+    """从段标题行检测真正的航线码(仅认已知 lane, 港口码与未知码一律否决)。
+    源布局不统一: 有的航线在C1、代码在C9, 有的反过来(EVERLASTING HARVEST: C1=EVHA=代码, C9=REX=航线)。
+    若候选等于本船代码(船名缩写)则跳过(那是代码不是航线)。
+    返回航线码字符串, 或None(未检测到)。新 lane 由 read_source 的结构位置(段头含船名)兜底识别。
     """
     vcode = norm(vessel_code) if vessel_code else None
-    # Check C1
-    if c1_val is not None:
-        n1 = norm(c1_val)
-        if n1 in KNOWN_LANES:
-            if not vcode or n1 != vcode:
-                return str(c1_val).strip()
-            # C1 matches vessel code -> C1 is the code, check C9 for Lane
-            if c9_val is not None:
-                n9 = norm(c9_val)
-                if n9 in KNOWN_LANES and (not vcode or n9 != vcode):
-                    return str(c9_val).strip()
-    # C1 not a known Lane -> check C9
-    if c9_val is not None:
-        n9 = norm(c9_val)
-        if n9 in KNOWN_LANES and (not vcode or n9 != vcode):
-            return str(c9_val).strip()
-    # Fallback: if C1 is a known Lane (even if it matches vessel code), use it
-    if c1_val is not None and norm(c1_val) in KNOWN_LANES:
-        return str(c1_val).strip()
+    for col, val in ((1, c1_val), (9, c9_val)):
+        if val is None or isinstance(val, datetime):
+            continue
+        n = norm(val)
+        if not is_lane_code(val):   # 仅已知 lane(白名单, 已排除港口码)
+            continue
+        if vcode and n == vcode:
+            continue
+        return str(val).strip()
     return None
 
 TARGET_HEADERS = {
@@ -224,14 +247,18 @@ def read_source(path, vessel_code=None, folder_name=None):
             continue
         if isinstance(c9v, datetime):
             continue   # 港口数据行(C9=ETA日期), 非段标题
-        # 命中段标题行: 取航线码(严格按title行, 未知码也原样保留)
         det = detect_route(vessel_code, c1v, c9v)
-        route = det if det else str(c1v).strip()
-        break
+        if det:
+            route = det
+            break
+        # 新 lane: 段标题行(C1 非港口码)原样保留为航线; 港口码不当航线, 继续向上找
+        if not is_port_code(c1v):
+            route = str(c1v).strip()
+            break
     if not route:
-        # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 不再静默猜 RTS
+        # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 港口码会被 is_port_code 否决
         c1_r1 = ws.cell(1, 1).value
-        route = str(c1_r1).strip() if c1_r1 else ""
+        route = str(c1_r1).strip() if (c1_r1 and not is_port_code(c1_r1)) else ""
     if code is None:
         code = ws.cell(1, 9).value
     # 源表头归一名 -> 源列号
@@ -269,8 +296,8 @@ def read_source(path, vessel_code=None, folder_name=None):
         c4_val = ws.cell(r, 4).value
         c4_str = norm(c4_val) if isinstance(c4_val, str) else ""
         c9_str = norm(c9_val) if isinstance(c9_val, str) and not isinstance(c9_val, datetime) else ""
-        if vessel_markers and (c4_str in vessel_markers or c9_str in vessel_markers):
-            # 段标题行(C4/C9 含船名/代码), 更新航线为 C1
+        if vessel_markers and (c4_str in vessel_markers or c9_str in vessel_markers) and not is_port_code(c1):
+            # 段标题行(C4/C9 含船名/代码), 更新航线为 C1; 港口码不当 lane
             current_route = str(c1).strip() if c1 else current_route
             continue
         display = {}
@@ -352,6 +379,25 @@ def _load_pic_csv(path):
                 d[norm(fol)] = pic
     return d
 
+def load_pic_code_map(path):
+    """PIC汇总.xlsx: A=航线 B=船名(显示) C=文件夹名 D=船代码 E=PIC F=状态。
+    返回 {规范化文件夹名: 船代码}。文件不可达/缺列时返回空 dict(回退 vessel.csv/源R1C9)。
+    这是 detect_route 识别 lane vs 船代码 的权威依据(用户维护的 PIC汇总 优先于 vessel.csv)。"""
+    d = {}
+    if not os.path.exists(path):
+        return d
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception:
+        return d
+    ws = wb[wb.sheetnames[0]]
+    for r in range(2, ws.max_row + 1):
+        fol = ws.cell(r, 3).value   # C=文件夹名
+        code = ws.cell(r, 4).value  # D=船代码
+        if fol and str(fol).strip() and code and str(code).strip():
+            d[norm(str(fol).strip())] = str(code).strip()
+    return d
+
 def canon_route(folder, src_route):
     """算规范航线码: 先应用文件夹级覆盖, 再做同航线合并, 空则回退。"""
     if folder in ROUTE_OVERRIDE:
@@ -390,7 +436,8 @@ def main():
     print("=== 1/4 读权威表(vessel.csv / P盘PIC) ===")
     vessel = load_vessel_csv(args.vessel)
     pic_tbl = load_pic(args.pic)
-    print(f"  vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条")
+    pic_code_tbl = load_pic_code_map(args.pic)   # 船代码(权威): PIC汇总 D列 -> 文件夹名
+    print(f"  vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条 | PIC船代码: {len(pic_code_tbl)} 条")
 
     print("=== 2/4 扫描当前船队(2026/文件夹) ===")
     folders = sorted([d for d in os.listdir(args.src)
@@ -403,17 +450,15 @@ def main():
         key = norm(fol)
         # 先查 vessel.csv 取船代码, 传给 read_source 做段标题检测(区分航线码 vs 船代码)
         vent = vessel.get(key)
-        vcode = vent.get("code") if vent else None
+        # 船代码优先级: PIC汇总(权威, 用户维护) -> vessel.csv -> (read_source 内回退 源R1C9)
+        vcode = pic_code_tbl.get(norm(fol)) or (vent.get("code") if vent else None)
         d = read_source(p, vessel_code=vcode, folder_name=fol)
         route = canon_route(fol, d["route"])   # 应用覆盖+合并
-        # 船名代码 & 显示名: vessel.csv(权威) -> 源R1C9 / 文件夹名
-        if vent:
-            code = vent.get("code") or d["code"]
-            disp = vent.get("display") or fol
-        else:
-            code = d["code"]
-            disp = fol
-            print(f"  [WARN] 船未在 vessel.csv 登记: {fol} (code/PIC 回退 源R1C9/文件夹名, 建议补登)")
+        # 显示名/船代码: PIC汇总优先, 回退 vessel.csv, 再回退 源R1C9/文件夹名
+        code = vcode or d["code"]
+        disp = (vent.get("display") if vent else None) or fol
+        if not vcode and not vent:
+            print(f"  [WARN] 船未在 PIC汇总/vessel.csv 登记: {fol} (code 回退 源R1C9/文件夹名, 建议补登)")
         # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2)
         #     但拆之前先用 ±30天窗口过滤: 只有多段同时有窗口内数据才拆;
         #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
