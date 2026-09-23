@@ -132,11 +132,11 @@ def connect_outlook():
             and "ARCHIVE" not in (s.DisplayName or "").upper()]
     if main:
         OL_STATE["connected"] = True
-        return main[0]
+        return main
     if stores:
         OL_STATE["connected"] = True
-        return stores[0]
-    return None
+        return [stores[0]]
+    return []
 
 
 def get_sender(it):
@@ -456,7 +456,7 @@ def apply_hit(rec, hit):
 
 
 def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder_list=None,
-                   fleet_norms=None):
+                   fleet_norms=None, all_inboxes=None):
     """多来源合并取全局最新: ①船名/代码文件夹树 ②sender 索引 ③收件箱 sender Restrict
     ④主题 Restrict(全文件夹)。所有候选按 EntryID 去重、ReceivedTime 全局倒序后,
     从最新一封往下找第一份能解析出 ROB 的报告 —— 无论报告落在哪个文件夹、由哪个发件人
@@ -554,13 +554,15 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
         add_items(sender_index.get(eff_sender.lower()) or [])
 
     # ② 收件箱 sender Restrict 兜底(外部 SMTP 发件人落在收件箱时有效)
-    if eff_sender:
-        try:
-            items = inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
-            items.Sort("[ReceivedTime]", True)
-            add_items(items, token=(nv if shared > 1 else None))
-        except Exception:
-            pass
+    # 支持多 store: 如果 Vessel Report 等共享邮箱已加到 Outlook profile, 也扫其收件箱
+    for _inbox in (all_inboxes or [inbox]):
+        if eff_sender:
+            try:
+                items = _inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
+                items.Sort("[ReceivedTime]", True)
+                add_items(items, token=(nv if shared > 1 else None))
+            except Exception:
+                pass
 
     # ③ 主题含船名(收件箱 + 全部子文件夹, 含顶层船文件夹/嵌套/同名)
     try:
@@ -620,7 +622,7 @@ def is_stale(rec, now=None):
     return ((now or datetime.now()) - t).total_seconds() > STALE_HOURS * 3600
 
 
-def build_deep_pool(inbox, folder_list, lookback_days=None):
+def build_deep_pool(inbox, folder_list, lookback_days=None, all_inboxes=None):
     """构建深度扫描候选池(最近 N 天、带附件的邮件), 按 ReceivedTime 倒序。
 
     池的大小同时用作** Outlook 同步完整性判据**: Outlook 刚启动时进程在、
@@ -629,7 +631,9 @@ def build_deep_pool(inbox, folder_list, lookback_days=None):
     """
     lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
     cutoff = (datetime.now() - timedelta(days=lookback_days)).strftime("%m/%d/%Y %H:%M %p")
-    folders = [inbox] + list(folder_list or [])
+    # 支持多 store: 主 inbox + 其他共享邮箱收件箱 + 全量子文件夹
+    _roots = (all_inboxes or [inbox])
+    folders = list(_roots) + list(folder_list or [])
     # pool 元素: [received, item, subject_norm, sender_lower(惰性, None=未计算)]
     # 关键性能设计: Subject / Sender 每封邮件只算一次并缓存, 供所有船复用。
     # (旧实现是"每艘船 × 每封邮件"各算一次 get_sender —— X.500 解析极慢,
@@ -665,12 +669,14 @@ def build_deep_pool(inbox, folder_list, lookback_days=None):
     return pool, scanned, len(folders)
 
 
-def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None):
+def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None,
+                       all_inboxes=None):
     """对"报告偏旧/抓不到"的船做一次全文件夹深度扫描, 返回补抓成功的条数。"""
     if not recs:
         return 0
     lookback_days = lookback_days or DEEP_LOOKBACK_DAYS
-    pool, scanned, nfolders = build_deep_pool(inbox, folder_list, lookback_days)
+    pool, scanned, nfolders = build_deep_pool(inbox, folder_list, lookback_days,
+                                               all_inboxes=all_inboxes)
     OL_STATE["pool_size"] = len(pool)
     print("deep scan: %d items kept / %d scanned (last %dd, %d folders), %d stale vessels"
           % (len(pool), scanned, lookback_days, nfolders, len(recs)))
@@ -1218,20 +1224,12 @@ def backfill_history(days, sender_map, fleet_lookup=None):
     """回补过去 days 天的每一份 ROB 报告(Noon/Berth/Sailing), 按船长邮箱逆向映射识别船。
     返回 (recs 已解析, unknown 未知发件人列表)。未知发件人需交用户确认后固化进 vessel_senders.json。"""
     import win32com.client
-    store = connect_outlook()
-    if store is None:
+    stores = connect_outlook()
+    if not stores:
         print("[WARN] no CULINES store, backfill aborted"); return [], []
-    inbox = store.GetDefaultFolder(6)
-    cache = build_folder_cache(inbox)
-    rev = {}
-    for v, e in sender_map.items():
-        if e:
-            rev.setdefault(e.lower(), []).append(v)
-    cutoff = datetime.now().astimezone() - timedelta(days=days)
-    cutoff_naive = cutoff.replace(tzinfo=None)
-    filt = cutoff_naive.strftime("%m/%d/%Y %H:%M %p")
-    folders = [inbox]
-    seen_folders = {id(inbox)}
+    all_inboxes = []
+    folders = []
+    seen_folders = set()
     def _walk(f):
         try:
             for c in f.Folders:
@@ -1242,10 +1240,25 @@ def backfill_history(days, sender_map, fleet_lookup=None):
                 _walk(c)
         except Exception:
             pass
-    try:
-        _walk(inbox)
-    except Exception:
-        pass
+    for store in stores:
+        try:
+            inbox = store.GetDefaultFolder(6)
+            all_inboxes.append(inbox)
+            if id(inbox) not in seen_folders:
+                seen_folders.add(id(inbox))
+                folders.append(inbox)
+            _walk(inbox)
+        except Exception as e:
+            print("[WARN] backfill store %s failed: %s" % (store.DisplayName, e))
+    inbox = all_inboxes[0]
+    cache = build_folder_cache(inbox)
+    rev = {}
+    for v, e in sender_map.items():
+        if e:
+            rev.setdefault(e.lower(), []).append(v)
+    cutoff = datetime.now().astimezone() - timedelta(days=days)
+    cutoff_naive = cutoff.replace(tzinfo=None)
+    filt = cutoff_naive.strftime("%m/%d/%Y %H:%M %p")
     unknown, recs, seen = [], [], set()
     for f in folders:
         try:
@@ -1391,11 +1404,21 @@ def main():
     if not args.no_outlook:
         sender_map = load_sender_map()
         OL_STATE["attempted"] = True      # 区分"没连上"和"压根没尝试(--no-outlook 重建)"
-        store = connect_outlook()
-        if store is None:
+        stores = connect_outlook()
+        if not stores:
             print("[WARN] CULINES Outlook store not found, keep old data")
         else:
-            inbox = store.GetDefaultFolder(6)
+            # 支持多 store(主邮箱 + Vessel Report 等共享邮箱), 分别取收件箱和子文件夹
+            all_inboxes = []
+            all_folders = []
+            for s in stores:
+                try:
+                    _inb = s.GetDefaultFolder(6)
+                    all_inboxes.append(_inb)
+                    all_folders.extend(build_folder_list(_inb))
+                except Exception as e:
+                    print("[WARN] store %s GetDefaultFolder failed: %s" % (s.DisplayName, e))
+            inbox = all_inboxes[0]
             if OL_STATE.get("offline"):
                 print("!" * 66)
                 print("!! [严重] Outlook 处于【离线/缓存未同步】状态 (mode=%s)" % OL_STATE.get("mode"))
@@ -1406,9 +1429,10 @@ def main():
                 print("Outlook 在线 (ExchangeConnectionMode=%s, Offline=%s)"
                       % (OL_STATE.get("mode"), OL_STATE.get("offline")))
             cache = build_folder_cache(inbox)
-            # 全量文件夹列表(含收件箱顶层船文件夹 + 嵌套 + 同名不去重), 供 sender 索引和主题兜底
-            folder_list = build_folder_list(inbox)
-            sender_index = build_sender_index([inbox] + folder_list, sender_map)
+            # 全量文件夹列表(含所有 store 的收件箱顶层船文件夹 + 嵌套 + 同名不去重),
+            # 供 sender 索引和主题兜底
+            folder_list = all_folders
+            sender_index = build_sender_index(all_inboxes + folder_list, sender_map)
             # 全船队 norm(船名 + 船代码): 用于识别"共用文件夹"(MEDKON 里同时有
             # MEDKON DON / MEDKON LIA), 命中这类文件夹时必须按主题认船防串数据
             fleet_norms = set()
@@ -1416,16 +1440,17 @@ def main():
                 fleet_norms.add(norm(v["vessel"]))
                 if v.get("code"):
                     fleet_norms.add(norm(v["code"]))
-            print("Outlook store OK, Vessel folders: %d, all folders: %d, "
+            print("Outlook store OK, Vessel folders: %d, all folders: %d, stores: %d, "
                   "sender map: %d, sender index: %d"
-                  % (len(cache), len(folder_list), len(sender_map), len(sender_index)))
+                  % (len(cache), len(folder_list), len(stores), len(sender_map), len(sender_index)))
             n_new = 0
             targets = merged
             if args.vessel:
                 targets = [r for r in merged if args.vessel.upper() in r["vessel"].upper()]
             for i, rec in enumerate(targets, 1):
                 got = refresh_vessel(inbox, cache, rec, sender_map,
-                                     sender_index, folder_list, fleet_norms)
+                                     sender_index, folder_list, fleet_norms,
+                                     all_inboxes=all_inboxes)
                 n_new += 1 if got else 0
                 mark = "NEW" if got else ("keep" if rec.get("found") else "MISS")
                 print("[%2d/%2d] %-24s %-8s %-5s LSFO=%-8s MGO=%-8s t=%s"
@@ -1444,7 +1469,8 @@ def main():
                 print("stale vessels (older than %dh or MISS): %d -> %s"
                       % (STALE_HOURS, len(stale),
                          ", ".join(r["vessel"] for r in stale)))
-                deep_refresh_stale(inbox, folder_list, stale, sender_map)
+                deep_refresh_stale(inbox, folder_list, stale, sender_map,
+                                    all_inboxes=all_inboxes)
             save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
 
