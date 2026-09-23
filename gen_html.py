@@ -26,7 +26,7 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
-from build_fleet_movement import GEN_DIR
+from build_fleet_movement import GEN_DIR, KNOWN_LANES
 DEFAULT_EXCEL = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
 
@@ -117,11 +117,12 @@ def extract(excel_path, pic_map=None):
         c1_i = ws_src.cell(i, 1).value
         c9_i = ws_src.cell(i, 9).value
         s1_i = str(c1_i).strip() if c1_i is not None else ''
-        # 外层扫描同样维护 cur_lane（lane 行可能出现在两个船块之间）
-        if s1_i in ROUTE_SET and not isinstance(c9_i, datetime):
+        # 外层扫描同样维护 cur_lane；仅当 C1 是已知航线码(白名单, 含 WAT/KCI/GTS)才更新,
+        # 端口码(CNNGB/CNTAO…)不会误判为 lane
+        if s1_i.strip().upper() in KNOWN_LANES and not isinstance(c9_i, datetime):
             cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
-            block_route = VESSEL_ROUTE_OVERRIDE.get(s1_i, s1_i)   # 兜底：无 lane 行时用 PIC 行 col1
+            block_route = s1_i   # PIC 行 col1 即本块 route（已由 KNOWN_LANES 门控确保为合法 lane/标题码）
             # 重置本船块的默认 lane = 块头 route。修复未知 lane(如 KCI)因不在 ROUTE_SET
             # 而无法更新 cur_lane、导致继承上一艘船 lane 的 bug；多 lane 船(如 SGX→NP2)
             # 仍由块内子 lane 行覆盖, 不受影响。
@@ -137,10 +138,10 @@ def extract(excel_path, pic_map=None):
             j = i + 2
             while j <= rows_total:
                 c1_j = ws_src.cell(j, 1).value
-                # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）
+                # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）; 仅白名单航线码
                 s1j = str(c1_j).strip() if c1_j is not None else ''
                 c9_j0 = ws_src.cell(j, 9).value
-                if s1j in ROUTE_SET and not isinstance(c9_j0, datetime):
+                if s1j.upper() in KNOWN_LANES and not isinstance(c9_j0, datetime):
                     cur_lane = s1j
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
                     remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
@@ -350,11 +351,6 @@ BOA_LANE_TRADE_FALLBACK = {
     'GTS':  'ME',  # KR TASMAN: SAJED/YEADE/EGSOK/OMSOH 中东红海；同区域映射航线 SGX/CGX→ME
     'CGS':  'ME',  # 靠 AEKLF 为主；映射表中靠 AEKLF 的 SGX/CGX 都归 ME
     'CST/SL1': 'TH',  # 组合航线 CST/SL1 → TH (映射表中 CST→TH、SL1→TH)
-}
-
-# 某些船期的 route 列会错误地放 vessel code（如 ZGCD），需纠正为实际航线
-VESSEL_ROUTE_OVERRIDE = {
-    'ZGCD': 'AEM',  # ZHONG GU CHENG DU 实际属 AEM 航线
 }
 
 # ── Lane 行识别（2026-09-22）：每个港口行的 route = 向上最近的 lane 行 ──────

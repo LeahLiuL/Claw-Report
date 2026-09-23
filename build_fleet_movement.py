@@ -53,7 +53,7 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
 ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
                "SGX","SJA","JPS","SHTG","RTS","NSX","SL1","CGX","HLX","ZGCD","IMR","NAX","RES","NSCT1"]
-ROUTE_FALLBACK = "RTS"   # 源航线码为空时回退
+ROUTE_FALLBACK = ""      # 源无任何段标题行时才留空(不再静默猜 RTS; 空航线由用户补)
 WINDOW_DAYS = 30
 
 # 航线修正(用户2026-07-30确认): 文件夹 -> 规范航线码(覆盖源R1C1的改名/错误)
@@ -101,7 +101,11 @@ def norm_date_value(v):
     return s
 
 # 已知航线码集合(用于段标题检测: C1 或 C9 匹配已知航线码 = 段标题行, 不是数据行)
-KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()}
+# 注意: 仅含"服务/lane 码", 不含港口码(CNNGB/CNTAO…) —— 否则端口行会被误判为段标题。
+# EXTRA_LANES: 源文件中实际存在、用户确认的真实服务名(非标准白名单成员), 须纳入检测,
+# 如 RACINE=KCI, TB JINJIANG=GTS, KR CELEBES=WAT。
+EXTRA_LANES = {"KCI", "GTS", "WAT"}
+KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()} | {norm(x) for x in EXTRA_LANES}
 
 def detect_route(vessel_code, c1_val, c9_val):
     """从段标题行检测真正的航线码。
@@ -202,9 +206,10 @@ def read_source(path, vessel_code=None, folder_name=None):
     if hr is None:
         print(f"  [WARN] 首张表 '{ws.title}' 无 PORT 表头, 该船源文件未产出数据(请确认首表是否为船期数据)")
         return {"route": "", "code": None, "rows": []}
-    # 初始航线: 从表头行往上扫描已知航线码。
-    # 兼容两种源布局: 有的 R1 直接是航线码; 有的是合并大标题行
-    # (如 "HDT VESSEL DAILY MOVEMENT" A1:Q1 合并, 真正航线码在 R2C1), 需跳过。
+    # 初始航线: 从 PORT 表头往上找【段标题行】(C1 非空 且 非 PORT 且 C9 非日期).
+    # 段标题行的航线码严格按源文件原样采用 —— 未知码(WAT/KCI/GTS…)也保留,
+    # 不再因不在白名单(KNOWN_LANES)而被丢弃/误判; 端口数据行 C9 是 ETA 日期, 自动跳过.
+    # 兼容两种源布局: 有的 R1 直接是航线码; 有的是合并大标题行(真正航线码在 R2C1).
     route = ""
     code = None
     for r in range(hr - 1, 0, -1):
@@ -212,12 +217,19 @@ def read_source(path, vessel_code=None, folder_name=None):
         c9v = ws.cell(r, 9).value
         if code is None and c9v is not None and not isinstance(c9v, datetime):
             code = c9v
+        if c1v is None:
+            continue
+        s1 = norm(c1v)
+        if s1 == "PORT":
+            continue
+        if isinstance(c9v, datetime):
+            continue   # 港口数据行(C9=ETA日期), 非段标题
+        # 命中段标题行: 取航线码(严格按title行, 未知码也原样保留)
         det = detect_route(vessel_code, c1v, c9v)
-        if det:
-            route = det
-            break
+        route = det if det else str(c1v).strip()
+        break
     if not route:
-        # fallback: R1C1 原文(与旧行为一致, 避免空航线)
+        # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 不再静默猜 RTS
         c1_r1 = ws.cell(1, 1).value
         route = str(c1_r1).strip() if c1_r1 else ""
     if code is None:
