@@ -122,6 +122,10 @@ def extract(excel_path, pic_map=None):
             cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
             block_route = VESSEL_ROUTE_OVERRIDE.get(s1_i, s1_i)   # 兜底：无 lane 行时用 PIC 行 col1
+            # 重置本船块的默认 lane = 块头 route。修复未知 lane(如 KCI)因不在 ROUTE_SET
+            # 而无法更新 cur_lane、导致继承上一艘船 lane 的 bug；多 lane 船(如 SGX→NP2)
+            # 仍由块内子 lane 行覆盖, 不受影响。
+            cur_lane = block_route
             vessel_full = get_str(ws_src.cell(i, 4).value)
             # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
             vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
