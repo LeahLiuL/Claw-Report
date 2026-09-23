@@ -16,7 +16,7 @@ ROB 盘油记录自动刷新（Claw-Report 仓库）
   python rob_refresh.py --no-outlook  # 只用已有数据重新生成网页(调试)
   python rob_refresh.py --vessel "CHANG SHENG JI 8"  # 只刷新指定船
 """
-import sys, os, re, json, base64, hashlib, argparse, tempfile, csv
+import sys, os, re, json, base64, hashlib, argparse, tempfile, csv, time
 sys.stdout.reconfigure(encoding="utf-8")
 from datetime import datetime, timedelta
 # 航次油耗(纯本地计算, 不依赖 Outlook/Excel)
@@ -603,6 +603,10 @@ MIN_POOL_WARN = 3000    # 低于此值: 照常写盘, 页面 updated 标记"深�
                         # (2026-09-23 校准: 无人值守 01:00 那次池子 1518 却没被标出来 ——
                         #  旧阈值 1500 太高抬贵手了。正常同步完实测 kept=3860 / scanned=4158)
 MIN_POOL_ABORT = 400    # 低于此值: 判定严重未同步, 中止不写盘(保留上一版), --force 可绕过
+# 池子偏小时的自动重试。实测: 同一份代码, Outlook 同步未完成那次只扫到 863,
+# 同步完成后是 3555 —— 状态是能自己恢复的, 所以别一次定生死, 等一会儿重扫。
+POOL_RETRY = 3          # 最多扫 3 次(首扫 + 2 次重试)
+POOL_RETRY_WAIT = 45    # 每次重试前等待秒数
 
 
 def is_stale(rec, now=None):
@@ -670,6 +674,16 @@ def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None)
     OL_STATE["pool_size"] = len(pool)
     print("deep scan: %d items kept / %d scanned (last %dd, %d folders), %d stale vessels"
           % (len(pool), scanned, lookback_days, nfolders, len(recs)))
+    # Outlook 缓存/联机同步没完成时 Restrict 只返回一小部分, 但状态通常几十秒内会恢复。
+    # 池子偏小就等一会儿重扫, 别拿第一次的结果定生死(2026-09-23: 首扫 863, 重扫 3555)。
+    _try = 1
+    while len(pool) < MIN_POOL_WARN and _try < POOL_RETRY:
+        _try += 1
+        print("   [pool] 池子偏小, %ds 后第 %d/%d 次重扫 ..." % (POOL_RETRY_WAIT, _try, POOL_RETRY))
+        time.sleep(POOL_RETRY_WAIT)
+        pool, scanned, nfolders = build_deep_pool(inbox, folder_list, lookback_days)
+        OL_STATE["pool_size"] = len(pool)
+        print("   [pool] 第 %d 次: kept=%d scanned=%d" % (_try, len(pool), scanned))
     if len(pool) < MIN_POOL_ABORT:
         # 池子小到这个程度, 常规检索多半也不可靠 —— 由 main 决定是否写盘
         OL_STATE["sync_suspect"] = True
