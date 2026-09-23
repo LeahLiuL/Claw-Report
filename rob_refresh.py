@@ -599,7 +599,9 @@ DEEP_LOOKBACK_DAYS = 6    # 深度扫描的回看天数
 # 页面照常生成, 但压根没抓到新报告, 且看不出任何异常(2026-09-22 踩过: 池子只有 624 封,
 # 同步完是 4224 封)。正常 6 天窗口应有 3000~4000 封带附件的邮件, 低于此阈值即判定
 # 本次抓取不可信, 直接中止、不覆盖页面(宁可留旧版, 也不出假数据)。用 --force 可绕过。
-MIN_POOL_WARN = 1500    # 低于此值: 照常写盘, 页面 updated 标记"深度兜底可能失效"
+MIN_POOL_WARN = 3000    # 低于此值: 照常写盘, 页面 updated 标记"深度兜底可能失效"
+                        # (2026-09-23 校准: 无人值守 01:00 那次池子 1518 却没被标出来 ——
+                        #  旧阈值 1500 太高抬贵手了。正常同步完实测 kept=3860 / scanned=4158)
 MIN_POOL_ABORT = 400    # 低于此值: 判定严重未同步, 中止不写盘(保留上一版), --force 可绕过
 
 
@@ -684,6 +686,15 @@ def deep_refresh_stale(inbox, folder_list, recs, sender_map, lookback_days=None)
         print("!! [注意] 邮件池 %d 封, 低于正常值 %d —— Outlook 索引可能未完成,"
               % (len(pool), MIN_POOL_WARN))
         print("!!        深度兜底可能漏抓。常规检索结果仍会写入, 页面将带标记。")
+    # ExchangeConnectionMode 是比池子更早暴露的同步信号: 无人值守时 COM 拉起 Outlook,
+    # 进程在、Offline=False, 但缓存还在"drizzle"(400) 未同步完, Restrict 搜不全。
+    # 实测: 未同步=400, 同步完=700。只打标记, 不中止。
+    _mode = OL_STATE.get("mode")
+    if isinstance(_mode, int) and 0 < _mode < 500:
+        OL_STATE["pool_small"] = True
+        print("!! [注意] ExchangeConnectionMode=%d (<500) —— Outlook 缓存同步未完成,"
+              % _mode)
+        print("!!        Restrict 只能搜到已同步的部分, 可能缺新报告。页面将带标记。")
 
     def _sender(row):
         """惰性解析发件人并写回缓存(每封邮件最多解析一次)。"""
