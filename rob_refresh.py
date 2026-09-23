@@ -226,7 +226,8 @@ def build_folder_list(inbox):
 def build_sender_index(folders, sender_map, per_folder=300, cap_per_sender=15):
     """按用户提供的船长邮箱, 在全部文件夹里预建索引: sender -> 最近若干封邮件(新在前)。
     用 get_sender() 解析真实 SMTP(CULINES 内部 Exchange 存的是 X.500, 直接按 SMTP
-    字符串 Restrict 永远匹配不上)。报告无论落在哪个文件夹都能被 sender 精确定位。"""
+    字符串 Restrict 永远匹配不上), 故这里逐封解析而不是用 Restrict。报告无论落在
+    哪个文件夹都能被 sender 精确定位。"""
     targets = set(v.lower() for v in sender_map.values() if v)
     if not targets:
         return {}
@@ -549,20 +550,14 @@ def refresh_vessel(inbox, cache, rec, sender_map=None, sender_index=None, folder
                 pass
             add_items(fo.Items, token=token1)
 
-    # ②' sender 预建索引(收件箱全部子文件夹, 已解析 X.500); 共用邮箱跳过
+    # ②' sender 预建索引(收件箱全部子文件夹, 已用 get_sender 解析 X.500 -> SMTP); 共用邮箱跳过
     if eff_sender and sender_index and shared <= 1:
         add_items(sender_index.get(eff_sender.lower()) or [])
 
-    # ② 收件箱 sender Restrict 兜底(外部 SMTP 发件人落在收件箱时有效)
-    # 支持多 store: 如果 Vessel Report 等共享邮箱已加到 Outlook profile, 也扫其收件箱
-    for _inbox in (all_inboxes or [inbox]):
-        if eff_sender:
-            try:
-                items = _inbox.Items.Restrict("[SenderEmailAddress]='%s'" % eff_sender)
-                items.Sort("[ReceivedTime]", True)
-                add_items(items, token=(nv if shared > 1 else None))
-            except Exception:
-                pass
+    # ② 注: 不在这里用 Restrict("[SenderEmailAddress]='<smtp>'") 兜底 —— Outlook 把发件人
+    # 存成 X.500 内部地址, 按 SMTP 字符串过滤永远返回 0(实测验证)。真正有效的 sender 检索
+    # 是上面 ②' 的预建索引(逐封用 get_sender 解析 SMTP), 多 store 时 all_inboxes 已包含
+    # Vessel Report 等共享邮箱, 一旦加到 Outlook profile 即可自动覆盖。
 
     # ③ 主题含船名(收件箱 + 全部子文件夹, 含顶层船文件夹/嵌套/同名)
     try:
