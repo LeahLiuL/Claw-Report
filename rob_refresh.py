@@ -46,7 +46,7 @@ HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 # 累加历史 CSV 的列(逐船逐次快照, 一行一船)
 SNAP_FIELDS = ["date", "vessel", "code", "lane", "pic",
                "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
-               "found", "report_time", "speed"]
+               "found", "report_time", "speed", "report_type"]
 
 PASSWORD = "jimmy"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
 REPORT_KEYS = ("NOON", "BERTH", "SAILING", "ANCHOR", "DRIFT")
@@ -467,6 +467,12 @@ def scan_for_rob(items, max_attach=40, max_walk=1200, subject_token=None):
 
 def apply_hit(rec, hit):
     rob, recv, subj, se = hit
+    subjU = (subj or "").upper()
+    report_type = ""
+    for k in REPORT_KEYS:
+        if k in subjU:
+            report_type = k
+            break
     rec.update({
         "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"), "rob_mgo": rob.get("MGO"),
         "rob_ulsfo": rob.get("ULSFO"), "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
@@ -475,6 +481,7 @@ def apply_hit(rec, hit):
         "rob_draft_fwd": rob.get("DRAFT_FWD"), "rob_draft_mid": rob.get("DRAFT_MID"),
         "rob_draft_aft": rob.get("DRAFT_AFT"),
         "report_time": recv.strftime("%Y-%m-%d %H:%M:%S"),
+        "report_type": report_type,
         "source": subj, "sender": se, "found": True,
     })
     return True
@@ -1081,8 +1088,8 @@ def build_xlsx(results):
 
 # ---------------------------------------------------------------- 6. 每日历史存档(累加)
 def migrate_history_csv():
-    """一次性把累加 CSV 表头升级到 16 列(追加 report_type)。已升级则直接返回。
-    只重写第一行表头, 数据行不动(15 列旧行由 DictReader 自动用 None 补齐 report_type)。"""
+    """一次性把累加 CSV 表头升级到 16 列(追加 speed/report_type)。已升级则直接返回。
+    只重写第一行表头, 数据行不动(旧行由 DictReader 自动用 None 补齐缺失列)。"""
     if not os.path.exists(HISTORY_CSV):
         return
     try:
@@ -1162,6 +1169,7 @@ def write_daily_history(results):
             r.get("rob_refeer", ""),
             int(bool(r.get("found"))), rt19,
             r.get("rob_speed", ""),
+            r.get("report_type", ""),
         ])
     try:
         with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
@@ -1217,6 +1225,7 @@ def append_history_rows(recs, fleet_lookup=None):
             "",  # refeer: 回补不抓, 留空
             1, rt19,
             r.get("rob_speed", ""),
+            r.get("report_type", ""),
         ])
     try:
         write_header = not os.path.exists(HISTORY_CSV)

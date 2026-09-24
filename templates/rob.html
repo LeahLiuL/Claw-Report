@@ -111,7 +111,7 @@ function _loadXlsx(cb) {
   .vopt input { margin-right: 6px; vertical-align: middle; }
   .trendgrid { display: grid; grid-template-columns: 1fr; gap: 18px; padding: 16px 28px; }
   .trendgrid .panel { width: 100%; }
-  #trendChart { width: 100% !important; height: 420px !important; }
+  #trendChart, #tdrChart { width: 100% !important; height: 420px !important; }
   .panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(31,78,121,.10); padding: 14px; }
   .panel h3 { font-size: 14px; color: #1F4E79; margin-bottom: 6px; }
   .panel-note { font-size: 11.5px; line-height: 1.5; color: #5a6e82; background: #f3f7fb; border-left: 3px solid #2E75B6; padding: 7px 10px; border-radius: 4px; margin-bottom: 12px; }
@@ -302,7 +302,7 @@ function _loadXlsx(cb) {
       <div class="panel">
         <h3 id="tdrTitle">TDR vs Actual Consumption</h3>
         <div class="panel-note">TDR 设计油耗曲线（来自《Vessel Daily Consumption - TCD Daily Consumption》）按航速给出各油种 <b>标称 MT/天</b>；实际散点仅用 <b>NOON 报告</b>：取相邻两封 NOON 的 ROB 差 ÷ 间隔天数，并配以后一封 NOON 的「AVG SPEED SINCE LAST NOON」（即该航段日均航速），作每日航速对比。已剔除加油日(ROB 上升)、间隔&gt;30天、消耗率&gt;250 MT/天。X 轴＝航速(kn)，Y 轴＝消耗率(MT/天)；实际点高于 TDR 曲线＝偏耗油。新 NOON 数据随每日刷新累积。</div>
-        <canvas id="tdrChart" style="width:100%!important;height:420px!important;"></canvas>
+        <canvas id="tdrChart"></canvas>
       </div>
       <div class="panel">
         <h3>Actual points (speed &rarr; consumption rate)</h3>
@@ -868,36 +868,41 @@ function renderTDR() {
     rows.push({ date: (b.rt || b.t), sp: sp, rate: Math.round(rate * 100) / 100, dt: Math.round(dt * 100) / 100 });
   }
 
-  // ---- 绘图 ----
+  // ---- 绘图: 混合 chart (line 画 TDR 曲线, scatter 画实际点) ----
   var canvas = document.getElementById('tdrChart');
   if (!canvas) return;
   if (tdrChartObj) tdrChartObj.destroy();
-  tdrChartObj = new Chart(canvas.getContext('2d'), {
-    type: 'scatter',
-    data: {
-      datasets: [
-        { label: 'TDR 设计 (speed → MT/day)', data: tdrPts, showLine: true, tension: 0.15,
-          borderColor: '#1F4E79', backgroundColor: '#1F4E79',
-          pointRadius: 4, pointHoverRadius: 6, borderWidth: 2 },
-        { label: 'Actual 实际 (speed → consumption/day)', data: actual, showLine: false,
-          pointStyle: 'circle', pointRadius: 5, pointHoverRadius: 7,
-          backgroundColor: '#d64545', borderColor: '#a32f2f', borderWidth: 1 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true },
-        tooltip: { callbacks: { label: function(c) {
-          return c.dataset.label + ': ' + c.parsed.x + ' kn → ' + c.parsed.y + ' MT/day';
-        } } }
+  try {
+    tdrChartObj = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        datasets: [
+          { type: 'line', label: 'TDR 设计 (speed → MT/day)', data: tdrPts,
+            borderColor: '#1F4E79', backgroundColor: '#1F4E79',
+            pointRadius: 4, pointHoverRadius: 6, borderWidth: 2, tension: 0.1, fill: false },
+          { type: 'scatter', label: 'Actual 实际 (speed → consumption/day)', data: actual,
+            pointStyle: 'circle', pointRadius: 6, pointHoverRadius: 8,
+            backgroundColor: '#d64545', borderColor: '#a32f2f', borderWidth: 1 }
+        ]
       },
-      scales: {
-        x: { title: { display: true, text: 'Speed (kn)' }, beginAtZero: true },
-        y: { title: { display: true, text: 'Consumption (MT/day)' }, beginAtZero: true }
+      options: {
+        responsive: true, maintainAspectRatio: false, parsing: false,
+        plugins: {
+          legend: { display: true },
+          tooltip: { callbacks: { label: function(c) {
+            return c.dataset.label + ': ' + c.parsed.x + ' kn → ' + c.parsed.y + ' MT/day';
+          } } }
+        },
+        scales: {
+          x: { type: 'linear', title: { display: true, text: 'Speed (kn)' }, beginAtZero: false },
+          y: { type: 'linear', title: { display: true, text: 'Consumption (MT/day)' }, beginAtZero: true }
+        }
       }
-    }
-  });
+    });
+  } catch (e) {
+    document.getElementById('tdrTable').innerHTML = '<p class="miss">Chart error: ' + e.message + '</p>';
+    console.error(e);
+  }
 
   // ---- 实际点明细表 ----
   var tbl = document.getElementById('tdrTable');
