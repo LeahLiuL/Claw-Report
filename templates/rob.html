@@ -865,7 +865,7 @@ function renderTDR() {
   // ---- 每天的实际航速: 取当天 NOON 报告的 speed ----
   var speedByDay = {};
   (DATA.history || []).forEach(function(r) {
-    if (r.c === code && r.rtype === 'NOON' && _num(r.sp) != null) {
+    if (r.c === code && _num(r.sp) != null && (r.rtype === 'NOON' || !r.rtype)) {
       var d = (r.rt || r.t || '').slice(0, 10);
       if (d && !speedByDay[d]) speedByDay[d] = _num(r.sp);
     }

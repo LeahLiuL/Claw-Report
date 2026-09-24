@@ -1461,6 +1461,7 @@ def main():
             "rob_bw": old.get("rob_bw"), "rob_fw": old.get("rob_fw"),
             "rob_refeer": old.get("rob_refeer"),
             "rob_speed": old.get("rob_speed"),
+            "report_type": old.get("report_type", ""),
             "report_time": old.get("report_time"), "source": old.get("source"),
             "sender": old.get("sender"), "found": old.get("found", False),
         })
