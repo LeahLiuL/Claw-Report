@@ -116,3 +116,25 @@ ROB ULSFO / ROB MGO / Order Status / Order Details / REMARK / Special / Planned 
 - **新船 / 船退出**：船清单每天从 `cul_daily_movement.html`（Daily Movement 网页数据）自动解析，新船自动加入、退出的船自动消失，无需改脚本。
 - **共用邮件文件夹**：如 "MEDKON" 文件夹同时放两船邮件，脚本已按主题过滤防误抓；若发现某船数据异常，对照该船最近邮件主题确认。
 - **Excel 副本**：culadmin 上会生成 `rob_data\rob_oil_table.xlsx`（不入库）；leahliu 本机额外同步到 `C:\CULINES\Claw Report\盘油记录.auto.xlsx`。
+
+## git 操作互斥锁 + 禁用后台 gc（2026-09-24 根治 .git 损坏）
+
+**背景**：本机 7 个计划任务（ROB 01:00/13:00、Daily Movement 每 2h×2、Bunker 08:00、
+Bapfile 23:00、Vessel Departure 14:00）+ 手动会话并发操作同一仓库，09-22 / 09-24
+两次 `.git` 对象库损坏（对象凭空消失 `fatal: bad object HEAD`，只能重克隆修复）。
+机制：git 命令会自动触发**后台 `git gc --auto`**（detached 进程），与正在进行的
+rebase/fetch 并发时，刚创建的 loose object 会被清掉。
+
+**两层修复（均已生效）**：
+
+1. **`git config gc.auto 0` + `gc.autoDetach false`**（本仓库本机已设）——彻底停用后台
+   自动 gc。⚠️ **另一台电脑也要执行一次**：`git config gc.auto 0 && git config gc.autoDetach false`。
+2. **`git_op_lock.py` 互斥锁**——所有做 git 写操作的进程先持仓库根的 `.git_op.lock`
+   （owner 名 + 30 分钟过期），已接入：`rob_update.bat`、`git_safe_push.py`
+   （识别 `CLAW_LOCK_OWNER` 可重入）、daily-movement `auto_update.py`、`auto_bunker.py`。
+   `rob_update.bat` 同时把开头的 `git pull --rebase` 换成纯 `git fetch`（rebase 在本机
+   两次损坏仓库，对齐统一交给末尾 `git_safe_push.py` 的安全协议）。
+
+**手动操作约定**：跑任何会写 `.git` 的命令（commit/push/rebase/reset）前，
+`python git_op_lock.py acquire --owner <你的名字> --wait 60`，退出码 0 再操作；
+结束时 `python git_op_lock.py release --owner <你的名字>`。

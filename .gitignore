@@ -38,3 +38,6 @@ bapfile.db
 Vessel Bapfile*.xlsx
 Vessel Bapfile.xlsx.dl.*
 site/data/
+
+# git 操作互斥锁文件(2026-09-24: 防多自动化并发损坏 .git, 见 git_op_lock.py)
+.git_op.lock

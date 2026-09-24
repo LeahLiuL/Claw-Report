@@ -33,6 +33,22 @@ BRANCH = "main"
 BACKUP = "backup/safe-push-prev"
 MAX_ROUNDS = 3
 
+# ---- git 操作互斥锁(2026-09-24 起所有 git 写操作必须持锁, 防并发损坏 .git) ----
+# 外层(如 rob_update.bat)已持锁时, 通过 CLAW_LOCK_OWNER 声明同一 owner 实现可重入,
+# 此时本进程不新建锁、退出也不释放(由外层释放)。
+sys.path.insert(0, REPO)
+import git_op_lock
+LOCK_OWNER = os.environ.get("CLAW_LOCK_OWNER", "git_safe_push")
+_lock_created = False
+try:
+    _lock_created = git_op_lock.acquire(LOCK_OWNER, wait_s=180)
+except git_op_lock.LockHeld as e:
+    print("== git_safe_push 失败: git 操作锁被占用(%s), 本轮跳过 ==" % e)
+    sys.exit(1)
+import atexit
+if _lock_created:   # 仅新建者负责释放; 可重入(外层持锁)时不动外层的锁
+    atexit.register(git_op_lock.release, LOCK_OWNER)
+
 
 def sh(args, check=True):
     """运行 git 命令并打印输出; check=True 时失败抛异常。"""
