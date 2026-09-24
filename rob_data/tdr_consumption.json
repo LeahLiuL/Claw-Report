@@ -1,0 +1,1872 @@
+{
+  "source": "Vessel Daily Consumption-TCD Daily Consumption.csv",
+  "parsed": "2026-09-24",
+  "count": 48,
+  "vessels": {
+    "CUHC": {
+      "code": "CUHC",
+      "name": "CUL HOCHIMINH",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 11.5,
+          "hsfo": 11.5,
+          "mgo": null
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 12.6,
+          "hsfo": 12.6,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 14.2,
+          "hsfo": 14.2,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 16.2,
+          "hsfo": 16.2,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 17.2,
+          "hsfo": 17.2,
+          "mgo": null
+        },
+        {
+          "speed": 13.5,
+          "lsfo": 19.3,
+          "hsfo": 19.3,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 20.9,
+          "hsfo": 20.9,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 22.9,
+          "hsfo": 22.9,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 25.0,
+          "hsfo": 25.0,
+          "mgo": null
+        },
+        {
+          "speed": 15.5,
+          "lsfo": 27.0,
+          "hsfo": 27.0,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 29.1,
+          "hsfo": 29.1,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 4.5,
+        "mgo": null
+      }
+    },
+    "CUSK": {
+      "code": "CUSK",
+      "name": "CUL SHEKOU",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 15.0,
+          "hsfo": 15.0,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 18.0,
+          "hsfo": 18.0,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 21.0,
+          "hsfo": 21.0,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 26.0,
+          "hsfo": 26.0,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 31.0,
+          "hsfo": 31.0,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 36.0,
+          "hsfo": 36.0,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 4.5,
+        "mgo": null
+      }
+    },
+    "ZGNC": {
+      "code": "ZGNC",
+      "name": "ZHONG GU NAN CHANG",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 19.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 22.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 25.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 28.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 32.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.5,
+          "lsfo": 36.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 40.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 44.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 47.8,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 5.0,
+        "mgo": null
+      }
+    },
+    "ZGYC": {
+      "code": "ZGYC",
+      "name": "ZHONG GU YIN CHUAN",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 16.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 22.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 28.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 35.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 44.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 51.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.3,
+        "mgo": 3.5
+      }
+    },
+    "CUNS": {
+      "code": "CUNS",
+      "name": "CUL NANSHA",
+      "speeds": [
+        {
+          "speed": 15.0,
+          "lsfo": 22.31,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 25.22,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 29.28,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 35.76,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.5,
+          "lsfo": 39.79,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.0,
+        "mgo": null
+      }
+    },
+    "BZCF": {
+      "code": "BZCF",
+      "name": "BZ CHONGFU",
+      "speeds": [
+        {
+          "speed": 13.0,
+          "lsfo": 37.0,
+          "hsfo": null,
+          "mgo": 4.0
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 46.0,
+          "hsfo": null,
+          "mgo": 4.0
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 55.0,
+          "hsfo": null,
+          "mgo": 4.0
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 64.0,
+          "hsfo": null,
+          "mgo": 0.0
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 75.0,
+          "hsfo": null,
+          "mgo": 0.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": 10.0,
+        "mgo": null
+      }
+    },
+    "LION": {
+      "code": "LION",
+      "name": "C LION",
+      "speeds": [
+        {
+          "speed": 13.0,
+          "lsfo": 53.0,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 61.0,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 80.0,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 102.5,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 20.0,
+          "lsfo": 129.5,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 22.0,
+          "lsfo": 158.0,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 22.5,
+          "lsfo": 173.0,
+          "hsfo": null,
+          "mgo": 0.5
+        }
+      ],
+      "port_stay": {
+        "lsfo": 13.5,
+        "mgo": 0.5
+      }
+    },
+    "XPBL": {
+      "code": "XPBL",
+      "name": "EXPRESS BERLIN",
+      "speeds": [
+        {
+          "speed": 12.5,
+          "lsfo": 41.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 44.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 52.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 61.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 71.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 83.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 97.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 19.0,
+          "lsfo": 112.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 20.0,
+          "lsfo": 128.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 21.0,
+          "lsfo": 145.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 22.0,
+          "lsfo": 168.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 13.0,
+        "mgo": null
+      }
+    },
+    "CUXM": {
+      "code": "CUXM",
+      "name": "CUL XIAMEN",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 24.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 24.9,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 25.4,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.5,
+          "lsfo": 26.4,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 27.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 28.1,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 29.4,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.5,
+          "lsfo": 30.7,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 32.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 4.5,
+        "mgo": null
+      }
+    },
+    "BIBK": {
+      "code": "BIBK",
+      "name": "BAMSI BEYREK",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 20.47,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 28.77,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 39.07,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 51.67,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 5.77,
+        "mgo": null
+      }
+    },
+    "CZBM": {
+      "code": "CZBM",
+      "name": "ZBM",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "STBE": {
+      "code": "STBE",
+      "name": "STAR BLESSING",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "ZLST": {
+      "code": "ZLST",
+      "name": "ZHONG LIAN SHAN TOU",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "RACE": {
+      "code": "RACE",
+      "name": "RACINE",
+      "speeds": [
+        {
+          "speed": 13.0,
+          "lsfo": 38.7,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 44.2,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 57.2,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 75.7,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 20.0,
+          "lsfo": 97.2,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 22.0,
+          "lsfo": 122.2,
+          "hsfo": null,
+          "mgo": 0.5
+        },
+        {
+          "speed": 22.8,
+          "lsfo": 137.2,
+          "hsfo": null,
+          "mgo": 0.5
+        }
+      ],
+      "port_stay": {
+        "lsfo": 9.9,
+        "mgo": 0.5
+      }
+    },
+    "ASRR": {
+      "code": "ASRR",
+      "name": "ASR",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 10.0,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 13.1,
+          "hsfo": null,
+          "mgo": 1.2
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.2
+      }
+    },
+    "MKDN": {
+      "code": "MKDN",
+      "name": "MEDKON DON",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 18.5,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 20.0,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 22.0,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 24.0,
+          "hsfo": null,
+          "mgo": 1.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.0
+      }
+    },
+    "ZYHS": {
+      "code": "ZYHS",
+      "name": "ZHI YING HE SHUN",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "CUHA": {
+      "code": "CUHA",
+      "name": "CUL HUANGPU",
+      "speeds": [
+        {
+          "speed": 12.5,
+          "lsfo": 12.2,
+          "hsfo": null,
+          "mgo": 1.5
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 14.5,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 16.0,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 17.0,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 19.0,
+          "hsfo": null,
+          "mgo": 1.2
+        },
+        {
+          "speed": 15.7,
+          "lsfo": 21.0,
+          "hsfo": null,
+          "mgo": 1.2
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.7,
+        "mgo": 1.6
+      }
+    },
+    "MODS": {
+      "code": "MODS",
+      "name": "M. ODYSSEY",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 11.35,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 12.85,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 14.85,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 17.8,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 21.5,
+          "hsfo": null,
+          "mgo": 2.85
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.45
+      }
+    },
+    "ZGZH": {
+      "code": "ZGZH",
+      "name": "ZHONG GU ZHU HAI",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 13.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 16.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 20.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 24.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 27.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 32.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 1.5,
+        "mgo": null
+      }
+    },
+    "CSJ7": {
+      "code": "CSJ7",
+      "name": "CHANG SHENG JI 7",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 11.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 14.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 19.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 1.5,
+        "mgo": null
+      }
+    },
+    "CSJ8": {
+      "code": "CSJ8",
+      "name": "CHANG SHENG JI 8",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 13.0,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 15.0,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 16.5,
+          "hsfo": null,
+          "mgo": 1.8
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.8
+      }
+    },
+    "CUKL": {
+      "code": "CUKL",
+      "name": "CUL KLANG",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 21.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 23.6,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 26.7,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.5,
+          "lsfo": 28.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 30.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 32.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 34.6,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.5,
+          "lsfo": 35.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 36.9,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.5,
+          "lsfo": 37.6,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 4.1,
+        "mgo": null
+      }
+    },
+    "CULC": {
+      "code": "CULC",
+      "name": "CUL LAEMCHABANG",
+      "speeds": [
+        {
+          "speed": 15.0,
+          "lsfo": 22.31,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 25.22,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 29.28,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 35.76,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.5,
+          "lsfo": 39.79,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.0,
+        "mgo": null
+      }
+    },
+    "CUYP": {
+      "code": "CUYP",
+      "name": "CUL YANGPU",
+      "speeds": [
+        {
+          "speed": 15.0,
+          "lsfo": 22.31,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 25.22,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 29.28,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 35.76,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.5,
+          "lsfo": 39.79,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.0,
+        "mgo": null
+      }
+    },
+    "DFMH": {
+      "code": "DFMH",
+      "name": "DONG FANG MING HAI",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 12.2,
+          "hsfo": 0.0,
+          "mgo": 0.0
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 13.0,
+          "hsfo": 0.0,
+          "mgo": 0.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": 0.0,
+        "mgo": 1.2
+      }
+    },
+    "EVHA": {
+      "code": "EVHA",
+      "name": "EVERLASTING HARVEST",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 10.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 10.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 11.7,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 13.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.5,
+          "lsfo": 14.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 16.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.5,
+          "lsfo": 17.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 19.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.5,
+          "lsfo": 22.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 24.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 4.5,
+        "mgo": null
+      }
+    },
+    "H728": {
+      "code": "H728",
+      "name": "HONG DA XIN 728",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 21.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 23.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 25.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 27.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 30.5,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 3.2,
+        "mgo": 2.0
+      }
+    },
+    "HAMD": {
+      "code": "HAMD",
+      "name": "HAIAN MIND",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 23.400000000000002,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 24.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 25.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 33.199999999999996,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 40.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 42.3,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 5.3,
+        "mgo": null
+      }
+    },
+    "LAHM": {
+      "code": "LAHM",
+      "name": "LOA HARMONY",
+      "speeds": [
+        {
+          "speed": 9.0,
+          "lsfo": 9.5,
+          "hsfo": null,
+          "mgo": 2.0
+        },
+        {
+          "speed": 10.0,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": 2.0
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 12.5,
+          "hsfo": null,
+          "mgo": 2.0
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 14.5,
+          "hsfo": null,
+          "mgo": 2.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 2.0
+      }
+    },
+    "MGSH": {
+      "code": "MGSH",
+      "name": "MAO GANG SHANG HAI",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 9.0,
+          "hsfo": null,
+          "mgo": 1.6
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": 1.6
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 14.0,
+          "hsfo": null,
+          "mgo": 1.6
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.6
+      }
+    },
+    "SHTG": {
+      "code": "SHTG",
+      "name": "SHENGTANG",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 30.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 34.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 37.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 43.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 50.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 59.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 68.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 2.5,
+        "mgo": null
+      }
+    },
+    "TGLK": {
+      "code": "TGLK",
+      "name": "TIGER LONGKOU",
+      "speeds": [
+        {
+          "speed": 14.0,
+          "lsfo": 23.2,
+          "hsfo": null,
+          "mgo": 3.0
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 27.3,
+          "hsfo": null,
+          "mgo": 3.0
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 33.5,
+          "hsfo": null,
+          "mgo": 3.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": 1.5,
+        "mgo": 3.0
+      }
+    },
+    "TNVN": {
+      "code": "TNVN",
+      "name": "TEN VENUS",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 20.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 22.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 26.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 30.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 34.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 38.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 45.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.0,
+          "lsfo": 52.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.0,
+          "lsfo": 61.5,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 3.5,
+        "mgo": null
+      }
+    },
+    "WNFD": {
+      "code": "WNFD",
+      "name": "WAN FU DA",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 24.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 26.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 30.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 32.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 34.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 3.0,
+        "mgo": 2.0
+      }
+    },
+    "XD88": {
+      "code": "XD88",
+      "name": "XING DONG 88",
+      "speeds": [
+        {
+          "speed": 7.0,
+          "lsfo": 10.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 13.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 15.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 1.5,
+        "mgo": null
+      }
+    },
+    "KRCB": {
+      "code": "KRCB",
+      "name": "KR CELEBES",
+      "speeds": [
+        {
+          "speed": 9.8,
+          "lsfo": 6.6,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 12.3,
+          "lsfo": 12.3,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 13.4,
+          "lsfo": 15.7,
+          "hsfo": null,
+          "mgo": 1.0
+        },
+        {
+          "speed": 14.1,
+          "lsfo": 18.1,
+          "hsfo": null,
+          "mgo": 1.0
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.0
+      }
+    },
+    "CUHM": {
+      "code": "CUHM",
+      "name": "CUL HUMEN",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 20.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 24.0,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 28.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 3.0,
+        "mgo": null
+      }
+    },
+    "KDHZ": {
+      "code": "KDHZ",
+      "name": "KAI DA HONG ZHOU",
+      "speeds": [
+        {
+          "speed": 7.5,
+          "lsfo": 8.0,
+          "hsfo": null,
+          "mgo": 0.55
+        },
+        {
+          "speed": 9.5,
+          "lsfo": 9.5,
+          "hsfo": null,
+          "mgo": 0.55
+        },
+        {
+          "speed": 10.0,
+          "lsfo": 10.0,
+          "hsfo": null,
+          "mgo": 0.55
+        },
+        {
+          "speed": 10.5,
+          "lsfo": 11.0,
+          "hsfo": null,
+          "mgo": 0.55
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 11.5,
+          "hsfo": null,
+          "mgo": 0.55
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 13.5,
+          "hsfo": null,
+          "mgo": 0.55
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 0.65
+      }
+    },
+    "KRTM": {
+      "code": "KRTM",
+      "name": "KR TASMAN",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "NWTR": {
+      "code": "NWTR",
+      "name": "NEW THINKER",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "SY68": {
+      "code": "SY68",
+      "name": "SUNNY 68",
+      "speeds": [],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": null
+      }
+    },
+    "GLBN": {
+      "code": "GLBN",
+      "name": "GLOBAL 01",
+      "speeds": [
+        {
+          "speed": 10.0,
+          "lsfo": 13.5,
+          "hsfo": null,
+          "mgo": 1.2
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.2
+      }
+    },
+    "H708": {
+      "code": "H708",
+      "name": "HONG DA XIN 708",
+      "speeds": [
+        {
+          "speed": 10.5,
+          "lsfo": 12.0,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 13.6,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 11.5,
+          "lsfo": 14.2,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 15.2,
+          "hsfo": null,
+          "mgo": 1.8
+        },
+        {
+          "speed": 12.5,
+          "lsfo": 17.1,
+          "hsfo": null,
+          "mgo": 1.8
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.8
+      }
+    },
+    "H811": {
+      "code": "H811",
+      "name": "HUA DONG 811",
+      "speeds": [
+        {
+          "speed": 9.5,
+          "lsfo": 13.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 10.0,
+          "lsfo": 13.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 11.0,
+          "lsfo": 14.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 0.8,
+        "mgo": 0.6
+      }
+    },
+    "MMRN": {
+      "code": "MMRN",
+      "name": "M. MARINER",
+      "speeds": [
+        {
+          "speed": 12.0,
+          "lsfo": 11.35,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 12.85,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 14.85,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 17.8,
+          "hsfo": null,
+          "mgo": 2.85
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 21.5,
+          "hsfo": null,
+          "mgo": 2.85
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.45
+      }
+    },
+    "X106": {
+      "code": "X106",
+      "name": "XIN MING ZHOU 106",
+      "speeds": [
+        {
+          "speed": 12.88,
+          "lsfo": 13.2,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 14.48,
+          "lsfo": 17.6,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 15.7,
+          "lsfo": 21.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 16.56,
+          "lsfo": 25.8,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 17.36,
+          "lsfo": 30.5,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.11,
+          "lsfo": 37.7,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.51,
+          "lsfo": 40.4,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.79,
+          "lsfo": 43.3,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 18.99,
+          "lsfo": 45.4,
+          "hsfo": null,
+          "mgo": null
+        },
+        {
+          "speed": 19.42,
+          "lsfo": 52.0,
+          "hsfo": null,
+          "mgo": null
+        }
+      ],
+      "port_stay": {
+        "lsfo": 1.45,
+        "mgo": null
+      }
+    },
+    "CUHP": {
+      "code": "CUHP",
+      "name": "CUL HAIPHONG",
+      "speeds": [
+        {
+          "speed": 11.0,
+          "lsfo": 12.0,
+          "hsfo": null,
+          "mgo": 1.1
+        },
+        {
+          "speed": 12.0,
+          "lsfo": 12.6,
+          "hsfo": null,
+          "mgo": 1.1
+        },
+        {
+          "speed": 13.0,
+          "lsfo": 13.5,
+          "hsfo": null,
+          "mgo": 1.1
+        },
+        {
+          "speed": 14.0,
+          "lsfo": 14.6,
+          "hsfo": null,
+          "mgo": 1.1
+        },
+        {
+          "speed": 15.0,
+          "lsfo": 16.0,
+          "hsfo": null,
+          "mgo": 1.1
+        },
+        {
+          "speed": 16.0,
+          "lsfo": 17.5,
+          "hsfo": null,
+          "mgo": 1.1
+        }
+      ],
+      "port_stay": {
+        "lsfo": null,
+        "mgo": 1.1
+      }
+    }
+  }
+}

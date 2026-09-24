@@ -160,6 +160,7 @@ function _loadXlsx(cb) {
     <button class="tab-btn" data-tab="trend" onclick="switchTab('trend',this)">&#128200; Trend</button>
     <button class="tab-btn" data-tab="draft" onclick="switchTab('draft',this)">&#128674; Draft</button>
     <button class="tab-btn" data-tab="voyage" onclick="switchTab('voyage',this)">&#9973; Voyage</button>
+    <button class="tab-btn" data-tab="tdr" onclick="switchTab('tdr',this)">&#9889; TDR vs Actual</button>
   </div>
   <div id="viewDash" class="tab-content active">
   <div class="stats" id="stats"></div>
@@ -284,6 +285,32 @@ function _loadXlsx(cb) {
     </div>
   </div>
 
+  <div id="tdr" class="tab-content">
+    <div class="trendbar">
+      <span class="lbl">Vessel:</span>
+      <select id="tdrVessel"></select>
+      <span class="lbl">Oil:</span>
+      <select id="tdrOil">
+        <option value="lsfo" selected>LSFO</option>
+        <option value="hsfo">HSFO</option>
+        <option value="mgo">MGO</option>
+      </select>
+      <button onclick="renderTDR()">Apply</button>
+      <button onclick="showTable()">&larr; Dashboard</button>
+    </div>
+    <div class="trendgrid">
+      <div class="panel">
+        <h3 id="tdrTitle">TDR vs Actual Consumption</h3>
+        <div class="panel-note">TDR 设计油耗曲线（来自《Vessel Daily Consumption - TCD Daily Consumption》）按航速给出各油种 <b>标称 MT/天</b>；实际散点仅用 <b>NOON 报告</b>：取相邻两封 NOON 的 ROB 差 ÷ 间隔天数，并配以后一封 NOON 的「AVG SPEED SINCE LAST NOON」（即该航段日均航速），作每日航速对比。已剔除加油日(ROB 上升)、间隔&gt;30天、消耗率&gt;250 MT/天。X 轴＝航速(kn)，Y 轴＝消耗率(MT/天)；实际点高于 TDR 曲线＝偏耗油。新 NOON 数据随每日刷新累积。</div>
+        <canvas id="tdrChart" style="width:100%!important;height:420px!important;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Actual points (speed &rarr; consumption rate)</h3>
+        <div id="tdrTable" style="max-height:360px;overflow:auto"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="footer">
     Unit: MT · Source: ROB from Masters' emailed Noon / Berth / Sailing reports ·
     Missing vessels flagged in REMARK · Time = report received time ·
@@ -336,6 +363,12 @@ function fmt(v) {
   if (v === null || v === undefined) return '';
   if (typeof v === 'number') return (v % 1 === 0) ? v.toString() : v.toFixed(2);
   return v;
+}
+function _num(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
+  var n = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? null : n;
 }
 function renderRows() {
   var q = (document.getElementById('q').value || '').toLowerCase();
@@ -446,6 +479,7 @@ function switchTab(id, btn) {
     }
     renderVoyage(); renderPeriod();
   }
+  else if (id === 'tdr') { buildTdrVesselDrop(); renderTDR(); }
   else if (id === 'viewDash') renderRows();
 }
 function showTable() { switchTab('viewDash'); }
@@ -764,6 +798,125 @@ function renderDraft() {
 var voyOpen = {};
 function voyKey(r) { return (r.vessel || '') + '|' + (r.voy || '') + '|' + (r.start || ''); }
 function toggleVoyRotation(k) { voyOpen[k] = !voyOpen[k]; renderVoyage(); }
+
+/* ================= TDR vs Actual (设计油耗 vs 实际) ================= */
+function buildTdrVesselDrop() {
+  var drop = document.getElementById('tdrVessel');
+  if (!drop || drop.dataset.built === '1') return;   // 只构建一次
+  drop.dataset.built = '1';
+  drop.innerHTML = '';
+  var codes = Object.keys(DATA.tdr || {}).sort();
+  if (!codes.length) {
+    var o = document.createElement('option');
+    o.textContent = '(无 TDR 数据)'; o.value = '';
+    drop.appendChild(o);
+    return;
+  }
+  codes.forEach(function(code) {
+    var v = DATA.tdr[code];
+    var o = document.createElement('option');
+    o.value = code;
+    o.textContent = (v && v.name ? v.name : code) + ' (' + code + ')';
+    drop.appendChild(o);
+  });
+}
+var tdrChartObj = null;
+function renderTDR() {
+  if (!DATA) return;
+  var code = document.getElementById('tdrVessel').value;
+  var oil = document.getElementById('tdrOil').value;           // lsfo / hsfo / mgo
+  var oilKey = (oil === 'lsfo') ? 'ls' : (oil === 'hsfo') ? 'hs' : 'mg';
+  var tdrV = (DATA.tdr && DATA.tdr[code]) ? DATA.tdr[code] : null;
+  var titleEl = document.getElementById('tdrTitle');
+  if (titleEl) titleEl.textContent = 'TDR vs Actual — ' + (tdrV ? tdrV.name : code) + ' · ' + oil.toUpperCase();
+
+  // ---- TDR 设计曲线 (speed -> 标称 MT/day) ----
+  var tdrPts = [];
+  if (tdrV && tdrV.speeds && tdrV.speeds.length) {
+    tdrV.speeds.forEach(function(s) {
+      var sp = _num(s.speed), val = _num(s[oil]);
+      if (sp != null && val != null) tdrPts.push({ x: sp, y: val });
+    });
+    tdrPts.sort(function(a, b) { return a.x - b.x; });
+  }
+
+  // ---- 实际散点: 相邻两封 NOON 报告 ROB 差 ÷ 间隔天数 ----
+  // 仅用 NOON 报告(用户指定): NOON 的 "AVG SPEED SINCE LAST NOON REPORT" 描述
+  // 上一段(本正午→上次正午)航程, 故对相邻两封 NOON a→b, 用 b 的 speed 配该航段。
+  // 剔除: 间隔<=0 或 >30天 / 库存上升(加油) / 消耗率异常(>250 MT/天)。
+  var hist = (DATA.history || []).filter(function(r) {
+    return r.c === code && r.f && r.rtype === 'NOON'
+        && _num(r[oilKey]) != null && _num(r.sp) != null;
+  });
+  hist.sort(function(a, b) { return (a.rt || a.t) < (b.rt || b.t) ? -1 : 1; });
+  var actual = [], rows = [];
+  for (var i = 1; i < hist.length; i++) {
+    var a = hist[i - 1], b = hist[i];
+    var da = new Date((a.rt || a.t).replace(' ', 'T'));
+    var db = new Date((b.rt || b.t).replace(' ', 'T'));
+    var dt = (db - da) / 86400000;
+    if (!(dt > 0) || dt > 30) continue;
+    var o0 = _num(a[oilKey]), o1 = _num(b[oilKey]);
+    if (o0 == null || o1 == null) continue;
+    var delta = o0 - o1;                       // 库存下降 = 消耗
+    if (delta <= 0) continue;                  // 库存上升 = 加油, 剔除
+    var rate = delta / dt;
+    if (rate > 250) continue;                  // 异常点(多为漏抓/加油干扰), 剔除
+    var sp = _num(b.sp);                       // NOON(b) 速度对应 [a,b] 航段
+    if (sp == null) continue;
+    actual.push({ x: sp, y: Math.round(rate * 100) / 100 });
+    rows.push({ date: (b.rt || b.t), sp: sp, rate: Math.round(rate * 100) / 100, dt: Math.round(dt * 100) / 100 });
+  }
+
+  // ---- 绘图 ----
+  var canvas = document.getElementById('tdrChart');
+  if (!canvas) return;
+  if (tdrChartObj) tdrChartObj.destroy();
+  tdrChartObj = new Chart(canvas.getContext('2d'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'TDR 设计 (speed → MT/day)', data: tdrPts, showLine: true, tension: 0.15,
+          borderColor: '#1F4E79', backgroundColor: '#1F4E79',
+          pointRadius: 4, pointHoverRadius: 6, borderWidth: 2 },
+        { label: 'Actual 实际 (speed → consumption/day)', data: actual, showLine: false,
+          pointStyle: 'circle', pointRadius: 5, pointHoverRadius: 7,
+          backgroundColor: '#d64545', borderColor: '#a32f2f', borderWidth: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true },
+        tooltip: { callbacks: { label: function(c) {
+          return c.dataset.label + ': ' + c.parsed.x + ' kn → ' + c.parsed.y + ' MT/day';
+        } } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Speed (kn)' }, beginAtZero: true },
+        y: { title: { display: true, text: 'Consumption (MT/day)' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ---- 实际点明细表 ----
+  var tbl = document.getElementById('tdrTable');
+  if (!tbl) return;
+  if (!rows.length) {
+    tbl.innerHTML = '<p class="ok">无可用实际点。需相邻两封报告均含该油种 ROB 与 speed，'
+      + '且间隔≤30天、非加油日。新 speed 数据随 culadmin 每日刷新累积。</p>';
+  } else {
+    rows.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+    var h = '<table class="trendtbl"><tr><th>Report Time</th><th>Speed (kn)</th>'
+          + '<th>Cons (MT/day)</th><th>Interval (d)</th></tr>';
+    rows.forEach(function(r) {
+      h += '<tr><td>' + r.date + '</td><td class="n">' + fmt(r.sp) + '</td><td class="n">'
+         + fmt(r.rate) + '</td><td class="n">' + fmt(r.dt) + '</td></tr>';
+    });
+    h += '</table>';
+    tbl.innerHTML = h;
+  }
+}
 
 function renderVoyage() {
   if (!DATA) return;

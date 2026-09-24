@@ -46,7 +46,7 @@ HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 # 累加历史 CSV 的列(逐船逐次快照, 一行一船)
 SNAP_FIELDS = ["date", "vessel", "code", "lane", "pic",
                "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
-               "found", "report_time"]
+               "found", "report_time", "speed"]
 
 PASSWORD = "jimmy"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
 REPORT_KEYS = ("NOON", "BERTH", "SAILING", "ANCHOR", "DRIFT")
@@ -383,6 +383,7 @@ def extract_rob(att):
         return None
 
     rob = {}
+    speed_cands = []  # (priority, value): 航速候选, 取优先级最高者
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             for i, c in enumerate(row):
@@ -396,6 +397,28 @@ def extract_rob(att):
                     if gotd:
                         k, v = gotd
                         rob[k] = v
+                    # ---- 航速: SPEED TO NEXT PORT(开航报告) / AVG SPEED SINCE LAST
+                    #      NOON/SAILING REPORT(在航平均航速); 排除 WIND SPEED ----
+                    if "SPEED" in cu and "WIND" not in cu:
+                        prio = 0
+                        if "TO NEXT PORT" in cu:
+                            prio = 2
+                        elif "SINCE LAST" in cu:
+                            prio = 1
+                        for j in range(i + 1, len(row)):
+                            v = row[j]
+                            if v is None:
+                                continue
+                            if isinstance(v, str) and not v.strip():
+                                continue
+                            n = _as_num(v)
+                            if n is None:
+                                break
+                            speed_cands.append((prio, n))
+                            break
+    if speed_cands:
+        speed_cands.sort(key=lambda x: -x[0])
+        rob["SPEED"] = round(speed_cands[0][1], 2)
     # 低硫船只报 ULSFO 时归一到 LSFO, 统一主表/趋势口径
     if "ULSFO" in rob and "LSFO" not in rob:
         rob["LSFO"] = rob["ULSFO"]
@@ -448,6 +471,7 @@ def apply_hit(rec, hit):
         "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"), "rob_mgo": rob.get("MGO"),
         "rob_ulsfo": rob.get("ULSFO"), "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),
         "rob_refeer": rob.get("REFEER"),
+        "rob_speed": rob.get("SPEED"),
         "rob_draft_fwd": rob.get("DRAFT_FWD"), "rob_draft_mid": rob.get("DRAFT_MID"),
         "rob_draft_aft": rob.get("DRAFT_AFT"),
         "report_time": recv.strftime("%Y-%m-%d %H:%M:%S"),
@@ -881,6 +905,7 @@ def build_html(results):
             "lane": r.get("lane", ""), "pic": r.get("pic", ""),
             "rob_lsfo": r.get("rob_lsfo"), "rob_hsfo": r.get("rob_hsfo"),
             "rob_ulsfo": r.get("rob_ulsfo"), "rob_mgo": r.get("rob_mgo"),
+            "speed": r.get("rob_speed"),
             "draft_fwd": r.get("rob_draft_fwd") if r.get("rob_draft_fwd") is not None else _lat[1],
             "draft_mid": r.get("rob_draft_mid") if r.get("rob_draft_mid") is not None else _lat[2],
             "draft_aft": r.get("rob_draft_aft") if r.get("rob_draft_aft") is not None else _lat[3],
@@ -909,6 +934,8 @@ def build_html(results):
                         "ls": oils[0], "hs": oils[1], "mg": oils[2], "us": oils[3],
                         "bw": _num(row.get("bw")),
                         "fw": _num(row.get("fw")),
+                        "sp": _num(row.get("speed")),
+                        "rtype": (row.get("report_type") or "").strip(),
                         "f": int(row.get("found") or 0),
                         "rt": (row.get("report_time") or "")[:19],    # 船长报告接收时间
                     })
@@ -943,6 +970,15 @@ def build_html(results):
     else:
         print("[WARN] 跳过航次油耗: voyage_consumption 模块不可用")
     # (draft_max / draft_latest 已在 build_html 开头解析, 此处不再重复读取)
+    # ---- TDR 设计油耗曲线(来自《Vessel Daily Consumption - TCD Daily Consumption》)
+    #     结构: {"vessels": {<code>: {"name":..,"speeds":[{"speed","lsfo","hsfo","mgo"}],"port_stay":{..}}}} ----
+    tdr = {}
+    TDR_JSON = os.path.join(ROB_DIR, "tdr_consumption.json")
+    if os.path.exists(TDR_JSON):
+        try:
+            tdr = json.load(open(TDR_JSON, encoding="utf-8")).get("vessels", {})
+        except Exception as e:
+            print("[WARN] read tdr_consumption.json failed:", e)
     _upd = datetime.now().strftime("%Y-%m-%d %H:%M")
     if OL_STATE.get("offline"):
         # Outlook 离线(或缓存未同步): 本次"刷新"读的是本地缓存, 数据可能根本没更新
@@ -957,7 +993,8 @@ def build_html(results):
                "bunkering": bunkering,
                "bunkering_types": bunker_types,
                "voyages": voyages,
-               "draft_max": draft_max}
+               "draft_max": draft_max,
+               "tdr": tdr}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)
     back = cryptojs_decrypt(enc, PASSWORD)
@@ -1043,6 +1080,26 @@ def build_xlsx(results):
 
 
 # ---------------------------------------------------------------- 6. 每日历史存档(累加)
+def migrate_history_csv():
+    """一次性把累加 CSV 表头升级到 16 列(追加 report_type)。已升级则直接返回。
+    只重写第一行表头, 数据行不动(15 列旧行由 DictReader 自动用 None 补齐 report_type)。"""
+    if not os.path.exists(HISTORY_CSV):
+        return
+    try:
+        with open(HISTORY_CSV, encoding="utf-8", newline="") as f:
+            lines = f.read().splitlines()
+        if not lines:
+            return
+        if "report_type" in lines[0]:
+            return
+        lines[0] = ",".join(SNAP_FIELDS)
+        with open(HISTORY_CSV, "w", encoding="utf-8", newline="") as f:
+            f.write("\n".join(lines) + "\n")
+        print("[INFO] history CSV header migrated -> 16 cols (added report_type)")
+    except Exception as e:
+        print("[WARN] history csv header migration failed:", e)
+
+
 def write_daily_history(results):
     """累加式每日历史, 两份产物:
        - rob_data/history/rob_YYYY-MM-DD.json : 当天完整快照(按运行覆盖当天)
@@ -1104,6 +1161,7 @@ def write_daily_history(results):
             r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
             r.get("rob_refeer", ""),
             int(bool(r.get("found"))), rt19,
+            r.get("rob_speed", ""),
         ])
     try:
         with open(HISTORY_CSV, "a", encoding="utf-8", newline="") as f:
@@ -1158,6 +1216,7 @@ def append_history_rows(recs, fleet_lookup=None):
             r.get("rob_ulsfo"), r.get("rob_bw"), r.get("rob_fw"),
             "",  # refeer: 回补不抓, 留空
             1, rt19,
+            r.get("rob_speed", ""),
         ])
     try:
         write_header = not os.path.exists(HISTORY_CSV)
@@ -1392,6 +1451,7 @@ def main():
             "rob_mgo": old.get("rob_mgo"), "rob_ulsfo": old.get("rob_ulsfo"),
             "rob_bw": old.get("rob_bw"), "rob_fw": old.get("rob_fw"),
             "rob_refeer": old.get("rob_refeer"),
+            "rob_speed": old.get("rob_speed"),
             "report_time": old.get("report_time"), "source": old.get("source"),
             "sender": old.get("sender"), "found": old.get("found", False),
         })
@@ -1484,6 +1544,7 @@ def main():
     found = sum(1 for r in merged if r.get("found"))
     print("found ROB: %d/%d -> %s" % (found, len(merged), RESULTS))
 
+    migrate_history_csv()
     build_html(merged)
     build_xlsx(merged)
     write_daily_history(merged)
