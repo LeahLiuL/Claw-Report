@@ -301,7 +301,7 @@ function _loadXlsx(cb) {
     <div class="trendgrid">
       <div class="panel">
         <h3 id="tdrTitle">TDR vs Actual Consumption</h3>
-        <div class="panel-note">TDR 设计油耗曲线（来自《Vessel Daily Consumption - TCD Daily Consumption》）按航速给出各油种 <b>标称 MT/天</b>；实际散点仅用 <b>NOON 报告</b>：取相邻两封 NOON 的 ROB 差 ÷ 间隔天数，并配以后一封 NOON 的「AVG SPEED SINCE LAST NOON」（即该航段日均航速），作每日航速对比。已剔除加油日(ROB 上升)、间隔&gt;30天、消耗率&gt;250 MT/天。X 轴＝航速(kn)，Y 轴＝消耗率(MT/天)；实际点高于 TDR 曲线＝偏耗油。新 NOON 数据随每日刷新累积。</div>
+        <div class="panel-note">以「实际每日消耗」(Trend 的 Mode:Consumption 同口径，ROB 按锚定小时对齐后相邻日差值) 为蓝线基础；每天取 <b>NOON 报告</b>的航速，在《Vessel Daily Consumption - TCD Daily Consumption》设计油耗表按航速线性插值出该船当天的 <b>TDR 设计消耗</b>，画成红线。两线同 X 轴(日期)对比：红线高于蓝线＝实际比设计偏耗油。需每日 NOON 报告带 speed（culadmin 定时抓取累积；历史行需回填）。</div>
         <canvas id="tdrChart"></canvas>
       </div>
       <div class="panel">
@@ -820,6 +820,25 @@ function buildTdrVesselDrop() {
     drop.appendChild(o);
   });
 }
+// 在 TDR 设计油耗表里按航速线性插值出某油种的设计消耗(MT/day)
+function tdrAtSpeed(tdrV, speed, oil) {
+  if (!tdrV || !tdrV.speeds || !tdrV.speeds.length) return null;
+  var pts = tdrV.speeds
+    .map(function(s){ return { sp: _num(s.speed), val: _num(s[oil]) }; })
+    .filter(function(p){ return p.sp != null && p.val != null; })
+    .sort(function(a, b){ return a.sp - b.sp; });
+  if (!pts.length) return null;
+  if (speed <= pts[0].sp) return pts[0].val;
+  if (speed >= pts[pts.length - 1].sp) return pts[pts.length - 1].val;
+  for (var i = 1; i < pts.length; i++) {
+    if (speed <= pts[i].sp) {
+      var a = pts[i - 1], b = pts[i];
+      var t = (speed - a.sp) / (b.sp - a.sp);
+      return Math.round((a.val + t * (b.val - a.val)) * 100) / 100;
+    }
+  }
+  return null;
+}
 var tdrChartObj = null;
 function renderTDR() {
   if (!DATA) return;
@@ -830,72 +849,70 @@ function renderTDR() {
   var titleEl = document.getElementById('tdrTitle');
   if (titleEl) titleEl.textContent = 'TDR vs Actual — ' + (tdrV ? tdrV.name : code) + ' · ' + oil.toUpperCase();
 
-  // ---- TDR 设计曲线 (speed -> 标称 MT/day) ----
-  var tdrPts = [];
-  if (tdrV && tdrV.speeds && tdrV.speeds.length) {
-    tdrV.speeds.forEach(function(s) {
-      var sp = _num(s.speed), val = _num(s[oil]);
-      if (sp != null && val != null) tdrPts.push({ x: sp, y: val });
-    });
-    tdrPts.sort(function(a, b) { return a.x - b.x; });
+  // ---- 实际每日消耗时间序列: 与 Trend 的 Mode:Consumption 同口径 ----
+  // 即把该船所有 ROB 报告按"锚定小时"对齐后, 相邻日的 ROB 差 = 当日消耗(MT/day)。
+  var anchor = 8;
+  var rows = (DATA.history || []).filter(function(r){ return r.c === code; });
+  rows.sort(function(a, b){ return (a.rt || a.t) < (b.rt || b.t) ? -1 : 1; });
+  var daily = alignDaily(rows, oilKey, anchor);
+  var actual = [];   // [{x:day, y:consum}]
+  for (var i = 1; i < daily.length; i++) {
+    var drop = daily[i - 1].rob - daily[i].rob;
+    if (drop < 0) continue;   // 加油日: 不计消耗
+    actual.push({ x: daily[i].day, y: Math.round(drop * 100) / 100 });
   }
 
-  // ---- 实际散点: 相邻两封 NOON 报告 ROB 差 ÷ 间隔天数 ----
-  // 仅用 NOON 报告(用户指定): NOON 的 "AVG SPEED SINCE LAST NOON REPORT" 描述
-  // 上一段(本正午→上次正午)航程, 故对相邻两封 NOON a→b, 用 b 的 speed 配该航段。
-  // 剔除: 间隔<=0 或 >30天 / 库存上升(加油) / 消耗率异常(>250 MT/天)。
-  var hist = (DATA.history || []).filter(function(r) {
-    return r.c === code && r.f && r.rtype === 'NOON'
-        && _num(r[oilKey]) != null && _num(r.sp) != null;
+  // ---- 每天的实际航速: 取当天 NOON 报告的 speed ----
+  var speedByDay = {};
+  (DATA.history || []).forEach(function(r) {
+    if (r.c === code && r.rtype === 'NOON' && _num(r.sp) != null) {
+      var d = (r.rt || r.t || '').slice(0, 10);
+      if (d && !speedByDay[d]) speedByDay[d] = _num(r.sp);
+    }
   });
-  hist.sort(function(a, b) { return (a.rt || a.t) < (b.rt || b.t) ? -1 : 1; });
-  var actual = [], rows = [];
-  for (var i = 1; i < hist.length; i++) {
-    var a = hist[i - 1], b = hist[i];
-    var da = new Date((a.rt || a.t).replace(' ', 'T'));
-    var db = new Date((b.rt || b.t).replace(' ', 'T'));
-    var dt = (db - da) / 86400000;
-    if (!(dt > 0) || dt > 30) continue;
-    var o0 = _num(a[oilKey]), o1 = _num(b[oilKey]);
-    if (o0 == null || o1 == null) continue;
-    var delta = o0 - o1;                       // 库存下降 = 消耗
-    if (delta <= 0) continue;                  // 库存上升 = 加油, 剔除
-    var rate = delta / dt;
-    if (rate > 250) continue;                  // 异常点(多为漏抓/加油干扰), 剔除
-    var sp = _num(b.sp);                       // NOON(b) 速度对应 [a,b] 航段
-    if (sp == null) continue;
-    actual.push({ x: sp, y: Math.round(rate * 100) / 100 });
-    rows.push({ date: (b.rt || b.t), sp: sp, rate: Math.round(rate * 100) / 100, dt: Math.round(dt * 100) / 100 });
-  }
 
-  // ---- 绘图: 混合 chart (line 画 TDR 曲线, scatter 画实际点) ----
+  // ---- TDR@实际航速: 对每一天用当天实际航速在 TDR 表插值, 形成另一条曲线 ----
+  var tdrSeries = [];
+  actual.forEach(function(p) {
+    var sp = speedByDay[p.x];
+    if (sp == null) return;
+    var tv = tdrAtSpeed(tdrV, sp, oil);
+    if (tv != null) tdrSeries.push({ x: p.x, y: tv });
+  });
+
+  // ---- 绘两条时间序列: 蓝=实际消耗, 红=TDR@实际航速 ----
+  var allDays = {};
+  actual.forEach(function(p){ allDays[p.x] = 1; });
+  tdrSeries.forEach(function(p){ allDays[p.x] = 1; });
+  var labels = Object.keys(allDays).sort();
+  var actualData = labels.map(function(d){ for (var k=0;k<actual.length;k++){ if(actual[k].x===d) return actual[k].y; } return null; });
+  var tdrData = labels.map(function(d){ for (var k=0;k<tdrSeries.length;k++){ if(tdrSeries[k].x===d) return tdrSeries[k].y; } return null; });
+
   var canvas = document.getElementById('tdrChart');
   if (!canvas) return;
   if (tdrChartObj) tdrChartObj.destroy();
   try {
     tdrChartObj = new Chart(canvas.getContext('2d'), {
       type: 'line',
-      data: {
-        datasets: [
-          { type: 'line', label: 'TDR 设计 (speed → MT/day)', data: tdrPts,
-            borderColor: '#1F4E79', backgroundColor: '#1F4E79',
-            pointRadius: 4, pointHoverRadius: 6, borderWidth: 2, tension: 0.1, fill: false },
-          { type: 'scatter', label: 'Actual 实际 (speed → consumption/day)', data: actual,
-            pointStyle: 'circle', pointRadius: 6, pointHoverRadius: 8,
-            backgroundColor: '#d64545', borderColor: '#a32f2f', borderWidth: 1 }
-        ]
-      },
+      data: { labels: labels, datasets: [
+        { label: 'Actual 实际每日消耗 (MT/day)', data: actualData,
+          borderColor: '#1F4E79', backgroundColor: '#1F4E79',
+          spanGaps: true, tension: 0.15, pointRadius: 2, borderWidth: 2 },
+        { label: 'TDR@实际航速 (MT/day)', data: tdrData,
+          borderColor: '#d64545', backgroundColor: '#d64545',
+          spanGaps: true, tension: 0.15, pointRadius: 3, borderWidth: 2 }
+      ] },
       options: {
-        responsive: true, maintainAspectRatio: false, parsing: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: true },
           tooltip: { callbacks: { label: function(c) {
-            return c.dataset.label + ': ' + c.parsed.x + ' kn → ' + c.parsed.y + ' MT/day';
+            return c.dataset.label + ': ' + c.parsed.y + ' MT/day';
           } } }
         },
         scales: {
-          x: { type: 'linear', title: { display: true, text: 'Speed (kn)' }, beginAtZero: false },
-          y: { type: 'linear', title: { display: true, text: 'Consumption (MT/day)' }, beginAtZero: true }
+          x: { title: { display: true, text: 'Date' }, ticks: { maxRotation: 60, minRotation: 30, font: { size: 10 } } },
+          y: { title: { display: true, text: 'Consumption (MT/day)' }, beginAtZero: true }
         }
       }
     });
@@ -904,19 +921,20 @@ function renderTDR() {
     console.error(e);
   }
 
-  // ---- 实际点明细表 ----
+  // ---- 明细表: 每天 实际 / 航速 / TDR ----
   var tbl = document.getElementById('tdrTable');
   if (!tbl) return;
-  if (!rows.length) {
-    tbl.innerHTML = '<p class="ok">无可用实际点。需相邻两封报告均含该油种 ROB 与 speed，'
-      + '且间隔≤30天、非加油日。新 speed 数据随 culadmin 每日刷新累积。</p>';
+  if (!labels.length) {
+    tbl.innerHTML = '<p class="ok">该船暂无足够数据。需每日 NOON 报告带 speed（由 culadmin 定时抓取累积；历史行需回填）。</p>';
   } else {
-    rows.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
-    var h = '<table class="trendtbl"><tr><th>Report Time</th><th>Speed (kn)</th>'
-          + '<th>Cons (MT/day)</th><th>Interval (d)</th></tr>';
-    rows.forEach(function(r) {
-      h += '<tr><td>' + r.date + '</td><td class="n">' + fmt(r.sp) + '</td><td class="n">'
-         + fmt(r.rate) + '</td><td class="n">' + fmt(r.dt) + '</td></tr>';
+    var h = '<table class="trendtbl"><tr><th>Date</th><th>Actual (MT/day)</th>'
+          + '<th>NOON Speed (kn)</th><th>TDR@Speed (MT/day)</th></tr>';
+    labels.forEach(function(d) {
+      var a = null, t = null, sp = speedByDay[d];
+      for (var k=0; k<actual.length; k++){ if (actual[k].x === d){ a = actual[k].y; break; } }
+      for (var m=0; m<tdrSeries.length; m++){ if (tdrSeries[m].x === d){ t = tdrSeries[m].y; break; } }
+      h += '<tr><td>' + d + '</td><td class="n">' + (a != null ? fmt(a) : '') + '</td><td class="n">'
+         + (sp != null ? fmt(sp) : '') + '</td><td class="n">' + (t != null ? fmt(t) : '') + '</td></tr>';
     });
     h += '</table>';
     tbl.innerHTML = h;
