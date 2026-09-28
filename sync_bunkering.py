@@ -73,49 +73,60 @@ def build_bunkering(xlsx_path=None):
             "或用环境变量 BUNKER_XLSX 指定完整路径")
     print("source:", xlsx_path)
     wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
-    ws = wb["燃油添加日志"]
-    rows = list(ws.iter_rows(values_only=True))
-    if len(rows) < 3:
-        print("[WARN] 燃油添加日志.xlsx 行数过少")
-        return {}
-    header = rows[0]                       # 油种名行
-    # 子表头在 rows[1]: 价格/价格单位/数量/数量单位/合计
-    qty_cols = find_qty_cols(header)
-    print("抓取体积列:", {k: (v, v + 2) for k, v in qty_cols.items()})
-
     agg = defaultdict(lambda: defaultdict(float))   # vessel -> date -> MT(合计)
     # vessel -> date -> {"ls","hs","mg","us"} 分油种体积
     tagg = defaultdict(lambda: defaultdict(lambda: {"ls": 0.0, "hs": 0.0, "mg": 0.0, "us": 0.0}))
     detail = []                              # 明细 (船名, 航次, 地点, 日期, 体积)
     n_rows = 0
-    for r in rows[2:]:
-        vessel = (r[1] or "").strip() if len(r) > 1 else ""
-        voyage = (r[2] or "").strip() if len(r) > 2 else ""
-        location = (r[3] or "").strip() if len(r) > 3 else ""
-        date = (r[4] or "").strip() if len(r) > 4 else ""
-        if not vessel or not date:
+    scanned = 0
+    # 兼容两种 Excel 结构:
+    #  - 旧版: 单一 '燃油添加日志' 表
+    #  - 新版(2026-09 起): 按年份分表 2022/2023/2024/2025/2026 + '说明'
+    for ws in wb.worksheets:
+        if ws.title in ("说明",):
             continue
-        if is_offline(vessel):
+        rows = list(ws.iter_rows(values_only=True))
+        if len(rows) < 3:
             continue
-        dd = date[:10]                       # 日期归一化为 YYYY-MM-DD
-        total = 0.0
-        for label, ci in qty_cols.items():
-            qty = r[ci + 2] if len(r) > ci + 2 else None
-            try:
-                if qty not in (None, ""):
-                    qv = float(qty)
-                    total += qv
-                    k = OIL_KEY.get(label)
-                    if k:
-                        tagg[vessel][dd][k] += qv
-            except (TypeError, ValueError):
-                pass
-        if total <= 0:
+        header = rows[0]                       # 油种名行
+        # 子表头在 rows[1]: 价格/价格单位/数量/数量单位/合计
+        qty_cols = find_qty_cols(header)
+        if not qty_cols:
+            print("[skip] sheet %r 无油种列, 跳过" % ws.title)
             continue
-        agg[vessel][dd] += round(total, 3)
-        detail.append({"vessel": vessel, "voyage": voyage, "location": location,
-                       "date": dd, "mt": round(total, 3)})
-        n_rows += 1
+        print("抓取 sheet %r 体积列:" % ws.title, {k: (v, v + 2) for k, v in qty_cols.items()})
+        scanned += 1
+        for r in rows[2:]:
+            vessel = (r[1] or "").strip() if len(r) > 1 else ""
+            voyage = (r[2] or "").strip() if len(r) > 2 else ""
+            location = (r[3] or "").strip() if len(r) > 3 else ""
+            date = (r[4] or "").strip() if len(r) > 4 else ""
+            if not vessel or not date:
+                continue
+            if is_offline(vessel):
+                continue
+            dd = date[:10]                       # 日期归一化为 YYYY-MM-DD
+            total = 0.0
+            for label, ci in qty_cols.items():
+                qty = r[ci + 2] if len(r) > ci + 2 else None
+                try:
+                    if qty not in (None, ""):
+                        qv = float(qty)
+                        total += qv
+                        k = OIL_KEY.get(label)
+                        if k:
+                            tagg[vessel][dd][k] += qv
+                except (TypeError, ValueError):
+                    pass
+            if total <= 0:
+                continue
+            agg[vessel][dd] += round(total, 3)
+            detail.append({"vessel": vessel, "voyage": voyage, "location": location,
+                           "date": dd, "mt": round(total, 3)})
+            n_rows += 1
+    if scanned == 0:
+        print("[WARN] 未扫描到任何含油种列的 sheet (Excel 结构异常?)")
+        return {}
     # 收敛为普通 dict
     out = {}
     for v, dmap in agg.items():
