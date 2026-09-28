@@ -886,11 +886,11 @@ function renderTDR() {
   tdrSeries.forEach(function(p){ allDays[p.x] = 1; });
   var labels = Object.keys(allDays).sort();
   var actualData = labels.map(function(d){
-    for (var k=0;k<actual.length;k++){ if(actual[k].x===d) return { y: actual[k].y, sp: (speedByDay[d] != null ? speedByDay[d] : null) }; }
+    for (var k=0;k<actual.length;k++){ if(actual[k].x===d) return actual[k].y; }
     return null;
   });
   var tdrData = labels.map(function(d){
-    for (var k=0;k<tdrSeries.length;k++){ if(tdrSeries[k].x===d) return { y: tdrSeries[k].y, sp: (speedByDay[d] != null ? speedByDay[d] : null) }; }
+    for (var k=0;k<tdrSeries.length;k++){ if(tdrSeries[k].x===d) return tdrSeries[k].y; }
     return null;
   });
 
@@ -913,7 +913,8 @@ function renderTDR() {
         plugins: {
           legend: { display: true },
           tooltip: { callbacks: { label: function(c) {
-            var sp = (c.raw && c.raw.sp != null) ? c.raw.sp : null;
+            var d = c.chart.data.labels[c.dataIndex];
+            var sp = (d && speedByDay[d] != null) ? speedByDay[d] : null;
             var y = (c.parsed.y != null) ? c.parsed.y : '—';
             var spTxt = (sp != null) ? Number(sp).toFixed(2) + ' kn' : '—';
             if (c.datasetIndex === 1) return 'TDR 设计油耗: ' + y + ' MT/day（对应航速 ' + spTxt + '）';
