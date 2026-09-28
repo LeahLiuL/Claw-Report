@@ -116,7 +116,16 @@ def load_full_schedule(dm_html=DM_HTML):
         return None
 
 
-def load_history(history_csv=HISTORY_CSV):
+def load_history(history_csv=HISTORY_CSV, berth_only=True):
+    """读取 ROB 历史, 返回 vessel -> [(dt, (ls,hs,mg,us)), ...]。
+
+    berth_only (默认 True, 与用户 2026-09-28 需求一致): 航次油耗严格只用
+    BERTH 报告的 ROB(首港 berth ROB - 尾港 berth ROB + 加油量)。非 BERTH 报告
+    (NOON/SAILING/ANCHOR/DRIFT 及未标注类型的旧行) 一律排除, 不混入航次计算。
+    注意: 依赖 rob_history.csv 的 report_type 列已正确标注 BERTH —— 该列由
+    Outlook 历史回填(backfill_history.py)补全; 回填前历史行 report_type 多为空,
+    会导致『无 BERTH 数据』的航次显示无数据(属预期, 回填后即恢复)。
+    """
     hist = defaultdict(list)  # vessel -> [(dt, (ls,hs,mg,us)), ...]
     if not os.path.exists(history_csv):
         return hist
@@ -125,6 +134,9 @@ def load_history(history_csv=HISTORY_CSV):
             for row in csv.DictReader(f):
                 v = (row.get("vessel") or "").strip()
                 if is_offline(v):
+                    continue
+                rt = (row.get("report_type") or "").strip().upper()
+                if berth_only and rt != "BERTH":
                     continue
                 dt = _parse_rt((row.get("report_time") or "")[:16])
                 if dt is None:
@@ -180,7 +192,10 @@ def _window_consumption(pts, start_dt, end_eff, bunker_by_date):
                 last[k] = v
                 break
         if first[k] is not None and last[k] is not None:
-            cons[k] = round(first[k] - last[k] + bunker_oil[k], 2)
+            raw = first[k] - last[k] + bunker_oil[k]
+            # 油耗不可能为负; 若为负, 说明: ①期间有加油但未登记(bunker_oil=0 而 ROB 上升)
+            # ②或 BERTH ROB 读数异常。两种情况结果均不可信 -> 置 None(页面显示无数据而非假负值)
+            cons[k] = round(raw, 2) if raw >= 0 else None
     bunker_total = round(sum(bunker_oil), 2)
     return cons, bunker_total, bunker_oil
 
