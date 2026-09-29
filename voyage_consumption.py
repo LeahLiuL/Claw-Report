@@ -151,7 +151,7 @@ def load_history(history_csv=HISTORY_CSV, berth_only=True):
     return hist
 
 
-def _window_consumption(series, start_dt, end_dt, bunker_by_date):
+def _window_consumption(series, start_dt, end_dt, bunker_by_date, guard_negative=True):
     """
     计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
 
@@ -204,9 +204,13 @@ def _window_consumption(series, start_dt, end_dt, bunker_by_date):
                     break
         if first[k] is not None and last[k] is not None:
             raw = first[k] - last[k] + bunker_oil[k]
-            # 油耗不可能为负; 若为负, 说明: ①期间有加油但未登记(bunker_oil=0 而 ROB 上升)
-            # ②或 BERTH ROB 读数异常。两种情况结果均不可信 -> 置 None(页面显示无数据而非假负值)
-            cons[k] = round(raw, 2) if raw >= 0 else None
+            # 航次总消耗默认护栏: 油耗为负通常意味期间有加油未登记 / ROB 读数异常, 不可信 -> None。
+            # 但 legs 子段累加需保留原始负值(guard_negative=False): 多段净变化可 telescoping 相加,
+            # 负值段即"加油导致 ROB 上升", 累加后仍得正确总消耗。
+            if raw < 0 and guard_negative:
+                cons[k] = None
+            else:
+                cons[k] = round(raw, 2)
     bunker_total = round(sum(bunker_oil), 2)
     return cons, bunker_total, bunker_oil
 
@@ -299,6 +303,28 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
             # 期末优先取 end_dt 之后最近读数(即下一个 berth 点对应的 ROB)。
             cons, bunker_total, bunker_oil = _window_consumption(
                 series, start_dt, end_dt, v_bunker)
+            # ---- legs: 相邻 berth 段油耗(供前端 port->port 任意区间累加) ----
+            # 仅用 BERTH 报告 ROB(series 已 berth_only); 每段 from=上一港 berth 之后最近 ROB,
+            # to=下一港 berth 之后最近 ROB; 与航次总油耗同一公式, 任意 From->To = 中间 leg 之和。
+            legs = []
+            raw_rot = rot_raw.get((v, voy), [])
+            for li in range(len(raw_rot) - 1):
+                a_dt, a_leg = raw_rot[li]
+                b_dt, b_leg = raw_rot[li + 1]
+                if a_dt is None or b_dt is None:
+                    continue
+                l_cons, _l_tot, l_oil = _window_consumption(series, a_dt, b_dt, v_bunker, guard_negative=False)
+                legs.append({
+                    "from_port": a_leg.get("port"),
+                    "from_etb": a_leg.get("etb"),
+                    "to_port": b_leg.get("port"),
+                    "to_etb": b_leg.get("etb"),
+                    "days": round((b_dt - a_dt).total_seconds() / 86400.0, 1),
+                    "ls": l_cons[0], "hs": l_cons[1], "mg": l_cons[2], "us": l_cons[3],
+                    "bunker_ls": round(l_oil[0], 2), "bunker_hs": round(l_oil[1], 2),
+                    "bunker_mg": round(l_oil[2], 2), "bunker_us": round(l_oil[3], 2),
+                    "bunker": round(sum(l_oil), 2),
+                })
             # 用小数天, 避免进行中航次(start 距今不足 1 天)显示 0 天
             days = round((end_eff - start_dt).total_seconds() / 86400.0, 1)
             # 加油量(分油种) 来自《燃油添加日志》 -> bunkering_types.json
@@ -320,6 +346,7 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 "bunker_mg": b_mg, "bunker_us": b_us,
                 "rotation": rot.get((v, voy), []),
                 "hasData": any(c is not None for c in cons),
+                "legs": legs,
             })
     # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后
     voyages.sort(key=lambda x: x["start"], reverse=True)

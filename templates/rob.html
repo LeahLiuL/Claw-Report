@@ -796,6 +796,50 @@ function renderDraft() {
 /* ================= Voyage (航次油耗) view ================= */
 /* ---- rotation 展开状态(按 vessel|voy|start 唯一键) ---- */
 var voyOpen = {};
+var voyByKey = {};
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function legCalcHTML(r, k){
+  return '<div class="legcalc" data-vk="'+escAttr(k)+'" style="margin-top:10px;padding:10px;border:1px solid #2a3b50;border-radius:6px;background:#15202e">'
+    + '<div style="font-weight:600;margin-bottom:6px;color:#cfe0f0">Port → Port 区间油耗 <span style="font-weight:400;color:#8aa;font-size:12px">（仅用 BERTH 报告 ROB，与航次同口径；自动计入期间加油量）</span></div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'
+    + '<span style="font-size:12px;color:#9fb3c8">From</span><select class="legFrom" style="background:#0e1826;color:#e6eef6;border:1px solid #33506e;border-radius:4px;padding:3px 6px"></select>'
+    + '<span style="font-size:12px;color:#9fb3c8">To</span><select class="legTo" style="background:#0e1826;color:#e6eef6;border:1px solid #33506e;border-radius:4px;padding:3px 6px"></select>'
+    + '<button class="legCalcBtn" style="background:#1F4E79;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer">Compute</button>'
+    + '</div>'
+    + '<div class="legcalc-out" style="font-size:13px;color:#e6eef6"></div>'
+    + '</div>';
+}
+function calcLeg(k){
+  var r = voyByKey[k]; if(!r) return;
+  var box = document.querySelector('.legcalc[data-vk="'+ (window.CSS&&CSS.escape?CSS.escape(k):k) +'"]');
+  if(!box) return;
+  var fp = box.querySelector('.legFrom').value;
+  var tp = box.querySelector('.legTo').value;
+  var ports = (r.rotation||[]).map(function(l){return l.port;});
+  var i = ports.indexOf(fp), j = ports.lastIndexOf(tp);
+  var out = box.querySelector('.legcalc-out');
+  if(i<0||j<0||i>=j){ out.innerHTML='<span style="color:#e0a458">请选择 From &lt; To 的两个不同港口</span>'; return; }
+  var anyNull=false, tot=[0,0,0,0], bk=[0,0,0,0], days=0;
+  for(var x=i;x<j;x++){
+    var lg=r.legs&&r.legs[x];
+    if(!lg){anyNull=true; continue;}
+    var c=[lg.ls,lg.hs,lg.mg,lg.us], b=[lg.bunker_ls,lg.bunker_hs,lg.bunker_mg,lg.bunker_us];
+    for(var q=0;q<4;q++){ if(c[q]==null){anyNull=true;} else {tot[q]+=c[q];} bk[q]+=(b[q]||0); }
+    days+=(lg.days||0);
+  }
+  var names=['LSFO','HSFO','MGO','ULSFO'];
+  var h='<table class="trendtbl" style="font-size:13px;margin-top:4px"><tr><th>Oil</th><th>Net 净变化</th><th>Bunker 加油</th><th>Consumed 消耗</th></tr>';
+  for(var q=0;q<4;q++){
+    var consumed=Math.round((tot[q]+bk[q])*100)/100;
+    h+='<tr><td>'+names[q]+'</td><td class="n">'+fmt(tot[q])+'</td><td class="n bunker">'+fmt(bk[q])+'</td><td class="n">'+fmt(consumed)+'</td></tr>';
+  }
+  h+='</table>';
+  h+='<div style="margin-top:4px;color:#9fb3c8">区间天数 '+fmt(days)+' 天'
+    + (days>0?' · LSFO 日均 '+fmt(Math.round((tot[0]+bk[0])/days*100)/100)+' MT/day':'')
+    + (anyNull?' &nbsp;<span style="color:#e0a458">⚠ 部分港口缺 BERTH ROB，结果可能不完整</span>':'')
+    + '</div>';
+  out.innerHTML=h;
+}
 function voyKey(r) { return (r.vessel || '') + '|' + (r.voy || '') + '|' + (r.start || ''); }
 function toggleVoyRotation(k) { voyOpen[k] = !voyOpen[k]; renderVoyage(); }
 
@@ -954,7 +998,19 @@ function renderTDR() {
 
 function renderVoyage() {
   if (!DATA) return;
+  // Port->Port 计算器所需的 voyage 索引 + 一次性点击委托
+  voyByKey = {};
   var q = (document.getElementById('voySearch').value || '').toLowerCase();
+  var vt = document.getElementById('voyTable');
+  if (vt && !vt.dataset.legBound) {
+    vt.dataset.legBound = '1';
+    vt.addEventListener('click', function(e) {
+      if (e.target.classList.contains('legCalcBtn')) {
+        var box = e.target.closest('.legcalc');
+        if (box) calcLeg(box.getAttribute('data-vk'));
+      }
+    });
+  }
   var lane = document.getElementById('voyLane').value;
   var only = document.getElementById('voyOnlyData').checked;
   var rows = DATA.voyages || [];
@@ -986,6 +1042,7 @@ function renderVoyage() {
     if (ua !== ub) return ua < ub ? -1 : 1;
     return a.start < b.start ? 1 : (a.start > b.start ? -1 : 0);
   });
+  rows.forEach(function(r) { voyByKey[voyKey(r)] = r; });
   var h = '<table class="trendtbl"><tr>'
     + '<th title="Click to expand rotation"></th>'
     + '<th>Vessel</th><th>Code</th><th>Lane</th><th>Voy</th><th>First Port</th>'
@@ -1037,11 +1094,27 @@ function renderVoyage() {
           + '<td>' + (l.eta || '—') + '</td><td>' + (l.etb || '—') + '</td><td>' + (l.etd || '—') + '</td>'
           + '<td>' + (l.stay || '—') + '</td><td>' + (l.remark || '') + '</td></tr>';
       });
-      h += '</table></div></td></tr>';
+      h += '</table>'
+        + legCalcHTML(r, k)
+        + '</div></td></tr>';
     }
   });
   h += '</table>';
   document.getElementById('voyTable').innerHTML = h || '<p>No voyage data.</p>';
+  // 初始化所有展开的 Port->Port 计算器下拉
+  document.querySelectorAll('#voyTable .legcalc').forEach(function(box) {
+    var r = voyByKey[box.getAttribute('data-vk')];
+    if (!r) return;
+    var ports = (r.rotation || []).map(function(l) { return l.port; });
+    var seen = {}, uniq = [];
+    ports.forEach(function(p) { if (!seen[p]) { seen[p] = 1; uniq.push(p); } });
+    var fs = box.querySelector('.legFrom'), ts = box.querySelector('.legTo');
+    uniq.forEach(function(p) {
+      var o1 = document.createElement('option'); o1.value = p; o1.textContent = p; fs.appendChild(o1);
+      var o2 = document.createElement('option'); o2.value = p; o2.textContent = p; ts.appendChild(o2);
+    });
+    if (uniq.length) ts.selectedIndex = uniq.length - 1;
+  });
 }
 
 /* ====== 自选时间段油耗 (Custom Period Consumption) ====== */
