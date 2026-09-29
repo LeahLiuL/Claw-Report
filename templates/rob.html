@@ -1060,6 +1060,11 @@ function renderVoyage() {
     + '<th title="Bunkered ULSFO in window (MT)">B.ULSFO</th>'
     + '<th title="Bunkered total (all oil types)">B.Total</th>'
     + '<th>Status</th></tr>';
+  function basisBadge(b){
+    if(!b) return '';
+    var m={'BERTH':['B','#1F4E79'],'NOON':['N','#d6842b'],'MIXED':['M','#b58b00']}[b]||['?','#888'];
+    return ' <span style="font-size:10px;padding:0 4px;border-radius:6px;color:#fff;background:'+m[1]+'" title="数据来源: '+b+' (B=BERTH报告, N=NOON报告兜底, M=混合)">'+m[0]+'</span>';
+  }
   rows.forEach(function(r) {
     var k = voyKey(r);
     var open = !!voyOpen[k];
@@ -1082,7 +1087,7 @@ function renderVoyage() {
       + '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
       + '<td class="n bunker">' + fmt(r.bunker_mg) + '</td><td class="n bunker">' + fmt(r.bunker_us) + '</td>'
       + '<td class="n bunker">' + (bt ? fmt(Math.round(bt * 100) / 100) : '') + '</td>'
-      + '<td>' + (r.status || '') + '</td></tr>';
+      + '<td>' + (r.status || '') + basisBadge(r.basis) + '</td></tr>';
     if (open && rot.length) {
       h += '<tr class="rotdetail"><td class="n"></td><td colspan="19">'
         + '<div class="rotbox"><div class="rottitle">Rotation — <b>' + r.vessel + '</b> '

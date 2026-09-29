@@ -89,11 +89,13 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
             if not any(k in rob for k in R.OIL_KEYS):
                 continue
             su = subj.upper()
-            rtype = ""
-            for k in R.REPORT_KEYS:
-                if k in su:
-                    rtype = k
-                    break
+            # 报告类型优先用附件正文判定(REPORT_KIND), 主题关键词仅作兜底
+            rtype = (rob.get("REPORT_KIND") or "").strip().upper()
+            if not rtype:
+                for k in R.REPORT_KEYS:
+                    if k in su:
+                        rtype = k
+                        break
             out.append({
                 "report_time": rt.strftime("%Y-%m-%d %H:%M:%S"),
                 "report_type": rtype,
@@ -139,11 +141,13 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
             if not any(k in rob for k in R.OIL_KEYS):
                 continue
             su = (it.Subject or "").upper()
-            rtype = ""
-            for k in R.REPORT_KEYS:
-                if k in su:
-                    rtype = k
-                    break
+            # 报告类型优先用附件正文判定(REPORT_KIND), 主题关键词仅作兜底
+            rtype = (rob.get("REPORT_KIND") or "").strip().upper()
+            if not rtype:
+                for k in R.REPORT_KEYS:
+                    if k in su:
+                        rtype = k
+                        break
             out.append({
                 "report_time": rt.strftime("%Y-%m-%d %H:%M:%S"),
                 "report_type": rtype,

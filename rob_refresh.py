@@ -296,6 +296,30 @@ def pick_report_attachment(it, strict=False):
     return None
 
 
+def detect_report_kind(text):
+    """基于附件正文全文(已 upper)判定报告类型。优先级: BERTH > SAILING > ANCHOR > DRIFT > NOON。
+    解决『附件名写 NOON 实际内容是 BERTH』等主题不可信问题 —— 以正文特征为准。"""
+    t = " " + (text or "").upper() + " "
+    # BERTH 特征: 在港/靠泊报告各阶段标记(POB/FWE/ANCHOR AWEIGH 是 CUL BERTH 报告 ROB 行前缀)
+    berth_markers = ["POB", "FWE", "ANCHOR AWEIGH", "AT BERTH", "BERTHED",
+                     "ALONGSIDE", "N.O.R", "NOR ", "LAYTIME", "AT QUAY", "MOORED", "ALL FAST"]
+    if any(m in t for m in berth_markers):
+        return "BERTH"
+    # SAILING: 开航/在航
+    if any(m in t for m in ["SAILING", "UNDERWAY", "DEPARTURE", "DEPARTED", "LEFT BERTH", "CAST OFF", "PROCEED"]):
+        return "SAILING"
+    # ANCHOR: 在锚地(未起锚)。注意: ANCHOR AWEIGH 已在上面命中 BERTH, 不会落到这里
+    if "AT ANCHOR" in t or "ANCHORED" in t or "ANCHORAGE" in t:
+        return "ANCHOR"
+    # DRIFT
+    if "DRIFTING" in t or "DRIFT " in t:
+        return "DRIFT"
+    # NOON 放最后: BERTH 报告模板里偶尔提及 NOON, 不应据此误判
+    if "NOON" in t:
+        return "NOON"
+    return ""
+
+
 def extract_rob(att):
     import openpyxl
     fd, p = tempfile.mkstemp(suffix=".xlsx")
@@ -383,12 +407,14 @@ def extract_rob(att):
         return None
 
     rob = {}
+    full_text = []  # 收集附件正文全文, 用于基于内容判定报告类型
     speed_cands = []  # (priority, value): 航速候选, 取优先级最高者
     for ws in wb.worksheets:
         for row in ws.iter_rows(values_only=True):
             for i, c in enumerate(row):
                 if c and isinstance(c, str):
                     cu = c.upper().strip()
+                    full_text.append(cu)
                     got = _take(cu, i, row)
                     if got:
                         k, v = got
@@ -422,6 +448,8 @@ def extract_rob(att):
     # 低硫船只报 ULSFO 时归一到 LSFO, 统一主表/趋势口径
     if "ULSFO" in rob and "LSFO" not in rob:
         rob["LSFO"] = rob["ULSFO"]
+    # 基于附件正文判定报告类型(优先于邮件主题, 解决附件名与实际内容不符)
+    rob["REPORT_KIND"] = detect_report_kind(" ".join(full_text))
     try:
         os.remove(p)
     except Exception:
@@ -468,11 +496,13 @@ def scan_for_rob(items, max_attach=40, max_walk=1200, subject_token=None):
 def apply_hit(rec, hit):
     rob, recv, subj, se = hit
     subjU = (subj or "").upper()
-    report_type = ""
-    for k in REPORT_KEYS:
-        if k in subjU:
-            report_type = k
-            break
+    # 报告类型优先用附件正文判定(REPORT_KIND), 主题关键词仅作兜底
+    report_type = (rob.get("REPORT_KIND") or "").strip().upper()
+    if not report_type:
+        for k in REPORT_KEYS:
+            if k in subjU:
+                report_type = k
+                break
     rec.update({
         "rob_lsfo": rob.get("LSFO"), "rob_hsfo": rob.get("HSFO"), "rob_mgo": rob.get("MGO"),
         "rob_ulsfo": rob.get("ULSFO"), "rob_bw": rob.get("BW"), "rob_fw": rob.get("FW"),

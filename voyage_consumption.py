@@ -116,17 +116,15 @@ def load_full_schedule(dm_html=DM_HTML):
         return None
 
 
-def load_history(history_csv=HISTORY_CSV, berth_only=True):
-    """读取 ROB 历史, 返回 vessel -> [(dt, (ls,hs,mg,us)), ...]。
+def load_history(history_csv=HISTORY_CSV, berth_only=False):
+    """读取 ROB 历史, 返回 vessel -> [(dt, (ls,hs,mg,us), rtype), ...]。
 
-    berth_only (默认 True, 与用户 2026-09-28 需求一致): 航次油耗严格只用
-    BERTH 报告的 ROB(首港 berth ROB - 尾港 berth ROB + 加油量)。非 BERTH 报告
-    (NOON/SAILING/ANCHOR/DRIFT 及未标注类型的旧行) 一律排除, 不混入航次计算。
-    注意: 依赖 rob_history.csv 的 report_type 列已正确标注 BERTH —— 该列由
-    Outlook 历史回填(backfill_history.py)补全; 回填前历史行 report_type 多为空,
-    会导致『无 BERTH 数据』的航次显示无数据(属预期, 回填后即恢复)。
-    """
-    hist = defaultdict(list)  # vessel -> [(dt, (ls,hs,mg,us)), ...]
+    berth_only=True: 仅返回 report_type=='BERTH' 的行(兼容旧调用)。
+    默认 False: 返回全部类型, 由调用方按类型拆分 —— 航次油耗用 BERTH 优先,
+    找不到 BERTH 时按需求用当天 NOON 兜底(见 _window_consumption)。
+    依赖 rob_history.csv 的 report_type 列已正确标注; 该列由 Outlook 历史回填
+    (backfill_history.py)基于附件正文内容补全。"""
+    hist = defaultdict(list)  # vessel -> [(dt, oils, rtype), ...]
     if not os.path.exists(history_csv):
         return hist
     try:
@@ -145,65 +143,70 @@ def load_history(history_csv=HISTORY_CSV, berth_only=True):
                         _num(row.get("mgo")), _num(row.get("ulsfo")))
                 if all(o is None for o in oils):
                     continue
-                hist[v].append((dt, oils))
+                hist[v].append((dt, oils, rt))
     except Exception as e:
         print("[WARN] voyage: read history failed:", e)
     return hist
 
 
-def _window_consumption(series, start_dt, end_dt, bunker_by_date, guard_negative=True):
-    """
-    计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
+def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_date, guard_negative=True):
+    """计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
 
     公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
-      - 期初 ROB = 本航次首港 berth(start_dt) 之后/时最近的 ROB 读数
-                  (若无则退而取 start 之前最近一点作近似)
-      - 期末 ROB = 下一航次首港 berth(end_dt) 之后/时最近的 ROB 读数
-                  (即紧邻新航次开始前的读数; 若无 >= end_dt 的点, 退化取 end_dt 之前最近)
-      - 加油量   = 窗口 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计
-    依赖 series: 该船全部 (dt, oils) 序列(按时间升序), 由调用方传入, 函数内部不再截断。
-    返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us]); 缺失项为 None。
-    """
+      - 期初 ROB: 优先 BERTH 中 >= start_dt 最近读数; 无则 NOON 中 >= start_dt 最近;
+                  再无则退化取 start 之前最近(BERTH 优先, 再 NOON)。
+      - 期末 ROB: 优先 BERTH 中 >= end_dt 最近读数(下一航次首港 berth 对应);
+                  无则 NOON 中 >= end_dt 最近; 再无则退化取 <= end_dt(或 now) 最近。
+      - 加油量  : 窗口 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计。
+    优先用 BERTH(用户需求2: 只用本航次首港 berth -> 下一航次首港 berth 的读数, 不乱用其他日期);
+    找不到 BERTH 时按需求3 用当天 NOON 兜底。
+    返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us], basis),
+    basis∈{'BERTH','NOON','MIXED',''} 标明本段消耗基于哪种报告。"""
     cons = [None, None, None, None]
     first = [None, None, None, None]
     last = [None, None, None, None]
+    f_basis = [None, None, None, None]
+    l_basis = [None, None, None, None]
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
+    now = datetime.datetime.now()
     if bunker_by_date:
         for dstr, tmap in bunker_by_date.items():
             try:
                 bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
             except Exception:
                 continue
-            if start_dt <= bd <= (end_dt or datetime.datetime.now()):
+            if start_dt <= bd <= (end_dt or now):
                 for k, t in enumerate(oils):
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
+    # 期末允许紧邻下一航次首港 berth 的最大滞后(超过则视为更晚航次的读数, 不应用于本航次)
+    END_GAP = datetime.timedelta(days=10)
     for k in range(4):
-        # 期初: 优先 [start, end] 窗口内最早非空 ROB;
-        # 窗口内无点则退化取 start 之前最近(近似), 再没有则期初缺失(None)。
-        # 这样可以避免"窗口内无点, 却把 start 之后第一个点同时当期限初/期末"导致消耗为 0 的误导。
-        bound_end = end_dt or datetime.datetime.now()
-        inner = [p for p in series if start_dt <= p[0] <= bound_end]
-        for p in inner:
-            if p[1][k] is not None:
-                first[k] = p[1][k]
+        # 期初: 窗口 [start, 本航次end] 内 BERTH 优先 / NOON 兜底(需求2: 只用本航次首港之后读数,
+        #       不乱用更早或更晚日期); 窗口内无点则期初缺失 -> 本航次无 BERTH/NOON 数据。
+        start_upper = end_dt or now
+        for src, tag in ((berth_series, "B"), (noon_series, "N")):
+            for p in src:
+                if start_dt <= p[0] <= start_upper and p[1][k] is not None:
+                    first[k] = p[1][k]; f_basis[k] = tag; break
+            if first[k] is not None:
                 break
-        if first[k] is None and series:
-            for p in reversed(series):
-                if p[0] < start_dt and p[1][k] is not None:
-                    first[k] = p[1][k]
-                    break
-        # 期末: 优先 >= end_dt 的最近 ROB(下一航次首港 berth 对应的读数);
-        # 无则退化取 <= end_dt(或 now, 用于无下一航次/进行中) 最近。
+        # 期末: 下一航次首港 berth(end) 之后、且紧邻(<= end+END_GAP)的 BERTH/NOON(需求3 兜底);
+        #       越界(实为更晚航次的读数)则缺失, 避免把后续航次 berth 误当本航次期末。
         if end_dt is not None:
-            for p in series:
-                if p[0] >= end_dt and p[1][k] is not None:
-                    last[k] = p[1][k]
+            el = end_dt + END_GAP
+            for src, tag in ((berth_series, "B"), (noon_series, "N")):
+                for p in src:
+                    if end_dt <= p[0] <= el and p[1][k] is not None:
+                        last[k] = p[1][k]; l_basis[k] = tag; break
+                if last[k] is not None:
                     break
-        if last[k] is None and series:
-            for p in reversed(series):
-                if p[0] <= bound_end and p[1][k] is not None:
-                    last[k] = p[1][k]
+        else:
+            for src, tag in ((berth_series, "B"), (noon_series, "N")):
+                for p in reversed(src):
+                    if p[0] <= now and p[1][k] is not None:
+                        last[k] = p[1][k]; l_basis[k] = tag; break
+                if last[k] is not None:
                     break
         if first[k] is not None and last[k] is not None:
             raw = first[k] - last[k] + bunker_oil[k]
@@ -215,14 +218,18 @@ def _window_consumption(series, start_dt, end_dt, bunker_by_date, guard_negative
             else:
                 cons[k] = round(raw, 2)
     bunker_total = round(sum(bunker_oil), 2)
-    return cons, bunker_total, bunker_oil
+    used = [b for b in f_basis + l_basis if b]
+    basis = ""
+    if used:
+        basis = "BERTH" if all(b == "B" for b in used) else ("NOON" if all(b == "N" for b in used) else "MIXED")
+    return cons, bunker_total, bunker_oil, basis
 
 
 def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None):
     fs = load_full_schedule(dm_html)
     if not fs:
         return []
-    hist = load_history(history_csv)
+    hist = load_history(history_csv, berth_only=False)
 
     # 每个 (vessel, 航次号[去方向]) 取最早 etb 作为首港; 同时记录涉及的方向
     first = {}
@@ -283,7 +290,11 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
     voyages = []
     for v, items in bv.items():
         items.sort()
-        series = sorted(hist.get(v, []))
+        allpts = sorted(hist.get(v, []))   # (dt, oils, rtype)
+        berth_series = [(dt, o) for dt, o, rt in allpts if rt == "BERTH"]
+        # NOON 优先; report_type 为空的历史孤儿行(无法从附件重新判定)按需求3 兜底当 NOON 用,
+        # 避免"窗口内无 BERTH 也无 NOON 标签"的航次因类型缺失而整体无数据。
+        noon_series = [(dt, o) for dt, o, rt in allpts if rt in ("NOON", "", None)]
         for i in range(len(items)):
             start_dt, voy, port, route, code, vdirs = items[i]
             if i + 1 < len(items):
@@ -301,14 +312,15 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 status = "completed"
             end_eff = end_dt if (end_dt and end_dt <= now) else now
             v_bunker = (bunker_types or {}).get(v)
-            # series 为该船全部 ROB 点(已在循环外排序); _window_consumption 内部按
-            # 本航次首港berth(start_dt) / 下一航次首港berth(end_dt) 取期初/期末 ROB,
-            # 期末优先取 end_dt 之后最近读数(即下一个 berth 点对应的 ROB)。
-            cons, bunker_total, bunker_oil = _window_consumption(
-                series, start_dt, end_dt, v_bunker)
+            # berth_series / noon_series 为该船 BERTH / NOON 的 ROB 点; _window_consumption
+            # 内部按本航次首港berth(start_dt) / 下一航次首港berth(end_dt) 取期初/期末 ROB,
+            # 期末优先取 end_dt 之后最近读数(下一航次首港 berth 对应); 找不到 BERTH 时用 NOON 兜底。
+            cons, bunker_total, bunker_oil, basis = _window_consumption(
+                berth_series, noon_series, start_dt, end_dt, v_bunker)
             # ---- legs: 相邻 berth 段油耗(供前端 port->port 任意区间累加) ----
-            # 仅用 BERTH 报告 ROB(series 已 berth_only); 每段 from=上一港 berth 之后最近 ROB,
-            # to=下一港 berth 之后最近 ROB; 与航次总油耗同一公式, 任意 From->To = 中间 leg 之和。
+            # 优先用 BERTH 报告 ROB(berth_series), 找不到时同款 NOON 兜底; 每段 from=上一港
+            # berth 之后最近 ROB, to=下一港 berth 之后最近 ROB; 与航次总油耗同一公式,
+            # 任意 From->To = 中间 leg 之和(保留负段以便 telescoping 相加)。
             legs = []
             raw_rot = rot_raw.get((v, voy), [])
             for li in range(len(raw_rot) - 1):
@@ -316,7 +328,8 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 b_dt, b_leg = raw_rot[li + 1]
                 if a_dt is None or b_dt is None:
                     continue
-                l_cons, _l_tot, l_oil = _window_consumption(series, a_dt, b_dt, v_bunker, guard_negative=False)
+                l_cons, _l_tot, l_oil, _lb = _window_consumption(
+                    berth_series, noon_series, a_dt, b_dt, v_bunker, guard_negative=False)
                 legs.append({
                     "from_port": a_leg.get("port"),
                     "from_etb": a_leg.get("etb"),
@@ -349,6 +362,7 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 "bunker_mg": b_mg, "bunker_us": b_us,
                 "rotation": rot.get((v, voy), []),
                 "hasData": any(c is not None for c in cons),
+                "basis": basis,
                 "legs": legs,
             })
     # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后
