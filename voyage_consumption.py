@@ -151,22 +151,22 @@ def load_history(history_csv=HISTORY_CSV, berth_only=True):
     return hist
 
 
-def _window_consumption(pts, start_dt, end_eff, bunker_by_date):
+def _window_consumption(series, start_dt, end_dt, bunker_by_date):
     """
-    计算窗口 [start_dt, end_eff] 内各油种真实消耗。
+    计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
+
     公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
-      - 期初 ROB = 窗口内第一个非空值; 若窗口内无点, 退而用 start 之前最近一点。
-      - 期末 ROB = 窗口内最后一个非空值; 若窗口内无点, 退而用 end 之后最近一点。
-      - 加油量   = 期间《燃油添加日志》中该油种体积合计(独立于 ROB 是否存在)。
+      - 期初 ROB = 本航次首港 berth(start_dt) 之后/时最近的 ROB 读数
+                  (若无则退而取 start 之前最近一点作近似)
+      - 期末 ROB = 下一航次首港 berth(end_dt) 之后/时最近的 ROB 读数
+                  (即紧邻新航次开始前的读数; 若无 >= end_dt 的点, 退化取 end_dt 之前最近)
+      - 加油量   = 窗口 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计
+    依赖 series: 该船全部 (dt, oils) 序列(按时间升序), 由调用方传入, 函数内部不再截断。
     返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us]); 缺失项为 None。
     """
     cons = [None, None, None, None]
     first = [None, None, None, None]
     last = [None, None, None, None]
-    inner = [p for p in pts if start_dt <= p[0] <= end_eff]
-    before = [p for p in pts if p[0] < start_dt]
-    after = [p for p in pts if p[0] > end_eff]
-    # 期间各油种加油量(分油种), 始终计算(不依赖 ROB 是否存在)
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     if bunker_by_date:
@@ -175,22 +175,33 @@ def _window_consumption(pts, start_dt, end_eff, bunker_by_date):
                 bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
             except Exception:
                 continue
-            if start_dt <= bd <= end_eff:
+            if start_dt <= bd <= (end_dt or datetime.datetime.now()):
                 for k, t in enumerate(oils):
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
     for k in range(4):
-        # first: 窗口内最早非空 -> 否则 start 前最近
-        for p in inner + (before[-1:] if before else []):
-            v = p[1][k]
-            if v is not None:
-                first[k] = v
+        # 期初: 本航次首港 berth 之后/时最近的 ROB
+        for p in series:
+            if p[0] >= start_dt and p[1][k] is not None:
+                first[k] = p[1][k]
                 break
-        # last: 窗口内最晚非空 -> 否则 end 后最近
-        for p in reversed(inner + (after[:1] if after else [])):
-            v = p[1][k]
-            if v is not None:
-                last[k] = v
-                break
+        if first[k] is None and series:
+            for p in reversed(series):
+                if p[0] < start_dt and p[1][k] is not None:
+                    first[k] = p[1][k]
+                    break
+        # 期末: 下一航次首港 berth(end_dt) 之后/时最近的 ROB
+        if end_dt is not None:
+            for p in series:
+                if p[0] >= end_dt and p[1][k] is not None:
+                    last[k] = p[1][k]
+                    break
+        if last[k] is None:
+            # 退化: 取 <= end_dt(或 now, 用于无下一航次/进行中) 最近
+            bound = end_dt or datetime.datetime.now()
+            for p in reversed(series):
+                if p[0] <= bound and p[1][k] is not None:
+                    last[k] = p[1][k]
+                    break
         if first[k] is not None and last[k] is not None:
             raw = first[k] - last[k] + bunker_oil[k]
             # 油耗不可能为负; 若为负, 说明: ①期间有加油但未登记(bunker_oil=0 而 ROB 上升)
@@ -282,17 +293,12 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
             else:
                 status = "completed"
             end_eff = end_dt if (end_dt and end_dt <= now) else now
-            pts = [p for p in series
-                   if p[0] >= start_dt and p[0] <= end_eff]
-            # 若窗口内无点, 退而求其次: 取窗口前后最近的两个点估算
-            if len(pts) < 2 and series:
-                before = [p for p in series if p[0] < start_dt]
-                after = [p for p in series if p[0] > end_eff]
-                if before and after:
-                    pts = [before[-1], after[0]]
             v_bunker = (bunker_types or {}).get(v)
+            # series 为该船全部 ROB 点(已在循环外排序); _window_consumption 内部按
+            # 本航次首港berth(start_dt) / 下一航次首港berth(end_dt) 取期初/期末 ROB,
+            # 期末优先取 end_dt 之后最近读数(即下一个 berth 点对应的 ROB)。
             cons, bunker_total, bunker_oil = _window_consumption(
-                pts, start_dt, end_eff, v_bunker)
+                series, start_dt, end_dt, v_bunker)
             # 用小数天, 避免进行中航次(start 距今不足 1 天)显示 0 天
             days = round((end_eff - start_dt).total_seconds() / 86400.0, 1)
             # 加油量(分油种) 来自《燃油添加日志》 -> bunkering_types.json
@@ -313,7 +319,7 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 "bunker_ls": b_ls, "bunker_hs": b_hs,
                 "bunker_mg": b_mg, "bunker_us": b_us,
                 "rotation": rot.get((v, voy), []),
-                "hasData": len(pts) >= 2,
+                "hasData": any(c is not None for c in cons),
             })
     # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后
     voyages.sort(key=lambda x: x["start"], reverse=True)
