@@ -947,7 +947,7 @@ function renderTDR() {
       data: { labels: labels, datasets: [
         { label: 'Actual 实际每日消耗 (MT/day)', data: actualData,
           borderColor: '#1F4E79', backgroundColor: '#1F4E79',
-          spanGaps: true, tension: 0.15, pointRadius: 2, pointHoverRadius: 6, pointHitRadius: 10,
+          spanGaps: true, tension: 0.15, pointRadius: 3, pointHoverRadius: 10, pointHitRadius: 30,
           borderWidth: 2 },
         { label: 'TDR@实际航速 (MT/day)', data: tdrData,
           borderColor: '#d64545', backgroundColor: '#d64545',
@@ -955,6 +955,7 @@ function renderTDR() {
           borderWidth: 2 }
       ] },
       options: {
+        interaction: { mode: 'index', intersect: false, axis: 'x' },
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: true },
