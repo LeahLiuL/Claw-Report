@@ -179,9 +179,13 @@ def _window_consumption(series, start_dt, end_dt, bunker_by_date, guard_negative
                 for k, t in enumerate(oils):
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
     for k in range(4):
-        # 期初: 本航次首港 berth 之后/时最近的 ROB
-        for p in series:
-            if p[0] >= start_dt and p[1][k] is not None:
+        # 期初: 优先 [start, end] 窗口内最早非空 ROB;
+        # 窗口内无点则退化取 start 之前最近(近似), 再没有则期初缺失(None)。
+        # 这样可以避免"窗口内无点, 却把 start 之后第一个点同时当期限初/期末"导致消耗为 0 的误导。
+        bound_end = end_dt or datetime.datetime.now()
+        inner = [p for p in series if start_dt <= p[0] <= bound_end]
+        for p in inner:
+            if p[1][k] is not None:
                 first[k] = p[1][k]
                 break
         if first[k] is None and series:
@@ -189,17 +193,16 @@ def _window_consumption(series, start_dt, end_dt, bunker_by_date, guard_negative
                 if p[0] < start_dt and p[1][k] is not None:
                     first[k] = p[1][k]
                     break
-        # 期末: 下一航次首港 berth(end_dt) 之后/时最近的 ROB
+        # 期末: 优先 >= end_dt 的最近 ROB(下一航次首港 berth 对应的读数);
+        # 无则退化取 <= end_dt(或 now, 用于无下一航次/进行中) 最近。
         if end_dt is not None:
             for p in series:
                 if p[0] >= end_dt and p[1][k] is not None:
                     last[k] = p[1][k]
                     break
-        if last[k] is None:
-            # 退化: 取 <= end_dt(或 now, 用于无下一航次/进行中) 最近
-            bound = end_dt or datetime.datetime.now()
+        if last[k] is None and series:
             for p in reversed(series):
-                if p[0] <= bound and p[1][k] is not None:
+                if p[0] <= bound_end and p[1][k] is not None:
                     last[k] = p[1][k]
                     break
         if first[k] is not None and last[k] is not None:

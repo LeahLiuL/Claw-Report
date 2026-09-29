@@ -947,16 +947,18 @@ function renderTDR() {
       data: { labels: labels, datasets: [
         { label: 'Actual 实际每日消耗 (MT/day)', data: actualData,
           borderColor: '#1F4E79', backgroundColor: '#1F4E79',
-          spanGaps: true, tension: 0.15, pointRadius: 2, borderWidth: 2 },
+          spanGaps: true, tension: 0.15, pointRadius: 2, pointHoverRadius: 6, pointHitRadius: 10,
+          borderWidth: 2 },
         { label: 'TDR@实际航速 (MT/day)', data: tdrData,
           borderColor: '#d64545', backgroundColor: '#d64545',
-          spanGaps: true, tension: 0.15, pointRadius: 3, borderWidth: 2 }
+          spanGaps: true, tension: 0.15, pointRadius: 3, pointHoverRadius: 7, pointHitRadius: 10,
+          borderWidth: 2 }
       ] },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: true },
-          tooltip: { callbacks: { label: function(c) {
+          tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) {
             var d = c.chart.data.labels[c.dataIndex];
             var sp = (d && speedByDay[d] != null) ? speedByDay[d] : null;
             var y = (c.parsed.y != null) ? c.parsed.y : '—';
