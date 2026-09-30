@@ -29,7 +29,7 @@ build_fleet_movement.py  —— 重建版 CUL DAILY MOVEMENT 大Excel
   python build_fleet_movement.py --src "P:\\...\\2026" --output "CUL DAILY MOVEMENT.rebuilt.xlsx"
   (culadmin 那台默认 Z: 盘, 直接 python build_fleet_movement.py)
 """
-import argparse, os, glob, shutil, csv
+import argparse, os, glob, shutil, csv, re
 from datetime import datetime, date, timedelta
 import openpyxl
 
@@ -63,6 +63,22 @@ WINDOW_DAYS = 30
 ROUTE_OVERRIDE = {"CUL NANSHA": "CCT"}     # 源R1C1误为HDT, 实为CCT
 # 航线合并: 源航线码 -> 规范航线码(同一条航线在源里有不同叫法)
 ROUTE_ALIAS = {"AM1": "AEM"}                # AEM 与 AM1 是同一航线
+
+# ── 已下线船舶(退租/下线) ──
+# 源目录里有专门的子文件夹存放下线船船期(历史数据, 其他模块的统计需要用到)。
+# 命名不统一: "CUL JAKARTA-已下线" / "已下线-CUL JAKARTA" 两种写法可能是同一艘船,
+# 故按【去掉已下线标记的规范船名】去重, 保留 xlsx 修改时间最新的那份。
+# 显示名统一补 "-已下线" 后缀 —— 网页端 DECOM_MARK 靠这个标记识别下线船。
+RETIRED_DIR_NAME = "已下线船舶"
+RETIRED_SUFFIX = "-已下线"
+# 下线船代码兜底表(vessel.csv / PIC汇总 均未登记时使用);
+# 表里没有的仍回退 read_source 取源 R1C9, 取不到会在扫描时 WARN 提示补登。
+RETIRED_VESSEL_CODES = {
+    "CULJAKARTA": "CUJK",
+    "ZHONGGUCHENGDU": "ZGCD",
+    "GUOFUMINQIANG": "GFMQ",
+    "TBFENGZE": "TBFE",
+}
 
 # 大Excel列头(沿用旧文件标签, 与源C1..C16位置一一对应)
 COL_HEADERS = ["PORT","man in","wait","Proforma","ltm eta","ltm etd","VOY. NO",
@@ -192,6 +208,53 @@ def latest_xlsx(folder):
     files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
     return files[0]
 
+_RET_RE = re.compile(r"[\s\-_]*已下线[\s\-_]*", re.I)
+
+def strip_retired(name):
+    """去掉船名里的下线标记: 'CUL JAKARTA-已下线' / '已下线-CUL JAKARTA' -> 'CUL JAKARTA'。
+    用于查 vessel.csv / PIC汇总(权威表里的登记名不带后缀)。"""
+    s = _RET_RE.sub("", str(name or "")).strip().strip("-_ ").strip()
+    return s
+
+def collect_vessel_folders(src):
+    """扫描船队目录(含 "已下线船舶/" 子目录), 返回 [(folder_path, folder_name, base_name, is_retired), ...]
+    - folder_name: 磁盘上的原始目录名
+    - base_name  : 去掉 '已下线' 标记的规范船名(查权威表/显示名用)
+    - is_retired : 是否来自 "已下线船舶/" 目录
+    同一艘船存在两份目录(X-已下线 与 已下线-X)时按规范名去重, 保留 xlsx 最新的一份。
+    """
+    cand = []
+    if os.path.isdir(src):
+        for d in sorted(os.listdir(src)):
+            full = os.path.join(src, d)
+            if not os.path.isdir(full):
+                continue
+            if d == RETIRED_DIR_NAME:
+                for sub in sorted(os.listdir(full)):
+                    subp = os.path.join(full, sub)
+                    if os.path.isdir(subp):
+                        cand.append((subp, sub, True))
+            else:
+                cand.append((full, d, False))
+    best, order = {}, []
+    for path, name, ret in cand:
+        xlsx = latest_xlsx(path)
+        if not xlsx:
+            print(f"  [WARN] 无xlsx跳过: {path}"); continue
+        base = strip_retired(name)
+        key = norm(base)
+        mt = os.path.getmtime(xlsx)
+        prev = best.get(key)
+        if prev is None:
+            order.append(key)
+        elif mt <= prev["mt"]:
+            print(f"  [去重] {base}: 保留较新副本 -> {os.path.basename(prev['xlsx'])} (跳过 {os.path.basename(xlsx)})")
+            continue
+        else:
+            print(f"  [去重] {base}: 采用较新副本 -> {os.path.basename(xlsx)} (替代 {os.path.basename(prev['xlsx'])})")
+        best[key] = {"path": path, "folder": name, "base": base, "ret": ret, "xlsx": xlsx, "mt": mt}
+    return [(best[k]["path"], best[k]["folder"], best[k]["base"], best[k]["ret"]) for k in order]
+
 def _has_port_header(ws):
     """判断某 sheet 是否含 PORT 表头(即真正的船期数据表)。"""
     for r in range(1, min(ws.max_row, 200) + 1):
@@ -235,6 +298,10 @@ def read_source(path, vessel_code=None, folder_name=None):
     # 兼容两种源布局: 有的 R1 直接是航线码; 有的是合并大标题行(真正航线码在 R2C1).
     route = ""
     code = None
+    # 船名/代码归一化集合(用于段标题回退检测) —— 段头那行往往是船代码本身, 不能当航线
+    vessel_markers = set()
+    if vessel_code: vessel_markers.add(norm(vessel_code))
+    if folder_name: vessel_markers.add(norm(folder_name))
     for r in range(hr - 1, 0, -1):
         c1v = ws.cell(r, 1).value
         c9v = ws.cell(r, 9).value
@@ -251,14 +318,21 @@ def read_source(path, vessel_code=None, folder_name=None):
         if det:
             route = det
             break
+        # 该行 C1 就是本船的船名/船代码(段头的船名单元格), 不是航线 —— 继续向上找
+        if vessel_markers and s1 in vessel_markers:
+            continue
         # 新 lane: 段标题行(C1 非港口码)原样保留为航线; 港口码不当航线, 继续向上找
         if not is_port_code(c1v):
             route = str(c1v).strip()
             break
     if not route:
-        # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 港口码会被 is_port_code 否决
+        # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 港口码会被 is_port_code 否决。
+        # R1C1 若就是本船名/船代码(如 ZGCD), 也不当航线 —— 交给下面的 lanes_in_file 继承真实航线。
         c1_r1 = ws.cell(1, 1).value
-        route = str(c1_r1).strip() if (c1_r1 and not is_port_code(c1_r1)) else ""
+        if vessel_markers and norm(c1_r1) in vessel_markers:
+            route = ""
+        else:
+            route = str(c1_r1).strip() if (c1_r1 and not is_port_code(c1_r1)) else ""
     if code is None:
         code = ws.cell(1, 9).value
     # 源表头归一名 -> 源列号
@@ -274,10 +348,7 @@ def read_source(path, vessel_code=None, folder_name=None):
             sc = src_hdr.get(norm_h(cand))
             if sc:
                 col_map[tcol] = sc; break
-    # 船名/代码归一化集合(用于段标题回退检测)
-    vessel_markers = set()
-    if vessel_code: vessel_markers.add(norm(vessel_code))
-    if folder_name: vessel_markers.add(norm(folder_name))
+    # 船名/代码归一化集合已在上方定义(初始航线检测也要用)
     raw = []
     current_route = route   # 初始航线, 遇到中间段标题行会切换
     for r in range(hr + 1, ws.max_row + 1):
@@ -296,6 +367,11 @@ def read_source(path, vessel_code=None, folder_name=None):
         c4_val = ws.cell(r, 4).value
         c4_str = norm(c4_val) if isinstance(c4_val, str) else ""
         c9_str = norm(c9_val) if isinstance(c9_val, str) and not isinstance(c9_val, datetime) else ""
+        # 该行 C1 就是本船的船名/船代码(段头的船名单元格) -> 不是航线, 也不改变当前航线。
+        # 例: ZHONG GU CHENG DU 段头有一行 C1='ZGCD'(就是船代码),
+        # 不排除的话会被当成独立航线 'ZGCD', 多出一个假的航线分组。
+        if vessel_markers and norm(c1) in vessel_markers:
+            continue
         if vessel_markers and (c4_str in vessel_markers or c9_str in vessel_markers) and not is_port_code(c1):
             # 段标题行(C4/C9 含船名/代码), 更新航线为 C1; 港口码不当 lane
             current_route = str(c1).strip() if c1 else current_route
@@ -314,6 +390,13 @@ def read_source(path, vessel_code=None, folder_name=None):
             "remark": ws.cell(r, 18).value or ws.cell(r, 19).value,
             "row_route": current_route,      # ← 该行所属的实际航线(支持一船多段)
         })
+    # 未标航线的首段(段头只有船代码、无 lane): 继承本文件里第一个已知航线,
+    # 避免产生空 lane / 假 lane 分组(如 ZHONG GU CHENG DU 首段 -> AEM)。
+    lanes_in_file = [rr["row_route"] for rr in raw if is_lane_code(rr["row_route"])]
+    if lanes_in_file:
+        for rr in raw:
+            if not rr["row_route"]:
+                rr["row_route"] = lanes_in_file[0]
     # Voy.No 向上就近: 每行若空, 向上(表中更靠上)找最近的有航次号的行
     for i, rr in enumerate(raw):
         if rr["voy_raw"]:
@@ -439,24 +522,29 @@ def main():
     pic_code_tbl = load_pic_code_map(args.pic)   # 船代码(权威): PIC汇总 D列 -> 文件夹名
     print(f"  vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条 | PIC船代码: {len(pic_code_tbl)} 条")
 
-    print("=== 2/4 扫描当前船队(2026/文件夹) ===")
-    folders = sorted([d for d in os.listdir(args.src)
-                      if os.path.isdir(os.path.join(args.src, d)) and d != "已下线船舶"])
-    ships = []   # {folder, route, code, display, rows}
-    for fol in folders:
-        p = latest_xlsx(os.path.join(args.src, fol))
+    print("=== 2/4 扫描当前船队(2026/ 含 已下线船舶/) ===")
+    fleet = collect_vessel_folders(args.src)   # [(path, folder, base, retired)]
+    ships = []   # {folder, route, code, display, rows, retired}
+    retired_cnt = sum(1 for _f in fleet if _f[3])
+    print(f"  扫描到船目录 {len(fleet)} 个 (在营 {len(fleet)-retired_cnt} / 已下线 {retired_cnt})")
+    for folder_path, fol, base, retired in fleet:
+        p = latest_xlsx(folder_path)
         if not p:
             print(f"  [WARN] 无xlsx跳过: {fol}"); continue
-        key = norm(fol)
+        key = norm(base)      # 权威表按【去除下线标记的规范船名】查找
         # 先查 vessel.csv 取船代码, 传给 read_source 做段标题检测(区分航线码 vs 船代码)
         vent = vessel.get(key)
-        # 船代码优先级: PIC汇总(权威, 用户维护) -> vessel.csv -> (read_source 内回退 源R1C9)
-        vcode = pic_code_tbl.get(norm(fol)) or (vent.get("code") if vent else None)
-        d = read_source(p, vessel_code=vcode, folder_name=fol)
-        route = canon_route(fol, d["route"])   # 应用覆盖+合并
+        # 船代码优先级: PIC汇总(权威, 用户维护) -> vessel.csv -> 下线船兜底表 -> (read_source 内回退 源R1C9)
+        vcode = (pic_code_tbl.get(key)
+                 or (vent.get("code") if vent else None)
+                 or (RETIRED_VESSEL_CODES.get(key) if retired else None))
+        d = read_source(p, vessel_code=vcode, folder_name=base)
+        route = canon_route(base, d["route"])   # 应用覆盖+合并(覆盖表按规范船名)
         # 显示名/船代码: PIC汇总优先, 回退 vessel.csv, 再回退 源R1C9/文件夹名
         code = vcode or d["code"]
-        disp = (vent.get("display") if vent else None) or fol
+        disp = (vent.get("display") if vent else None) or base
+        if retired:
+            disp = strip_retired(disp) + RETIRED_SUFFIX   # 网页端靠此后缀识别已下线船
         if not vcode and not vent:
             print(f"  [WARN] 船未在 PIC汇总/vessel.csv 登记: {fol} (code 回退 源R1C9/文件夹名, 建议补登)")
         # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2)
@@ -464,7 +552,7 @@ def main():
         #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
         sub_routes = {}   # route -> [rows with row_route]
         for rr in d["rows"]:
-            sr = canon_route(fol, rr.get("row_route", route))
+            sr = canon_route(base, rr.get("row_route", route))
             sub_routes.setdefault(sr, []).append(rr)
         # 对每段检查是否有 窗口内数据
         active_segments = {}
@@ -473,14 +561,16 @@ def main():
             if has_data:
                 active_segments[sub_r] = sub_rows
         if len(active_segments) > 1:
-            print(f"  [{fol}] 拆为 {len(active_segments)} 个航线段(仅窗口内有数据): {', '.join(active_segments.keys())}")
+            print(f"  [{base}] 拆为 {len(active_segments)} 个航线段(仅窗口内有数据): {', '.join(active_segments.keys())}")
         elif len(active_segments) == 0:
             # 整个文件都没有窗口内数据 — 保留第一段(船仍显示, 只是无港口行)
             first_r = next(iter(sub_routes))
             active_segments = {first_r: sub_routes[first_r]}
         for sub_r, sub_rows in active_segments.items():
-            ships.append({"folder": fol, "route": sub_r, "code": code, "display": disp, "rows": sub_rows})
-    print(f"  当前船文件夹数: {len(ships)}")
+            ships.append({"folder": base, "route": sub_r, "code": code,
+                          "display": disp, "rows": sub_rows, "retired": retired})
+    _ret_blocks = sum(1 for s in ships if s.get("retired"))
+    print(f"  写出船块数: {len(ships)} (在营 {len(ships)-_ret_blocks} / 已下线 {_ret_blocks})")
 
     print("=== 3/4 分组排序 + 写表 ===")
     # 分组

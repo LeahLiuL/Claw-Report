@@ -1446,8 +1446,8 @@ function _loadXlsx(cb){
       <div class="col-dropdown" id="colDropdown1"></div>
     </div>
     <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
-      <span class="decom-dot">+</span>
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)" checked>
+      <span class="decom-dot">✓</span>
       <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal">&#8212; vessels</span>
@@ -1492,8 +1492,8 @@ function _loadXlsx(cb){
     </div>
     <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
     <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
-      <span class="decom-dot">+</span>
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)" checked>
+      <span class="decom-dot">✓</span>
       <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
@@ -2108,12 +2108,14 @@ function switchTab(viewId, btn){
 /* ═══════════════════════════════════════════════════════════════════
    DECOMMISSIONED VESSELS (已下线)
    源 Excel 中已退租/下线的船，船名带 "-已下线" 后缀。
-   Summary 与 Full Schedule 默认隐藏这些船（含其筛选下拉、导出、统计数）；
-   需要查看历史时勾选工具栏的 "Show 已下线" 即可临时显示。
+   Summary 与 Full Schedule 默认【显示】这些船并计入统计（2026-09-30 起）；
+   只想看在营船时取消勾选工具栏的 "Show 已下线" 即可临时隐藏。
    ═══════════════════════════════════════════════════════════════════ */
 var DECOM_MARK = '已下线';
-var SHOW_DECOM = false;
-try{ SHOW_DECOM = sessionStorage.getItem('showDecom')==='1'; }catch(e){ SHOW_DECOM=false; }
+/* 默认【显示】已下线船舶并计入各模块统计（2026-09-30 用户确认：这些船的历史数据
+   参与其他模块统计）。需要只看在营船时取消勾选 "Show 已下线"，选择记在本页 sessionStorage。 */
+var SHOW_DECOM = true;
+try{ var _sd = sessionStorage.getItem('showDecom'); SHOW_DECOM = (_sd===null) ? true : (_sd==='1'); }catch(e){ SHOW_DECOM=true; }
 
 function isDecommissioned(v){ return typeof v==='string' && v.indexOf(DECOM_MARK)>=0; }
 
@@ -5366,8 +5368,9 @@ function init(){
     lbl.classList.toggle('on', SHOW_DECOM);
     var d=lbl.querySelector('.decom-dot'); if(d) d.textContent = SHOW_DECOM ? '✓' : '+';
   });
-  var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){return !isDecommissioned(r.vessel);});
-  var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){return !isDecommissioned(r.vessel);});
+  // 表头统计口径跟随 SHOW_DECOM：默认含已下线船舶，取消勾选后剔除
+  var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
+  var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
   document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+_hdrV.length+' vessels  |  '+_hdrF.length+' schedule rows';
   document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
