@@ -128,8 +128,12 @@ def extract(excel_path, pic_map=None):
             # 仍由块内子 lane 行覆盖, 不受影响。
             cur_lane = block_route
             vessel_full = get_str(ws_src.cell(i, 4).value)
-            # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
-            vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
+            # CODE（2026-09-30）：只认 PIC汇总 D 列（唯一权威源）。
+            # 匹配失败常见于已下线船——显示名带 "-已下线" 后缀，先把后缀剥掉再查，
+            # 仍然查不到才回退 PIC 行 col9（build 写入的值）。
+            vessel_code = (pic_map.get(_norm_vessel(vessel_full))
+                           or pic_map.get(_norm_vessel(_strip_decom(vessel_full)))
+                           or get_str(ws_src.cell(i, 9).value))
             pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
 
             schedule_rows = []   # list of (row, route) — route = 该行向上最近的 lane 行
@@ -367,9 +371,15 @@ PIC_XLSX = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 def _norm_vessel(s):
     return re.sub(r'[^A-Z0-9]', '', str(s).upper())
 
+def _strip_decom(name):
+    """去掉船名里的"已下线"标记, 用于拿船名去 PIC汇总 查权威代码。
+    网页端显示名可能是 "CUL JAKARTA-已下线", 而表里登记的 key 是 "CUL JAKARTA"。"""
+    return re.sub(r'[\s\-_]*已下线[\s\-_]*', '', str(name or ''), flags=re.I).strip().strip('-_ ')
+
 def load_pic_code_map(pic_path=None):
     """PIC汇总.xlsx: A=航线 B=船名 C=文件夹名 D=船代码 E=PIC F=状态。
-    返回 {规范化船名: 船代码}。文件不可达时返回空 dict（回退旧 col9 逻辑）。"""
+    返回 {规范化名: 船代码}, 同时登记【文件夹名】与【显示名】两种 key —— 网页端拿到的
+    是显示名(C4), 用双键才能保证两边都命中同一张权威表(2026-09-30 用户确认)。"""
     pic_path = pic_path or PIC_XLSX
     m = {}
     if not os.path.exists(pic_path):
@@ -381,12 +391,17 @@ def load_pic_code_map(pic_path=None):
         for ri, row in enumerate(ws.iter_rows(values_only=True), 1):
             if ri == 1:
                 continue  # header
-            vessel = row[1] if len(row) > 1 else None
-            code = row[3] if len(row) > 3 else None   # D 列 = 船代码
-            if vessel and code:
-                m[_norm_vessel(vessel)] = str(code).strip()
+            disp   = row[1] if len(row) > 1 else None   # B = 船名(显示)
+            folder = row[2] if len(row) > 2 else None   # C = 文件夹名
+            code   = row[3] if len(row) > 3 else None   # D = 船代码
+            if not code:
+                continue
+            code = str(code).strip()
+            for name in (disp, folder):
+                if name and str(name).strip():
+                    m[_norm_vessel(str(name).strip())] = code
         wb.close()
-        print(f'  -> PIC汇总 code 映射 {len(m)} 条 ({pic_path})')
+        print(f'  -> PIC汇总 code 映射 {len(m)} key ({pic_path})')
     except Exception as e:
         print('WARN load PIC汇总 failed:', e)
     return m

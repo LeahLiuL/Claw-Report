@@ -464,22 +464,33 @@ def _load_pic_csv(path):
 
 def load_pic_code_map(path):
     """PIC汇总.xlsx: A=航线 B=船名(显示) C=文件夹名 D=船代码 E=PIC F=状态。
-    返回 {规范化文件夹名: 船代码}。文件不可达/缺列时返回空 dict(回退 vessel.csv/源R1C9)。
-    这是 detect_route 识别 lane vs 船代码 的权威依据(用户维护的 PIC汇总 优先于 vessel.csv)。"""
+    返回 {规范化文件夹名: 船代码}。这是 vessel code 的【唯一权威源】(2026-09-30 用户确认:
+    船代码与 PIC 都只认这张表, 不再回退 vessel.csv / 硬编码兜底表)。"""
+    return _load_pic_col(path, 3, 4)
+
+def _load_pic_col(path, key_col, val_col):
+    """PIC汇总.xlsx 通用取值: 以 key_col 列(C=文件夹名)为键, 取 val_col 列的值。
+    列索引: 1=航线 2=船名显示 3=文件夹名 4=船代码 5=PIC 6=状态。"""
     d = {}
     if not os.path.exists(path):
+        print(f"  [FATAL] PIC汇总.xlsx 不可读(权威源缺失): {path}")
         return d
     try:
         wb = openpyxl.load_workbook(path, data_only=True)
-    except Exception:
+    except Exception as e:
+        print(f"  [FATAL] PIC汇总.xlsx 打开失败(权威源缺失): {e}")
         return d
     ws = wb[wb.sheetnames[0]]
     for r in range(2, ws.max_row + 1):
-        fol = ws.cell(r, 3).value   # C=文件夹名
-        code = ws.cell(r, 4).value  # D=船代码
-        if fol and str(fol).strip() and code and str(code).strip():
-            d[norm(str(fol).strip())] = str(code).strip()
+        k = ws.cell(r, key_col).value
+        v = ws.cell(r, val_col).value
+        if k and str(k).strip() and v and str(v).strip():
+            d[norm(str(k).strip())] = str(v).strip()
     return d
+
+def load_pic_display_map(path):
+    """PIC汇总.xlsx B列(船名显示) —— 页面显示名的【唯一权威源】, key = C列文件夹名。"""
+    return _load_pic_col(path, 3, 2)
 
 def canon_route(folder, src_route):
     """算规范航线码: 先应用文件夹级覆盖, 再做同航线合并, 空则回退。"""
@@ -516,11 +527,14 @@ def main():
     hi = date(args.year, 12, 31)
 
     print(f"[基准日] {today}  年份窗口 {args.year} -> [{lo} ~ {hi}]")
-    print("=== 1/4 读权威表(vessel.csv / P盘PIC) ===")
-    vessel = load_vessel_csv(args.vessel)
-    pic_tbl = load_pic(args.pic)
-    pic_code_tbl = load_pic_code_map(args.pic)   # 船代码(权威): PIC汇总 D列 -> 文件夹名
-    print(f"  vessel.csv: {len(vessel)} 条 | P盘PIC表: {len(pic_tbl)} 条 | PIC船代码: {len(pic_code_tbl)} 条")
+    print("=== 1/4 读权威表(PIC汇总 = 船代码/显示名/PIC 的唯一来源) ===")
+    pic_tbl = load_pic(args.pic)                    # C文件夹名 -> E PIC
+    pic_code_tbl = load_pic_code_map(args.pic)      # C文件夹名 -> D 船代码  (唯一权威)
+    pic_disp_tbl = load_pic_display_map(args.pic)   # C文件夹名 -> B 显示名  (唯一权威)
+    if pic_code_tbl or pic_disp_tbl:
+        print(f"  [权威源] PIC汇总.xlsx: {len(pic_code_tbl)} 条代码 / {len(pic_disp_tbl)} 条显示名 / {len(pic_tbl)} 条PIC")
+    else:
+        print("  [FATAL] PIC汇总.xlsx 未读到任何条目 —— 船代码与显示名将缺失, 请检查该表是否可打开")
 
     print("=== 2/4 扫描当前船队(2026/ 含 已下线船舶/) ===")
     fleet = collect_vessel_folders(args.src)   # [(path, folder, base, retired)]
@@ -532,21 +546,20 @@ def main():
         if not p:
             print(f"  [WARN] 无xlsx跳过: {fol}"); continue
         key = norm(base)      # 权威表按【去除下线标记的规范船名】查找
-        # 先查 vessel.csv 取船代码, 传给 read_source 做段标题检测(区分航线码 vs 船代码)
-        vent = vessel.get(key)
-        # 船代码优先级: PIC汇总(权威, 用户维护) -> vessel.csv -> 下线船兜底表 -> (read_source 内回退 源R1C9)
-        vcode = (pic_code_tbl.get(key)
-                 or (vent.get("code") if vent else None)
-                 or (RETIRED_VESSEL_CODES.get(key) if retired else None))
+        # ── vessel code 与显示名: 只认 PIC汇总.xlsx(2026-09-30 用户确认的唯一权威源) ──
+        vcode = pic_code_tbl.get(key)
+        if not vcode:
+            print(f"  [WARN] PIC汇总.xlsx 未登记船代码: {base} → 请在该表 D 列补登 (D=代码, keys C=文件夹名)")
         d = read_source(p, vessel_code=vcode, folder_name=base)
         route = canon_route(base, d["route"])   # 应用覆盖+合并(覆盖表按规范船名)
-        # 显示名/船代码: PIC汇总优先, 回退 vessel.csv, 再回退 源R1C9/文件夹名
+        # 船代码: PIC汇总唯一权威; 未登记时才回退源 R1C9(避免页面出现空代码)
         code = vcode or d["code"]
-        disp = (vent.get("display") if vent else None) or base
+        # 显示名: PIC汇总 B列唯一权威; 未登记时回退文件夹规范名
+        disp = pic_disp_tbl.get(key) or base
+        if not pic_disp_tbl.get(key):
+            print(f"  [WARN] PIC汇总.xlsx 未登记显示名: {base} → 请在该表 B 列补登")
         if retired:
             disp = strip_retired(disp) + RETIRED_SUFFIX   # 网页端靠此后缀识别已下线船
-        if not vcode and not vent:
-            print(f"  [WARN] 船未在 PIC汇总/vessel.csv 登记: {fol} (code 回退 源R1C9/文件夹名, 建议补登)")
         # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2)
         #     但拆之前先用 ±30天窗口过滤: 只有多段同时有窗口内数据才拆;
         #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
