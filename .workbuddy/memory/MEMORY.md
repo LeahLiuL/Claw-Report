@@ -63,3 +63,10 @@
   python repair_bapfile.py <corrupt.xlsx> <repaired.xlsx>
   ```
 - 该脚本解析本地文件头、解压 deflate 流、验证 CRC，并在最后一个完整 `</row>` 处安全截断截断的 sheet XML。
+
+### 远端文件为空/极小时应急（2026-10-01 案例）
+- 现象：SFTP 上 `Vessel Bapfile.xlsx` 仅 2,561 字节，sheet1.xml 为空，`repair_bapfile.py` 无法修复。
+- 处理：
+  1. 不要继续 `build_deploy.py`（它会失败并可能覆盖 CULINES 副本）。
+  2. 使用仓库根目录最新有效副本手动跑 `process_all.py --append` → `gen_static.py` → `deploy_site.py`；结果会是 0 新增、仅刷新 manifest 时间戳。
+  3. 注意并行调度 `auto_bapfile.py` 稍后仍可能从 SFTP 下载坏文件并再次覆盖 `C:/CULINES/Claw Report/Vessel Bapfile.xlsx`，需从 Claw-Report 副本重新恢复。
