@@ -56,6 +56,8 @@
 ### 已知坑
 - `Claw-Report/site/` 不是独立 git 仓库（父仓库 gitignore），校验 cul-bapfile-site 远端必须用 `git ls-remote https://github.com/LeahLiuL/cul-bapfile-site.git main`，不要在 site/ 目录跑 git。
 - 2026-09-15~09-20 连续 6 天空档根因：23:00 深夜本机 VPN 未连接（auto_bapfile.log 明确记录 `SFTP unreachable (VPN not connected)`），早晨 08:00-09:00 VPN 可用；WorkBuddy 自动化 09-21 08:53 补跑回填 7 天数据。
+- **部署克隆分支陷阱（2026-10-08 事故）**：部署克隆 `C:\Users\culadmin\cul-bapfile-site` 的 HEAD 一旦被切到杂散分支（如 `test-push`），commit 会落错分支且 `push origin main` 静默 "Everything up-to-date"。识别线索：commit 输出前缀非 `[main ...]`。deploy_site.py 已加固（push `HEAD:main` + push 后 ls-remote 校验远端 SHA）；若 HEAD 再被切走，`git checkout -B main` 修复。
+- GitHub Pages 偶发构建排队慢（>10 分钟不刷新时），可强制重建：`curl -X POST -H "Authorization: token <ghp>" https://api.github.com/repos/LeahLiuL/cul-bapfile-site/pages/builds`；build status API 需 token（匿名 404）。
 
 ### 故障应急
 - 若 SFTP 文件为截断 ZIP（缺中央目录），使用 `repair_bapfile.py` 重建有效 xlsx：

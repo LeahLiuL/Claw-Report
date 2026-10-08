@@ -117,8 +117,19 @@ def main():
     msg = "deploy static bapfile site " + time.strftime("%Y-%m-%d %H:%M:%S")
     if not run_git(["commit", "-m", msg], cwd=WT):
         print("ERROR: commit failed"); sys.exit(1)
-    if not run_git(["push", "-u", "origin", BRANCH], cwd=WT):
+    if not run_git(["push", "-u", "origin", "HEAD:" + BRANCH], cwd=WT):
         print("ERROR: push failed (will retry next run)")
+        sys.exit(1)
+    # GUARD (2026-10-08 incident): if HEAD is on a stray branch (e.g. someone
+    # left the WT clone checked out on 'test-push'), `git push origin main`
+    # silently reports "Everything up-to-date" and the commit never lands.
+    # Pushing HEAD:main ignores the local branch name; the check below makes
+    # any future mismatch loud instead of silent.
+    pushed = subprocess.run(["git", "rev-parse", "HEAD"], cwd=WT,
+                            capture_output=True, text=True).stdout.strip()
+    rsha2 = remote_main_sha(WT)
+    if rsha2 != pushed:
+        print("ERROR: remote main (%s) != local HEAD (%s) after push" % (rsha2, pushed))
         sys.exit(1)
     print("[deploy] DONE ->", URL.replace(".git", "") + "/tree/" + BRANCH)
     print("[deploy] Pages  -> https://leahliul.github.io/cul-bapfile-site/")
