@@ -160,7 +160,7 @@ function _loadXlsx(cb) {
     <button class="tab-btn" data-tab="trend" onclick="switchTab('trend',this)">&#128200; Trend</button>
     <button class="tab-btn" data-tab="draft" onclick="switchTab('draft',this)">&#128674; Draft</button>
     <button class="tab-btn" data-tab="voyage" onclick="switchTab('voyage',this)">&#9973; Voyage</button>
-    <button class="tab-btn" data-tab="tdr" onclick="switchTab('tdr',this)">&#9889; TDR vs Actual</button>
+    <button class="tab-btn" data-tab="tdr" onclick="switchTab('tdr',this)">&#9889; TCD vs Actual</button>
   </div>
   <div id="viewDash" class="tab-content active">
   <div class="stats" id="stats"></div>
@@ -300,8 +300,8 @@ function _loadXlsx(cb) {
     </div>
     <div class="trendgrid">
       <div class="panel">
-        <h3 id="tdrTitle">TDR vs Actual Consumption</h3>
-        <div class="panel-note">以「实际每日消耗」(Trend 的 Mode:Consumption 同口径，ROB 按锚定小时对齐后相邻日差值) 为蓝线基础；每天取 <b>NOON 报告</b>的航速，在《Vessel Daily Consumption - TCD Daily Consumption》设计油耗表按航速线性插值出该船当天的 <b>TDR 设计消耗</b>，画成红线。两线同 X 轴(日期)对比：红线高于蓝线＝实际比设计偏耗油。需每日 NOON 报告带 speed（culadmin 定时抓取累积；历史行需回填）。</div>
+        <h3 id="tdrTitle">TCD vs Actual Consumption</h3>
+        <div class="panel-note">以「实际每日消耗」(Trend 的 Mode:Consumption 同口径，ROB 按锚定小时对齐后相邻日差值) 为蓝线基础；每天取 <b>NOON 报告</b>的航速，在《Vessel Daily Consumption - TCD Daily Consumption》设计油耗表按航速线性插值出该船当天的 <b>TCD 设计消耗</b>，画成红线。两线同 X 轴(日期)对比：红线高于蓝线＝实际比设计偏耗油。需每日 NOON 报告带 speed（culadmin 定时抓取累积；历史行需回填）。</div>
         <canvas id="tdrChart"></canvas>
       </div>
       <div class="panel">
@@ -843,7 +843,7 @@ function calcLeg(k){
 function voyKey(r) { return (r.vessel || '') + '|' + (r.voy || '') + '|' + (r.start || ''); }
 function toggleVoyRotation(k) { voyOpen[k] = !voyOpen[k]; renderVoyage(); }
 
-/* ================= TDR vs Actual (设计油耗 vs 实际) ================= */
+/* ================= TCD vs Actual (设计油耗 vs 实际) ================= */
 function buildTdrVesselDrop() {
   var drop = document.getElementById('tdrVessel');
   if (!drop || drop.dataset.built === '1') return;   // 只构建一次
@@ -852,7 +852,7 @@ function buildTdrVesselDrop() {
   var codes = Object.keys(DATA.tdr || {}).sort();
   if (!codes.length) {
     var o = document.createElement('option');
-    o.textContent = '(无 TDR 数据)'; o.value = '';
+    o.textContent = '(无 TCD 数据)'; o.value = '';
     drop.appendChild(o);
     return;
   }
@@ -864,7 +864,7 @@ function buildTdrVesselDrop() {
     drop.appendChild(o);
   });
 }
-// 在 TDR 设计油耗表里按航速线性插值出某油种的设计消耗(MT/day)
+// 在 TCD 设计油耗表里按航速线性插值出某油种的设计消耗(MT/day)
 function tdrAtSpeed(tdrV, speed, oil) {
   if (!tdrV || !tdrV.speeds || !tdrV.speeds.length) return null;
   var pts = tdrV.speeds
@@ -891,7 +891,7 @@ function renderTDR() {
   var oilKey = (oil === 'lsfo') ? 'ls' : (oil === 'hsfo') ? 'hs' : 'mg';
   var tdrV = (DATA.tdr && DATA.tdr[code]) ? DATA.tdr[code] : null;
   var titleEl = document.getElementById('tdrTitle');
-  if (titleEl) titleEl.textContent = 'TDR vs Actual — ' + (tdrV ? tdrV.name : code) + ' · ' + oil.toUpperCase();
+  if (titleEl) titleEl.textContent = 'TCD vs Actual — ' + (tdrV ? tdrV.name : code) + ' · ' + oil.toUpperCase();
 
   // ---- 实际每日消耗时间序列: 与 Trend 的 Mode:Consumption 同口径 ----
   // 即把该船所有 ROB 报告按"锚定小时"对齐后, 相邻日的 ROB 差 = 当日消耗(MT/day)。
@@ -915,7 +915,7 @@ function renderTDR() {
     }
   });
 
-  // ---- TDR@实际航速: 对每一天用当天实际航速在 TDR 表插值, 形成另一条曲线 ----
+  // ---- TCD@实际航速: 对每一天用当天实际航速在 TCD 表插值, 形成另一条曲线 ----
   var tdrSeries = [];
   actual.forEach(function(p) {
     var sp = speedByDay[p.x];
@@ -924,7 +924,7 @@ function renderTDR() {
     if (tv != null) tdrSeries.push({ x: p.x, y: tv });
   });
 
-  // ---- 绘两条时间序列: 蓝=实际消耗, 红=TDR@实际航速 ----
+  // ---- 绘两条时间序列: 蓝=实际消耗, 红=TCD@实际航速 ----
   var allDays = {};
   actual.forEach(function(p){ allDays[p.x] = 1; });
   tdrSeries.forEach(function(p){ allDays[p.x] = 1; });
@@ -949,7 +949,7 @@ function renderTDR() {
           borderColor: '#1F4E79', backgroundColor: '#1F4E79',
           spanGaps: true, tension: 0.15, pointRadius: 3, pointHoverRadius: 10, pointHitRadius: 30,
           borderWidth: 2 },
-        { label: 'TDR@实际航速 (MT/day)', data: tdrData,
+        { label: 'TCD@实际航速 (MT/day)', data: tdrData,
           borderColor: '#d64545', backgroundColor: '#d64545',
           spanGaps: true, tension: 0.15, pointRadius: 3, pointHoverRadius: 7, pointHitRadius: 10,
           borderWidth: 2 }
@@ -964,7 +964,7 @@ function renderTDR() {
             var sp = (d && speedByDay[d] != null) ? speedByDay[d] : null;
             var y = (c.parsed.y != null) ? c.parsed.y : '—';
             var spTxt = (sp != null) ? Number(sp).toFixed(2) + ' kn' : '—';
-            if (c.datasetIndex === 1) return 'TDR 设计油耗: ' + y + ' MT/day（对应航速 ' + spTxt + '）';
+            if (c.datasetIndex === 1) return 'TCD 设计油耗: ' + y + ' MT/day（对应航速 ' + spTxt + '）';
             return '实际每日油耗: ' + y + ' MT/day（实际航速 ' + spTxt + '）';
           } } }
         },
@@ -979,14 +979,14 @@ function renderTDR() {
     console.error(e);
   }
 
-  // ---- 明细表: 每天 实际 / 航速 / TDR ----
+  // ---- 明细表: 每天 实际 / 航速 / TCD ----
   var tbl = document.getElementById('tdrTable');
   if (!tbl) return;
   if (!labels.length) {
     tbl.innerHTML = '<p class="ok">该船暂无足够数据。需每日 NOON 报告带 speed（由 culadmin 定时抓取累积；历史行需回填）。</p>';
   } else {
     var h = '<table class="trendtbl"><tr><th>Date</th><th>Actual (MT/day)</th>'
-          + '<th>NOON Speed (kn)</th><th>TDR@Speed (MT/day)</th></tr>';
+          + '<th>NOON Speed (kn)</th><th>TCD@Speed (MT/day)</th></tr>';
     labels.forEach(function(d) {
       var a = null, t = null, sp = speedByDay[d];
       for (var k=0; k<actual.length; k++){ if (actual[k].x === d){ a = actual[k].y; break; } }
