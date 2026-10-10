@@ -290,7 +290,9 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
     voyages = []
     for v, items in bv.items():
         items.sort()
-        allpts = sorted(hist.get(v, []))   # (dt, oils, rtype)
+        # dt-only key: 同秒两行(不同秒被解析折叠/真实同秒)若按整 tuple 比较,
+        # 会回退比较 oils 列表 -> None < float 崩溃(2026-10-10 实测 45 行回补后触发)
+        allpts = sorted(hist.get(v, []), key=lambda p: p[0])   # (dt, oils, rtype)
         berth_series = [(dt, o) for dt, o, rt in allpts if rt == "BERTH"]
         # NOON 优先; report_type 为空的历史孤儿行(无法从附件重新判定)按需求3 兜底当 NOON 用,
         # 避免"窗口内无 BERTH 也无 NOON 标签"的航次因类型缺失而整体无数据。
