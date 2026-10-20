@@ -48,7 +48,7 @@ SNAP_FIELDS = ["date", "vessel", "code", "lane", "pic",
                "lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw", "refeer",
                "found", "report_time", "speed", "report_type"]
 
-PASSWORD = "jimmy"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
+PASSWORD = "CUL1234"          # 网页密码(AES, 源码看不到明文; 注意本仓库公开, 密码也在脚本里)
 REPORT_KEYS = ("NOON", "BERTH", "SAILING", "ANCHOR", "DRIFT")
 OIL_KEYS = ("LSFO", "HSFO", "MGO", "ULSFO")
 

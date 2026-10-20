@@ -1,6 +1,6 @@
 # ROB 盘油记录网页 — 每日自动更新部署说明（culadmin）
 
-> 网页地址（密码保护，密码 jimmy）：
+> 网页地址（密码保护，密码 CUL1234）：
 > **https://leahliul.github.io/Claw-Report/rob_oil_report.html**
 >
 > 自动更新时间：每天 **13:00** 和 **01:00**（Windows 计划任务 `ClawReport_ROB_1300` / `ClawReport_ROB_0100`）。
@@ -112,7 +112,7 @@ ROB ULSFO / ROB MGO / Order Status / Order Details / REMARK / Special / Planned 
   `git rev-parse origin/main` 不变，会误判成"本地领先几百个提交"）。始终用
   `git ls-remote origin main` 对比 `git rev-parse HEAD`；要修就手动
   `printf '<sha>\n' > .git/refs/remotes/origin/main`。
-- **密码说明**：页面数据经 AES 加密，网页源码看不到明文。但本仓库是公开的，密码写在脚本里（jimmy）——知道仓库地址的人可以推出密码。这是「防路人」级别，不是安全级别；如需更强隔离请把仓库转 Private（GitHub Pages Private 仓库需 Pro 账号）。
+- **密码说明**：页面数据经 AES 加密，网页源码看不到明文。但本仓库是公开的，密码写在脚本里（CUL1234）——知道仓库地址的人可以推出密码。这是「防路人」级别，不是安全级别；如需更强隔离请把仓库转 Private（GitHub Pages Private 仓库需 Pro 账号）。
 - **新船 / 船退出**：船清单每天从 `cul_daily_movement.html`（Daily Movement 网页数据）自动解析，新船自动加入、退出的船自动消失，无需改脚本。
 - **共用邮件文件夹**：如 "MEDKON" 文件夹同时放两船邮件，脚本已按主题过滤防误抓；若发现某船数据异常，对照该船最近邮件主题确认。
 - **Excel 副本**：culadmin 上会生成 `rob_data\rob_oil_table.xlsx`（不入库）；leahliu 本机额外同步到 `C:\CULINES\Claw Report\盘油记录.auto.xlsx`。
