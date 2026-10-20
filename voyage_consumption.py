@@ -158,8 +158,9 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
       - 期末 ROB: 优先 BERTH 中 >= end_dt 最近读数(下一航次首港 berth 对应);
                   无则 NOON 中 >= end_dt 最近; 再无则退化取 <= end_dt(或 now) 最近。
       - 加油量  : 窗口 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计。
-    优先用 BERTH(用户需求2: 只用本航次首港 berth -> 下一航次首港 berth 的读数, 不乱用其他日期);
-    找不到 BERTH 时按需求3 用当天 NOON 兜底。
+    定稿口径(2026-10-20): 期初/期末均取边界时刻之后【时间上最近】的已标注读数,
+    BERTH/NOON 同权重按时间排序(同时刻 BERTH 优先), 不再全局 BERTH 优先 ——
+    否则航次中间挂靠港的 BERTH 报告会被误当边界读数(CUHP 2629/2630 实测错位 40MT)。
     返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us], basis),
     basis∈{'BERTH','NOON','MIXED',''} 标明本段消耗基于哪种报告。"""
     cons = [None, None, None, None]
@@ -182,25 +183,29 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     # 期末允许紧邻下一航次首港 berth 的最大滞后(超过则视为更晚航次的读数, 不应用于本航次)
     END_GAP = datetime.timedelta(days=10)
     for k in range(4):
-        # 期初: 窗口 [start, 本航次end] 内 BERTH 优先 / NOON 兜底(需求2: 只用本航次首港之后读数,
-        #       不乱用更早或更晚日期); 窗口内无点则期初缺失 -> 本航次无 BERTH/NOON 数据。
+        # 期初: 窗口 [start, 本航次end] 内时间最近的 BERTH/NOON 读数(需求2: 只用本航次首港之后
+        #       读数, 不乱用更早或更晚日期); 窗口内无点则期初缺失 -> 本航次无 BERTH/NOON 数据。
         start_upper = end_dt or now
+        start_cands = []
         for src, tag in ((berth_series, "B"), (noon_series, "N")):
             for p in src:
                 if start_dt <= p[0] <= start_upper and p[1][k] is not None:
-                    first[k] = p[1][k]; f_basis[k] = tag; break
-            if first[k] is not None:
-                break
-        # 期末: 下一航次首港 berth(end) 之后、且紧邻(<= end+END_GAP)的 BERTH/NOON(需求3 兜底);
+                    start_cands.append((p[0], tag, p[1][k]))
+        if start_cands:
+            start_cands.sort(key=lambda x: (x[0], x[1]))   # 时间最近优先; 同时刻 BERTH 优先
+            first[k] = start_cands[0][2]; f_basis[k] = start_cands[0][1]
+        # 期末: 下一航次首港 berth(end) 之后、且紧邻(<= end+END_GAP)的时间最近读数;
         #       越界(实为更晚航次的读数)则缺失, 避免把后续航次 berth 误当本航次期末。
         if end_dt is not None:
             el = end_dt + END_GAP
+            end_cands = []
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
                 for p in src:
                     if end_dt <= p[0] <= el and p[1][k] is not None:
-                        last[k] = p[1][k]; l_basis[k] = tag; break
-                if last[k] is not None:
-                    break
+                        end_cands.append((p[0], tag, p[1][k]))
+            if end_cands:
+                end_cands.sort(key=lambda x: (x[0], x[1]))
+                last[k] = end_cands[0][2]; l_basis[k] = end_cands[0][1]
         else:
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
                 for p in reversed(src):

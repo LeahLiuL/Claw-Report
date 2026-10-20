@@ -202,6 +202,57 @@ def merge(history_csv, found, found_meta, dry_run):
     return added, updated_speed, updated_type
 
 
+def _store_inboxes():
+    """遍历所有 CULINES store(主邮箱 + 联机存档), 返回 [(store_name, inbox, idx), ...]。
+
+    2026-10-20 修正: 旧版只用 R.connect_outlook() 的主邮箱 stores[0].GetDefaultFolder(6),
+    而一个月前的旧报告(如 CUHP/H728 的 7-9 月 BERTH/NOON)全在『联机存档』store 里,
+    导致 backfill 漏抓旧报告、report_type 无法回填(全库空标注集中在 7-10 月)。
+    存档 store 的 GetDefaultFolder(6) 取错/为空(10-10 实测), 必须 root -> 收件箱 按名字导航;
+    注意 norm() 会剔除中文, 不能用 norm 匹配『收件箱』, 须用原始名字。"""
+    import win32com.client
+    OL = win32com.client.Dispatch("Outlook.Application")
+    NS = OL.GetNamespace("MAPI")
+    out = []
+    for st in NS.Stores:
+        name = st.DisplayName or ""
+        if "CULINES.COM" not in name.upper():
+            continue
+        try:
+            root = st.GetRootFolder()
+        except Exception:
+            continue
+        inbox = None
+        try:
+            for f in root.Folders:
+                fn = (f.Name or "").strip()
+                if fn in ("收件箱", "Inbox", "INBOX") or fn.upper() == "INBOX":
+                    inbox = f
+                    break
+        except Exception:
+            pass
+        if inbox is None:
+            try:
+                inbox = st.GetDefaultFolder(6)   # 主邮箱兑底
+            except Exception:
+                continue
+        idx = {}
+
+        def walk(f, d=0):
+            if d > 5:
+                return
+            try:
+                for c in f.Folders:
+                    idx.setdefault(R.norm(c.Name), c)
+                    walk(c, d + 1)
+            except Exception:
+                pass
+
+        walk(inbox)
+        out.append((name, inbox, idx))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", default="2026-01-01", help="YYYY-MM-DD 起始(回溯窗口)")
@@ -216,21 +267,10 @@ def main():
         since_dt = since_dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
     except Exception:
         pass
-    stores = R.connect_outlook()
-    if not stores:
+    store_boxes = _store_inboxes()
+    if not store_boxes:
         print("[ERR] Outlook 未连接"); return 1
-    inbox = stores[0].GetDefaultFolder(6)
-    idx = {}
-    def walk(f, d=0):
-        if d > 5:
-            return
-        try:
-            for c in f.Folders:
-                idx.setdefault(R.norm(c.Name), c)
-                walk(c, d + 1)
-        except Exception:
-            pass
-    walk(inbox)
+    print("stores:", [s[0] for s in store_boxes])
     vessels = collect_vessels(HISTORY_CSV)
     if args.vessel:
         vessels = {args.vessel: vessels.get(args.vessel, "")}
@@ -245,13 +285,28 @@ def main():
         found_meta = tmp.get("meta", {})
     else:
         for vessel, code in vessels.items():
-            folder, exact = R.match_folder(idx, vessel, code)
-            if folder is None:
-                # 退而求其次: 收件箱顶层主题 Restrict(scan_vessel 内已含)
-                pass
-            reps = scan_vessel(vessel, code, inbox, folder, since_dt)
-            if reps:
-                found[vessel] = reps
+            reps_all = []
+            for sname, inbox, idx in store_boxes:
+                folder, exact = R.match_folder(idx, vessel, code)
+                if folder is None:
+                    # 退而求其次: 收件箱顶层主题 Restrict(scan_vessel 内已含)
+                    pass
+                try:
+                    reps_all.extend(scan_vessel(vessel, code, inbox, folder, since_dt))
+                except Exception as e:
+                    print("[WARN] scan %s @ %s failed: %s" % (vessel, sname, e))
+            # 跨 store 去重(同一封邮件可能主邮箱/存档都有): 按 report_time 保留类型优先者
+            seen = {}
+            for rep in reps_all:
+                k = rep["report_time"]
+                if k in seen:
+                    if not seen[k].get("report_type") and rep.get("report_type"):
+                        seen[k] = rep
+                    continue
+                seen[k] = rep
+            reps_all = list(seen.values())
+            if reps_all:
+                found[vessel] = reps_all
                 found_meta[vessel] = code
         try:
             with open(FOUND_JSON, "w", encoding="utf-8") as f:
