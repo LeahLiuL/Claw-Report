@@ -980,6 +980,20 @@ def build_html(results):
                     })
         except Exception as e:
             print("[WARN] read history csv failed:", e)
+    # ---- 加油事件: 渲染前优先从《燃油添加日志》Excel 实时重抓(仅体积 MT, 价格不上网) ----
+    # 2026-10-21: 让本机刷新/部署时直接吃最新加油日志, 不再依赖 culadmin 推到 git 的滞后版本。
+    # 找不到 Excel / openpyxl 缺失 / 任何异常 -> 静默退回下面磁盘上的 bunkering*.json(零回归)。
+    try:
+        import sync_bunkering as _sb
+        _out, _detail, _types = _sb.build_bunkering()
+        if _out:
+            with open(_sb.BUNKER_JSON, "w", encoding="utf-8") as _f:
+                json.dump(_out, _f, ensure_ascii=False, indent=0)
+            with open(_sb.BUNKER_TYPES_JSON, "w", encoding="utf-8") as _f:
+                json.dump(_types, _f, ensure_ascii=False, indent=0)
+            print("[sync] 已从燃油添加日志.xlsx 刷新加油量, 涉及 %d 艘船" % len(_out))
+    except Exception as _e:
+        print("[sync] 跳过 Excel 加油同步(沿用已有 bunkering*.json):", _e)
     # ---- 加油事件(可选, 由用户后续提供; 当前为空则按 ROB 增幅自动识别) ----
     # 文件格式: {"船名": {"YYYY-MM-DD": 加油量MT, ...}, ...}
     bunkering = {}
