@@ -1,8 +1,10 @@
 @echo off
 REM ============================================================
 REM  ROB FAST daily update  (scheduled task entry)
-REM  Parses the pre-built "[中联航运-船舶管理报告]-报表汇总" emails.
-REM  ~20-40 seconds per run (vs 8-13 min for the full mailbox scan).
+REM  Step 1: original crew report emails (rob_mail_sync) -- primary source,
+REM          the 1data.info summary misses a large share of reports.
+REM  Step 2: pre-built "[中联航运-船舶管理报告]-报表汇总" emails (fast, ~15s).
+REM  Step 3: rebuild page (safe: preserves rob_draft_* fields).
 REM  ASCII-only: UTF-8 Chinese + chcp crashes cmd.
 REM ============================================================
 cd /d %~dp0
@@ -24,8 +26,15 @@ echo [2/4] git fetch ... >> %LOG%
 git fetch origin >> %LOG% 2>&1
 if errorlevel 1 ( echo [WARN] git fetch failed, will reconcile via safe-push >> %LOG% )
 
-REM ---- [3/4] summary sync + rebuild ----
-echo [3/4] rob_summary_sync + fast rebuild ... >> %LOG%
+REM ---- [3/5] original crew report mail sync ----
+echo [3/5] rob_mail_sync (original reports) ... >> %LOG%
+"%PYEXE%" rob_mail_sync.py --days 3 --apply >> %LOG% 2>&1
+if errorlevel 1 (
+    echo [WARN] rob_mail_sync failed, continue with summary sync >> %LOG%
+)
+
+REM ---- [4/5] summary sync + rebuild ----
+echo [4/5] rob_summary_sync + fast rebuild ... >> %LOG%
 "%PYEXE%" rob_summary_sync.py --days 4 --apply >> %LOG% 2>&1
 if errorlevel 1 (
     echo [ERROR] rob_summary_sync failed >> %LOG%
@@ -39,8 +48,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM ---- [4/4] safe push ----
-echo [4/4] safe commit and push ... >> %LOG%
+REM ---- [5/5] safe push ----
+echo [5/5] safe commit and push ... >> %LOG%
 set CLAW_LOCK_OWNER=rob_fast
 "%PYEXE%" git_safe_push.py -m "ROB fast update %date%" >> %LOG% 2>&1
 if errorlevel 1 (
