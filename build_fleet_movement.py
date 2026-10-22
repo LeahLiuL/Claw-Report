@@ -53,7 +53,9 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
 ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
                "SGX","SJA","JPS","SHTG","RTS","WAT","KCI","GTS","NSX","SL1","CGX","HLX","IMR","NAX","RES","NSCT1"]
-# 注: WAT(KR CELEBES)/KCI(RACINE)/GTS(TB JINJIANG) 为用户确认的真实服务名, 已并入上表。
+# 注: KCI(RACINE)/GTS(TB JINJIANG) 为用户确认的真实服务名, 已并入上表。
+#     WAT 原为 KR CELEBES 的服务名, 2026-10-22 用户确认【lane 一律以源文件最新值为准】后改为 ME3
+#     (源文件名 "KR CELEBES ME3 SCH" + 源内段标题均为 ME3); WAT 保留在排序表里仅作历史兼容。
 # 未来出现的新 lane 由"段标题结构位置"(PIC 块头/含船名船代码的段头)识别并原样保留,
 # 并经 build_route_order / 前端 _buildLaneList 自动追加到排序末尾。
 ROUTE_FALLBACK = ""      # 源无任何段标题行时才留空(不再静默猜 RTS; 空航线由用户补)
