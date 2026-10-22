@@ -406,7 +406,27 @@ def main():
     if not args.apply:
         print("")
         print("(dry-run) add --apply to write")
-        return
+    # 可观测性: 汇总系统解析失败的邮件(状态"失败 / Wrong Excel Title")抓不到,
+    # 这些船会静悄悄变旧。列出来提醒人工跑一次全量深扫(桌面 ROB_更新一次.bat)。
+    cutoff = datetime.datetime.now() - datetime.timedelta(hours=72)
+    stale = []
+    for r in results:
+        rt = (r.get("report_time") or "")[:19]
+        if not rt:
+            stale.append((r["vessel"], "MISS"))
+            continue
+        try:
+            if datetime.datetime.strptime(rt, "%Y-%m-%d %H:%M:%S") < cutoff:
+                stale.append((r["vessel"], rt))
+        except Exception:
+            pass
+    if stale:
+        print("")
+        print("[stale] %d vessels older than 72h (run the FULL scan manually "
+              "if this looks wrong):" % len(stale))
+        for v, t in sorted(stale, key=lambda x: x[1]):
+            print("   %-26s %s" % (v[:26], t))
+    return
 
     # ---- 写盘 ----
     # 保护2: 新记录某油品为 None(源表解析瑕疵)时保留旧值, 绝不把已有数据抹成空
