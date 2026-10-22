@@ -1,34 +1,31 @@
 {
-  "snapshot_time": "2026-10-22 16:32",
+  "snapshot_time": "2026-10-22 17:40",
   "vessels": [
     {
       "vessel": "CUL HAIPHONG",
       "code": "CUHP",
       "lane": "ST3",
       "pic": "Leah Liu",
-      "rob_lsfo": 183.51,
+      "rob_lsfo": 170.73,
       "rob_hsfo": 0.0,
-      "rob_mgo": 83.87,
+      "rob_mgo": 80.37,
       "rob_ulsfo": 0.0,
       "rob_bw": null,
       "rob_fw": null,
       "rob_refeer": null,
       "rob_speed": null,
-      "report_type": "BERTH",
-      "report_time": "2026-10-20 08:35:29",
-      "source": "MV CUL HAIPHONG Voy 2641E 2026 OCT 20TH  berth report at KEL.",
+      "report_type": "Anchor",
+      "report_time": "2026-10-22 12:42:13",
+      "source": "summary:Anchor",
       "sender": "culhaiphong@goodever.com.cn",
-      "found": true,
-      "rob_draft_fwd": 7.0,
-      "rob_draft_mid": 7.75,
-      "rob_draft_aft": 8.5
+      "found": true
     },
     {
       "vessel": "CUL XIAMEN",
       "code": "CUXM",
       "lane": "HDT",
       "pic": "Simon Shi",
-      "rob_lsfo": 614.76,
+      "rob_lsfo": 582.34,
       "rob_hsfo": 0.0,
       "rob_mgo": 109.62,
       "rob_ulsfo": 0.0,
@@ -36,14 +33,11 @@
       "rob_fw": 116.0,
       "rob_refeer": 11.0,
       "rob_speed": 13.05,
-      "report_type": "DRIFT",
-      "report_time": "2026-10-20 12:58:42",
-      "source": "CUL XIAMEN 2628W NOON REPORT // 2026.10.20",
+      "report_type": "Anchor",
+      "report_time": "2026-10-22 13:17:45",
+      "source": "summary:Anchor",
       "sender": "culxiamen@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 4.7,
-      "rob_draft_mid": 6.3,
-      "rob_draft_aft": 7.9
+      "found": true
     },
     {
       "vessel": "CUL YANGPU",
@@ -58,14 +52,11 @@
       "rob_fw": 120.0,
       "rob_refeer": 0.0,
       "rob_speed": null,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 16:12:02",
-      "source": "CUL YANGPU - V2643W Noon Report - 2026-10-19",
+      "report_type": "Sailing",
+      "report_time": "2026-10-21 15:21:07",
+      "source": "summary:Sailing",
       "sender": "culyangpu@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 6.6,
-      "rob_draft_mid": 7.05,
-      "rob_draft_aft": 7.5
+      "found": true
     },
     {
       "vessel": "M. MARINER",
@@ -73,21 +64,18 @@
       "lane": "CST",
       "pic": "Lex Yang",
       "rob_lsfo": 267.16,
-      "rob_hsfo": null,
-      "rob_mgo": 93.0,
-      "rob_ulsfo": null,
+      "rob_hsfo": 0.0,
+      "rob_mgo": 78.47,
+      "rob_ulsfo": 0.0,
       "rob_bw": 2300.0,
       "rob_fw": 220.0,
       "rob_refeer": null,
       "rob_speed": 12.7,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 13:35:30",
-      "source": "NOON REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 13:34:39",
+      "source": "summary:Sailing",
       "sender": "m.mariner@canopus-mail.com",
-      "found": true,
-      "rob_draft_fwd": 5.3,
-      "rob_draft_mid": 5.95,
-      "rob_draft_aft": 6.6
+      "found": true
     },
     {
       "vessel": "M. ODYSSEY",
@@ -96,20 +84,17 @@
       "pic": "Frankie Huang",
       "rob_lsfo": 82.36,
       "rob_hsfo": 0.0,
-      "rob_mgo": 65.12,
+      "rob_mgo": 104.44,
       "rob_ulsfo": 0.0,
       "rob_bw": 1450.0,
       "rob_fw": 94.0,
       "rob_refeer": 24.0,
       "rob_speed": 12.43,
-      "report_type": "NOON",
-      "report_time": "2026-10-20 12:21:00",
-      "source": "M/V. MODS  // CUL // NOON REPORT // VOY 2640N // (2026.10.20)",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 04:16:18",
+      "source": "summary:Sailing",
       "sender": "m.odyssey@canopus-mail.com",
-      "found": true,
-      "rob_draft_fwd": 7.5,
-      "rob_draft_mid": 8.0,
-      "rob_draft_aft": 8.5
+      "found": true
     },
     {
       "vessel": "CHANG SHENG JI 7",
@@ -128,32 +113,26 @@
       "report_time": "2026-10-19 15:21:59",
       "source": "CSJ7 -  2633E  CUL NOON REPORT 20261019",
       "sender": "changshengji7@sina.com",
-      "found": true,
-      "rob_draft_fwd": 4.2,
-      "rob_draft_mid": 5.3,
-      "rob_draft_aft": 6.4
+      "found": true
     },
     {
       "vessel": "ZHI YING HE SHUN",
       "code": "ZYHS",
       "lane": "NP2",
       "pic": "Leah Liu",
-      "rob_lsfo": 328.97,
+      "rob_lsfo": 316.03,
       "rob_hsfo": null,
-      "rob_mgo": 70.64,
+      "rob_mgo": 66.21,
       "rob_ulsfo": null,
       "rob_bw": 5230.0,
       "rob_fw": 170.0,
       "rob_refeer": 0.0,
       "rob_speed": 9.67,
-      "report_type": "NOON",
-      "report_time": "2026-10-20 12:05:38",
-      "source": "ZHI YING HE SHUN / NOON report at SEA",
+      "report_type": "Bunker Change-over",
+      "report_time": "2026-10-22 12:30:32",
+      "source": "summary:Bunker Change-over",
       "sender": "zhiyingheshun@lanbaoism.com",
-      "found": true,
-      "rob_draft_fwd": 8.0,
-      "rob_draft_mid": 8.1,
-      "rob_draft_aft": 8.3
+      "found": true
     },
     {
       "vessel": "BZ CHONGFU",
@@ -161,21 +140,18 @@
       "lane": "GTS",
       "pic": "Simon Shi",
       "rob_lsfo": 1657.278,
-      "rob_hsfo": null,
-      "rob_mgo": 430.899,
-      "rob_ulsfo": null,
+      "rob_hsfo": 0.0,
+      "rob_mgo": 419.582,
+      "rob_ulsfo": 0.0,
       "rob_bw": 4898.0,
       "rob_fw": 215.0,
       "rob_refeer": 0.0,
       "rob_speed": 0.0,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 16:15:20",
-      "source": "2026-10-19   CUL NOON REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 05:44:52",
+      "source": "summary:Sailing",
       "sender": "bzchongfu@163.com",
-      "found": true,
-      "rob_draft_fwd": 13.7,
-      "rob_draft_mid": 13.83,
-      "rob_draft_aft": 13.95
+      "found": true
     },
     {
       "vessel": "CHANG SHENG JI 8",
@@ -194,10 +170,7 @@
       "report_time": "2026-10-19 17:35:02",
       "source": "CUL NOON REPORT",
       "sender": "changshengji8@sina.com",
-      "found": true,
-      "rob_draft_fwd": 4.4,
-      "rob_draft_mid": 5.5,
-      "rob_draft_aft": 6.7
+      "found": true
     },
     {
       "vessel": "CUL HUMEN",
@@ -216,32 +189,26 @@
       "report_time": "2026-10-19 15:41:15",
       "source": "M/V CUL HUMEN - NOON REPORT 1019",
       "sender": "culhumen@culines.com",
-      "found": true,
-      "rob_draft_fwd": 8.6,
-      "rob_draft_mid": 8.9,
-      "rob_draft_aft": 9.2
+      "found": true
     },
     {
       "vessel": "CUL KLANG",
       "code": "CUKL",
       "lane": "REX",
       "pic": "Kelvin Tan",
-      "rob_lsfo": 255.43,
-      "rob_hsfo": 113.0,
+      "rob_lsfo": 246.83,
+      "rob_hsfo": 34.6,
       "rob_mgo": 108.67,
       "rob_ulsfo": 0.0,
       "rob_bw": 4896.0,
       "rob_fw": 148.0,
       "rob_refeer": 0.0,
       "rob_speed": 15.75,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 16:25:53",
-      "source": "M.V CUL KLANG // Voy.2638E // NOON REPORT",
+      "report_type": "Bunker Change-over",
+      "report_time": "2026-10-22 14:20:27",
+      "source": "summary:Bunker Change-over",
       "sender": "culklang@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 7.1,
-      "rob_draft_mid": 7.65,
-      "rob_draft_aft": 8.2
+      "found": true
     },
     {
       "vessel": "CUL LAEMCHABANG",
@@ -250,27 +217,24 @@
       "pic": "Hardy Hou",
       "rob_lsfo": 543.93,
       "rob_hsfo": 0.0,
-      "rob_mgo": 114.43,
+      "rob_mgo": 114.23,
       "rob_ulsfo": 0.0,
       "rob_bw": null,
       "rob_fw": null,
       "rob_refeer": null,
       "rob_speed": null,
-      "report_type": "BERTH",
-      "report_time": "2026-10-19 20:39:54",
-      "source": "CUL LEAMCHABANG// BERTH REPORT// 19-OCT-2026",
+      "report_type": "Sailing",
+      "report_time": "2026-10-21 05:51:08",
+      "source": "summary:Sailing",
       "sender": "cullaemchabang@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 8.6,
-      "rob_draft_mid": 8.7,
-      "rob_draft_aft": 8.8
+      "found": true
     },
     {
       "vessel": "CUL NANSHA",
       "code": "CUNS",
       "lane": "REX",
       "pic": "Frankie Huang",
-      "rob_lsfo": 317.33,
+      "rob_lsfo": 314.08,
       "rob_hsfo": null,
       "rob_mgo": 85.19,
       "rob_ulsfo": null,
@@ -278,14 +242,11 @@
       "rob_fw": 180.0,
       "rob_refeer": 10.0,
       "rob_speed": 0.0,
-      "report_type": "NOON",
-      "report_time": "2026-10-20 12:21:09",
-      "source": "M/V CUL NANSHA 2635E NOON RPT 20.OCT.2026",
+      "report_type": "Resume Sailing",
+      "report_time": "2026-10-21 12:44:33",
+      "source": "summary:Resume Sailing",
       "sender": "culnansha@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 7.2,
-      "rob_draft_mid": 7.55,
-      "rob_draft_aft": 7.9
+      "found": true
     },
     {
       "vessel": "DONG FANG MING HAI",
@@ -304,17 +265,14 @@
       "report_time": "2026-10-19 16:46:07",
       "source": "CUL NOON REPORT 10.19",
       "sender": "mvdongfangminghai@163.com",
-      "found": true,
-      "rob_draft_fwd": 4.7,
-      "rob_draft_mid": 5.4,
-      "rob_draft_aft": 6.0
+      "found": true
     },
     {
       "vessel": "EVERLASTING HARVEST",
       "code": "EVHA",
       "lane": "REX",
       "pic": "Kelvin Tan",
-      "rob_lsfo": 537.715,
+      "rob_lsfo": 507.367,
       "rob_hsfo": 0.0,
       "rob_mgo": 53.4,
       "rob_ulsfo": 0.0,
@@ -322,14 +280,11 @@
       "rob_fw": 171.0,
       "rob_refeer": 0.0,
       "rob_speed": 13.12,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 17:16:47",
-      "source": "Noon report(2026.10.19)",
+      "report_type": "Anchor",
+      "report_time": "2026-10-21 05:49:57",
+      "source": "summary:Anchor",
       "sender": "everlasting.harvest@tcshipping.com.cn",
-      "found": true,
-      "rob_draft_fwd": 8.8,
-      "rob_draft_mid": 8.85,
-      "rob_draft_aft": 8.9
+      "found": true
     },
     {
       "vessel": "HAIAN MIND",
@@ -348,10 +303,7 @@
       "report_time": "2026-10-19 17:47:20",
       "source": "HAMD-NOON REPORT /DATE 19-10-2026",
       "sender": "haianmind@haiants.vn",
-      "found": true,
-      "rob_draft_fwd": 6.4,
-      "rob_draft_mid": 7.25,
-      "rob_draft_aft": 8.1
+      "found": true
     },
     {
       "vessel": "HONG DA XIN 708",
@@ -370,10 +322,7 @@
       "report_time": "2026-10-20 13:01:54",
       "source": "CUL NOON REPORT- HONG DA XIN 708   2026.10.20",
       "sender": "hongdaxin708@msatmail.com",
-      "found": true,
-      "rob_draft_fwd": 8.0,
-      "rob_draft_mid": 8.75,
-      "rob_draft_aft": 9.5
+      "found": true
     },
     {
       "vessel": "HONG DA XIN 728",
@@ -392,10 +341,7 @@
       "report_time": "2026-10-19 16:19:14",
       "source": "NOON REPORT-HONG DA XIN 728",
       "sender": "hongdaxin728@msatmail.com",
-      "found": true,
-      "rob_draft_fwd": 7.2,
-      "rob_draft_mid": 8.4,
-      "rob_draft_aft": 9.6
+      "found": true
     },
     {
       "vessel": "KAI DA HONG ZHOU",
@@ -414,10 +360,7 @@
       "report_time": "2026-10-19 17:33:14",
       "source": "CUL NOON REPORT_KDHZ_20261019",
       "sender": "KDHZ@sunward-shipping.com",
-      "found": true,
-      "rob_draft_fwd": 7.1,
-      "rob_draft_mid": 7.8,
-      "rob_draft_aft": 8.5
+      "found": true
     },
     {
       "vessel": "KR TASMAN",
@@ -436,10 +379,7 @@
       "report_time": "2026-10-19 16:39:29",
       "source": "NOON Report   // MV KR TASMAN",
       "sender": "krtasman@krsline.com",
-      "found": true,
-      "rob_draft_fwd": 8.99,
-      "rob_draft_mid": 9.37,
-      "rob_draft_aft": 9.75
+      "found": true
     },
     {
       "vessel": "LOA HARMONY",
@@ -458,10 +398,7 @@
       "report_time": "2026-10-19 16:23:31",
       "source": "M/V LOA HARMONY - DAILY NOON REPORT",
       "sender": "loaharmony@doshiphk.com",
-      "found": true,
-      "rob_draft_fwd": 8.4,
-      "rob_draft_mid": 9.0,
-      "rob_draft_aft": 9.6
+      "found": true
     },
     {
       "vessel": "MAO GANG SHANG HAI",
@@ -480,10 +417,7 @@
       "report_time": "2026-10-19 23:29:06",
       "source": "MAO GANG SHANG HAI - SAILING REPORT / SAJED / 2639E/ 2026-OCT-19",
       "sender": "maogangshanghai@126.com",
-      "found": true,
-      "rob_draft_fwd": 4.9,
-      "rob_draft_mid": 6.25,
-      "rob_draft_aft": 7.6
+      "found": true
     },
     {
       "vessel": "MYD TIANJIN",
@@ -502,10 +436,7 @@
       "report_time": "2026-10-22 15:20:04",
       "source": "CUL NOON REPORT",
       "sender": "mydtianjin@gtmailplus.com",
-      "found": true,
-      "rob_draft_fwd": 8.8,
-      "rob_draft_mid": 8.85,
-      "rob_draft_aft": 8.9
+      "found": true
     },
     {
       "vessel": "SHENGTANG",
@@ -514,20 +445,17 @@
       "pic": "Kelvin Tan",
       "rob_lsfo": 278.71,
       "rob_hsfo": null,
-      "rob_mgo": 260.69,
+      "rob_mgo": 258.49,
       "rob_ulsfo": null,
       "rob_bw": 6154.0,
       "rob_fw": 95.0,
       "rob_refeer": null,
       "rob_speed": 15.0,
-      "report_type": "NOON",
-      "report_time": "2026-10-20 13:07:53",
-      "source": "M/V SHENGTANG NOON REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 04:58:06",
+      "source": "summary:Sailing",
       "sender": "shengtang178@163.com",
-      "found": true,
-      "rob_draft_fwd": 5.8,
-      "rob_draft_mid": 7.1,
-      "rob_draft_aft": 8.4
+      "found": true
     },
     {
       "vessel": "TEN VENUS",
@@ -546,10 +474,7 @@
       "report_time": "2026-10-19 15:27:23",
       "source": "TEN VENUS//NOON REPORTS-19.10.2026 ",
       "sender": "tenvenus@gtmailplus.com",
-      "found": true,
-      "rob_draft_fwd": 10.3,
-      "rob_draft_mid": 10.7,
-      "rob_draft_aft": 11.4
+      "found": true
     },
     {
       "vessel": "TIGER LONGKOU",
@@ -568,10 +493,7 @@
       "report_time": "2026-10-19 16:52:32",
       "source": "TIGER LONGKOU 2026/10/19 NOON REPORT",
       "sender": "tiger.longkou@greathorse.com.cn",
-      "found": true,
-      "rob_draft_fwd": 7.5,
-      "rob_draft_mid": 7.65,
-      "rob_draft_aft": 7.8
+      "found": true
     },
     {
       "vessel": "WAN FU DA",
@@ -590,10 +512,7 @@
       "report_time": "2026-10-19 17:14:13",
       "source": "WAN FU DA --- noon RPT ---2026-10-19",
       "sender": "wanfuda668@126.com",
-      "found": true,
-      "rob_draft_fwd": 9.85,
-      "rob_draft_mid": 10.1,
-      "rob_draft_aft": 10.35
+      "found": true
     },
     {
       "vessel": "XING DONG 88",
@@ -612,10 +531,7 @@
       "report_time": "2026-10-19 16:10:38",
       "source": "M.V XING DONG 88 NOON REPORT VOY.2637E",
       "sender": "xingdong88ship@163.com",
-      "found": true,
-      "rob_draft_fwd": 4.1,
-      "rob_draft_mid": 5.15,
-      "rob_draft_aft": 6.2
+      "found": true
     },
     {
       "vessel": "ZHONG GU YIN CHUAN",
@@ -634,10 +550,7 @@
       "report_time": "2026-10-19 17:20:39",
       "source": "MV ZHONG GU YIN CHUAN - CUL NOON REPORT 2026.10.19",
       "sender": "zgyc@zhonggushipping.com",
-      "found": true,
-      "rob_draft_fwd": 5.9,
-      "rob_draft_mid": 6.85,
-      "rob_draft_aft": 7.8
+      "found": true
     },
     {
       "vessel": "CUL HOCHIMINH",
@@ -656,10 +569,7 @@
       "report_time": "2026-10-19 16:15:28",
       "source": "CUL HOCHIMINH -CUL NOON REPORT-20261019",
       "sender": "culhochiminh@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 8.4,
-      "rob_draft_mid": 8.6,
-      "rob_draft_aft": 8.8
+      "found": true
     },
     {
       "vessel": "CUL SHEKOU",
@@ -667,21 +577,18 @@
       "lane": "AEM",
       "pic": "Javier Tao",
       "rob_lsfo": 804.14,
-      "rob_hsfo": 161.75,
+      "rob_hsfo": 144.29,
       "rob_mgo": 79.88,
       "rob_ulsfo": 0.0,
       "rob_bw": 4878.6,
       "rob_fw": 102.0,
       "rob_refeer": 0.0,
       "rob_speed": 14.0,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 17:20:09",
-      "source": "CUL SHEKOU-AEM-2634E- NOON REPORT-20261019",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 06:18:08",
+      "source": "summary:Sailing",
       "sender": "culshekou@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 9.9,
-      "rob_draft_mid": 10.4,
-      "rob_draft_aft": 10.7
+      "found": true
     },
     {
       "vessel": "ZHONG GU NAN CHANG",
@@ -700,32 +607,26 @@
       "report_time": "2026-10-20 12:17:07",
       "source": "CUL NOON  REPORT -ZHONG GU NAN CHANG-20261020",
       "sender": "zgnc@zhonggushipping.com",
-      "found": true,
-      "rob_draft_fwd": 10.4,
-      "rob_draft_mid": 10.55,
-      "rob_draft_aft": 10.7
+      "found": true
     },
     {
       "vessel": "GLOBAL 01",
       "code": "GLBN",
       "lane": "SGX",
       "pic": "Kevin Du",
-      "rob_lsfo": 353.59,
+      "rob_lsfo": 330.42,
       "rob_hsfo": 0.0,
-      "rob_mgo": 63.98,
+      "rob_mgo": 61.49,
       "rob_ulsfo": 0.0,
       "rob_bw": 3844.0,
       "rob_fw": 133.0,
       "rob_refeer": 0.0,
       "rob_speed": 9.83,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 16:01:43",
-      "source": "GLOBAL 01 2639W CNSHA-MYPKG Noon Report-- 2026/10/19",
+      "report_type": "Anchor",
+      "report_time": "2026-10-21 16:45:04",
+      "source": "summary:Anchor",
       "sender": "global01_xwd@163.com",
-      "found": true,
-      "rob_draft_fwd": 6.7,
-      "rob_draft_mid": 7.35,
-      "rob_draft_aft": 8.0
+      "found": true
     },
     {
       "vessel": "HANG RUN 7",
@@ -763,10 +664,7 @@
       "report_time": "2026-10-20 12:16:31",
       "source": "HUA DONG 811 CUL NOON REPORT 2026.10.20",
       "sender": "huadong811@msatmail.com",
-      "found": true,
-      "rob_draft_fwd": 4.1,
-      "rob_draft_mid": 5.25,
-      "rob_draft_aft": 6.4
+      "found": true
     },
     {
       "vessel": "XIN MING ZHOU 106",
@@ -785,10 +683,7 @@
       "report_time": "2026-10-06 13:46:34",
       "source": "X106 CUL SAILING REPORT 20261006",
       "sender": "xinmingzhou106@nbosco.bjles.net",
-      "found": true,
-      "rob_draft_fwd": 2.9,
-      "rob_draft_mid": 4.6,
-      "rob_draft_aft": 6.3
+      "found": true
     },
     {
       "vessel": "SUNNY 68",
@@ -797,20 +692,17 @@
       "pic": "Afiq",
       "rob_lsfo": 226.74,
       "rob_hsfo": null,
-      "rob_mgo": 36.43,
+      "rob_mgo": 34.24,
       "rob_ulsfo": null,
       "rob_bw": null,
       "rob_fw": null,
       "rob_refeer": null,
       "rob_speed": null,
-      "report_type": "BERTH",
-      "report_time": "2026-10-19 17:24:47",
-      "source": "CUL  BERTH REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-20 20:20:08",
+      "source": "summary:Sailing",
       "sender": "sunny68@lianjieship.com.cn",
-      "found": true,
-      "rob_draft_fwd": 6.8,
-      "rob_draft_mid": 7.3,
-      "rob_draft_aft": 7.8
+      "found": true
     },
     {
       "vessel": "NEW THINKER",
@@ -829,32 +721,26 @@
       "report_time": "2026-10-19 18:27:33",
       "source": "M/V NEWTHINKER  BERTH REPORT - (19-OCT-2026)",
       "sender": "newthinker@lianjieship.com.cn",
-      "found": true,
-      "rob_draft_fwd": 5.3,
-      "rob_draft_mid": 5.55,
-      "rob_draft_aft": 5.8
+      "found": true
     },
     {
       "vessel": "ZHONG LIAN SHAN TOU",
       "code": "ZLST",
       "lane": "RTS",
       "pic": "Afiq",
-      "rob_lsfo": 115.87,
-      "rob_hsfo": null,
-      "rob_mgo": 78.21,
-      "rob_ulsfo": null,
+      "rob_lsfo": 99.53,
+      "rob_hsfo": 0.0,
+      "rob_mgo": 75.09,
+      "rob_ulsfo": 0.0,
       "rob_bw": 1602.0,
       "rob_fw": 27.0,
       "rob_refeer": 1.0,
       "rob_speed": 11.37,
-      "report_type": "NOON",
-      "report_time": "2026-10-19 17:05:32",
-      "source": "MV.ZHONG LIAN SHAN TOU 2026.10.19 NOON REPORT",
+      "report_type": "Resume Sailing",
+      "report_time": "2026-10-21 17:17:53",
+      "source": "summary:Resume Sailing",
       "sender": "culshantou@CULINES.COM",
-      "found": true,
-      "rob_draft_fwd": 5.7,
-      "rob_draft_mid": 6.05,
-      "rob_draft_aft": 6.4
+      "found": true
     },
     {
       "vessel": "MEDKON DON",
@@ -873,10 +759,7 @@
       "report_time": "2026-10-19 19:04:03",
       "source": "MEDKON DON: CUL BERTH REPORT 19.10.2026 @ H 1200LT",
       "sender": "medkondon@om-email.net",
-      "found": true,
-      "rob_draft_fwd": 7.35,
-      "rob_draft_mid": 8.12,
-      "rob_draft_aft": 8.88
+      "found": true
     },
     {
       "vessel": "ZBM",
@@ -895,32 +778,26 @@
       "report_time": "2026-10-19 20:30:31",
       "source": "ZBM -2638E-  Noon Report 19.10.2026",
       "sender": "master.zbm@nautivoyage.com",
-      "found": true,
-      "rob_draft_fwd": 8.0,
-      "rob_draft_mid": 9.7,
-      "rob_draft_aft": 8.4
+      "found": true
     },
     {
       "vessel": "RACINE",
       "code": "RACE",
       "lane": "KCI",
       "pic": "Lex Yang",
-      "rob_lsfo": 704.9,
+      "rob_lsfo": 656.7,
       "rob_hsfo": 0.0,
-      "rob_mgo": 312.9,
+      "rob_mgo": 304.3,
       "rob_ulsfo": 0.0,
       "rob_bw": 9289.0,
       "rob_fw": 376.0,
       "rob_refeer": 18.0,
       "rob_speed": 17.9,
-      "report_type": "NOON",
-      "report_time": "2026-10-20 12:04:14",
-      "source": "SGX - RACINE - 2632E - Daily Noon Report - 20 Oct-26",
+      "report_type": "Anchor",
+      "report_time": "2026-10-22 08:28:30",
+      "source": "summary:Anchor",
       "sender": "vsl_67@danaos.com",
-      "found": true,
-      "rob_draft_fwd": 13.2,
-      "rob_draft_mid": 13.1,
-      "rob_draft_aft": 13.4
+      "found": true
     },
     {
       "vessel": "TB JINJIANG",
@@ -939,10 +816,7 @@
       "report_time": "2026-10-12 17:28:25",
       "source": "TB JINJIANG NOON REPORT",
       "sender": "tbjinjiang@msatmail.com",
-      "found": true,
-      "rob_draft_fwd": 7.9,
-      "rob_draft_mid": 8.2,
-      "rob_draft_aft": 8.5
+      "found": true
     },
     {
       "vessel": "ZHONG GU ZHU HAI",
@@ -961,17 +835,14 @@
       "report_time": "2026-10-19 17:16:54",
       "source": "CUL NOON REPORT20261019",
       "sender": "zhongguzhuhai@zhonggushipping.com",
-      "found": true,
-      "rob_draft_fwd": 8.3,
-      "rob_draft_mid": 9.15,
-      "rob_draft_aft": 10.0
+      "found": true
     },
     {
       "vessel": "C LION",
       "code": "LION",
       "lane": "CGX",
       "pic": "Kevin Du",
-      "rob_lsfo": 1956.5,
+      "rob_lsfo": 1894.0,
       "rob_hsfo": 0.0,
       "rob_mgo": 200.3,
       "rob_ulsfo": 76.6,
@@ -979,21 +850,18 @@
       "rob_fw": null,
       "rob_refeer": null,
       "rob_speed": null,
-      "report_type": "BERTH",
-      "report_time": "2026-10-19 20:13:40",
-      "source": "C LION BERTH REPORT 19/10/2026",
+      "report_type": "Anchor",
+      "report_time": "2026-10-22 00:13:16",
+      "source": "summary:Anchor",
       "sender": "vsl_133@danaos.com",
-      "found": true,
-      "rob_draft_fwd": 13.9,
-      "rob_draft_mid": 13.95,
-      "rob_draft_aft": 14.0
+      "found": true
     },
     {
       "vessel": "EXPRESS BERLIN",
       "code": "XPBL",
       "lane": "CGX",
       "pic": "Javier Tao",
-      "rob_lsfo": 1197.8,
+      "rob_lsfo": 1073.9,
       "rob_hsfo": 0.0,
       "rob_mgo": 571.3,
       "rob_ulsfo": 0.0,
@@ -1001,36 +869,30 @@
       "rob_fw": 480.0,
       "rob_refeer": 0.0,
       "rob_speed": 15.33,
-      "report_type": "SAILING",
-      "report_time": "2026-10-19 14:21:36",
-      "source": "CGX // EXPRESS BERLIN 2632E / / Daily Noon Report 19th of October 2026",
+      "report_type": "Anchor",
+      "report_time": "2026-10-22 11:56:27",
+      "source": "summary:Anchor",
       "sender": "vsl_117@danaos.com",
-      "found": true,
-      "rob_draft_fwd": 8.8,
-      "rob_draft_mid": 8.26,
-      "rob_draft_aft": 8.5
+      "found": true
     },
     {
       "vessel": "BAMSI BEYREK",
       "code": "BIBK",
       "lane": "HLX",
       "pic": "Lex Yang",
-      "rob_lsfo": 1216.0,
+      "rob_lsfo": 460.0,
       "rob_hsfo": null,
-      "rob_mgo": 90.2,
+      "rob_mgo": 45.0,
       "rob_ulsfo": null,
       "rob_bw": null,
       "rob_fw": null,
       "rob_refeer": null,
       "rob_speed": null,
-      "report_type": "SAILING",
-      "report_time": "2026-10-20 12:49:49",
-      "source": "[NT] M/V BAMSI BEYREK //  DRIFTING REPORT 20.10.2026",
+      "report_type": "Resume Sailing",
+      "report_time": "2026-10-22 12:50:02",
+      "source": "summary:Resume Sailing",
       "sender": "bamsibeyrek@negmar.com",
-      "found": true,
-      "rob_draft_fwd": 10.4,
-      "rob_draft_mid": 11.3,
-      "rob_draft_aft": 12.0
+      "found": true
     },
     {
       "vessel": "STAR BLESSING",
@@ -1039,20 +901,17 @@
       "pic": "Hardy Hou",
       "rob_lsfo": 960.1,
       "rob_hsfo": 0.0,
-      "rob_mgo": 65.5,
+      "rob_mgo": 65.0,
       "rob_ulsfo": 0.0,
       "rob_bw": 3944.0,
       "rob_fw": 132.0,
       "rob_refeer": null,
       "rob_speed": 13.0,
-      "report_type": "BERTH",
-      "report_time": "2026-10-20 03:32:01",
-      "source": "STAR BLESSING/ IN NSA TO IN MUN/ 2026.10.19/ SAILING REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 15:00:18",
+      "source": "summary:Sailing",
       "sender": "starblessing@163.com",
-      "found": true,
-      "rob_draft_fwd": 8.8,
-      "rob_draft_mid": 8.85,
-      "rob_draft_aft": 8.9
+      "found": true
     },
     {
       "vessel": "MEDKON SINOP",
@@ -1067,14 +926,11 @@
       "rob_fw": 48.0,
       "rob_refeer": null,
       "rob_speed": 11.8,
-      "report_type": "BERTH",
-      "report_time": "2026-10-20 01:26:29",
-      "source": "MEDKON SINOP CUL SAILING REPORT-19.10.2026",
+      "report_type": "Sailing",
+      "report_time": "2026-10-20 01:26:30",
+      "source": "summary:Sailing",
       "sender": "medkonsinop@medkonlines.net",
-      "found": true,
-      "rob_draft_fwd": 4.9,
-      "rob_draft_mid": 5.53,
-      "rob_draft_aft": 6.15
+      "found": true
     },
     {
       "vessel": "CUL HUANGPU",
@@ -1083,20 +939,17 @@
       "pic": "Simon Shi",
       "rob_lsfo": 288.2,
       "rob_hsfo": 0.0,
-      "rob_mgo": 25.84,
+      "rob_mgo": 15.86,
       "rob_ulsfo": 0.0,
       "rob_bw": 2630.0,
       "rob_fw": 169.0,
       "rob_refeer": null,
       "rob_speed": 15.0,
-      "report_type": "BERTH",
-      "report_time": "2026-10-20 09:38:40",
-      "source": "CUL HUANGPU - 2639W 2026.10.20 DEP TWKHH SAILING REPORT",
+      "report_type": "Sailing",
+      "report_time": "2026-10-22 13:14:00",
+      "source": "summary:Sailing",
       "sender": "culhuangpu@culines.com",
-      "found": true,
-      "rob_draft_fwd": 6.5,
-      "rob_draft_mid": 6.7,
-      "rob_draft_aft": 7.0
+      "found": true
     },
     {
       "vessel": "KR CELEBES",
