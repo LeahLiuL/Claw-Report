@@ -59,8 +59,13 @@ ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
 ROUTE_FALLBACK = ""      # 源无任何段标题行时才留空(不再静默猜 RTS; 空航线由用户补)
 WINDOW_DAYS = 30
 
-# 航线修正(用户2026-07-30确认): 文件夹 -> 规范航线码(覆盖源R1C1的改名/错误)
-ROUTE_OVERRIDE = {"CUL NANSHA": "CCT"}     # 源R1C1误为HDT, 实为CCT
+# 航线修正: 文件夹 -> 规范航线码(覆盖源R1C1的改名/错误)。
+# 2026-10-22 清空: 原 {"CUL NANSHA": "CCT"} 是 2026-07-30 加的(当时源R1C1误为HDT), 现已过期 ——
+#   该船早已改跑 REX(源文件名 REX-CUNS-2026Y / 文件内容多段 REX / PIC汇总 登记 REX),
+#   而这条文件夹级覆盖会把它所有航段强制压成 CCT。改为信任源文件段标记(REX + RBC1),
+#   船以后再换航线可自动跟上, 无需再改代码。
+# ⚠️ 慎用: 这里一旦写死, 船换航线后不会自动更新, 会变成下一个 "CCT"。
+ROUTE_OVERRIDE = {}
 # 航线合并: 源航线码 -> 规范航线码(同一条航线在源里有不同叫法)
 ROUTE_ALIAS = {"AM1": "AEM"}                # AEM 与 AM1 是同一航线
 
