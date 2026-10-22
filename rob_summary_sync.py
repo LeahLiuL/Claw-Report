@@ -239,6 +239,35 @@ def _pick_rob_cols(hdr):
     return cols
 
 
+def parse_failed_rows(path):
+    """'All' 页里 Status != 成功 的邮件 —— 这些是汇总系统解析失败的, 快速通道抓不到,
+    是船变旧却查不出原因时的首要嫌疑。"""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, data_only=True)
+    if "All" not in wb.sheetnames:
+        return []
+    rows = list(wb["All"].iter_rows(values_only=True))
+    if len(rows) < 2:
+        return []
+    hdr = [str(h or "").strip().upper() for h in rows[0]]
+
+    def idx(name):
+        return hdr.index(name) if name in hdr else None
+
+    it, ir, ist, isr = (idx("EMAIL TITLE"), idx("EMAIL RECEIVED TIME"),
+                        idx("STATUS"), idx("STATUS REMARK"))
+    out = []
+    for r in rows[1:]:
+        st = str(r[ist] or "").strip() if ist is not None else ""
+        if not st or st in ("成功", "OK", "Success"):
+            continue
+        out.append((str(r[ir] or "")[:19] if ir is not None else "",
+                    str(r[it] or "")[:60] if it is not None else "",
+                    st,
+                    str(r[isr] or "")[:30] if isr is not None else ""))
+    return out
+
+
 def parse_summary_xlsx(path):
     """-> [(code, lane, voyage, report_type, rob_dict, recv_dt, date_str)]"""
     import openpyxl
@@ -341,6 +370,7 @@ def main():
     latest = {}       # code -> record
     unknown = set()
     zero_all = []
+    failed_all = []
     nrows = 0
     for rt, m, subj in mails:
         got = None
@@ -362,6 +392,8 @@ def main():
             print("  [WARN] parse %s failed: %s" % (os.path.basename(got), e))
             continue
         nrows += len(rows)
+        for f in parse_failed_rows(got):
+            failed_all.append(f)
         for r in rows:
             key = r["code"]
             prev = latest.get(key)
@@ -377,6 +409,14 @@ def main():
     print("parsed ROB rows: %d | vessels in summaries: %d" % (nrows, len(latest)))
     if zero_all:
         print("[skip] all-zero ROB rows (unfilled by crew): %d" % len(zero_all))
+    if failed_all:
+        print("[missed-by-summary] %d emails the upstream parser FAILED on "
+              "(these never reach us - only a full scan can recover them):"
+              % len(failed_all))
+        for t, title, st, rem in failed_all[-15:]:
+            print("   %s | %-52s | %s %s" % (t[5:], title, st, rem))
+        print("   -> if a stale vessel above appears here, run the FULL scan "
+              "(desktop: ROB_更新一次.bat)")
     if unknown:
         print("[note] codes not in current fleet: %s" % ", ".join(sorted(unknown)))
 
