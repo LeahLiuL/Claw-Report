@@ -26,6 +26,7 @@ import json
 import argparse
 import datetime
 import tempfile
+import time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROB_DIR = os.path.join(BASE, "rob_data")
@@ -55,9 +56,81 @@ def norm(s):
 
 
 # ---------------------------------------------------------------- 取汇总邮件
+OUTLOOK_EXE = r"C:\Program Files\Microsoft Office\Root\Office16\OUTLOOK.EXE"
+
+
+def _outlook_alive():
+    """Outlook 进程是否已在跑(用 GetActiveObject, 不会把没开的 Outlook 拉起来)。"""
+    import win32com.client
+    try:
+        win32com.client.GetActiveObject("Outlook.Application")
+        return True
+    except Exception:
+        return False
+
+
+def ensure_outlook(max_wait=300, minimize=True):
+    """保证 Outlook 可用: 没开就拉起, 并等 Exchange 缓存同步到可用为止。
+
+    为什么要等: Outlook 刚启动时"进程在、能连 COM", 但缓存还没同步完,
+    此时 Restrict 只返回已同步的那一小部分 —— 刷新会照常跑完却抓不到新报告,
+    且看不出任何异常(2026-09-22 / 10-09 都栽在这里)。
+    """
+    import time
+    import subprocess
+    import win32com.client
+
+    started = False
+    if not _outlook_alive():
+        print("[outlook] not running -> launching")
+        try:
+            os.startfile("outlook")           # 走 App Paths 注册, 最稳
+        except Exception:
+            subprocess.Popen([OUTLOOK_EXE])
+        started = True
+    else:
+        print("[outlook] already running")
+
+    app = None
+    t0 = time.time()
+    mode = None
+    n = 0
+    while time.time() - t0 < max_wait:
+        try:
+            app = win32com.client.Dispatch("Outlook.Application")
+            ns = app.GetNamespace("MAPI")
+            mode = None
+            try:
+                mode = ns.ExchangeConnectionMode
+            except Exception:
+                pass
+            if mode:                       # 0 = 还没建立 Exchange 连接
+                try:
+                    n = ns.GetDefaultFolder(6).Items.Count
+                except Exception:
+                    n = 0
+                if n > 200:                # 收件箱有货 = 缓存可用
+                    break
+        except Exception:
+            pass
+        time.sleep(5)
+
+    print("[outlook] ready: mode=%s inbox=%d (%.0fs)" % (mode, n, time.time() - t0))
+    if mode and mode < 700:
+        print("[outlook][WARN] mode=%s < 700, 缓存可能还没全同步, 结果可能不全" % mode)
+
+    if started and minimize and app is not None:
+        try:
+            app.ActiveExplorer().WindowState = 1      # 1 = olMinimized
+        except Exception:
+            pass
+    return app
+
+
 def find_summary_emails(days):
     """返回 [(received_datetime, mail_item, subject)] 按时间升序。"""
     import win32com.client
+    ensure_outlook()
     app = win32com.client.Dispatch("Outlook.Application")
     ns = app.GetNamespace("MAPI")
     since = datetime.datetime.now() - datetime.timedelta(days=days)
@@ -249,6 +322,16 @@ def main():
     print("existing results: %d vessels (code map %d)" % (len(results), len(by_code)))
 
     mails = find_summary_emails(args.days)
+    # 同步完整性校验: 每天应有 2 封(09:00 / 15:00)。明显偏少 = 缓存还没同步完,
+    # 等一会儿重扫(状态能自愈, 别一次定生死 —— 2026-10-09 就因为只扫一次漏了 3 艘)
+    expect = args.days * 2
+    for _try in range(2):
+        if len(mails) >= max(2, int(expect * 0.6)):
+            break
+        print("[WARN] only %d summary emails (expect ~%d) - cache may still be "
+              "syncing; wait 60s and rescan (%d/2)" % (len(mails), expect, _try + 1))
+        time.sleep(60)
+        mails = find_summary_emails(args.days)
     print("summary emails found (last %dd): %d" % (args.days, len(mails)))
     if not mails:
         print("nothing to do")
