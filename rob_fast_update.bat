@@ -32,8 +32,9 @@ git fetch origin >> %LOG% 2>&1
 if errorlevel 1 echo [WARN] git fetch failed, reconcile via safe-push >> %LOG%
 
 REM ---- [3/4a] original crew report mail sync (primary) ----
+REM 5-day window: even if one scheduled run is missed, the next one backfills.
 echo [3/4] rob_mail_sync (original crew reports) ... >> %LOG%
-"%PYEXE%" rob_mail_sync.py --days 3 --apply >> %LOG% 2>&1
+"%PYEXE%" rob_mail_sync.py --days 5 --apply >> %LOG% 2>&1
 if errorlevel 1 echo [WARN] rob_mail_sync failed, continue with summary sync >> %LOG%
 
 REM ---- [3/4b] summary email sync (supplement) ----
