@@ -31,6 +31,7 @@ Intended to be run by a WorkBuddy automation on a schedule so the public site
 stays in sync with the spreadsheet on the FTP server. Requires VPN to reach
 10.5.4.2 and git push credentials to be available in the local environment.
 """
+import json
 import os, subprocess, sys, time
 
 REPO = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +39,13 @@ PY   = sys.executable
 DB   = os.path.join(REPO, "bapfile.db")
 SITE = os.path.join(REPO, "site")
 LOCK = os.path.join(REPO, ".bapfile_pipeline.lock")
+
+# A healthy rolling-window export is 28-49 MB. Anything far below this
+# means the server-side export itself is incomplete (seen 2026-10-01 and
+# 2026-10-26: ~6 MB truncated ZIP). Still append (dedup keeps the DB safe)
+# but flag it loudly so the partial-data day is visible in logs.
+MIN_HEALTHY_SOURCE_BYTES = 15 * 1024 * 1024
+SOURCE_FLAG = os.path.join(REPO, "_last_source_flag.json")
 
 CULINES_DIR = r"C:\CULINES\Claw Report"
 REMOTE_XLSX = os.path.join(CULINES_DIR, "Vessel Bapfile.xlsx")
@@ -82,6 +90,44 @@ def release_lock():
         pass
 
 
+def check_source_health(path, stage):
+    """Warn + write a marker file when the source xlsx is suspiciously small."""
+    try:
+        size = os.path.getsize(path)
+    except OSError as e:
+        print(f"[source-health] {stage}: cannot stat {path}: {e}")
+        return
+    if size < MIN_HEALTHY_SOURCE_BYTES:
+        mtime = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(path)))
+        print(
+            f"[source-health] *** WARNING *** source xlsx is only {size:,} bytes "
+            f"(mtime {mtime}) — far below the healthy 28-49 MB. Likely a partial/"
+            f"truncated server-side export: only PARTIAL data was appended today. "
+            f"Tomorrow's healthy export will backfill automatically (rolling window + dedup).",
+            flush=True,
+        )
+        try:
+            with open(SOURCE_FLAG, "w", encoding="utf-8") as f:
+                json.dump({
+                    "flagged_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "stage": stage,
+                    "path": path,
+                    "size_bytes": size,
+                    "mtime": mtime,
+                    "verdict": "PARTIAL_SOURCE_SUSPECTED",
+                }, f, ensure_ascii=False, indent=2)
+            print(f"[source-health] flag written: {SOURCE_FLAG}")
+        except OSError as e:
+            print(f"[source-health] cannot write flag file: {e}")
+    else:
+        print(f"[source-health] OK: {stage} source is {size:,} bytes")
+        try:
+            if os.path.exists(SOURCE_FLAG):
+                os.remove(SOURCE_FLAG)  # healthy source clears a previous flag
+        except OSError:
+            pass
+
+
 def fetch_source():
     """Step 0: get a usable local xlsx. Returns the path to feed into step 1.
 
@@ -93,6 +139,7 @@ def fetch_source():
     print("[0/4] downloading latest Vessel Bapfile.xlsx from SFTP ...")
     try:
         run([PY, os.path.join(REPO, "sftp_fetch.py")])
+        check_source_health(os.path.join(REPO, "Vessel Bapfile.xlsx"), "sftp_fetch")
         return None
     except subprocess.CalledProcessError:
         print("[0/4] sftp_fetch.py failed — trying resume-download + repair fallback ...")
@@ -101,6 +148,7 @@ def fetch_source():
         # (prints REPAIR_NEEDED); repair_bapfile.py rebuilds a valid xlsx.
         run([PY, os.path.join(REPO, "repair_bapfile.py"), REMOTE_XLSX, REPAIRED_XLSX])
         print("[0/4] fallback OK — repaired xlsx will be appended: " + REPAIRED_XLSX)
+        check_source_health(REPAIRED_XLSX, "repair_fallback")
         return REPAIRED_XLSX
 
 
