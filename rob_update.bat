@@ -1,37 +1,45 @@
 @echo off
 REM ============================================================
-REM  ROB daily auto-update entry (run by scheduled tasks 13:00 & 01:00)
+REM  ROB FULL deep-scan update entry (manual / fallback use).
+REM  The daily 01:00 + 13:00 scheduled tasks use rob_fast_update.bat instead.
 REM  Unattended: no pause; all output -> rob_data\autoupdate.log
+REM
+REM  ASCII-ONLY ON PURPOSE.  UTF-8 Chinese in a .bat makes cmd.exe mis-parse
+REM  the file (it reads bytes as GBK) and the script dies on line 1 without
+REM  writing any log.  That silently broke the daily task for 4 days
+REM  (2026-10-23..26).  NEVER add Chinese here.  Put Chinese in .py files.
 REM ============================================================
 cd /d %~dp0
 set LOG=rob_data\autoupdate.log
 echo ===== %date% %time% ===== >> %LOG%
 
-REM 解释器: 统一管理版 venv(含 win32com / openpyxl / pycryptodome)。
+REM interpreter: managed venv (win32com / openpyxl / pycryptodome)
 set PYEXE=C:\Users\culadmin\.workbuddy\binaries\python\envs\default\Scripts\python.exe
 if not exist "%PYEXE%" set PYEXE=C:\Users\culadmin\.workbuddy\binaries\python\versions\3.13.12\python.exe
 
-REM ---- [0/5] git 操作互斥锁 ----
-REM 本机 7 个计划任务并发操作同一仓库, 2026-09-22/09-24 两次 .git 对象库损坏。
-REM 全程持锁(含刷新的 6-8 分钟), 他人持锁最多等 5 分钟, 等不到跳过本轮(下轮重试)。
+REM ---- [0/5] git operation mutex lock ----
+REM 7 scheduled tasks touch this repo; the .git object store was corrupted
+REM twice (2026-09-22 / 09-24). Hold the lock for the whole run (6-8 min).
+REM If someone else holds it, wait up to 5 min, else skip (next run retries).
 "%PYEXE%" git_op_lock.py acquire --owner rob_update --wait 300 >> %LOG% 2>&1
 if errorlevel 1 (
     echo [ERROR] git op lock held by another job, skip this run ^(next scheduled run will retry^) >> %LOG%
     exit /b 1
 )
 
-REM ---- [1/5] git fetch (不再 pull --rebase: rebase 在本机两次损坏仓库) ----
-REM 工作树对齐交给末尾 git_safe_push.py 的安全协议(commit->ls-remote->对齐->push),
-REM 生成前只 fetch 不动工作树, 避免与其它自动化抢工作树。
+REM ---- [1/5] git fetch (never pull --rebase: rebase corrupted this repo twice) ----
+REM Worktree alignment is handled by git_safe_push.py at the end
+REM (commit -> ls-remote -> align -> push). Here we only fetch, never touch
+REM the worktree, to avoid racing the other automations.
 echo [1/5] git fetch ...
 git fetch origin >> %LOG% 2>&1
 if errorlevel 1 ( echo [WARN] git fetch failed, will reconcile via safe-push >> %LOG% )
 
-echo [2/5] sync_bunkering.py ^(加油量, 仅体积, 价格不上网^) ...
+echo [2/5] sync_bunkering.py ^(bunkering VOLUME only - prices never leave this PC^) ...
 if exist sync_bunkering.py (
     "%PYEXE%" sync_bunkering.py >> %LOG% 2>&1
     if errorlevel 1 (
-        echo [WARN] sync_bunkering failed - 网络盘未挂载或 openpyxl 缺失, 沿用上次 bunkering.json >> %LOG%
+        echo [WARN] sync_bunkering failed - network drive not mounted or openpyxl missing, keeping last bunkering.json >> %LOG%
     )
 ) else (
     echo [WARN] sync_bunkering.py not found, skip >> %LOG%
