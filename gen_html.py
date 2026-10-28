@@ -26,7 +26,7 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
-from build_fleet_movement import GEN_DIR, ROUTE_ORDER, is_lane_code, is_port_code, PORT_CODES
+from build_fleet_movement import GEN_DIR, KNOWN_LANES, ROUTE_ORDER, is_lane_code, PORT_CODES
 DEFAULT_EXCEL = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
 
@@ -109,7 +109,7 @@ def extract(excel_path, pic_map=None):
     ws_src = wb_src.active
 
     vessel_blocks = []
-    cur_lane = ''         # 向上最近的 lane 行（col1∈ROUTE_SET 且 col9 非日期）
+    cur_lane = ''         # 向上最近的 lane 行（col1 经 is_lane_code 确认为 lane 且 col9 非日期）
     rows_total = ws_src.max_row
     i = 1
     while i <= rows_total:
@@ -117,23 +117,14 @@ def extract(excel_path, pic_map=None):
         c1_i = ws_src.cell(i, 1).value
         c9_i = ws_src.cell(i, 9).value
         s1_i = str(c1_i).strip() if c1_i is not None else ''
-        # 外层扫描同样维护 cur_lane；仅当 C1 是已知航线码(白名单, 含 WAT/KCI/GTS)才更新,
-        # 端口码(CNNGB/CNTAO…)不会误判为 lane
+        # 外层扫描同样维护 cur_lane（lane 行可能出现在两个船块之间）
         if is_lane_code(s1_i) and not isinstance(c9_i, datetime):
             cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
-            block_route = s1_i if not is_port_code(s1_i) else (cur_lane or '')   # PIC 行 col1 即本块 route; 港口码不当 lane, 回退当前 lane
-            # 重置本船块的默认 lane = 块头 route。修复未知 lane(如 KCI)因不在 ROUTE_SET
-            # 而无法更新 cur_lane、导致继承上一艘船 lane 的 bug；多 lane 船(如 SGX→NP2)
-            # 仍由块内子 lane 行覆盖, 不受影响。
-            cur_lane = block_route
+            block_route = s1_i   # PIC 行 col1 即本块 route（已由 is_lane_code 门控确保为合法 lane/标题码）
             vessel_full = get_str(ws_src.cell(i, 4).value)
-            # CODE（2026-09-30）：只认 PIC汇总 D 列（唯一权威源）。
-            # 匹配失败常见于已下线船——显示名带 "-已下线" 后缀，先把后缀剥掉再查，
-            # 仍然查不到才回退 PIC 行 col9（build 写入的值）。
-            vessel_code = (pic_map.get(_norm_vessel(vessel_full))
-                           or pic_map.get(_norm_vessel(_strip_decom(vessel_full)))
-                           or get_str(ws_src.cell(i, 9).value))
+            # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
+            vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
             pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
 
             schedule_rows = []   # list of (row, route) — route = 该行向上最近的 lane 行
@@ -142,7 +133,7 @@ def extract(excel_path, pic_map=None):
             j = i + 2
             while j <= rows_total:
                 c1_j = ws_src.cell(j, 1).value
-                # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）; 仅白名单航线码
+                # 块内 lane 行也更新 cur_lane（同船跨 lane 块的关键）
                 s1j = str(c1_j).strip() if c1_j is not None else ''
                 c9_j0 = ws_src.cell(j, 9).value
                 if is_lane_code(s1j) and not isinstance(c9_j0, datetime):
@@ -357,6 +348,11 @@ BOA_LANE_TRADE_FALLBACK = {
     'CST/SL1': 'TH',  # 组合航线 CST/SL1 → TH (映射表中 CST→TH、SL1→TH)
 }
 
+# 某些船期的 route 列会错误地放 vessel code（如 ZGCD），需纠正为实际航线
+VESSEL_ROUTE_OVERRIDE = {
+    'ZGCD': 'AEM',  # ZHONG GU CHENG DU 实际属 AEM 航线
+}
+
 # ── Lane 行识别（2026-09-22）：每个港口行的 route = 向上最近的 lane 行 ──────
 # 一艘船可能跨多个 lane 块（如 M. MARINER 同时有 CST 和 SGX 船期），
 # 旧逻辑按 PIC 行 col1 向下继承会把整块抓成同一个 route（SGX 块被错抓成 SL1）。
@@ -371,15 +367,9 @@ PIC_XLSX = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 def _norm_vessel(s):
     return re.sub(r'[^A-Z0-9]', '', str(s).upper())
 
-def _strip_decom(name):
-    """去掉船名里的"已下线"标记, 用于拿船名去 PIC汇总 查权威代码。
-    网页端显示名可能是 "CUL JAKARTA-已下线", 而表里登记的 key 是 "CUL JAKARTA"。"""
-    return re.sub(r'[\s\-_]*已下线[\s\-_]*', '', str(name or ''), flags=re.I).strip().strip('-_ ')
-
 def load_pic_code_map(pic_path=None):
     """PIC汇总.xlsx: A=航线 B=船名 C=文件夹名 D=船代码 E=PIC F=状态。
-    返回 {规范化名: 船代码}, 同时登记【文件夹名】与【显示名】两种 key —— 网页端拿到的
-    是显示名(C4), 用双键才能保证两边都命中同一张权威表(2026-09-30 用户确认)。"""
+    返回 {规范化船名: 船代码}。文件不可达时返回空 dict（回退旧 col9 逻辑）。"""
     pic_path = pic_path or PIC_XLSX
     m = {}
     if not os.path.exists(pic_path):
@@ -391,17 +381,12 @@ def load_pic_code_map(pic_path=None):
         for ri, row in enumerate(ws.iter_rows(values_only=True), 1):
             if ri == 1:
                 continue  # header
-            disp   = row[1] if len(row) > 1 else None   # B = 船名(显示)
-            folder = row[2] if len(row) > 2 else None   # C = 文件夹名
-            code   = row[3] if len(row) > 3 else None   # D = 船代码
-            if not code:
-                continue
-            code = str(code).strip()
-            for name in (disp, folder):
-                if name and str(name).strip():
-                    m[_norm_vessel(str(name).strip())] = code
+            vessel = row[1] if len(row) > 1 else None
+            code = row[3] if len(row) > 3 else None   # D 列 = 船代码
+            if vessel and code:
+                m[_norm_vessel(vessel)] = str(code).strip()
         wb.close()
-        print(f'  -> PIC汇总 code 映射 {len(m)} key ({pic_path})')
+        print(f'  -> PIC汇总 code 映射 {len(m)} 条 ({pic_path})')
     except Exception as e:
         print('WARN load PIC汇总 failed:', e)
     return m
@@ -1461,8 +1446,8 @@ function _loadXlsx(cb){
       <div class="col-dropdown" id="colDropdown1"></div>
     </div>
     <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)" checked>
-      <span class="decom-dot">✓</span>
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
+      <span class="decom-dot">+</span>
       <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal">&#8212; vessels</span>
@@ -1507,8 +1492,8 @@ function _loadXlsx(cb){
     </div>
     <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
     <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
-      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)" checked>
-      <span class="decom-dot">✓</span>
+      <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
+      <span class="decom-dot">+</span>
       <span>Show 已下线</span>
     </label>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
@@ -1552,7 +1537,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. Berth Rate = calls berthed within threshold (wait &#8804; 12h for CNSHA/CNNGB, &#8804; 6h for other ports) / total calls in selected range. Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. BOA Rate = calls berthed within the selected window / total calls in selected range. The BOA window follows the Over-range selector above: All over = standard (CNSHA/CNNGB 12h, others 6h); 24h+ = 24h for all ports; 48h+ = 48h for all ports (wait beyond the window counts as no BOA). Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -1604,7 +1589,7 @@ function _loadXlsx(cb){
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; Berth = WAIT &le; threshold (CNSHA &amp; CNNGB 12h, others 6h) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Over-range options: All over = WAIT &gt; threshold; 24h+ = WAIT &ge;24h; 48h+ = WAIT &ge;48h. Only the over count changes with range; berth count is unchanged.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; BOA = WAIT &le; window (All over: CNSHA &amp; CNNGB 12h, others 6h; 24h+: 24h for all ports; 48h+: 48h for all ports) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Both the BOA count and Over count follow the Over-range selector, so BOA Rate changes with it too.</p>
 
     <div class="sub-controls" style="padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
@@ -1615,9 +1600,9 @@ function _loadXlsx(cb){
 
     <div class="boa-chips">
       <div class="boa-chip"><div class="num" id="boaChipTotal">&#8212;</div><div class="lbl2">Total calls</div></div>
-      <div class="boa-chip green"><div class="num" id="boaChipBerth">&#8212;</div><div class="lbl2">Berth</div></div>
+      <div class="boa-chip green"><div class="num" id="boaChipBerth">&#8212;</div><div class="lbl2">BOA</div></div>
       <div class="boa-chip orange"><div class="num" id="boaChipOver">&#8212;</div><div class="lbl2">Over (current range)</div></div>
-      <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">Berth rate (current range)</div></div>
+      <div class="boa-chip"><div class="num" id="boaChipRate">&#8212;</div><div class="lbl2">BOA rate (current range)</div></div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;">
@@ -1837,7 +1822,7 @@ const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
-var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','RTS','WAT','KCI','GTS','SGX','RES','CGX','HLX','CGS','AEM','IMR','NAX','JPS','SJA'];
+var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','CGS','AEM','EVHA','SGX','SJA','JPS','SHTG','RTS','WAT','KCI','GTS','SL1','CGX','HLX','IMR','NAX','RES'];
 // 时间列 → 分钟级排序键（显示值 'MM/DD HH:MM' 无年份，*Raw 只有日期，只有 *Sort 可精确排序）
 var TIME_SORT_KEY = {eta:'etaSort', etb:'etbSort', etd:'etdSort'};
 
@@ -2123,14 +2108,12 @@ function switchTab(viewId, btn){
 /* ═══════════════════════════════════════════════════════════════════
    DECOMMISSIONED VESSELS (已下线)
    源 Excel 中已退租/下线的船，船名带 "-已下线" 后缀。
-   Summary 与 Full Schedule 默认【显示】这些船并计入统计（2026-09-30 起）；
-   只想看在营船时取消勾选工具栏的 "Show 已下线" 即可临时隐藏。
+   Summary 与 Full Schedule 默认隐藏这些船（含其筛选下拉、导出、统计数）；
+   需要查看历史时勾选工具栏的 "Show 已下线" 即可临时显示。
    ═══════════════════════════════════════════════════════════════════ */
 var DECOM_MARK = '已下线';
-/* 默认【显示】已下线船舶并计入各模块统计（2026-09-30 用户确认：这些船的历史数据
-   参与其他模块统计）。需要只看在营船时取消勾选 "Show 已下线"，选择记在本页 sessionStorage。 */
-var SHOW_DECOM = true;
-try{ var _sd = sessionStorage.getItem('showDecom'); SHOW_DECOM = (_sd===null) ? true : (_sd==='1'); }catch(e){ SHOW_DECOM=true; }
+var SHOW_DECOM = false;
+try{ SHOW_DECOM = sessionStorage.getItem('showDecom')==='1'; }catch(e){ SHOW_DECOM=false; }
 
 function isDecommissioned(v){ return typeof v==='string' && v.indexOf(DECOM_MARK)>=0; }
 
@@ -2887,7 +2870,7 @@ function exportPortWaitVvdExcel(wb){
   data.forEach(function(rec){
     var port=rec.port||'';
     var region=rec.region||'Unknown';
-    var th=berthThreshold(port);
+    var th=effectiveBerthThreshold(port);  // BOA window follows the Over-range selector
     (rec.calls||[]).forEach(function(cl){
       var w=parseFloat(cl.wait)||0;
       rows.push({port:port, region:region, vessel:cl.vessel||'', code:cl.code||'', voy:cl.voy||'',
@@ -3599,14 +3582,17 @@ var monthlyTrendData=[];
 // Berth threshold: Shanghai (CNSHA) and Ningbo (CNNGB) use 12h, all other ports 6h.
 function berthThreshold(port){ return (port==='CNSHA' || port==='CNNGB') ? 12 : 6; }
 var PORT_OVER_RANGE='all';
+// BOA (berth-on-arrival) window — follows the Over-range selector:
+//   all   → standard window (CNSHA/CNNGB 12h, others 6h)
+//   24+   → 24h for every port  (wait > 24h ⇒ no BOA)
+//   48+   → 48h for every port  (wait > 48h ⇒ no BOA)
+function effectiveBerthThreshold(port){
+  if(PORT_OVER_RANGE === '24+') return 24;
+  if(PORT_OVER_RANGE === '48+') return 48;
+  return berthThreshold(port);
+}
 function portOverInRange(wait, port){
-  if(wait <= berthThreshold(port)) return false;  // berth, not over
-  switch(PORT_OVER_RANGE){
-    case 'all': return true;
-    case '24+': return wait >= 24;
-    case '48+': return wait >= 48;
-  }
-  return false;
+  return wait > effectiveBerthThreshold(port);  // berth = wait ≤ window; else Over
 }
 
 // Merge port name variants: AEJEA(T1)→AEJEA, CNSHK-CCT→CNSHK, DJJIB(DMP)→DJJIB,
@@ -3707,7 +3693,7 @@ function buildPortWaitData(){
     if(effWait>rec.maxWait) rec.maxWait=effWait;
     if(effWait>=24) rec.longWaitCalls++;
     if(portOverInRange(effWait, port))     rec.overCalls++;
-    if(effWait <= berthThreshold(port)) rec.berthedCalls++;  // berthed = waited within threshold (SHA/NGB 12h, others 6h); effWait 0 always qualifies
+    if(effWait <= effectiveBerthThreshold(port)) rec.berthedCalls++;  // BOA = berthed within the selected window (follows Over-range); effWait 0 always qualifies
     if(remark){
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
       rec.remarks[cat].push(remark);
@@ -3767,7 +3753,7 @@ function buildPortWaitData(){
     mr.totalWait+=cl.wait;
     mr.count++;
     if(cl.wait>mr.maxWait) mr.maxWait=cl.wait;
-    if(cl.wait <= berthThreshold(cl.port||'')) mr.berthedCalls++;  // berthed = waited within threshold
+    if(cl.wait <= effectiveBerthThreshold(cl.port||'')) mr.berthedCalls++;  // berthed = waited within the selected window (follows Over-range)
     mr.calls.push(cl);
   });
   // Sort months
@@ -3789,7 +3775,7 @@ var PORT_WAIT_COLS=[
   {key:'avgWait',   label:'Avg Wait (hrs)'},
   {key:'maxWait',   label:'Max Wait (hrs)'},
   {key:'overCalls', label:'Over (range)'},
-  {key:'berthRate', label:'Berth Rate'},
+  {key:'berthRate', label:'BOA Rate'},
   {key:'catLabels', label:'Remark Categories'},
 ];
 
@@ -3933,7 +3919,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · berth rate = wait < threshold (CNSHA & CNNGB <12h, others <6h) / total calls · Over (range) follows current over-range selector';
+  statText+=' · BOA rate = berthed within the selected window (follows Over-range: 24h+/48h+ widen the window) / total calls · Over count follows the same selector';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -4448,21 +4434,13 @@ function buildBoaCalls(){
   return calls;
 }
 var BOA_HEADERS = {
-  boaTblTrade:  ['Trade', 'Berth', 'Over', 'Total', 'Rate'],
-  boaTblLane:   ['Trade', 'Lane', 'Berth', 'Over', 'Total', 'Rate'],
-  boaTblRegion: ['Port Region', 'Berth', 'Over', 'Total', 'Rate'],
-  boaTblPort:   ['Port Region', 'Port', 'Berth', 'Over', 'Total', 'Rate']
+  boaTblTrade:  ['Trade', 'BOA', 'Over', 'Total', 'Rate'],
+  boaTblLane:   ['Trade', 'Lane', 'BOA', 'Over', 'Total', 'Rate'],
+  boaTblRegion: ['Port Region', 'BOA', 'Over', 'Total', 'Rate'],
+  boaTblPort:   ['Port Region', 'Port', 'BOA', 'Over', 'Total', 'Rate']
 };
-function boaIsBerth(c){ return c.w <= berthThreshold(c.p); }  // berthed = waited within threshold (SHA/NGB 12h, others 6h)
-function boaOverInRange(c){
-  if(boaIsBerth(c)) return false;
-  switch(BOA_RANGE){
-    case 'all':   return true;            // All over = WAIT > threshold (≥6h, SHA≥12h)
-    case '24+':   return c.w >= 24;       // 24h+
-    case '48+':   return c.w >= 48;       // 48h+
-  }
-  return false;
-}
+function boaIsBerth(c){ return c.w <= effectiveBerthThreshold(c.p); }  // BOA = berthed within the selected window (follows Over-range)
+function boaOverInRange(c){ return !boaIsBerth(c); }  // Over = waited beyond the BOA window
 function boaAgg(items){
   var berth=0, over=0;
   items.forEach(function(c){
@@ -5383,9 +5361,8 @@ function init(){
     lbl.classList.toggle('on', SHOW_DECOM);
     var d=lbl.querySelector('.decom-dot'); if(d) d.textContent = SHOW_DECOM ? '✓' : '+';
   });
-  // 表头统计口径跟随 SHOW_DECOM：默认含已下线船舶，取消勾选后剔除
-  var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
-  var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
+  var _hdrV = (TODAY_DATA.vessels||[]).filter(function(r){return !isDecommissioned(r.vessel);});
+  var _hdrF = (TODAY_DATA.fullSchedule||[]).filter(function(r){return !isDecommissioned(r.vessel);});
   document.getElementById('headerDate').textContent='Data as of '+TODAY_DATA.date+'  |  Updated '+TODAY_DATA.generatedAt+'  |  '+_hdrV.length+' vessels  |  '+_hdrF.length+' schedule rows';
   document.getElementById('footerTs').textContent='Data updated: '+TODAY_DATA.generatedAt;
   initSummary();
