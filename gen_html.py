@@ -122,6 +122,12 @@ def extract(excel_path, pic_map=None):
             cur_lane = s1_i
         if c16 and isinstance(c16, str) and 'PIC' in c16:
             block_route = s1_i   # PIC 行 col1 即本块 route（已由 is_lane_code 门控确保为合法 lane/标题码）
+            # 每块开头必须重置 cur_lane: 否则上一块的 lane 会泄漏到本块。
+            # 典型故障(2026-10-28): ME3 / RBC1 不在 KNOWN_LANES 白名单 -> is_lane_code 为假
+            # -> cur_lane 永远不会被更新成它们 -> 因 `cur_lane or block_route` 而沿用上一条航线
+            # (KR CELEBES、CUL NANSHA/HOOGE 的 RBC1 段全被标成 NSCT1)。
+            # 重置后: 块内有 lane 行则用它(同船跨 lane), 否则兜底本块自己的 block_route。
+            cur_lane = ''
             vessel_full = get_str(ws_src.cell(i, 4).value)
             # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
             vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
