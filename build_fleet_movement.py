@@ -149,7 +149,10 @@ def _lane_code_shaped(n):
 
     norm() 已在 is_lane_code 里去掉空格并转大写, 故形如 'CUL VESSEL DAILY
     MOVEMENT' 的长标题会变成 22 位, 在此被挡下 —— 防止把报表大标题误登记成航线。
+    入参可能直接来自单元格原值(None/数字/日期), 故先做类型防御避免 TypeError。
     """
+    if not isinstance(n, str) or not n:
+        return False
     if not (2 <= len(n) <= 8):
         return False
     if not n.isascii() or not n.isalnum():
@@ -705,6 +708,16 @@ def main():
         if _n >= 0:
             print(f"  [新航线] 已写入 {os.path.basename(DYNAMIC_LANES_FILE)} "
                   f"(累计 {_n} 条): {', '.join(sorted(DYNAMIC_LANES))}")
+    elif AUTO_ABSORB_LANES:
+        # 恒打印一行, 便于每轮日志确认"吸收机制确实跑了、只是本轮无新航线",
+        # 而不是让人误以为代码没生效。
+        _f = DYNAMIC_LANES_FILE
+        _h = (json.load(open(_f, encoding="utf-8")).get("lanes", [])
+              if os.path.exists(_f) else [])
+        print(f"  [新航线] 本轮无新航线需吸收 (已登记 {len(_h)} 条: "
+              f"{', '.join(sorted(_h)) or '无'})")
+    else:
+        print("  [新航线] 自动吸收已关闭 (AUTO_ABSORB_LANES=False)")
 
     print("=== 3/4 分组排序 + 写表 ===")
     # 分组

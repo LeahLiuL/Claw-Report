@@ -41,3 +41,8 @@ site/data/
 
 # git 操作互斥锁文件(2026-09-24: 防多自动化并发损坏 .git, 见 git_op_lock.py)
 .git_op.lock
+
+# build 阶段自动吸收的新航线码(本机运行产物, 每轮 updated 时间戳都会变)。
+# 若提交进 git: ①每轮工作区必脏 → pull 易冲突; ②历史里塞满无意义的时间戳 diff。
+# 各台机器各自维护自己的副本即可(各自吸收各自扫到的新航线)。
+dynamic_lanes.json
