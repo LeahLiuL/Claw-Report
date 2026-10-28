@@ -100,13 +100,34 @@ def fmt_sort(v):
     return ''
 
 # ── Full Schedule 去重口径（2026-10-28 用户要求）───────────────────────────
-# 'biz'   : vessel+route+port+voy+eta+etd 相同即视为重复（默认）
-#           对应页面上"肉眼看着重复"的情形：主键一致，只是 run/speed/remark 等
-#           派生列随采集时点略有出入。route 参与比较，故跨航线段不会被误删。
+# 'biz'   : 业务键相同即视为重复（默认）。键见 FULL_DEDUP_BIZ_KEYS，
+#           当前 = vessel + port + eta + etb + etd（【船、港、ETA、ETB、ETD】）。
+#           注意：键里**不含** route / voy —— 用户 2026-10-28 明确指定这个口径，
+#           即"只要船+港+三个时间完全一样就算重复，数据以第一个为准"。
+#           因此跨航线段（同船同港同时间但 route 不同，如 M. MARINER 的 CST/SGX）
+#           也会被合并掉，这是用户确认后的取舍，不要擅自改回带 route。
 # 'exact' : 除 isSummary 外全部字段逐字相同才算重复（最保守，实测仅 5 行）
 # 'off'   : 不去重
 FULL_DEDUP_MODE = 'biz'
-FULL_DEDUP_BIZ_KEYS = ("vessel", "route", "port", "voy", "eta", "etd")
+FULL_DEDUP_TIME_FIELDS = ("eta", "etb", "etd")
+
+def _dedup_key(rec):
+    """业务去重键：船 + port + ETA/ETB/ETD。
+
+    ⚠️ 时间值必须用 *Sort（%Y-%m-%d %H:%M，**含年份**）—— 显示列 eta/etb/etd
+       只有 'MM/DD HH:MM'，拿它当键会把 2025 与 2026 同一时刻的两条记录误判成
+       重复而合并（实测会把 2530 行误杀到 578 行）。
+    ⚠️ *Sort 对非 datetime 一律返回 ''，若直接用会让所有"无时间"的行撞成同一个键。
+       故 *Sort 为空时退回显示值，以保留 OMIT / Mon 等文本标记之间的区别。
+    三个时间全为空 → 无从判断是否同一船期，返回 None，调用方保留该行不去重。
+    """
+    parts = [str(rec.get('vessel', '')), str(rec.get('port', ''))]
+    for _f in FULL_DEDUP_TIME_FIELDS:
+        _s = str(rec.get(_f + 'Sort', '') or '')
+        parts.append(_s if _s else str(rec.get(_f, '')))
+    if not any(parts[2:]):
+        return None
+    return tuple(parts)
 
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path, pic_map=None):
@@ -302,26 +323,30 @@ def extract(excel_path, pic_map=None):
     #                或同一艘船在「在营」与「已下线船舶」目录里各留了一份。
     #
     # 口径由 FULL_DEDUP_MODE 控制（见文件顶部），默认 'biz'：
-    #   同一船 + 同一 route + 同一 port + 同航次 + 同 ETA/ETD 即视为重复，
-    #   只留一条 —— 这才是页面上"肉眼看着重复"的情形（主键一致，
-    #   只是 run/speed/remark/fspDistance 随采集时点略有出入）。
-    #   route 参与比较，所以跨航线段（如 M. MARINER 的 CST 段与 SGX 段）
-    #   **不会被误删**，两段各自保留。
-    # 保留策略：默认留第一条；若组内某行被 Summary 选中（isSummary=True）
-    #           则改留该行，避免去重后把黄色高亮弄丢。
+    #   船 + port + ETA + ETB + ETD 五者全部相同即视为重复，只留一条。
+    #   （键里**不含** route / voy —— 用户 2026-10-28 明确指定的口径）
+    # 保留策略：**数据以第一个为准**，整行不替换；仅把 isSummary
+    #   （UI 派生高亮标记，非业务数据）向上合并，防止被 Summary 选中的那条
+    #   恰好落在重复组的第二条时丢失黄色高亮。
     if FULL_DEDUP_MODE == 'off':
         full_dedup_removed = 0
     else:
         _seen, _deduped = {}, []
         for _rec in full_schedule:
             if FULL_DEDUP_MODE == 'biz':
-                _key = tuple(str(_rec.get(k, '')) for k in FULL_DEDUP_BIZ_KEYS)
+                _key = _dedup_key(_rec)
+                if _key is None:
+                    # 三个时间全空：无法判定是否同一船期，一律保留
+                    _deduped.append(_rec)
+                    continue
             else:  # 'exact' —— 除 isSummary 外全部字段逐字相同才算重复
                 _key = tuple(str(_v) for _k, _v in sorted(_rec.items()) if _k != 'isSummary')
             _hit = _seen.get(_key)
             if _hit is not None:
+                # 数据以第一个为准 —— 绝不替换整行。
+                # 仅把 isSummary（UI 高亮标记）向上合并。
                 if _rec.get('isSummary') and not _deduped[_hit].get('isSummary'):
-                    _deduped[_hit] = _rec
+                    _deduped[_hit] = dict(_deduped[_hit], isSummary=True)
                 continue
             _seen[_key] = len(_deduped)
             _deduped.append(_rec)
