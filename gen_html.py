@@ -26,9 +26,16 @@ _BASES = [
     r"P:\04 上海操作中心\01 船期管理科\船期管理\VSL Daily Movement\更新",
 ]
 UPD_DIR = next((b for b in _BASES if os.path.isdir(b)), _BASES[0])
-from build_fleet_movement import GEN_DIR, KNOWN_LANES, ROUTE_ORDER, is_lane_code, PORT_CODES
+from build_fleet_movement import (GEN_DIR, KNOWN_LANES, ROUTE_ORDER, is_lane_code,
+                                  PORT_CODES, load_dynamic_lanes)
 DEFAULT_EXCEL = os.path.join(GEN_DIR, "CUL DAILY MOVEMENT.rebuilt.xlsx")
 DEFAULT_HTML  = os.path.join(SCRIPT_DIR, "cul_daily_movement.html")
+
+# 载入 build 阶段自动吸收的新航线码(跨进程持久化), 让 is_lane_code 认得新开航线。
+# 否则新 lane 恒为 False → cur_lane 不更新 → 沿用上一条航线而静默串台。
+_n_dyn = load_dynamic_lanes()
+if _n_dyn:
+    print('  [新航线] gen_html 载入 %d 条动态航线码' % _n_dyn)
 
 # ── Column definitions ─────────────────────────────────────────────────────
 # Full column list (all columns in the Excel schedule rows)

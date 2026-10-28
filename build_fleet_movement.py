@@ -29,7 +29,7 @@ build_fleet_movement.py  —— 重建版 CUL DAILY MOVEMENT 大Excel
   python build_fleet_movement.py --src "P:\\...\\2026" --output "CUL DAILY MOVEMENT.rebuilt.xlsx"
   (culadmin 那台默认 Z: 盘, 直接 python build_fleet_movement.py)
 """
-import argparse, os, glob, shutil, csv, re
+import argparse, os, glob, shutil, csv, re, json
 from datetime import datetime, date, timedelta
 import openpyxl
 
@@ -52,7 +52,8 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 # 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
 ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
-               "SGX","SJA","JPS","SHTG","RTS","WAT","KCI","GTS","NSX","SL1","CGX","HLX","IMR","NAX","RES","NSCT1"]
+               "SGX","SJA","JPS","SHTG","RTS","WAT","KCI","GTS","NSX","SL1","CGX","HLX","IMR","NAX","RES","NSCT1",
+               "ME3","RBC1"]   # ME3/RBC1: 用户 2026-10-28 确认为真实航线(KR CELEBES / CUL NANSHA 等)
 # 注: KCI(RACINE)/GTS(TB JINJIANG) 为用户确认的真实服务名, 已并入上表。
 #     WAT 原为 KR CELEBES 的服务名, 2026-10-22 用户确认【lane 一律以源文件最新值为准】后改为 ME3
 #     (源文件名 "KR CELEBES ME3 SCH" + 源内段标题均为 ME3); WAT 保留在排序表里仅作历史兼容。
@@ -130,6 +131,84 @@ def norm_date_value(v):
 # 仅含"服务/lane 码", 不含港口码 —— 港口码见下方 PORT_CODES 黑名单。
 KNOWN_LANES = set(norm(r) for r in ROUTE_ORDER) | {norm(k) for k in ROUTE_ALIAS} | {norm(v) for v in ROUTE_ALIAS.values()}
 
+# ── 新航线自动吸收（2026-10-28 根治改动）───────────────────────────────────
+# 背景: KNOWN_LANES 是静态白名单, 新开航线/换航线的码(ME3 / RBC1)不在里面 →
+#       is_lane_code() 恒为 False → cur_lane 永远更新不成新航线 → 沿用上一条
+#       航线而静默串台(2026-10-28 的 NSCT1 事故)。
+# 机制: read_source() 在正式扫描前先跑一遍"段标题结构位置"预扫, 把按结构确认
+#       为航线的码登记进 DYNAMIC_LANES; is_lane_code 随后认这些码。
+#       预扫覆盖整个文件, 故同文件内"先出现新 lane、后用到"也能正确识别。
+# 安全: 只登记【结构位置确认】的码(C4/C9 含本船船名或代码), 不做形态猜测;
+#       港口码被 PORT_CODES 硬闸挡住, 船名/船代码被 vessel_markers 排除。
+#       每吸收一个新码都会打印日志, 便于人工复核; 关掉设 AUTO_ABSORB_LANES=False。
+DYNAMIC_LANES = set()
+AUTO_ABSORB_LANES = True
+
+def _lane_code_shaped(n):
+    """形状闸门: 航线码都是 2~8 位 字母/数字 且必须含字母(排除纯数字与长标题/中文)。
+
+    norm() 已在 is_lane_code 里去掉空格并转大写, 故形如 'CUL VESSEL DAILY
+    MOVEMENT' 的长标题会变成 22 位, 在此被挡下 —— 防止把报表大标题误登记成航线。
+    """
+    if not (2 <= len(n) <= 8):
+        return False
+    if not n.isascii() or not n.isalnum():
+        return False
+    return any(ch.isalpha() for ch in n)
+
+def register_lane(code, where="", verbose=True):
+    """登记一个由【段标题结构位置】识别到的新航线码。返回 True = 新发现。"""
+    n = norm(code)
+    if not n or is_port_code(code) or n in KNOWN_LANES:
+        return False
+    if not _lane_code_shaped(n):
+        return False
+    KNOWN_LANES.add(n)
+    DYNAMIC_LANES.add(n)
+    if verbose:
+        print(f"  [新航线] 自动吸收 '{str(code).strip()}'{(' <- ' + where) if where else ''}")
+    return True
+
+# 持久化文件: build 阶段吸收到的新航线码落盘, 供 gen_html(独立进程)读取。
+# 这样即便将来有全新航线, 网页端的 is_lane_code 也能认, 不会静默串台。
+DYNAMIC_LANES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "dynamic_lanes.json")
+
+def load_dynamic_lanes(path=None):
+    """从 dynamic_lanes.json 载入历史吸收的航线码。返回新增条数。"""
+    p = path or DYNAMIC_LANES_FILE
+    if not os.path.exists(p):
+        return 0
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        codes = data.get("lanes", []) if isinstance(data, dict) else list(data)
+    except Exception as e:
+        print(f"  [WARN] 读取 {os.path.basename(p)} 失败: {e}")
+        return 0
+    return sum(1 for c in codes if register_lane(c, os.path.basename(p), verbose=False))
+
+def save_dynamic_lanes(path=None):
+    """把当前 DYNAMIC_LANES 合并回写 dynamic_lanes.json。返回总条数, 失败 -1。"""
+    p = path or DYNAMIC_LANES_FILE
+    old = set()
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            old = {norm(x) for x in (d.get("lanes", []) if isinstance(d, dict) else d)}
+        except Exception:
+            pass
+    allc = sorted(old | {norm(x) for x in DYNAMIC_LANES})
+    try:
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump({"updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                       "lanes": allc}, f, ensure_ascii=False, indent=2)
+        return len(allc)
+    except Exception as e:
+        print(f"  [WARN] 写入 {os.path.basename(p)} 失败: {e}")
+        return -1
+
 # 港口码黑名单(UN/LOCODE 等): 这些码即使出现在标题样位置也【绝不】当作 lane。
 # 这是"确认是 lane"的硬闸, 防止 CNNGB/CNTAO/TRALI/DJJIB 等港口被误判为航线。
 PORT_CODES = {
@@ -153,10 +232,10 @@ def is_port_code(code):
 
 def is_lane_code(code):
     """确认某文本是否为【已知航线服务码】。
-    仅接受 KNOWN_LANES(ROUTE_ORDER + 别名 + 并入的真实服务名)中的码;
-    港口码(PORT_CODES)与任何未知/杂文本一律否决 —— 绝不把端口当 lane。
-    未来出现的新 lane 由"段标题结构位置"(PIC 块头 / 含船名船代码的段头)识别并原样保留,
-    而非靠形态猜测, 因此此处只需严格白名单即可保证"确认是 lane"。
+    接受 KNOWN_LANES(ROUTE_ORDER + 别名 + 并入的真实服务名 + DYNAMIC_LANES 运行时吸收的
+    新航线码)中的码; 港口码(PORT_CODES)与任何未知/杂文本一律否决 —— 绝不把端口当 lane。
+    新 lane 由"段标题结构位置"(含船名/船代码的段头)识别后经 register_lane() 登记进来,
+    而非靠形态猜测, 故白名单依然只含"经确认是 lane"的码。
     """
     n = norm(code)
     if not n:
@@ -309,6 +388,29 @@ def read_source(path, vessel_code=None, folder_name=None):
     vessel_markers = set()
     if vessel_code: vessel_markers.add(norm(vessel_code))
     if folder_name: vessel_markers.add(norm(folder_name))
+
+    # ── 预扫: 先按【段标题结构位置】把文件里出现的(未知)航线码登记进白名单 ──
+    # 这样正式扫描时 is_lane_code 就能认它们, 避免"新 lane 恒假 → 沿用上一条航线"。
+    # 判据与主循环的【第 2 层回退】完全一致(见下), 只是先跑一遍:
+    #   C1 非空、非 PORT、非日期; C4 或 C9 含本船船名/代码; C1 非港口码、非船名/代码。
+    # 仅在已知本船代码(vessel_markers 非空)时登记, 无法确认归属时保持保守不登记。
+    if AUTO_ABSORB_LANES and vessel_markers:
+        for _r in range(hr + 1, ws.max_row + 1):
+            _c1 = ws.cell(_r, 1).value
+            if _c1 is None or not isinstance(_c1, str):
+                continue
+            _s1 = norm(_c1)
+            if not _s1 or _s1 == "PORT" or _s1 in vessel_markers:
+                continue
+            _c9 = ws.cell(_r, 9).value
+            if isinstance(_c9, datetime):
+                continue
+            _c4 = ws.cell(_r, 4).value
+            _c4s = norm(_c4) if isinstance(_c4, str) and not isinstance(_c4, datetime) else ""
+            _c9s = norm(_c9) if isinstance(_c9, str) and not isinstance(_c9, datetime) else ""
+            if (_c4s in vessel_markers or _c9s in vessel_markers) and not is_port_code(_c1):
+                register_lane(_c1, os.path.basename(path))
+
     for r in range(hr - 1, 0, -1):
         c1v = ws.cell(r, 1).value
         c9v = ws.cell(r, 9).value
@@ -543,6 +645,11 @@ def main():
     else:
         print("  [FATAL] PIC汇总.xlsx 未读到任何条目 —— 船代码与显示名将缺失, 请检查该表是否可打开")
 
+    # 载入历史自动吸收的新航线码(上一次 build 落盘的), 本次扫描即可直接认得它们
+    _pre = load_dynamic_lanes()
+    if _pre:
+        print(f"  [新航线] 载入历史记录 {_pre} 条")
+
     print("=== 2/4 扫描当前船队(2026/ 含 已下线船舶/) ===")
     fleet = collect_vessel_folders(args.src)   # [(path, folder, base, retired)]
     ships = []   # {folder, route, code, display, rows, retired}
@@ -591,6 +698,13 @@ def main():
                           "display": disp, "rows": sub_rows, "retired": retired})
     _ret_blocks = sum(1 for s in ships if s.get("retired"))
     print(f"  写出船块数: {len(ships)} (在营 {len(ships)-_ret_blocks} / 已下线 {_ret_blocks})")
+
+    # 落盘本次吸收到的新航线码, 供 gen_html(独立进程) 下一轮读取
+    if AUTO_ABSORB_LANES and DYNAMIC_LANES:
+        _n = save_dynamic_lanes()
+        if _n >= 0:
+            print(f"  [新航线] 已写入 {os.path.basename(DYNAMIC_LANES_FILE)} "
+                  f"(累计 {_n} 条): {', '.join(sorted(DYNAMIC_LANES))}")
 
     print("=== 3/4 分组排序 + 写表 ===")
     # 分组
