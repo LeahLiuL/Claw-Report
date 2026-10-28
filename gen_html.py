@@ -99,6 +99,15 @@ def fmt_sort(v):
         return v.strftime('%Y-%m-%d %H:%M')
     return ''
 
+# ── Full Schedule 去重口径（2026-10-28 用户要求）───────────────────────────
+# 'biz'   : vessel+route+port+voy+eta+etd 相同即视为重复（默认）
+#           对应页面上"肉眼看着重复"的情形：主键一致，只是 run/speed/remark 等
+#           派生列随采集时点略有出入。route 参与比较，故跨航线段不会被误删。
+# 'exact' : 除 isSummary 外全部字段逐字相同才算重复（最保守，实测仅 5 行）
+# 'off'   : 不去重
+FULL_DEDUP_MODE = 'biz'
+FULL_DEDUP_BIZ_KEYS = ("vessel", "route", "port", "voy", "eta", "etd")
+
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path, pic_map=None):
     pic_map = pic_map or {}
@@ -287,11 +296,46 @@ def extract(excel_path, pic_map=None):
                 'isSummary':   r in summary_row_set,
             })
 
+    # ── Full Schedule 去重（2026-10-28 用户要求）──────────────────────────
+    # 同一条船如果出现两行【船期一模一样】的记录，只保留一行。
+    # 重复来源通常是：同一段船期被多个源文件 / 多个 sheet 重复采集，
+    #                或同一艘船在「在营」与「已下线船舶」目录里各留了一份。
+    #
+    # 口径由 FULL_DEDUP_MODE 控制（见文件顶部），默认 'biz'：
+    #   同一船 + 同一 route + 同一 port + 同航次 + 同 ETA/ETD 即视为重复，
+    #   只留一条 —— 这才是页面上"肉眼看着重复"的情形（主键一致，
+    #   只是 run/speed/remark/fspDistance 随采集时点略有出入）。
+    #   route 参与比较，所以跨航线段（如 M. MARINER 的 CST 段与 SGX 段）
+    #   **不会被误删**，两段各自保留。
+    # 保留策略：默认留第一条；若组内某行被 Summary 选中（isSummary=True）
+    #           则改留该行，避免去重后把黄色高亮弄丢。
+    if FULL_DEDUP_MODE == 'off':
+        full_dedup_removed = 0
+    else:
+        _seen, _deduped = {}, []
+        for _rec in full_schedule:
+            if FULL_DEDUP_MODE == 'biz':
+                _key = tuple(str(_rec.get(k, '')) for k in FULL_DEDUP_BIZ_KEYS)
+            else:  # 'exact' —— 除 isSummary 外全部字段逐字相同才算重复
+                _key = tuple(str(_v) for _k, _v in sorted(_rec.items()) if _k != 'isSummary')
+            _hit = _seen.get(_key)
+            if _hit is not None:
+                if _rec.get('isSummary') and not _deduped[_hit].get('isSummary'):
+                    _deduped[_hit] = _rec
+                continue
+            _seen[_key] = len(_deduped)
+            _deduped.append(_rec)
+        full_dedup_removed = len(full_schedule) - len(_deduped)
+        full_schedule = _deduped
+    print('  Full Schedule 去重[%s]: 移除 %d 行重复船期, 剩余 %d 行'
+          % (FULL_DEDUP_MODE, full_dedup_removed, len(full_schedule)))
+
     return {
         'date': today.strftime('%Y-%m-%d'),
         'generatedAt': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'vessels': results,
         'fullSchedule': full_schedule,
+        'fullDedupRemoved': full_dedup_removed,
         'defaultEtaFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
         'defaultEtaTo':   (today + timedelta(days=30)).strftime('%Y-%m-%d'),
         'defaultEtbFrom': (today - timedelta(days=14)).strftime('%Y-%m-%d'),
