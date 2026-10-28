@@ -103,13 +103,20 @@ def fmt_sort(v):
 # 'biz'   : 业务键相同即视为重复（默认）。键见 FULL_DEDUP_BIZ_KEYS，
 #           当前 = vessel + port + eta + etb + etd（【船、港、ETA、ETB、ETD】）。
 #           注意：键里**不含** route / voy —— 用户 2026-10-28 明确指定这个口径，
-#           即"只要船+港+三个时间完全一样就算重复，数据以第一个为准"。
+#           即"只要船+港+三个时间完全一样就算重复"，谁先谁后由 FULL_DEDUP_KEEP 决定。
 #           因此跨航线段（同船同港同时间但 route 不同，如 M. MARINER 的 CST/SGX）
 #           也会被合并掉，这是用户确认后的取舍，不要擅自改回带 route。
 # 'exact' : 除 isSummary 外全部字段逐字相同才算重复（最保守，实测仅 5 行）
 # 'off'   : 不去重
 FULL_DEDUP_MODE = 'biz'
 FULL_DEDUP_TIME_FIELDS = ("eta", "etb", "etd")
+
+# 重复组里留哪一条（用户 2026-10-28 指定改为 'last'）
+#   'last'  : 保留【后出现的那条】整行数据，丢弃先出现的那条（默认）
+#             —— 业务上后写的通常是更正/更新的值（如换航线 PHASE IN）。
+#             跨航线段（键相同但 route 不同）时，同样保留后面那条 → 显示后面的航线。
+#   'first' : 保留先出现的那条（旧行为）
+FULL_DEDUP_KEEP = 'last'
 
 def _dedup_key(rec):
     """业务去重键：船 + port + ETA/ETB/ETD。
@@ -325,13 +332,15 @@ def extract(excel_path, pic_map=None):
     # 口径由 FULL_DEDUP_MODE 控制（见文件顶部），默认 'biz'：
     #   船 + port + ETA + ETB + ETD 五者全部相同即视为重复，只留一条。
     #   （键里**不含** route / voy —— 用户 2026-10-28 明确指定的口径）
-    # 保留策略：**数据以第一个为准**，整行不替换；仅把 isSummary
-    #   （UI 派生高亮标记，非业务数据）向上合并，防止被 Summary 选中的那条
-    #   恰好落在重复组的第二条时丢失黄色高亮。
+    # 保留策略（FULL_DEDUP_KEEP，默认 'last'）：**数据以最后一条为准** ——
+    #   后出现的整行替换先出现的整行，并占据后者的位置。跨航线段（键相同但
+    #   route 不同）因此会保留【后面那条航线】，符合"换航线取最新"的语义。
+    #   isSummary（UI 派生高亮标记，非业务数据）单独处理：组内任一条被 Summary
+    #   选中，保留下来的那条也要带上高亮，防止黄色标记在去重后丢失。
     if FULL_DEDUP_MODE == 'off':
         full_dedup_removed = 0
     else:
-        _seen, _deduped = {}, []
+        _seen, _kept, _sum, _deduped = {}, {}, {}, []
         for _rec in full_schedule:
             if FULL_DEDUP_MODE == 'biz':
                 _key = _dedup_key(_rec)
@@ -341,19 +350,32 @@ def extract(excel_path, pic_map=None):
                     continue
             else:  # 'exact' —— 除 isSummary 外全部字段逐字相同才算重复
                 _key = tuple(str(_v) for _k, _v in sorted(_rec.items()) if _k != 'isSummary')
+            if _rec.get('isSummary'):
+                _sum[_key] = True
             _hit = _seen.get(_key)
-            if _hit is not None:
-                # 数据以第一个为准 —— 绝不替换整行。
-                # 仅把 isSummary（UI 高亮标记）向上合并。
-                if _rec.get('isSummary') and not _deduped[_hit].get('isSummary'):
-                    _deduped[_hit] = dict(_deduped[_hit], isSummary=True)
+            if _hit is None:
+                # 首次出现：直接保留
+                _seen[_key] = len(_deduped)
+                _kept[_key] = _rec
+                _deduped.append(_rec)
+            elif FULL_DEDUP_KEEP == 'last':
+                # 重复且保留后者：作废先出现的那条，当前行顶替其位置
+                _deduped[_hit] = None
+                _seen[_key] = len(_deduped)
+                _kept[_key] = _rec
+                _deduped.append(_rec)
+            else:
+                # 'first' —— 保留先出现的那条，当前行丢弃
                 continue
-            _seen[_key] = len(_deduped)
-            _deduped.append(_rec)
+        # 高亮标记补回保留行（_kept 与 _deduped 里的 dict 是同一对象，直接改即可）
+        for _k, _r in _kept.items():
+            if _sum.get(_k):
+                _r['isSummary'] = True
+        _deduped = [_r for _r in _deduped if _r is not None]
         full_dedup_removed = len(full_schedule) - len(_deduped)
         full_schedule = _deduped
-    print('  Full Schedule 去重[%s]: 移除 %d 行重复船期, 剩余 %d 行'
-          % (FULL_DEDUP_MODE, full_dedup_removed, len(full_schedule)))
+    print('  Full Schedule 去重[%s/keep=%s]: 移除 %d 行重复船期, 剩余 %d 行'
+          % (FULL_DEDUP_MODE, FULL_DEDUP_KEEP, full_dedup_removed, len(full_schedule)))
 
     return {
         'date': today.strftime('%Y-%m-%d'),
