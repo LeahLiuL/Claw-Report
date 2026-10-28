@@ -1537,11 +1537,11 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. BOA Rate = calls berthed within the selected window / total calls in selected range. The BOA window follows the Over-range selector above: All over = standard (CNSHA/CNNGB 12h, others 6h); 24h+ = 24h for all ports; 48h+ = 48h for all ports (wait beyond the window counts as no BOA). Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. BOA Rate = calls berthed within the selected window / total calls in selected range. The BOA window follows the Over-range selector above: All over = standard (CNSHA/CNNGB 12h, others 6h); 12h+ = 12h for all ports; 24h+ = 24h for all ports; 48h+ = 48h for all ports (wait beyond the window counts as no BOA). Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
-    <label class="range-opt" id="port-opt-24"><input type="radio" name="portrange" value="24+"> 24h+</label>
+    <label class="range-opt" id="port-opt-12"><input type="radio" name="portrange" value="12+"> 12h+</label><label class="range-opt" id="port-opt-24"><input type="radio" name="portrange" value="24+"> 24h+</label>
     <label class="range-opt" id="port-opt-48"><input type="radio" name="portrange" value="48+"> 48h+</label>
   </div>
   <div class="table-wrap">
@@ -1589,12 +1589,12 @@ function _loadXlsx(cb){
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; BOA Berth-On-Arrival Stats <span id="boaLabelSpan" style="font-weight:400;font-size:12px;color:#8a9bb0;"></span></h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; BOA = WAIT &le; window (All over: CNSHA &amp; CNNGB 12h, others 6h; 24h+: 24h for all ports; 48h+: 48h for all ports) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Both the BOA count and Over count follow the Over-range selector, so BOA Rate changes with it too.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Source: CUL Daily Movement (follows Port Wait date range above) &middot; BOA = WAIT &le; window (All over: CNSHA &amp; CNNGB 12h, others 6h; 12h+: 12h for all ports; 24h+: 24h for all ports; 48h+: 48h for all ports) &middot; Lane&#8594;Trade / Port&#8594;Region per &#8220;Port &amp; Lane Mapping&#8221;. Both the BOA count and Over count follow the Over-range selector, so BOA Rate changes with it too.</p>
 
     <div class="sub-controls" style="padding:8px 12px;">
       <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
       <label class="range-opt sel" id="boa-opt-all"><input type="radio" name="boarange" value="all" checked> All over (&gt; standard)</label>
-      <label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24+"> 24h+</label>
+      <label class="range-opt" id="boa-opt-12"><input type="radio" name="boarange" value="12+"> 12h+</label><label class="range-opt" id="boa-opt-24"><input type="radio" name="boarange" value="24+"> 24h+</label>
       <label class="range-opt" id="boa-opt-48"><input type="radio" name="boarange" value="48+"> 48h+</label>
     </div>
 
@@ -3577,16 +3577,18 @@ var portWaitSortCol=-1, portWaitSortDir=1;
 var remarkCatTotals={};
 var monthlyTrendData=[];
 
-// Port Wait over-range selector (3 categories, mirrors BOA):
-//   all = wait > standard (≥6h, SHA/CNNGB≥12h); 24+ = wait ≥24h; 48+ = wait ≥48h
+// Port Wait over-range selector (4 categories, mirrors BOA):
+//   all = wait > standard (≥6h, SHA/CNNGB≥12h); 12+ = wait ≥12h; 24+ = wait ≥24h; 48+ = wait ≥48h
 // Berth threshold: Shanghai (CNSHA) and Ningbo (CNNGB) use 12h, all other ports 6h.
 function berthThreshold(port){ return (port==='CNSHA' || port==='CNNGB') ? 12 : 6; }
 var PORT_OVER_RANGE='all';
 // BOA (berth-on-arrival) window — follows the Over-range selector:
 //   all   → standard window (CNSHA/CNNGB 12h, others 6h)
+//   12+   → 12h for every port  (wait > 12h ⇒ no BOA)
 //   24+   → 24h for every port  (wait > 24h ⇒ no BOA)
 //   48+   → 48h for every port  (wait > 48h ⇒ no BOA)
 function effectiveBerthThreshold(port){
+  if(PORT_OVER_RANGE === '12+') return 12;
   if(PORT_OVER_RANGE === '24+') return 24;
   if(PORT_OVER_RANGE === '48+') return 48;
   return berthThreshold(port);
@@ -3919,7 +3921,7 @@ function renderPortWaitTable(){
   } else {
     statText+=' · '+totalAllCalls+' calls in range';
   }
-  statText+=' · BOA rate = berthed within the selected window (follows Over-range: 24h+/48h+ widen the window) / total calls · Over count follows the same selector';
+  statText+=' · BOA rate = berthed within the selected window (follows Over-range: 12h+/24h+/48h+ widen the window) / total calls · Over count follows the same selector';
   document.getElementById('statPortWait').innerHTML=statText;
 }
 
@@ -4642,7 +4644,7 @@ function boaInit(){
       boaRefresh();
     });
   });
-  // Port Wait over-range selector (3 categories)
+  // Port Wait over-range selector (4 categories)
   document.querySelectorAll('input[name=portrange]').forEach(function(rb){
     rb.addEventListener('change', function(){
       PORT_OVER_RANGE = this.value;
