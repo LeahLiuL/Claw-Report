@@ -3830,6 +3830,9 @@ function normalizePort(p){
   //    "JED-DPW"→"JED" also merge) ──────────────────────────────
   if(s==='CNNSA') s='CNNAS';      // Nansha
   if(s==='JED')  s='SAJED';       // Jeddah
+  // CNCJK is the Changjiang Kou anchorage, not a port of call - the code
+  // showed up once (DFMH / REX) and is dropped from every port statistic.
+  if(s==='CNCJK') return '';
   return s.trim();
 }
 
@@ -4944,6 +4947,7 @@ var CH_CN_REGION = {
   CNTAO:'China (North)', CNQIN:'China (North)', CNTSN:'China (North)',
   CNDLC:'China (North)', CNYNT:'China (North)', CNRZH:'China (North)',
   CNYIK:'China (North)', CNJNZ:'China (North)', CNSDG:'China (North)',
+  CNXGG:'China (North)',   /* Xingang / Tianjin */
   CNSHA:'China (East)',  CNNGB:'China (East)',  CNNJG:'China (East)',
   CNLYG:'China (East)',  CNTAC:'China (East)',  CNWUH:'China (East)',
   CNNTG:'China (East)',  CNHZH:'China (East)',
