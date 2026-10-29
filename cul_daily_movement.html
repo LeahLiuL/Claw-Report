@@ -172,12 +172,12 @@ function _loadXlsx(cb){
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
   /* ── Port Wait chart cards (deck-template colours on white) ─────────── */
-  #portCharts { max-width:1180px; }
+  #portCharts { width:100%; padding:0 28px 28px; }
   .ch-card { background:#ffffff; border:1px solid #E3E8EC; border-radius:6px; padding:10px 12px 12px; margin:0 0 12px; }
   .ch-card h4 { margin:0 0 3px; color:#0E2841; font-size:15px; font-weight:600; }
   .ch-card h4.ch-center { text-align:center; }
   .ch-note { font-size:10.5px; color:#8a9bb0; margin:0 0 8px; line-height:1.5; }
-  .ch-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  .ch-table { width:100%; table-layout:fixed; min-width:720px; border-collapse:collapse; font-size:11.5px; }
   .ch-table th { background:#156082; color:#ffffff; font-weight:600; text-align:center; padding:5px 8px; font-size:11px; }
   .ch-table td { border-bottom:1px solid #E3E8EC; padding:4px 8px; text-align:center; }
   .ch-table tr.ch-total td { background:#EAF2F7; font-weight:700; color:#0E2841; border-top:2px solid #156082; }
@@ -526,7 +526,7 @@ function _loadXlsx(cb){
     <div class="ch-card">
       <h4 class="ch-center">&#128203; Port Call Activity &mdash; Red Sea &amp; Middle East</h4>
       <p class="ch-note" style="text-align:center;">Red Sea = Jeddah, Jizan, Ain Sokhna, Suez, Safaga, Port Sudan, Aden, Djibouti, Aqaba. Middle East (Gulf) = Jebel Ali, Khor Fakkan, Sharjah, Sohar, Duqm, Dammam. Egyptian Mediterranean ports (Alexandria / Port Said / Damietta / El Dekheila) are reported as Egypt (Med.) and are not part of the Red Sea group. Avg / month = calls divided by the number of calendar months the selected range spans.</p>
-      <div id="chartMeRedSea"></div>
+      <div id="chartMeRedSea" style="overflow-x:auto;"></div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:12px;">
@@ -3743,10 +3743,10 @@ function chEmpty(msg){ return '<div style="padding:16px;color:#8a9bb0;font-size:
 /* Measure the host so a chart is drawn at the width it will actually be
    shown at - text keeps its designed size instead of being blown up. */
 function chFitW(hostId, cap){
-  var capW = cap || 1160, w = 1068;
+  var capW = cap || 2400, w = 1200;
   var el = document.getElementById(hostId);
   if(el && el.clientWidth > 40) w = el.clientWidth - 4;
-  if(!(w > 0)) w = 1068;
+  if(!(w > 0)) w = 1200;
   return Math.max(400, Math.min(capW, w));
 }
 function chSvg(w,h){
@@ -3942,7 +3942,7 @@ function renderPortCharts(){
             tip:k+'  '+byCountry[k]+' calls  '+perWk.toFixed(2)+' per week'};
   });
   rowsA.sort(function(a,b){ return b.value-a.value; });
-  var WA=chFitW('chartCountryCalls', 1160);
+  var WA=chFitW('chartCountryCalls', 2400);
   document.getElementById('chartCountryCalls').innerHTML=
     chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.19)),
       padR:Math.min(210, Math.round(WA*0.20)), dec:1,
@@ -3964,7 +3964,11 @@ function renderPortCharts(){
   if(!rowsB.length){
     boxB.innerHTML=chEmpty('No Red Sea / Middle East port calls in the selected range.');
   } else {
-    var tb='<table class="ch-table"><thead><tr><th>Region</th><th>Port</th><th>Port name</th>'+
+    var tb='<table class="ch-table"><colgroup>'+
+           '<col style="width:16%"><col style="width:10%"><col style="width:22%">'+
+           '<col style="width:12%"><col style="width:14%"><col style="width:14%">'+
+           '<col style="width:12%"></colgroup>'+
+           '<thead><tr><th>Region</th><th>Port</th><th>Port name</th>'+
            '<th>Calls</th><th>Avg / week</th><th>Avg / month</th>'+
            '<th>BOA rate</th></tr></thead><tbody>';
     var totN=0, totB=0;
@@ -3998,7 +4002,7 @@ function renderPortCharts(){
             tip:chName(p)+' ('+p+')  BOA '+rate.toFixed(1)+'%  ('+(boaBy[p]||0)+' of '+cntBy[p]+' calls)'};
   });
   rowsC.sort(function(a,b){ return b.value-a.value; });
-  var WC=chFitW('chartBoaByPort', 900);
+  var WC=chFitW('chartBoaByPort', 1600);
   document.getElementById('chartBoaByPort').innerHTML=
     chBarsV(rowsC,{w:WC, h:(rowsC.length>26?272:262), max:100});
 
@@ -4015,7 +4019,7 @@ function renderPortCharts(){
     return {label:m, value:byMonth[m].n ? byMonth[m].b/byMonth[m].n*100 : 0};
   });
   document.getElementById('chartBoaTrend').innerHTML=
-    chLine(rowsD,{w:chFitW('chartBoaTrend', 900), h:236, max:100});
+    chLine(rowsD,{w:chFitW('chartBoaTrend', 1600), h:236, max:100});
 
   // ---- Chart 5: waiting time BOA vs non-BOA by country / region
   var grp={};
@@ -4031,7 +4035,7 @@ function renderPortCharts(){
             accent:(k==='Red Sea'||k==='Middle East (Gulf)')};
   }).filter(function(r){ return r.n>0; });
   rowsE.sort(function(a,b){ return b.n-a.n; });
-  var WE=chFitW('chartWaitRegion', 1160);
+  var WE=chFitW('chartWaitRegion', 2400);
   document.getElementById('chartWaitRegion').innerHTML=
     chWaitBars(rowsE,{w:WE, padL:Math.min(196, Math.round(WE*0.19)), padR:150});
   chOthersNote(cntBy, 'chartWaitOthers');
