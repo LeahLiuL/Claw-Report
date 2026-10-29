@@ -197,9 +197,15 @@ function _loadXlsx(cb){
   #portCharts.ch-ppt .ch-pick { text-align:center; font-size:12px; }
   #portCharts.ch-ppt .ch-table { font-size:13.5px; max-width:1040px; margin:0 auto; }
   #portCharts.ch-ppt .ch-others { text-align:center; }
-  #portCharts.ch-ppt .ch-row { flex-direction:column; }
-  #portCharts.ch-ppt .ch-row .ch-card { width:100%; }
   #portCharts.ch-ppt svg { margin:0 auto; }
+  /* slide mode = one row on one page: the pair keeps its columns so a row
+     screenshot fills a 16:9 page exactly like the standalone deck page */
+  #portCharts .ch-row-a { display:block; }
+  #portCharts.ch-ppt .ch-row { flex-wrap:nowrap; align-items:stretch; }
+  #portCharts.ch-ppt .ch-row > .ch-card { min-width:0 !important; }
+  #portCharts.ch-ppt.ch-split .ch-row-a { display:flex; flex-wrap:nowrap; gap:14px; align-items:stretch; }
+  #portCharts.ch-ppt .ch-row-a .ch-card { margin-bottom:0; }
+  #portCharts.ch-ppt .ch-table { min-width:0; max-width:none; }
   .ch-layout { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:11px; color:#6B7A8C; }
   .ch-layout select { font-size:11px; padding:2px 5px; border:1px solid #C9D6DF; border-radius:3px; color:#0E2841; background:#fff; }
   .table-wrap {
@@ -534,21 +540,23 @@ function _loadXlsx(cb){
         <option value="ppt43">Slide 4:3 &mdash; 960 &times; 720</option>
         <option value="fit">Fit screen (full panel width)</option>
       </select>
-      <span>Slide mode centres the block at slide size and scales every chart so it sits inside its card &mdash; one card screenshot = one slide. The choice is remembered per browser.</span>
+      <span>Slide mode lays the block out at slide size, one row per page: country chart + Red Sea / Middle East table side by side on the first 16:9 page, BOA by port + monthly trend on the second, waiting time across the third. Screenshot a row &mdash; it drops into a 16:9 deck at 1:1. The 4:3 size is narrower, so the country chart and the table stack there. The choice is remembered per browser.</span>
     </div>
     <div id="portChartSummary"></div>
 
-    <div class="ch-card" style="margin-top:12px;">
+    <div class="ch-row ch-row-a">
+    <div class="ch-card" style="margin-top:12px;flex:1;min-width:0;">
       <h4>&#128202; Average Port Calls per Week by Country / Region</h4>
       <p class="ch-note">Calls per week = calls in range / weeks in range. Number in brackets = total calls in the selected range. China = Mainland + Taiwan + Hong Kong. Red Sea and Middle East (Gulf) are market groups, not countries, so they sit alongside the country bars.</p>
       <div id="chartCountryCalls"></div>
       <p class="ch-others" id="chartCountryOthers"></p>
     </div>
 
-    <div class="ch-card">
+    <div class="ch-card" style="flex:1.12;min-width:0;">
       <h4 class="ch-center">&#128203; Port Call Activity &mdash; Red Sea &amp; Middle East</h4>
       <p class="ch-note" style="text-align:center;">Red Sea = Jeddah, Jizan, Ain Sokhna, Suez, Safaga, Port Sudan, Aden, Djibouti, Aqaba. Middle East (Gulf) = Jebel Ali, Khor Fakkan, Sharjah, Sohar, Duqm, Dammam. Egyptian Mediterranean ports (Alexandria / Port Said / Damietta / El Dekheila) are reported as Egypt (Med.) and are not part of the Red Sea group. Avg / month = calls divided by the number of calendar months the selected range spans.</p>
       <div id="chartMeRedSea" style="overflow-x:auto;"></div>
+    </div>
     </div>
 
     <div class="ch-row" style="display:flex;flex-wrap:wrap;gap:12px;">
@@ -3786,7 +3794,7 @@ function chIsBoaCall(c){ return c.wait <= effectiveBerthThreshold(c.port); }
 /* ── Horizontal bars ─────────────────────────────────────────────── */
 function chBarsH(rows,opt){
   if(!rows.length) return chEmpty(opt.emptyMsg||'No calls in the selected range.');
-  var W=opt.w||1094, rowH=opt.rowH||(rows.length>14?22:26), padT=6, padB=26;
+  var W=opt.w||1094, rowH=opt.rowH||(rows.length>14?22:26), padT=6, padB=opt.padB||38;
   var padL=opt.padL||196, padR=opt.padR||210;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
   var max=0; rows.forEach(function(r){ if(r.value>max) max=r.value; });
@@ -3824,6 +3832,10 @@ function chBarsV(rows,opt){
     s+='<text x="'+(padL-6)+'" y="'+(gy+4).toFixed(1)+'" font-size="9.5" fill="'+CH_C.grey+'" text-anchor="end">'+Math.round(max-max*t/4)+'%</text>';
   }
   var slot=plotW/n, bw=Math.max(2.5, Math.min(dense?15:30, slot*0.62));
+  // a slot narrower than ~30px cannot hold "100%" without spilling into the
+  // neighbouring bar, so the printed values step aside for the hover tooltip
+  dense = dense || slot<30;
+  var showNote = !dense && slot>=40;
   var fs=dense?7.2:10, rot=dense?-58:-40;
   rows.forEach(function(r,i){
     var cx=padL+slot*(i+0.5);
@@ -3836,12 +3848,12 @@ function chBarsV(rows,opt){
     if(!dense){
       if(bh>=30){
         s+='<text x="'+cx.toFixed(1)+'" y="'+(y+14).toFixed(1)+'" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
-        if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y+26).toFixed(1)+'" font-size="8.5" fill="#D6E3EC" text-anchor="middle">'+chEsc(r.note)+'</text>';
+        if(r.note && showNote) s+='<text x="'+cx.toFixed(1)+'" y="'+(y+26).toFixed(1)+'" font-size="8.5" fill="#D6E3EC" text-anchor="middle">'+chEsc(r.note)+'</text>';
       } else if(bh>=17){
         s+='<text x="'+cx.toFixed(1)+'" y="'+(y+12).toFixed(1)+'" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
       } else {
         s+='<text x="'+cx.toFixed(1)+'" y="'+(y-5).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="middle">'+chEsc(r.text)+'</text>';
-        if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y-16).toFixed(1)+'" font-size="8.5" fill="'+CH_C.grey+'" text-anchor="middle">'+chEsc(r.note)+'</text>';
+        if(r.note && showNote) s+='<text x="'+cx.toFixed(1)+'" y="'+(y-16).toFixed(1)+'" font-size="8.5" fill="'+CH_C.grey+'" text-anchor="middle">'+chEsc(r.note)+'</text>';
       }
     }
     s+='<g transform="translate('+cx.toFixed(1)+','+(padT+plotH+8)+') rotate('+rot+')"><text x="0" y="0" font-size="'+fs+'" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text></g>';
@@ -3890,7 +3902,7 @@ function chLine(rows,opt){
 function chWaitBars(rows,opt){
   if(!rows.length) return chEmpty('No waiting-time data in the selected range.');
   var dens=rows.length>14;
-  var W=opt.w||1094, rowH=opt.rowH||(dens?30:40), padT=8, padB=26, padL=opt.padL||196, padR=opt.padR||150;
+  var W=opt.w||1094, rowH=opt.rowH||(dens?30:40), padT=8, padB=opt.padB||42, padL=opt.padL||196, padR=opt.padR||150;
   var bh=dens?12:14, gap=dens?3:4;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
   var max=0; rows.forEach(function(r){ if(r.boa>max) max=r.boa; if(r.non>max) max=r.non; });
@@ -3950,7 +3962,12 @@ try{
 function chBox(){ return CH_SLIDE_BOX[CH_LAYOUT] || null; }
 function chDrawW(hostId, cap){
   var b=chBox();
-  return b ? Math.round(b.w/1.4) : chFitW(hostId, cap);
+  if(!b) return chFitW(hostId, cap);
+  var el=document.getElementById(hostId), w=0;
+  if(el && el.clientWidth>80) w=el.clientWidth-4;
+  if(!(w>0)) w=b.w;
+  w=Math.min(w, b.w);
+  return Math.max(300, Math.round(w/1.4));
 }
 function chSlideFit(hostId, box){
   var host=document.getElementById(hostId);
@@ -3959,8 +3976,9 @@ function chSlideFit(hostId, box){
   var m=h.match(/viewBox="0 0 (\d+) (\d+)"/);
   if(!m) return;
   var W0=parseInt(m[1],10), H0=parseInt(m[2],10);
-  var availH=box.h-150;                    // card padding + title + note
-  var s=Math.min(box.w/W0, availH/H0);
+  var availH=box.availH||(box.h-150);      // card padding + title + note
+  var targetW=(host.clientWidth>80)?Math.min(host.clientWidth, box.w):box.w;
+  var s=Math.min(targetW/W0, availH/H0);
   if(!(s>0)) return;
   host.innerHTML=h.replace('max-width:'+W0+'px', 'max-width:'+Math.round(W0*s)+'px');
 }
@@ -3971,6 +3989,7 @@ function applyChartLayout(){
   var sel=document.getElementById('chLayout');
   if(sel) sel.value=CH_LAYOUT;
   host.classList.toggle('ch-ppt', !!box);
+  host.classList.toggle('ch-split', !!box && box.w>=1100);
   if(box){
     host.style.maxWidth=box.w+'px';
     host.style.marginLeft='auto'; host.style.marginRight='auto';
@@ -4024,9 +4043,9 @@ function renderPortCharts(){
   rowsA.sort(function(a,b){ return b.value-a.value; });
   var WA=chDrawW('chartCountryCalls', 2400);
   document.getElementById('chartCountryCalls').innerHTML=
-    chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.19)),
-      padR:Math.min(210, Math.round(WA*0.20)), dec:1,
-      xlab:'Average port calls per week  ·  orange = Red Sea & Middle East focus markets'});
+    chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.34)),
+      padR:Math.min(210, Math.round(WA*0.27)), dec:1,
+      xlab:(WA<600 ? 'Calls per week' : 'Average port calls per week  ·  orange = Red Sea & Middle East focus markets')});
   chOthersNote(cntBy, 'chartCountryOthers');
 
   // ---- Chart 2: Red Sea / Middle East port table
@@ -4054,7 +4073,8 @@ function renderPortCharts(){
     var totN=0, totB=0;
     rowsB.forEach(function(r){
       totN+=r.n; totB+=(boaBy[r.p]||0);
-      tb+='<tr><td>'+chEsc(r.grp)+'</td><td><b>'+chEsc(r.p)+'</b></td><td>'+chEsc(chName(r.p))+'</td>'+
+      tb+='<tr><td>'+chEsc(chBox() ? (r.grp==='Red Sea'?'Red Sea':'M. East') : r.grp)+'</td>'+
+          '<td><b>'+chEsc(r.p)+'</b></td><td>'+chEsc(chName(r.p))+'</td>'+
           '<td>'+r.n+'</td>'+
           '<td>'+(r.n/win.weeks).toFixed(2)+'</td>'+
           '<td>'+(r.n/win.months).toFixed(1)+'</td>'+
@@ -4084,7 +4104,7 @@ function renderPortCharts(){
   rowsC.sort(function(a,b){ return b.value-a.value; });
   var WC=chDrawW('chartBoaByPort', 1600);
   document.getElementById('chartBoaByPort').innerHTML=
-    chBarsV(rowsC,{w:WC, h:(rowsC.length>26?272:262), max:100});
+    chBarsV(rowsC,{w:WC, h:(chBox()?(rowsC.length>26?330:342):(rowsC.length>26?272:262)), max:100});
 
   // ---- Chart 4: monthly BOA rate trend
   var byMonth={};
@@ -4099,7 +4119,7 @@ function renderPortCharts(){
     return {label:m, value:byMonth[m].n ? byMonth[m].b/byMonth[m].n*100 : 0};
   });
   document.getElementById('chartBoaTrend').innerHTML=
-    chLine(rowsD,{w:chDrawW('chartBoaTrend', 1600), h:236, max:100});
+    chLine(rowsD,{w:chDrawW('chartBoaTrend', 1600), h:(chBox()?300:236), max:100});
 
   // ---- Chart 5: waiting time BOA vs non-BOA by country / region
   var grp={};
@@ -4120,7 +4140,13 @@ function renderPortCharts(){
     chWaitBars(rowsE,{w:WE, rowH:(chBox()?26:undefined), padL:Math.min(196, Math.round(WE*0.19)), padR:150});
   chOthersNote(cntBy, 'chartWaitOthers');
   var __box=chBox();
-  if(__box){ ['chartCountryCalls','chartBoaByPort','chartBoaTrend','chartWaitRegion'].forEach(function(id){ chSlideFit(id, __box); }); }
+  if(__box){
+    ['chartCountryCalls','chartBoaByPort','chartBoaTrend','chartWaitRegion'].forEach(function(id){
+      var el=document.getElementById(id);
+      var cw=(el && el.clientWidth>80)?el.clientWidth:__box.w;
+      chSlideFit(id, {w:cw, h:__box.h, availH:__box.h-150});
+    });
+  }
 }
 
 /* Re-fit the charts when the panel width changes (window resize, or the
