@@ -3626,16 +3626,31 @@ var selPortSearch = '';    // free-text port name search (AND with checkbox filt
 /* The port picker is sticky: whatever was ticked last time is restored on the
    next visit. null = All Ports, [] = every port unticked, [..] = explicit picks. */
 var PORT_FILTER_STORE = 'culPwPortFilterV1';
+function _pfCookieWrite(v){
+  try{ document.cookie='culPwPortFilter='+encodeURIComponent(v)+';path=/;max-age=31536000;SameSite=Lax'; }catch(e){}
+}
+function _pfCookieRead(){
+  try{
+    var m=document.cookie.match(/(?:^|;\s*)culPwPortFilter=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }catch(e){ return null; }
+}
 function savePortFilter(){
+  var raw = selPortFilter===null ? '' : JSON.stringify(selPortFilter);
   try{
     if(selPortFilter===null) localStorage.removeItem(PORT_FILTER_STORE);
-    else localStorage.setItem(PORT_FILTER_STORE, JSON.stringify(selPortFilter));
+    else localStorage.setItem(PORT_FILTER_STORE, raw);
   }catch(e){ /* private mode / quota - non-fatal */ }
+  // Mirror into a cookie: some locked-down browsers wipe or block localStorage,
+  // and the cookie keeps the choice alive (and vice-versa).
+  _pfCookieWrite(raw);
 }
 function loadPortFilter(){
+  var raw=null;
+  try{ raw=localStorage.getItem(PORT_FILTER_STORE); }catch(e){}
+  if(raw===null) raw=_pfCookieRead();
+  if(!raw){ selPortFilter=null; return; }
   try{
-    var raw=localStorage.getItem(PORT_FILTER_STORE);
-    if(raw===null){ selPortFilter=null; return; }
     var arr=JSON.parse(raw);
     selPortFilter = Array.isArray(arr) ? arr.filter(function(p){ return typeof p==='string' && p; }) : null;
   }catch(e){ selPortFilter=null; }
@@ -3668,6 +3683,10 @@ function buildPortFilterDropdown(){
     html+='<input type="checkbox" value="'+p+'" '+(checked?'checked':'')+' onchange="onPortFilterItemChange(this)">';
     html+=p+'</label>';
   });
+  html+='<div style="padding:6px 8px 3px;border-top:1px solid #e4ecf5;margin-top:4px;font-size:10.5px;color:#8a9bb0;white-space:nowrap;">'+
+    (selPortFilter===null
+      ? '\u2713 All ports \u00b7 remembered on this device'
+      : '\u2713 '+selPortFilter.length+' port(s) remembered from your last visit')+'</div>';
   dd.innerHTML=html;
   updatePortFilterButton();
 }
@@ -3697,6 +3716,8 @@ function updatePortFilterButton(){
   } else {
     btn.textContent=sel.length+' of '+total+' ports';
   }
+  btn.title='Port filter is remembered on this device \u00b7 '+
+    (sel.length===total ? 'all ports' : sel.length+' of '+total+' ticked');
 }
 
 function applyPortFilterFromDOM(){
