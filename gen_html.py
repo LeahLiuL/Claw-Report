@@ -1385,6 +1385,20 @@ function _loadXlsx(cb){
   .ch-pick select { font-size:11px; padding:1px 4px; border:1px solid #C9D6DF; border-radius:3px; color:#0E2841; background:#fff; }
   .ch-others { font-size:10.5px; color:#8a9bb0; margin:7px 0 0; line-height:1.5; }
   .ch-others b { color:#E97132; }
+  /* ── Slide (PPT) layout: centred, one card = one slide ─────────────── */
+  #portCharts.ch-ppt { margin-left:auto; margin-right:auto; }
+  #portCharts.ch-ppt .ch-card { display:flex; flex-direction:column; justify-content:center; }
+  #portCharts.ch-ppt .ch-card h4 { font-size:20px; margin-bottom:7px; }
+  #portCharts.ch-ppt .ch-note { font-size:12px; }
+  #portCharts.ch-ppt .ch-legend { justify-content:center; font-size:12.5px; }
+  #portCharts.ch-ppt .ch-pick { text-align:center; font-size:12px; }
+  #portCharts.ch-ppt .ch-table { font-size:13.5px; max-width:1040px; margin:0 auto; }
+  #portCharts.ch-ppt .ch-others { text-align:center; }
+  #portCharts.ch-ppt .ch-row { flex-direction:column; }
+  #portCharts.ch-ppt .ch-row .ch-card { width:100%; }
+  #portCharts.ch-ppt svg { margin:0 auto; }
+  .ch-layout { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:11px; color:#6B7A8C; }
+  .ch-layout select { font-size:11px; padding:2px 5px; border:1px solid #C9D6DF; border-radius:3px; color:#0E2841; background:#fff; }
   .table-wrap {
     overflow-x: auto; padding: 0 28px 28px; position: relative;
     /* inner vertical scroll so the sticky header stays visible:
@@ -1710,7 +1724,15 @@ function _loadXlsx(cb){
   <!-- Port Wait charts (deck-template styling; follow all Port Wait filters) -->
   <div id="portCharts" style="margin-top:22px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; Port Call &amp; BOA Charts</h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets. Charts size themselves to the panel width.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets. Charts size themselves to the panel width, or to a slide when Layout below is set to Slide 16:9 / 4:3.</p>
+    <div class="ch-layout"><b style="color:#0E2841;">Layout</b>
+      <select id="chLayout" onchange="setChartLayout(this.value)">
+        <option value="ppt169">Slide 16:9 &mdash; 1280 &times; 720</option>
+        <option value="ppt43">Slide 4:3 &mdash; 960 &times; 720</option>
+        <option value="fit">Fit screen (full panel width)</option>
+      </select>
+      <span>Slide mode centres the block at slide size and scales every chart so it sits inside its card &mdash; one card screenshot = one slide. The choice is remembered per browser.</span>
+    </div>
     <div id="portChartSummary"></div>
 
     <div class="ch-card" style="margin-top:12px;">
@@ -1726,7 +1748,7 @@ function _loadXlsx(cb){
       <div id="chartMeRedSea" style="overflow-x:auto;"></div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:12px;">
+    <div class="ch-row" style="display:flex;flex-wrap:wrap;gap:12px;">
       <div class="ch-card" style="flex:1.35;min-width:430px;">
         <h4>&#128202; Berth-On-Arrival Rate by Port</h4>
         <div class="ch-pick">Show
@@ -5110,11 +5132,64 @@ function chOthersNote(byPort, hostId){
 }
 
 /* ── Master renderer ─────────────────────────────────────────────── */
+/* ── Slide (PPT) layout ─────────────────────────────────────────────────
+   One card = one slide. In slide mode the block is centred at a fixed slide
+   size, the side-by-side row stacks, and each chart is drawn at slide width
+   / 1.4 and then scaled up to sit inside the card - a card screenshot drops
+   straight into a deck and the labels come out ~30% larger than on screen.
+   'fit' keeps the full-panel behaviour from before.                        */
+var CH_SLIDE_BOX = {ppt169:{w:1280,h:720}, ppt43:{w:960,h:720}};
+var CH_LAYOUT = 'ppt169';
+try{
+  var __lv = localStorage.getItem('culPwChartLayout');
+  if(__lv==='fit' || __lv==='ppt169' || __lv==='ppt43') CH_LAYOUT = __lv;
+}catch(e){}
+function chBox(){ return CH_SLIDE_BOX[CH_LAYOUT] || null; }
+function chDrawW(hostId, cap){
+  var b=chBox();
+  return b ? Math.round(b.w/1.4) : chFitW(hostId, cap);
+}
+function chSlideFit(hostId, box){
+  var host=document.getElementById(hostId);
+  if(!host) return;
+  var h=host.innerHTML;
+  var m=h.match(/viewBox="0 0 (\d+) (\d+)"/);
+  if(!m) return;
+  var W0=parseInt(m[1],10), H0=parseInt(m[2],10);
+  var availH=box.h-150;                    // card padding + title + note
+  var s=Math.min(box.w/W0, availH/H0);
+  if(!(s>0)) return;
+  host.innerHTML=h.replace('max-width:'+W0+'px', 'max-width:'+Math.round(W0*s)+'px');
+}
+function applyChartLayout(){
+  var host=document.getElementById('portCharts');
+  if(!host) return;
+  var box=chBox();
+  var sel=document.getElementById('chLayout');
+  if(sel) sel.value=CH_LAYOUT;
+  host.classList.toggle('ch-ppt', !!box);
+  if(box){
+    host.style.maxWidth=box.w+'px';
+    host.style.marginLeft='auto'; host.style.marginRight='auto';
+  } else {
+    host.style.maxWidth=''; host.style.marginLeft=''; host.style.marginRight='';
+  }
+  var cards=host.querySelectorAll('.ch-card');
+  for(var i=0;i<cards.length;i++) cards[i].style.minHeight = box ? (box.h+'px') : '';
+  if(window.__chRendered) renderPortCharts();
+}
+function setChartLayout(v){
+  CH_LAYOUT = (CH_SLIDE_BOX[v] || v==='fit') ? v : 'ppt169';
+  try{ localStorage.setItem('culPwChartLayout', CH_LAYOUT); }catch(e){}
+  applyChartLayout();
+}
+applyChartLayout();
 function renderPortCharts(){
   var host=document.getElementById('portCharts');
   if(!host) return;
   var calls=getFilteredCalls(), win=chWindowInfo();
   window.__chLastW = host.clientWidth;
+  window.__chRendered = 1;
 
   var cntBy={}, boaBy={};
   calls.forEach(function(c){
@@ -5144,7 +5219,7 @@ function renderPortCharts(){
             tip:k+'  '+byCountry[k]+' calls  '+perWk.toFixed(2)+' per week'};
   });
   rowsA.sort(function(a,b){ return b.value-a.value; });
-  var WA=chFitW('chartCountryCalls', 2400);
+  var WA=chDrawW('chartCountryCalls', 2400);
   document.getElementById('chartCountryCalls').innerHTML=
     chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.19)),
       padR:Math.min(210, Math.round(WA*0.20)), dec:1,
@@ -5204,7 +5279,7 @@ function renderPortCharts(){
             tip:chName(p)+' ('+p+')  BOA '+rate.toFixed(1)+'%  ('+(boaBy[p]||0)+' of '+cntBy[p]+' calls)'};
   });
   rowsC.sort(function(a,b){ return b.value-a.value; });
-  var WC=chFitW('chartBoaByPort', 1600);
+  var WC=chDrawW('chartBoaByPort', 1600);
   document.getElementById('chartBoaByPort').innerHTML=
     chBarsV(rowsC,{w:WC, h:(rowsC.length>26?272:262), max:100});
 
@@ -5221,7 +5296,7 @@ function renderPortCharts(){
     return {label:m, value:byMonth[m].n ? byMonth[m].b/byMonth[m].n*100 : 0};
   });
   document.getElementById('chartBoaTrend').innerHTML=
-    chLine(rowsD,{w:chFitW('chartBoaTrend', 1600), h:236, max:100});
+    chLine(rowsD,{w:chDrawW('chartBoaTrend', 1600), h:236, max:100});
 
   // ---- Chart 5: waiting time BOA vs non-BOA by country / region
   var grp={};
@@ -5237,10 +5312,12 @@ function renderPortCharts(){
             accent:(k==='Red Sea'||k==='Middle East (Gulf)')};
   }).filter(function(r){ return r.n>0; });
   rowsE.sort(function(a,b){ return b.n-a.n; });
-  var WE=chFitW('chartWaitRegion', 2400);
+  var WE=chDrawW('chartWaitRegion', 2400);
   document.getElementById('chartWaitRegion').innerHTML=
-    chWaitBars(rowsE,{w:WE, padL:Math.min(196, Math.round(WE*0.19)), padR:150});
+    chWaitBars(rowsE,{w:WE, rowH:(chBox()?26:undefined), padL:Math.min(196, Math.round(WE*0.19)), padR:150});
   chOthersNote(cntBy, 'chartWaitOthers');
+  var __box=chBox();
+  if(__box){ ['chartCountryCalls','chartBoaByPort','chartBoaTrend','chartWaitRegion'].forEach(function(id){ chSlideFit(id, __box); }); }
 }
 
 /* Re-fit the charts when the panel width changes (window resize, or the
