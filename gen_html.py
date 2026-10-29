@@ -1388,11 +1388,14 @@ function _loadXlsx(cb){
   /* ── Slide (PPT) layout: centred, one card = one slide ─────────────── */
   #portCharts.ch-ppt { margin-left:auto; margin-right:auto; }
   #portCharts.ch-ppt .ch-card { display:flex; flex-direction:column; justify-content:center; }
-  #portCharts.ch-ppt .ch-card h4 { font-size:20px; margin-bottom:7px; }
-  #portCharts.ch-ppt .ch-note { font-size:12px; }
+  #portCharts.ch-ppt .ch-card h4 { font-size:20px; margin-bottom:5px; }
+  #portCharts.ch-ppt .ch-note { font-size:11px; line-height:1.34; }
   #portCharts.ch-ppt .ch-legend { justify-content:center; font-size:12.5px; }
   #portCharts.ch-ppt .ch-pick { text-align:center; font-size:12px; }
   #portCharts.ch-ppt .ch-table { font-size:13.5px; max-width:1040px; margin:0 auto; }
+  /* two stacked port blocks (Red Sea + Middle East) need a slightly tighter
+     row to keep the card at one 720 px slide page */
+  #portCharts.ch-ppt .ch-table td { padding-top:3.5px; padding-bottom:3.5px; }
   #portCharts.ch-ppt .ch-others { text-align:center; }
   #portCharts.ch-ppt svg { margin:0 auto; }
   /* slide mode = one row on one page: the pair keeps its columns so a row
@@ -1735,7 +1738,7 @@ function _loadXlsx(cb){
   <!-- Port Wait charts (deck-template styling; follow all Port Wait filters) -->
   <div id="portCharts" style="margin-top:22px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; Port Call &amp; BOA Charts</h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets. Charts size themselves to the panel width, or to a slide when Layout below is set to Slide 16:9 / 4:3.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets in the BOA-by-port and waiting-time charts. Charts size themselves to the panel width, or to a slide when Layout below is set to Slide 16:9 / 4:3.</p>
     <div class="ch-layout"><b style="color:#0E2841;">Layout</b>
       <select id="chLayout" onchange="setChartLayout(this.value)">
         <option value="ppt169">Slide 16:9 &mdash; 1280 &times; 720</option>
@@ -5338,45 +5341,53 @@ function renderPortCharts(){
       xlab:(WA<600 ? 'Calls per week' : 'Average port calls per week')});
   chOthersNote(cntBy, 'chartCountryOthers');
 
-  // ---- Chart 2: Red Sea / Middle East port table
-  var rowsB=[];
+  // ---- Chart 2: Red Sea and Middle East (Gulf) as two separate blocks
+  // Red Sea sits on top and keeps Avg / week + Avg / month; Middle East only
+  // shows Calls and BOA rate - the same split as the leadership deck.
+  var rsRows=[], meRows=[];
   Object.keys(cntBy).forEach(function(p){
     if(!cntBy[p]) return;                       // a port with no calls is never listed
-    if(!CH_RED_SEA[p] && !CH_MIDEAST[p]) return;
-    rowsB.push({p:p, grp:CH_RED_SEA[p]?'Red Sea':'Middle East (Gulf)', n:cntBy[p]});
+    if(CH_RED_SEA[p]) rsRows.push({p:p, n:cntBy[p]});
+    else if(CH_MIDEAST[p]) meRows.push({p:p, n:cntBy[p]});
   });
-  rowsB.sort(function(a,b){
-    if(a.grp!==b.grp) return a.grp<b.grp ? -1 : 1;
-    return b.n-a.n;
-  });
+  rsRows.sort(function(a,b){ return b.n-a.n; });
+  meRows.sort(function(a,b){ return b.n-a.n; });
+
+  function chSplitBlock(title, rows, withAvg){
+    var n=0, b=0;
+    rows.forEach(function(r){ n+=r.n; b+=(boaBy[r.p]||0); });
+    var cols = withAvg
+      ? '<col style="width:13%"><col style="width:29%"><col style="width:11%">'+
+        '<col style="width:16%"><col style="width:16%"><col style="width:15%">'
+      : '<col style="width:17%"><col style="width:47%"><col style="width:17%"><col style="width:19%">';
+    var head = '<div style="display:flex;align-items:baseline;gap:8px;margin:8px 0 4px;flex-wrap:wrap;">'+
+      '<b style="font-size:11.5px;color:#0E2841;letter-spacing:.4px;">'+chEsc(title)+'</b>'+
+      '<span style="font-size:10.5px;color:#8a9bb0;">'+n+' calls &nbsp;\u00b7&nbsp; '+
+      (n/win.weeks).toFixed(2)+' /wk'+(n ? ' &nbsp;\u00b7&nbsp; BOA '+(b/n*100).toFixed(1)+'%' : '')+
+      '</span></div>';
+    var s = head+'<table class="ch-table"><colgroup>'+cols+'</colgroup>'+
+      '<thead><tr><th>Port</th><th>Port name</th><th>Calls</th>'+
+      (withAvg?'<th>Avg / week</th><th>Avg / month</th>':'')+'<th>BOA rate</th></tr></thead><tbody>';
+    if(!rows.length){
+      s+='<tr><td colspan="'+(withAvg?6:4)+'" style="color:#8a9bb0;">No calls in the selected range</td></tr>';
+    }
+    rows.forEach(function(r){
+      s+='<tr><td><b>'+chEsc(r.p)+'</b></td><td>'+chEsc(chName(r.p))+'</td><td>'+r.n+'</td>'+
+         (withAvg?'<td>'+(r.n/win.weeks).toFixed(2)+'</td><td>'+(r.n/win.months).toFixed(1)+'</td>':'')+
+         '<td>'+((boaBy[r.p]||0)/r.n*100).toFixed(1)+'%</td></tr>';
+    });
+    s+='<tr class="ch-total"><td colspan="2">TOTAL ('+rows.length+' ports)</td><td>'+n+'</td>'+
+       (withAvg?'<td>'+(n/win.weeks).toFixed(2)+'</td><td>'+(n/win.months).toFixed(1)+'</td>':'')+
+       '<td>'+(n?(b/n*100).toFixed(1):'0.0')+'%</td></tr>';
+    return s+'</tbody></table>';
+  }
+
   var boxB=document.getElementById('chartMeRedSea');
-  if(!rowsB.length){
+  if(!rsRows.length && !meRows.length){
     boxB.innerHTML=chEmpty('No Red Sea / Middle East port calls in the selected range.');
   } else {
-    var tb='<table class="ch-table"><colgroup>'+
-           '<col style="width:16%"><col style="width:10%"><col style="width:22%">'+
-           '<col style="width:12%"><col style="width:14%"><col style="width:14%">'+
-           '<col style="width:12%"></colgroup>'+
-           '<thead><tr><th>Region</th><th>Port</th><th>Port name</th>'+
-           '<th>Calls</th><th>Avg / week</th><th>Avg / month</th>'+
-           '<th>BOA rate</th></tr></thead><tbody>';
-    var totN=0, totB=0;
-    rowsB.forEach(function(r){
-      totN+=r.n; totB+=(boaBy[r.p]||0);
-      tb+='<tr><td>'+chEsc(chBox() ? (r.grp==='Red Sea'?'Red Sea':'M. East') : r.grp)+'</td>'+
-          '<td><b>'+chEsc(r.p)+'</b></td><td>'+chEsc(chName(r.p))+'</td>'+
-          '<td>'+r.n+'</td>'+
-          '<td>'+(r.n/win.weeks).toFixed(2)+'</td>'+
-          '<td>'+(r.n/win.months).toFixed(1)+'</td>'+
-          '<td>'+((boaBy[r.p]||0)/r.n*100).toFixed(1)+'%</td></tr>';
-    });
-    tb+='<tr class="ch-total"><td colspan="3">TOTAL ('+rowsB.length+' ports)</td>'+
-        '<td>'+totN+'</td>'+
-        '<td>'+(totN/win.weeks).toFixed(2)+'</td>'+
-        '<td>'+(totN/win.months).toFixed(1)+'</td>'+
-        '<td>'+(totB/totN*100).toFixed(1)+'%</td></tr>';
-    tb+='</tbody></table>';
-    boxB.innerHTML=tb;
+    boxB.innerHTML = chSplitBlock('RED SEA', rsRows, true) +
+                     chSplitBlock('MIDDLE EAST (GULF)', meRows, false);
   }
 
   // ---- Chart 3: BOA rate by port (limit comes from the card's own picker)
