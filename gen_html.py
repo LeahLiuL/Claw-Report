@@ -3340,7 +3340,7 @@ function escapeHtml(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Remark classification: 16 类。按顺序匹配，先命中先归 —— 越具体的类排越前。
+// Remark classification: 17 类。按顺序匹配，先命中先归 —— 越具体的类排越前。
 // R1–R10 不再单独成类，而是在 classifyRemark() 开头先按 R_CODE_MAP 映射到语义类别。
 // ── R1–R10 → 语义类别映射（按 reason 本质归类，用户 2026-09-01 确认）──────────
 //   R1  = Force majeure: port congestion                     → congestion
@@ -3385,6 +3385,10 @@ var REMARK_CATEGORIES = [
   {key:'bunker',      label:'Bunker / Supply',
    patterns:[/\d+(\.\d+)?\s*mt\b/i, /\b\d{3}\s*cst\b/i],
    keywords:['bunker','加油','bunkering','fuel','lsfo','mgo','ulsfo','vlsfo','l.o','lo supply','fresh water','淡水','supply']},
+  // 7b. 换单（Document Switch）。排在 Bunker 之后：纯加油+换单的挂靠仍归 Bunker / Supply，
+  //     这样「Bunker 剔除」的 BOA 口径不会被打乱。
+  {key:'docswitch',   label:'Document Switch',
+   keywords:['switch doc','doc switch','document switch','switch docs','switch document','docment','switich','换单']},
   // 8. 加班靠/虚拟挂靠
   {key:'adhoc',       label:'Ad Hoc / Extra Call',
    keywords:['ad hoc','adhoc','ad-hoc','extra call','add call','private call','dummy','虚拟挂靠','不显示']},
@@ -3393,7 +3397,7 @@ var REMARK_CATEGORIES = [
    keywords:['crane','吊机','导轨','guide rail','hatch cover','舱盖','power outage','power failure','停电','高压电','绑扎','gantry','岸桥']},
   // 10. 泊位/码头作业安排 / 作业效率低（R7 映射至此）
   {key:'berthops',    label:'Berth / Terminal Ops',
-   keywords:['only discharge','only load','discharging only','switch doc','doc switch','document switch','docment','switich','换单','单杆','一支杆','效率','协调靠泊','w17','not able to discharge']},
+   keywords:['only discharge','only load','discharging only','单杆','一支杆','效率','协调靠泊','w17','not able to discharge']},
   // 11. 航线调整（P/I、P/O、OMIT、SLIDE、改靠、COR）（R9 映射至此）
   {key:'phase',       label:'Phase In/Out / Service Change',
    patterns:[/\bp\s*\/\s*[io]\b/i, /\bp\s*\/\s*s\b/i, /\bcor\b/i],
@@ -3418,6 +3422,7 @@ var REMARK_CATEGORIES = [
 var REMARK_COLORS = {
   congestion:'#c0392b', weather:'#2980b9',   bunker:'#d35400',    phase:'#9b59b6',
   adhoc:'#f39c12',      cargo:'#27ae60',     berthops:'#16a085',  equipment:'#e67e22',
+  docswitch:'#6c5ce7',
   vslfault:'#8e44ad',   inspection:'#7f8c8d', chartering:'#34495e', slowsteam:'#1abc9c',
   holiday:'#e74c3c',    tide:'#3498db',      portclosure:'#5dade2', other:'#bdc3c7',
   noremark:'#aab7c4'
