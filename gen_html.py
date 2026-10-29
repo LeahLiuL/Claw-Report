@@ -3623,6 +3623,23 @@ function updateRemarkFilterBtn(){
 }
 var selPortFilter = null;  // null = show all ports
 var selPortSearch = '';    // free-text port name search (AND with checkbox filter)
+/* The port picker is sticky: whatever was ticked last time is restored on the
+   next visit. null = All Ports, [] = every port unticked, [..] = explicit picks. */
+var PORT_FILTER_STORE = 'culPwPortFilterV1';
+function savePortFilter(){
+  try{
+    if(selPortFilter===null) localStorage.removeItem(PORT_FILTER_STORE);
+    else localStorage.setItem(PORT_FILTER_STORE, JSON.stringify(selPortFilter));
+  }catch(e){ /* private mode / quota - non-fatal */ }
+}
+function loadPortFilter(){
+  try{
+    var raw=localStorage.getItem(PORT_FILTER_STORE);
+    if(raw===null){ selPortFilter=null; return; }
+    var arr=JSON.parse(raw);
+    selPortFilter = Array.isArray(arr) ? arr.filter(function(p){ return typeof p==='string' && p; }) : null;
+  }catch(e){ selPortFilter=null; }
+}
 
 function onPortSearch(){
   selPortSearch = document.getElementById('portSearch').value.trim();
@@ -3695,6 +3712,7 @@ function applyPortFilterFromDOM(){
     if(allCb) allCb.checked=false;
   }
   updatePortFilterButton();
+  savePortFilter();
   renderPortWaitAll();
 }
 
@@ -3707,6 +3725,7 @@ function onPortFilterAllChange(allCb){
     selPortFilter=[];
   }
   updatePortFilterButton();
+  savePortFilter();
   renderPortWaitAll();
 }
 
@@ -4566,6 +4585,7 @@ function initPortView(){
   document.getElementById('portDateTo').value = selPortDateTo || todayStr;
   selPortDateFrom = selPortDateFrom || yearStart;
   selPortDateTo = selPortDateTo || todayStr;
+  loadPortFilter();              // restore the port ticks from the last visit
   buildPortFilterDropdown();
   loadRemarkMode();              // restore last session's 剔除 / BOA choices
   buildRemarkFilterDropdown();
