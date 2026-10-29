@@ -1369,17 +1369,22 @@ function _loadXlsx(cb){
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
   /* ── Port Wait chart cards (deck-template colours on white) ─────────── */
-  .ch-card { background:#ffffff; border:1px solid #E3E8EC; border-radius:6px; padding:12px 14px 14px; margin:0 0 14px; }
-  .ch-card h4 { margin:0 0 6px; color:#0E2841; font-size:13.5px; }
-  .ch-note { font-size:10.5px; color:#8a9bb0; margin:0 0 10px; line-height:1.55; }
-  .ch-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .ch-table th { background:#156082; color:#ffffff; font-weight:600; text-align:left; padding:6px 10px; font-size:11px; }
-  .ch-table td { border-bottom:1px solid #E3E8EC; padding:5px 10px; }
-  .ch-table td.num, .ch-table th.num { text-align:right; }
+  #portCharts { max-width:1180px; }
+  .ch-card { background:#ffffff; border:1px solid #E3E8EC; border-radius:6px; padding:10px 12px 12px; margin:0 0 12px; }
+  .ch-card h4 { margin:0 0 3px; color:#0E2841; font-size:15px; font-weight:600; }
+  .ch-card h4.ch-center { text-align:center; }
+  .ch-note { font-size:10.5px; color:#8a9bb0; margin:0 0 8px; line-height:1.5; }
+  .ch-table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  .ch-table th { background:#156082; color:#ffffff; font-weight:600; text-align:center; padding:5px 8px; font-size:11px; }
+  .ch-table td { border-bottom:1px solid #E3E8EC; padding:4px 8px; text-align:center; }
   .ch-table tr.ch-total td { background:#EAF2F7; font-weight:700; color:#0E2841; border-top:2px solid #156082; }
-  .ch-legend { display:flex; gap:18px; font-size:11px; color:#0E2841; margin:0 0 8px; align-items:center; }
+  .ch-legend { display:flex; gap:18px; font-size:11px; color:#0E2841; margin:0 0 6px; align-items:center; }
   .ch-legend .ch-sw { display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
   #portChartSummary { background:#EAF2F7; border:1px solid #D6E3EC; border-radius:5px; padding:7px 11px; }
+  .ch-pick { text-align:right; font-size:11px; color:#6B7A8C; margin:0 0 6px; }
+  .ch-pick select { font-size:11px; padding:1px 4px; border:1px solid #C9D6DF; border-radius:3px; color:#0E2841; background:#fff; }
+  .ch-others { font-size:10.5px; color:#8a9bb0; margin:7px 0 0; line-height:1.5; }
+  .ch-others b { color:#E97132; }
   .table-wrap {
     overflow-x: auto; padding: 0 28px 28px; position: relative;
     /* inner vertical scroll so the sticky header stays visible:
@@ -1705,28 +1710,36 @@ function _loadXlsx(cb){
   <!-- Port Wait charts (deck-template styling; follow all Port Wait filters) -->
   <div id="portCharts" style="margin-top:22px;">
     <h3 style="margin:0 0 4px;color:#1F4E79;">&#128202; Port Call &amp; BOA Charts</h3>
-    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets.</p>
+    <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Every chart below is computed from the same filtered call set as the tables above, so it follows the date range, port filter / search, remark three-way mode (Include / Exclude / BOA) and the Over-range window. Orange marks the Red Sea &amp; Middle East focus markets. Charts size themselves to the panel width.</p>
     <div id="portChartSummary"></div>
 
     <div class="ch-card" style="margin-top:12px;">
       <h4>&#128202; Average Port Calls per Week by Country / Region</h4>
-      <p class="ch-note">Calls per week = calls in range / weeks in range. Number in brackets = total calls in the selected range. China = Mainland + Taiwan + Hong Kong.</p>
+      <p class="ch-note">Calls per week = calls in range / weeks in range. Number in brackets = total calls in the selected range. China = Mainland + Taiwan + Hong Kong. Red Sea and Middle East (Gulf) are market groups, not countries, so they sit alongside the country bars.</p>
       <div id="chartCountryCalls"></div>
+      <p class="ch-others" id="chartCountryOthers"></p>
     </div>
 
     <div class="ch-card">
-      <h4>&#128203; Port Call Activity &mdash; Red Sea &amp; Middle East</h4>
-      <p class="ch-note">Red Sea = Jeddah, Jizan, Ain Sokhna, Suez, Safaga, Port Sudan, Aden, Djibouti, Aqaba. Middle East (Gulf) = Jebel Ali, Khor Fakkan, Sharjah, Salalah, Duqm, Dammam. Egyptian Mediterranean ports (Alexandria / Port Said / Damietta) are not included here.</p>
+      <h4 class="ch-center">&#128203; Port Call Activity &mdash; Red Sea &amp; Middle East</h4>
+      <p class="ch-note" style="text-align:center;">Red Sea = Jeddah, Jizan, Ain Sokhna, Suez, Safaga, Port Sudan, Aden, Djibouti, Aqaba. Middle East (Gulf) = Jebel Ali, Khor Fakkan, Sharjah, Sohar, Duqm, Dammam. Egyptian Mediterranean ports (Alexandria / Port Said / Damietta / El Dekheila) are reported as Egypt (Med.) and are not part of the Red Sea group. Avg / month = calls divided by the number of calendar months the selected range spans.</p>
       <div id="chartMeRedSea"></div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:14px;">
-      <div class="ch-card" style="flex:1;min-width:430px;">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;">
+      <div class="ch-card" style="flex:1.35;min-width:430px;">
         <h4>&#128202; Berth-On-Arrival Rate by Port</h4>
-        <p class="ch-note">Top 12 ports by call count. BOA = waiting time &le; the window set by the Over-range selector; x/y above each bar = BOA calls / total calls.</p>
+        <div class="ch-pick">Show
+          <select id="boaPortLimit" onchange="renderPortCharts()">
+            <option value="12">Top 12 by calls</option>
+            <option value="24" selected>Top 24 by calls</option>
+            <option value="0">All ports with calls</option>
+          </select>
+        </div>
+        <p class="ch-note">BOA = waiting time &le; the window set by the Over-range selector. Only ports that actually have a call in the selected range are drawn &mdash; a port with zero calls never appears. Hover a bar for BOA calls / total calls.</p>
         <div id="chartBoaByPort"></div>
       </div>
-      <div class="ch-card" style="flex:1;min-width:430px;">
+      <div class="ch-card" style="flex:1;min-width:380px;">
         <h4>&#128200; Monthly BOA Rate Trend</h4>
         <p class="ch-note">BOA share of calls per month inside the selected range.</p>
         <div id="chartBoaTrend"></div>
@@ -1734,13 +1747,14 @@ function _loadXlsx(cb){
     </div>
 
     <div class="ch-card">
-      <h4>&#9201; Average Waiting Time: BOA vs Non-BOA by Region</h4>
-      <p class="ch-note">Non-BOA excludes every call counted as BOA (a remark switched to BOA contributes 0h), so the two series never overlap. Hours.</p>
+      <h4>&#9201; Average Waiting Time: BOA vs Non-BOA by Country / Region</h4>
+      <p class="ch-note">Grouped by the same country / region buckets as the first chart. Non-BOA excludes every call counted as BOA (a remark switched to BOA contributes 0h), so the two series never overlap. Hours.</p>
       <div class="ch-legend">
         <span><span class="ch-sw" style="background:#156082;"></span>Avg wait &ndash; BOA calls</span>
         <span><span class="ch-sw" style="background:#E97132;"></span>Avg wait &ndash; non-BOA calls</span>
       </div>
       <div id="chartWaitRegion"></div>
+      <p class="ch-others" id="chartWaitOthers"></p>
     </div>
   </div>
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
@@ -4811,6 +4825,9 @@ function boaInit(){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    OVER-RANGE SYNC  (Port Wait selector and BOA selector)
    Both selector rows now drive ONE variable: PORT_OVER_RANGE, the value
    that effectiveBerthThreshold() actually reads. Previously the BOA panel
@@ -4838,39 +4855,61 @@ function setOverRange(val){
    Every chart derives from getFilteredCalls(), so each one follows the
    Port Wait date range, port filter / search, the remark three-way mode
    (include / exclude / BOA) and the Over-range window selector.
+   Width is measured from the host element, so the charts never render
+   wider than the panel they sit in.
    ═══════════════════════════════════════════════════════════════════ */
 var CH_C = {primary:'#156082', accent:'#E97132', navy:'#0E2841',
             grey:'#6B7A8C', grid:'#E3E8EC', light:'#EAF2F7'};
-var CH_RED_SEA = {SAJED:1,SAGIZ:1,EGSOK:1,EGSUE:1,EGSGA:1,SDPZU:1,YEADE:1,DJJIB:1,JOAQJ:1};
-var CH_MIDEAST = {AEJEA:1,AEKLF:1,AESHJ:1,OMSOH:1,OMDQM:1,SADMM:1};
-var CH_PNAME = {SAJED:'Jeddah', SAGIZ:'Jizan', EGSOK:'Ain Sokhna', EGSUE:'Suez',
-  EGSGA:'Safaga', SDPZU:'Port Sudan', YEADE:'Aden', DJJIB:'Djibouti', JOAQJ:'Aqaba',
-  AEJEA:'Jebel Ali', AEKLF:'Khor Fakkan', AESHJ:'Sharjah', OMSOH:'Salalah',
-  OMDQM:'Duqm', SADMM:'Dammam'};
+
+/* Red Sea / Middle East are market groups, not countries. */
+var CH_RED_SEA = {SAJED:1,SAGIZ:1,EGSOK:1,EGSUE:1,EGSGA:1,EGSAF:1,SDPZU:1,YEADE:1,DJJIB:1,JOAQJ:1};
+var CH_MIDEAST = {AEJEA:1,AEKLF:1,AESHJ:1,AEAUH:1,OMSOH:1,OMDQM:1,SADMM:1};
+
+var CH_PNAME = {
+  SAJED:'Jeddah', SAGIZ:'Jizan', EGSOK:'Ain Sokhna', EGSUE:'Suez', EGSGA:'Safaga',
+  EGSAF:'Safaga', SDPZU:'Port Sudan', YEADE:'Aden', DJJIB:'Djibouti', JOAQJ:'Aqaba',
+  AEJEA:'Jebel Ali', AEKLF:'Khor Fakkan', AESHJ:'Sharjah', AEAUH:'Abu Dhabi',
+  OMSOH:'Sohar', OMDQM:'Duqm', SADMM:'Dammam',
+  CNNAS:'Nansha', CNSHK:'Shekou', CNSHA:'Shanghai', CNNGB:'Ningbo', CNTAO:'Qingdao',
+  CNSWA:'Shantou', CNHMN:'Humen', CNGCT:'Guangzhou', CNXMN:'Xiamen', CNDCB:'Dachan Bay',
+  TWKEL:'Keelung', TWTXG:'Taichung', TWKHH:'Kaohsiung', TWTPE:'Taipei',
+  HKHKG:'Hong Kong', MYPKG:'Port Klang', SGSIN:'Singapore', VNSGN:'Ho Chi Minh',
+  THLCH:'Laem Chabang', THBKK:'Bangkok', THBKS:'Bangkok', THSCS:'Songkhla',
+  PHMNL:'Manila', INNSA:'Nhava Sheva', INMUN:'Mundra', INKDL:'Kandla',
+  PKKHI:'Karachi', TRALI:'Aliaga', TRIST:'Istanbul', TRMER:'Mersin', TRIZT:'Izmit',
+  TRISK:'Iskenderun', EGALY:'Alexandria', EGSUZ:'Port Said', EGDAM:'Damietta',
+  EGEDK:'El Dekheila', DZALG:'Algiers', LYMRA:'Misrata', LYBEN:'Benghazi',
+  MALTA:'Malta', KRPUS:'Busan', KRKAN:'Gwangyang', TNRDS:'Rades', GRSKG:'Thessaloniki'
+};
 function chName(p){ return CH_PNAME[p] || p; }
 function chIsFocusPort(p){ return !!(CH_RED_SEA[p] || CH_MIDEAST[p]); }
+
+/* Named-country mapping. Anything not matched here falls back to "Others";
+   the chart then prints exactly which ports landed there, so the bucket is
+   never a silent black box. */
+var CH_COUNTRY_CODE = {
+  EGALY:'Egypt (Med.)', EGSUZ:'Egypt (Med.)', EGDAM:'Egypt (Med.)', EGEDK:'Egypt (Med.)',
+  MALTA:'Malta'
+};
+var CH_COUNTRY_PRE = {
+  CN:'China (incl. TW & HK)', TW:'China (incl. TW & HK)', HK:'China (incl. TW & HK)',
+  SG:'Singapore', MY:'Malaysia', VN:'Vietnam', TH:'Thailand', PH:'Philippines',
+  ID:'Indonesia', IN:'India', TR:'Turkey', KR:'South Korea', PK:'Pakistan',
+  DZ:'Algeria', LY:'Libya', TN:'Tunisia', GR:'Greece', ES:'Spain', EG:'Egypt (Med.)',
+  SA:'Saudi Arabia', AE:'Middle East (Gulf)', OM:'Middle East (Gulf)',
+  QA:'Middle East (Gulf)', BH:'Middle East (Gulf)', KW:'Middle East (Gulf)',
+  IL:'Middle East (Gulf)', YE:'Red Sea', SD:'Red Sea', DJ:'Red Sea', JO:'Red Sea',
+  LK:'Sri Lanka', BD:'Bangladesh', JP:'Japan', IT:'Italy', MA:'Morocco'
+};
 function chCountry(p){
   if(CH_RED_SEA[p]) return 'Red Sea';
   if(CH_MIDEAST[p]) return 'Middle East (Gulf)';
+  if(CH_COUNTRY_CODE[p]) return CH_COUNTRY_CODE[p];
   var pre=(p||'').slice(0,2).toUpperCase();
-  if(pre==='CN'||pre==='TW'||pre==='HK') return 'China (incl. TW & HK)';
-  if(pre==='SG') return 'Singapore';
-  if(pre==='MY') return 'Malaysia';
-  if(pre==='VN') return 'Vietnam';
-  if(pre==='TH') return 'Thailand';
-  if(pre==='PH') return 'Philippines';
-  if(pre==='IN') return 'India';
-  if(pre==='TR') return 'Turkey';
+  if(CH_COUNTRY_PRE[pre]) return CH_COUNTRY_PRE[pre];
   return 'Others';
 }
-function chWaitRegion(p){
-  if(CH_RED_SEA[p]) return 'Red Sea';
-  if(CH_MIDEAST[p]) return 'Middle East (Gulf)';
-  var pre=(p||'').slice(0,2).toUpperCase();
-  if(pre==='CN'||pre==='TW'||pre==='HK') return 'China (incl. TW & HK)';
-  if(pre==='SG'||pre==='MY'||pre==='VN'||pre==='TH'||pre==='PH'||pre==='ID') return 'SE Asia';
-  return 'Others';
-}
+
 function chWindowInfo(){
   var todayStr=TODAY_DATA.date;
   var df=selPortDateFrom||'', dt=selPortDateTo||todayStr;
@@ -4880,7 +4919,12 @@ function chWindowInfo(){
   var days=1;
   if(!isNaN(a.valueOf()) && !isNaN(b.valueOf()) && b>=a) days=Math.round((b-a)/86400000)+1;
   if(days<=0) days=1;
-  return {from:df, to:dt, days:days, weeks:days/7};
+  var y1=parseInt(df.slice(0,4),10), m1=parseInt(df.slice(5,7),10);
+  var y2=parseInt(dt.slice(0,4),10), m2=parseInt(dt.slice(5,7),10);
+  var months=1;
+  if(y1&&m1&&y2&&m2) months=(y2*12+m2)-(y1*12+m1)+1;
+  if(!(months>0)) months=1;
+  return {from:df, to:dt, days:days, weeks:days/7, months:months};
 }
 function chWindowLabel(){
   var v=PORT_OVER_RANGE||'all';
@@ -4893,16 +4937,27 @@ function chEsc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function chEmpty(msg){ return '<div style="padding:16px;color:#8a9bb0;font-size:12px;">'+chEsc(msg)+'</div>'; }
+/* Measure the host so a chart is drawn at the width it will actually be
+   shown at - text keeps its designed size instead of being blown up. */
+function chFitW(hostId, cap){
+  var capW = cap || 1160, w = 1068;
+  var el = document.getElementById(hostId);
+  if(el && el.clientWidth > 40) w = el.clientWidth - 4;
+  if(!(w > 0)) w = 1068;
+  return Math.max(400, Math.min(capW, w));
+}
 function chSvg(w,h){
-  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="auto" preserveAspectRatio="xMinYMin meet" style="display:block;background:#ffffff;font-family:Segoe UI,Microsoft YaHei,Arial,sans-serif;">';
+  // max-width pins the drawing to the width it was measured at, so a chart in a
+  // very wide panel is never scaled up (which is what made v1 look oversized).
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;max-width:'+w+'px;height:auto;display:block;background:#ffffff;font-family:Segoe UI,Microsoft YaHei,Arial,sans-serif;">';
 }
 function chIsBoaCall(c){ return c.wait <= effectiveBerthThreshold(c.port); }
 
 /* ── Horizontal bars ─────────────────────────────────────────────── */
 function chBarsH(rows,opt){
   if(!rows.length) return chEmpty(opt.emptyMsg||'No calls in the selected range.');
-  var W=opt.w||1094, rowH=opt.rowH||30, padT=8, padB=28;
-  var padL=opt.padL||210, padR=opt.padR||230;
+  var W=opt.w||1094, rowH=opt.rowH||(rows.length>14?22:26), padT=6, padB=26;
+  var padL=opt.padL||196, padR=opt.padR||210;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
   var max=0; rows.forEach(function(r){ if(r.value>max) max=r.value; });
   if(!(max>0)) max=1;
@@ -4910,52 +4965,56 @@ function chBarsH(rows,opt){
   for(var t=0;t<=4;t++){
     var gx=padL+plotW*t/4;
     s+='<line x1="'+gx.toFixed(1)+'" y1="'+padT+'" x2="'+gx.toFixed(1)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+16)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+((max*t/4).toFixed(opt.dec||0))+(opt.unit||'')+'</text>';
+    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+15)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+((max*t/4).toFixed(opt.dec||0))+(opt.unit||'')+'</text>';
   }
   rows.forEach(function(r,i){
-    var y=padT+i*rowH, bh=rowH-10;
+    var y=padT+i*rowH, bh=Math.max(8, rowH-9);
     var bw=Math.max(1.5, plotW*(r.value/max));
     var col=r.accent?CH_C.accent:CH_C.primary;
-    s+='<text x="'+(padL-10)+'" y="'+(y+bh/2+4)+'" font-size="11.5" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text>';
-    s+='<rect x="'+padL+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+col+'" rx="2"/>';
-    s+='<text x="'+(padL+bw+8).toFixed(1)+'" y="'+(y+bh/2+4)+'" font-size="11" font-weight="600" fill="'+col+'">'+chEsc(r.text)+'</text>';
+    s+='<text x="'+(padL-9)+'" y="'+(y+bh/2+4)+'" font-size="11" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text>';
+    s+='<rect x="'+padL+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+col+'" rx="2"><title>'+chEsc(r.tip||r.label)+'</title></rect>';
+    s+='<text x="'+(padL+bw+7).toFixed(1)+'" y="'+(y+bh/2+4)+'" font-size="10.5" font-weight="600" fill="'+col+'">'+chEsc(r.text)+'</text>';
   });
   s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(padL+plotW)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="10" fill="'+CH_C.grey+'">'+chEsc(opt.xlab||'')+'</text>';
+  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="9.5" fill="'+CH_C.grey+'">'+chEsc(opt.xlab||'')+'</text>';
   return s+'</svg>';
 }
 
 /* ── Vertical bars (BOA rate by port) ────────────────────────────── */
 function chBarsV(rows,opt){
   if(!rows.length) return chEmpty(opt.emptyMsg||'No calls in the selected range.');
-  var W=opt.w||560, H=opt.h||320, padL=40, padR=12, padT=14, padB=opt.padB||78;
+  var W=opt.w||560, H=opt.h||300, padL=38, padR=10, padT=12;
+  var n=rows.length, dense=n>26;
+  var padB=dense?54:76;
   var plotW=W-padL-padR, plotH=H-padT-padB, max=opt.max||100;
   var s=chSvg(W,H);
   for(var t=0;t<=4;t++){
     var gy=padT+plotH*t/4;
     s+='<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(padL+plotW)+'" y2="'+gy.toFixed(1)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-    s+='<text x="'+(padL-7)+'" y="'+(gy+4).toFixed(1)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="end">'+Math.round(max-max*t/4)+'%</text>';
+    s+='<text x="'+(padL-6)+'" y="'+(gy+4).toFixed(1)+'" font-size="9.5" fill="'+CH_C.grey+'" text-anchor="end">'+Math.round(max-max*t/4)+'%</text>';
   }
-  var slot=plotW/rows.length, bw=Math.min(34, slot*0.6);
+  var slot=plotW/n, bw=Math.max(2.5, Math.min(dense?15:30, slot*0.62));
+  var fs=dense?7.2:10, rot=dense?-58:-40;
   rows.forEach(function(r,i){
     var cx=padL+slot*(i+0.5);
     var bh=Math.max(1.5, plotH*(r.value/max));
     var y=padT+plotH-bh;
     var col=r.accent?CH_C.accent:CH_C.primary;
-    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" rx="2"/>';
-    // A tall bar has no head-room above, so it carries its label inside (white on
-    // colour). A short bar leaves plenty of room above, where the label is drawn in
-    // the bar colour - otherwise it would land on white background and vanish.
-    if(bh>=32){
-      s+='<text x="'+cx.toFixed(1)+'" y="'+(y+15).toFixed(1)+'" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
-      if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y+29).toFixed(1)+'" font-size="9" fill="#D6E3EC" text-anchor="middle">'+chEsc(r.note)+'</text>';
-    } else if(bh>=18){
-      s+='<text x="'+cx.toFixed(1)+'" y="'+(y+13).toFixed(1)+'" font-size="10.5" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
-    } else {
-      s+='<text x="'+cx.toFixed(1)+'" y="'+(y-5).toFixed(1)+'" font-size="10.5" font-weight="700" fill="'+col+'" text-anchor="middle">'+chEsc(r.text)+'</text>';
-      if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y-17).toFixed(1)+'" font-size="9" fill="'+CH_C.grey+'" text-anchor="middle">'+chEsc(r.note)+'</text>';
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'" rx="1.5"><title>'+chEsc(r.tip||'')+'</title></rect>';
+    // With few bars there is room for a printed value; a tall bar carries it
+    // inside (white on colour), a short one above it in the bar colour.
+    if(!dense){
+      if(bh>=30){
+        s+='<text x="'+cx.toFixed(1)+'" y="'+(y+14).toFixed(1)+'" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
+        if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y+26).toFixed(1)+'" font-size="8.5" fill="#D6E3EC" text-anchor="middle">'+chEsc(r.note)+'</text>';
+      } else if(bh>=17){
+        s+='<text x="'+cx.toFixed(1)+'" y="'+(y+12).toFixed(1)+'" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">'+chEsc(r.text)+'</text>';
+      } else {
+        s+='<text x="'+cx.toFixed(1)+'" y="'+(y-5).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="middle">'+chEsc(r.text)+'</text>';
+        if(r.note) s+='<text x="'+cx.toFixed(1)+'" y="'+(y-16).toFixed(1)+'" font-size="8.5" fill="'+CH_C.grey+'" text-anchor="middle">'+chEsc(r.note)+'</text>';
+      }
     }
-    s+='<g transform="translate('+cx.toFixed(1)+','+(padT+plotH+9)+') rotate(-40)"><text x="0" y="0" font-size="10.5" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text></g>';
+    s+='<g transform="translate('+cx.toFixed(1)+','+(padT+plotH+8)+') rotate('+rot+')"><text x="0" y="0" font-size="'+fs+'" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text></g>';
   });
   s+='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(padL+plotW)+'" y2="'+(padT+plotH)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
   return s+'</svg>';
@@ -4964,15 +5023,14 @@ function chBarsV(rows,opt){
 /* ── Line chart (monthly BOA trend) ──────────────────────────────── */
 function chLine(rows,opt){
   if(!rows.length) return chEmpty(opt.emptyMsg||'No calls in the selected range.');
-  var W=opt.w||560, H=opt.h||300, padL=42, padR=16, padT=16, padB=opt.padB||56;
+  var W=opt.w||560, H=opt.h||260, padL=40, padR=14, padT=14, padB=opt.padB||50;
   var plotW=W-padL-padR, plotH=H-padT-padB;
   var min=0, max=opt.max||100;
-  if(rows.length===1){ rows=[{label:rows[0].label,value:rows[0].value}]; }
   var s=chSvg(W,H);
   for(var t=0;t<=4;t++){
     var gy=padT+plotH*t/4, v=max-(max-min)*t/4;
     s+='<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(padL+plotW)+'" y2="'+gy.toFixed(1)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-    s+='<text x="'+(padL-7)+'" y="'+(gy+4).toFixed(1)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="end">'+Math.round(v)+'%</text>';
+    s+='<text x="'+(padL-6)+'" y="'+(gy+4).toFixed(1)+'" font-size="9.5" fill="'+CH_C.grey+'" text-anchor="end">'+Math.round(v)+'%</text>';
   }
   var den=rows.length>1 ? (rows.length-1) : 1;
   var step=plotW/den, pts=[], i;
@@ -4984,24 +5042,26 @@ function chLine(rows,opt){
   var pstr=pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
   if(rows.length>1){
     s+='<polygon points="'+pstr+' '+(padL+step*(rows.length-1)).toFixed(1)+','+(padT+plotH)+' '+padL+','+(padT+plotH)+'" fill="'+CH_C.primary+'" opacity="0.08"/>';
-    s+='<polyline points="'+pstr+'" fill="none" stroke="'+CH_C.primary+'" stroke-width="2.4" stroke-linejoin="round"/>';
+    s+='<polyline points="'+pstr+'" fill="none" stroke="'+CH_C.primary+'" stroke-width="2.2" stroke-linejoin="round"/>';
   }
-  var every=Math.max(1, Math.ceil(rows.length/7));
+  var every=Math.max(1, Math.ceil(rows.length/8));
   for(i=0;i<rows.length;i++){
-    s+='<circle cx="'+pts[i][0].toFixed(1)+'" cy="'+pts[i][1].toFixed(1)+'" r="3.6" fill="#ffffff" stroke="'+CH_C.primary+'" stroke-width="2"/>';
-    s+='<text x="'+pts[i][0].toFixed(1)+'" y="'+(pts[i][1]-10).toFixed(1)+'" font-size="10" font-weight="600" fill="'+CH_C.primary+'" text-anchor="middle">'+Math.round(rows[i].value)+'%</text>';
+    s+='<circle cx="'+pts[i][0].toFixed(1)+'" cy="'+pts[i][1].toFixed(1)+'" r="3.4" fill="#ffffff" stroke="'+CH_C.primary+'" stroke-width="2"><title>'+chEsc(rows[i].label+'  '+Math.round(rows[i].value)+'%')+'</title></circle>';
     if(i%every===0 || i===rows.length-1){
-      s+='<g transform="translate('+pts[i][0].toFixed(1)+','+(padT+plotH+14)+') rotate(-38)"><text x="0" y="0" font-size="9.5" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(rows[i].label)+'</text></g>';
+      s+='<text x="'+pts[i][0].toFixed(1)+'" y="'+(pts[i][1]-9).toFixed(1)+'" font-size="9.5" font-weight="600" fill="'+CH_C.primary+'" text-anchor="middle">'+Math.round(rows[i].value)+'%</text>';
+      s+='<g transform="translate('+pts[i][0].toFixed(1)+','+(padT+plotH+13)+') rotate(-38)"><text x="0" y="0" font-size="9" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(rows[i].label)+'</text></g>';
     }
   }
   s+='<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(padL+plotW)+'" y2="'+(padT+plotH)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
   return s+'</svg>';
 }
 
-/* ── Grouped bars: BOA vs non-BOA waiting time by region ─────────── */
-function chWaitBars(rows){
+/* ── Grouped bars: BOA vs non-BOA waiting time by country ────────── */
+function chWaitBars(rows,opt){
   if(!rows.length) return chEmpty('No waiting-time data in the selected range.');
-  var W=1094, rowH=48, padT=10, padB=28, padL=200, padR=150;
+  var dens=rows.length>14;
+  var W=opt.w||1094, rowH=opt.rowH||(dens?30:40), padT=8, padB=26, padL=opt.padL||196, padR=opt.padR||150;
+  var bh=dens?12:14, gap=dens?3:4;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
   var max=0; rows.forEach(function(r){ if(r.boa>max) max=r.boa; if(r.non>max) max=r.non; });
   if(!(max>0)) max=1;
@@ -5009,22 +5069,39 @@ function chWaitBars(rows){
   for(var t=0;t<=4;t++){
     var gx=padL+plotW*t/4;
     s+='<line x1="'+gx.toFixed(1)+'" y1="'+padT+'" x2="'+gx.toFixed(1)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+16)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+(max*t/4).toFixed(0)+'h</text>';
+    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+15)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+(max*t/4).toFixed(0)+'h</text>';
   }
   rows.forEach(function(r,i){
-    var y0=padT+i*rowH+3, bh=15;
-    s+='<text x="'+(padL-10)+'" y="'+(y0+11)+'" font-size="11.5" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text>';
-    s+='<text x="'+(padL-10)+'" y="'+(y0+25)+'" font-size="9.5" fill="'+CH_C.grey+'" text-anchor="end">'+chEsc(r.sub)+'</text>';
-    var series=[[r.boa,CH_C.primary,y0],[r.non,CH_C.accent,y0+bh+4]];
+    var y0=padT+i*rowH+2;
+    s+='<text x="'+(padL-9)+'" y="'+(y0+bh-2)+'" font-size="11" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text>';
+    s+='<text x="'+(padL-9)+'" y="'+(y0+2*bh+gap-2)+'" font-size="9" fill="'+CH_C.grey+'" text-anchor="end">'+chEsc(r.sub)+'</text>';
+    var series=[[r.boa,CH_C.primary,y0],[r.non,CH_C.accent,y0+bh+gap]];
     series.forEach(function(sr){
       var bw=Math.max(1.5, plotW*(sr[0]/max));
-      s+='<rect x="'+padL+'" y="'+sr[2]+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+sr[1]+'" rx="2"/>';
-      s+='<text x="'+(padL+bw+8).toFixed(1)+'" y="'+(sr[2]+bh-3)+'" font-size="11" font-weight="600" fill="'+sr[1]+'">'+sr[0].toFixed(1)+'h</text>';
+      s+='<rect x="'+padL+'" y="'+sr[2]+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+sr[1]+'" rx="2"><title>'+chEsc(r.label+'  '+sr[0].toFixed(1)+'h')+'</title></rect>';
+      s+='<text x="'+(padL+bw+7).toFixed(1)+'" y="'+(sr[2]+bh-3)+'" font-size="10.5" font-weight="600" fill="'+sr[1]+'">'+sr[0].toFixed(1)+'h</text>';
     });
   });
   s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(padL+plotW)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="10" fill="'+CH_C.grey+'">Average waiting time in hours (BOA and non-BOA series computed on disjoint call sets)</text>';
+  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="9.5" fill="'+CH_C.grey+'">Average waiting time in hours (BOA and non-BOA series computed on disjoint call sets)</text>';
   return s+'</svg>';
+}
+
+/* Anything that lands in "Others" is listed under the chart instead of
+   being hidden inside a mystery bucket. */
+function chOthersNote(byPort, hostId){
+  var el=document.getElementById(hostId);
+  if(!el) return;
+  var ops=[];
+  Object.keys(byPort).forEach(function(p){
+    if(chCountry(p)==='Others') ops.push(p+' ('+byPort[p]+')');
+  });
+  if(ops.length){
+    el.innerHTML='<b>Others</b> = '+chEsc(ops.sort().join(', '))+
+      '  &mdash; ports whose UN/LOCODE has no named country mapping yet.';
+  } else {
+    el.innerHTML='Every port in this range maps to a named country / region, so there is no residual <b>Others</b> bucket.';
+  }
 }
 
 /* ── Master renderer ─────────────────────────────────────────────── */
@@ -5032,8 +5109,8 @@ function renderPortCharts(){
   var host=document.getElementById('portCharts');
   if(!host) return;
   var calls=getFilteredCalls(), win=chWindowInfo();
+  window.__chLastW = host.clientWidth;
 
-  // shared per-port aggregates
   var cntBy={}, boaBy={};
   calls.forEach(function(c){
     cntBy[c.port]=(cntBy[c.port]||0)+1;
@@ -5046,8 +5123,8 @@ function renderPortCharts(){
   if(sum){
     var rate = calls.length ? (boaN/calls.length*100) : 0;
     sum.innerHTML='Range <b>'+chEsc(win.from)+' &rarr; '+chEsc(win.to)+'</b> &nbsp;&middot;&nbsp; '+
-      '<b>'+win.days+'</b> days ('+win.weeks.toFixed(1)+' weeks) &nbsp;&middot;&nbsp; '+
-      'calls <b>'+calls.length+'</b> &nbsp;&middot;&nbsp; '+
+      '<b>'+win.days+'</b> days ('+win.weeks.toFixed(1)+' weeks, '+win.months+' months) &nbsp;&middot;&nbsp; '+
+      'calls <b>'+calls.length+'</b> across <b>'+Object.keys(cntBy).length+'</b> ports &nbsp;&middot;&nbsp; '+
       'BOA window <b>'+chEsc(chWindowLabel())+'</b> &nbsp;&middot;&nbsp; '+
       'BOA <b>'+boaN+'</b> ('+rate.toFixed(1)+'%)';
   }
@@ -5058,16 +5135,21 @@ function renderPortCharts(){
   var rowsA=Object.keys(byCountry).map(function(k){
     var perWk=byCountry[k]/win.weeks;
     return {label:k, value:perWk, accent:(k==='Red Sea'||k==='Middle East (Gulf)'),
-            text:perWk.toFixed(1)+' /wk  ('+byCountry[k]+' calls)'};
+            text:perWk.toFixed(1)+' /wk  ('+byCountry[k]+')',
+            tip:k+'  '+byCountry[k]+' calls  '+perWk.toFixed(2)+' per week'};
   });
   rowsA.sort(function(a,b){ return b.value-a.value; });
+  var WA=chFitW('chartCountryCalls', 1160);
   document.getElementById('chartCountryCalls').innerHTML=
-    chBarsH(rowsA,{w:1094, rowH:30, padL:210, padR:230, dec:1,
+    chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.19)),
+      padR:Math.min(210, Math.round(WA*0.20)), dec:1,
       xlab:'Average port calls per week  ·  orange = Red Sea & Middle East focus markets'});
+  chOthersNote(cntBy, 'chartCountryOthers');
 
   // ---- Chart 2: Red Sea / Middle East port table
   var rowsB=[];
   Object.keys(cntBy).forEach(function(p){
+    if(!cntBy[p]) return;                       // a port with no calls is never listed
     if(!CH_RED_SEA[p] && !CH_MIDEAST[p]) return;
     rowsB.push({p:p, grp:CH_RED_SEA[p]?'Red Sea':'Middle East (Gulf)', n:cntBy[p]});
   });
@@ -5080,37 +5162,42 @@ function renderPortCharts(){
     boxB.innerHTML=chEmpty('No Red Sea / Middle East port calls in the selected range.');
   } else {
     var tb='<table class="ch-table"><thead><tr><th>Region</th><th>Port</th><th>Port name</th>'+
-           '<th class="num">Calls</th><th class="num">Avg / week</th><th class="num">Avg / day</th>'+
-           '<th class="num">BOA rate</th></tr></thead><tbody>';
+           '<th>Calls</th><th>Avg / week</th><th>Avg / month</th>'+
+           '<th>BOA rate</th></tr></thead><tbody>';
     var totN=0, totB=0;
     rowsB.forEach(function(r){
       totN+=r.n; totB+=(boaBy[r.p]||0);
       tb+='<tr><td>'+chEsc(r.grp)+'</td><td><b>'+chEsc(r.p)+'</b></td><td>'+chEsc(chName(r.p))+'</td>'+
-          '<td class="num">'+r.n+'</td>'+
-          '<td class="num">'+(r.n/win.weeks).toFixed(2)+'</td>'+
-          '<td class="num">'+(r.n/win.days).toFixed(2)+'</td>'+
-          '<td class="num">'+((boaBy[r.p]||0)/r.n*100).toFixed(1)+'%</td></tr>';
+          '<td>'+r.n+'</td>'+
+          '<td>'+(r.n/win.weeks).toFixed(2)+'</td>'+
+          '<td>'+(r.n/win.months).toFixed(1)+'</td>'+
+          '<td>'+((boaBy[r.p]||0)/r.n*100).toFixed(1)+'%</td></tr>';
     });
     tb+='<tr class="ch-total"><td colspan="3">TOTAL ('+rowsB.length+' ports)</td>'+
-        '<td class="num">'+totN+'</td>'+
-        '<td class="num">'+(totN/win.weeks).toFixed(2)+'</td>'+
-        '<td class="num">'+(totN/win.days).toFixed(2)+'</td>'+
-        '<td class="num">'+(totB/totN*100).toFixed(1)+'%</td></tr>';
+        '<td>'+totN+'</td>'+
+        '<td>'+(totN/win.weeks).toFixed(2)+'</td>'+
+        '<td>'+(totN/win.months).toFixed(1)+'</td>'+
+        '<td>'+(totB/totN*100).toFixed(1)+'%</td></tr>';
     tb+='</tbody></table>';
     boxB.innerHTML=tb;
   }
 
-  // ---- Chart 3: BOA rate by port (top 12 by call count)
-  var topPorts=Object.keys(cntBy).filter(function(p){ return cntBy[p]>=2; })
-    .sort(function(a,b){ return cntBy[b]-cntBy[a]; }).slice(0,12);
-  var rowsC=topPorts.map(function(p){
+  // ---- Chart 3: BOA rate by port (limit comes from the card's own picker)
+  var limEl=document.getElementById('boaPortLimit');
+  var lim=limEl ? parseInt(limEl.value,10) : 24;
+  var allPorts=Object.keys(cntBy).filter(function(p){ return cntBy[p]>0; })
+    .sort(function(a,b){ return cntBy[b]-cntBy[a]; });
+  var shown=(lim>0 && allPorts.length>lim) ? allPorts.slice(0,lim) : allPorts;
+  var rowsC=shown.map(function(p){
     var rate=cntBy[p] ? (boaBy[p]||0)/cntBy[p]*100 : 0;
     return {label:p, value:rate, text:rate.toFixed(0)+'%', note:(boaBy[p]||0)+'/'+cntBy[p],
-            accent:chIsFocusPort(p)};
+            accent:chIsFocusPort(p),
+            tip:chName(p)+' ('+p+')  BOA '+rate.toFixed(1)+'%  ('+(boaBy[p]||0)+' of '+cntBy[p]+' calls)'};
   });
   rowsC.sort(function(a,b){ return b.value-a.value; });
+  var WC=chFitW('chartBoaByPort', 900);
   document.getElementById('chartBoaByPort').innerHTML=
-    chBarsV(rowsC,{w:560, h:320, padB:78, max:100});
+    chBarsV(rowsC,{w:WC, h:(rowsC.length>26?272:262), max:100});
 
   // ---- Chart 4: monthly BOA rate trend
   var byMonth={};
@@ -5125,23 +5212,52 @@ function renderPortCharts(){
     return {label:m, value:byMonth[m].n ? byMonth[m].b/byMonth[m].n*100 : 0};
   });
   document.getElementById('chartBoaTrend').innerHTML=
-    chLine(rowsD,{w:560, h:300, max:100});
+    chLine(rowsD,{w:chFitW('chartBoaTrend', 900), h:236, max:100});
 
-  // ---- Chart 5: waiting time BOA vs non-BOA by region
+  // ---- Chart 5: waiting time BOA vs non-BOA by country / region
   var grp={};
   calls.forEach(function(c){
-    var k=chWaitRegion(c.port);
+    var k=chCountry(c.port);
     var g=grp[k]||(grp[k]={bs:0,bn:0,ns:0,nn:0});
     if(chIsBoaCall(c)){ g.bs+=c.wait; g.bn++; } else { g.ns+=c.wait; g.nn++; }
   });
   var rowsE=Object.keys(grp).map(function(k){
     var g=grp[k];
     return {label:k, boa:g.bn?g.bs/g.bn:0, non:g.nn?g.ns/g.nn:0,
-            sub:'BOA '+g.bn+' / non-BOA '+g.nn,
+            sub:'BOA '+g.bn+' / non-BOA '+g.nn, n:g.bn+g.nn,
             accent:(k==='Red Sea'||k==='Middle East (Gulf)')};
-  }).filter(function(r){ return (r.boa>0 || r.non>0); });
-  rowsE.sort(function(a,b){ return (b.boa+b.non)-(a.boa+a.non); });
-  document.getElementById('chartWaitRegion').innerHTML=chWaitBars(rowsE);
+  }).filter(function(r){ return r.n>0; });
+  rowsE.sort(function(a,b){ return b.n-a.n; });
+  var WE=chFitW('chartWaitRegion', 1160);
+  document.getElementById('chartWaitRegion').innerHTML=
+    chWaitBars(rowsE,{w:WE, padL:Math.min(196, Math.round(WE*0.19)), padR:150});
+  chOthersNote(cntBy, 'chartWaitOthers');
+}
+
+/* Re-fit the charts when the panel width changes (window resize, or the
+   Port Wait tab becoming visible for the first time). */
+if(typeof window!=='undefined' && !window.__chRO){
+  window.__chRO=1;
+  var chRe=function(){
+    var h=document.getElementById('portCharts');
+    if(!h || !h.offsetParent) return;
+    if(Math.abs((h.clientWidth||0)-(window.__chLastW||0))<10) return;
+    renderPortCharts();
+  };
+  window.addEventListener('resize', function(){
+    clearTimeout(window.__chTimer);
+    window.__chTimer=setTimeout(chRe, 200);
+  });
+  if(typeof ResizeObserver!=='undefined'){
+    try{
+      var ro=new ResizeObserver(function(){
+        clearTimeout(window.__chTimer);
+        window.__chTimer=setTimeout(chRe, 150);
+      });
+      var h0=document.getElementById('portCharts');
+      if(h0) ro.observe(h0);
+    }catch(e){}
+  }
 }
 /* ═══════════════════════════════════════════════════════════════════
    LOGIN
