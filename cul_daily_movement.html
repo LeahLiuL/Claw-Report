@@ -206,6 +206,11 @@ function _loadXlsx(cb){
   #portCharts.ch-ppt.ch-split .ch-row-a { display:flex; flex-wrap:nowrap; gap:14px; align-items:stretch; }
   #portCharts.ch-ppt .ch-row-a .ch-card { margin-bottom:0; }
   #portCharts.ch-ppt .ch-table { min-width:0; max-width:none; }
+  /* the waiting-time pair stacks in slide mode: one chart per page, full width,
+     because 23 country rows do not survive a half-width card */
+  .ch-row-c > .ch-card { flex:1 1 380px; }
+  #portCharts.ch-ppt .ch-row-c { flex-wrap:wrap !important; }
+  #portCharts.ch-ppt .ch-row-c > .ch-card { flex:1 1 100%; }
   .ch-layout { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:11px; color:#6B7A8C; }
   .ch-layout select { font-size:11px; padding:2px 5px; border:1px solid #C9D6DF; border-radius:3px; color:#0E2841; background:#fff; }
   .table-wrap {
@@ -540,14 +545,14 @@ function _loadXlsx(cb){
         <option value="ppt43">Slide 4:3 &mdash; 960 &times; 720</option>
         <option value="fit">Fit screen (full panel width)</option>
       </select>
-      <span>Slide mode lays the block out at slide size, one row per page: country chart + Red Sea / Middle East table side by side on the first 16:9 page, BOA by port + monthly trend on the second, waiting time across the third. Screenshot a row &mdash; it drops into a 16:9 deck at 1:1. The 4:3 size is narrower, so the country chart and the table stack there. The choice is remembered per browser.</span>
+      <span>Slide mode lays the block out at slide size, one page per row: country chart + Red Sea / Middle East table side by side on the first 16:9 page, BOA by port + monthly trend on the second, then the waiting-time charts &mdash; BOA and non-BOA, one per page. Screenshot a row &mdash; it drops into a 16:9 deck at 1:1. The 4:3 size is narrower, so the country chart and the table stack there. The choice is remembered per browser.</span>
     </div>
     <div id="portChartSummary"></div>
 
     <div class="ch-row ch-row-a">
     <div class="ch-card" style="margin-top:12px;flex:1;min-width:0;">
       <h4>&#128202; Average Port Calls per Week by Country / Region</h4>
-      <p class="ch-note">Calls per week = calls in range / weeks in range. Number in brackets = total calls in the selected range. China = Mainland + Taiwan + Hong Kong. Red Sea and Middle East (Gulf) are market groups, not countries, so they sit alongside the country bars.</p>
+      <p class="ch-note">Calls per week = calls in range / weeks in range. Number in brackets = total calls in the selected range. China is split into Mainland, Taiwan and Hong Kong, and the mainland is read by coast (North / East / South). Red Sea and Middle East (Gulf) are market groups, not countries, so they sit alongside the country bars.</p>
       <div id="chartCountryCalls"></div>
       <p class="ch-others" id="chartCountryOthers"></p>
     </div>
@@ -579,16 +584,19 @@ function _loadXlsx(cb){
       </div>
     </div>
 
-    <div class="ch-card">
-      <h4>&#9201; Average Waiting Time: BOA vs Non-BOA by Country / Region</h4>
-      <p class="ch-note">Grouped by the same country / region buckets as the first chart. Non-BOA excludes every call counted as BOA (a remark switched to BOA contributes 0h), so the two series never overlap. Hours.</p>
-      <div class="ch-legend">
-        <span><span class="ch-sw" style="background:#156082;"></span>Avg wait &ndash; BOA calls</span>
-        <span><span class="ch-sw" style="background:#E97132;"></span>Avg wait &ndash; non-BOA calls</span>
+    <div class="ch-row ch-row-c" style="display:flex;flex-wrap:wrap;gap:12px;">
+      <div class="ch-card" style="min-width:380px;">
+        <h4>&#9201; Average Waiting Time &mdash; BOA Calls</h4>
+        <p class="ch-note">Only the calls that berthed inside the BOA window, on their own scale. Same country / region buckets and the same row order as the non-BOA chart next to it, so the two read together. Hours.</p>
+        <div id="chartWaitBoa"></div>
       </div>
-      <div id="chartWaitRegion"></div>
-      <p class="ch-others" id="chartWaitOthers"></p>
+      <div class="ch-card" style="min-width:380px;">
+        <h4>&#9201; Average Waiting Time &mdash; Non-BOA Calls</h4>
+        <p class="ch-note">Only the calls that missed the window, on their own scale &mdash; a remark switched to BOA contributes 0h and therefore moves to the BOA chart. Hours.</p>
+        <div id="chartWaitNon"></div>
+      </div>
     </div>
+    <p class="ch-others" id="chartWaitOthers"></p>
   </div>
   <!-- BOA berth-on-arrival stats (computed from Daily Movement, follows Port Wait date filter) -->
   <div style="margin-top:24px;border-top:2px solid #1F4E79;padding-top:14px;">
@@ -3729,8 +3737,25 @@ var CH_COUNTRY_CODE = {
   EGALY:'Egypt (Med.)', EGSUZ:'Egypt (Med.)', EGDAM:'Egypt (Med.)', EGEDK:'Egypt (Med.)',
   MALTA:'Malta'
 };
+/* Mainland China is read by coast instead of as one 738-call block:
+   North = Shandong / Hebei / Tianjin / Liaoning, East = Shanghai / Jiangsu /
+   Zhejiang, South = Guangdong / Fujian / Guangxi / Hainan. Taiwan and Hong
+   Kong are their own buckets at the request of the ops team. A mainland code
+   that has no coastal mapping yet falls into "China (Other)" and is listed
+   under the chart, so nothing is folded in silently. */
+var CH_CN_REGION = {
+  CNTAO:'China (North)', CNQIN:'China (North)', CNTSN:'China (North)',
+  CNDLC:'China (North)', CNYNT:'China (North)', CNRZH:'China (North)',
+  CNYIK:'China (North)', CNJNZ:'China (North)', CNSDG:'China (North)',
+  CNSHA:'China (East)',  CNNGB:'China (East)',  CNNJG:'China (East)',
+  CNLYG:'China (East)',  CNTAC:'China (East)',  CNWUH:'China (East)',
+  CNNTG:'China (East)',  CNHZH:'China (East)',
+  CNNAS:'China (South)', CNSHK:'China (South)', CNDCB:'China (South)',
+  CNHMN:'China (South)', CNGCT:'China (South)', CNSWA:'China (South)',
+  CNXMN:'China (South)', CNFOC:'China (South)', CNHAK:'China (South)',
+  CNQZH:'China (South)', CNSNZ:'China (South)', CNZHA:'China (South)'
+};
 var CH_COUNTRY_PRE = {
-  CN:'China (incl. TW & HK)', TW:'China (incl. TW & HK)', HK:'China (incl. TW & HK)',
   SG:'Singapore', MY:'Malaysia', VN:'Vietnam', TH:'Thailand', PH:'Philippines',
   ID:'Indonesia', IN:'India', TR:'Turkey', KR:'South Korea', PK:'Pakistan',
   DZ:'Algeria', LY:'Libya', TN:'Tunisia', GR:'Greece', ES:'Spain', EG:'Egypt (Med.)',
@@ -3743,7 +3768,11 @@ function chCountry(p){
   if(CH_RED_SEA[p]) return 'Red Sea';
   if(CH_MIDEAST[p]) return 'Middle East (Gulf)';
   if(CH_COUNTRY_CODE[p]) return CH_COUNTRY_CODE[p];
+  if(CH_CN_REGION[p]) return CH_CN_REGION[p];
   var pre=(p||'').slice(0,2).toUpperCase();
+  if(pre==='HK') return 'China (HK)';
+  if(pre==='TW') return 'China (TW)';
+  if(pre==='CN') return 'China (Other)';
   if(CH_COUNTRY_PRE[pre]) return CH_COUNTRY_PRE[pre];
   return 'Others';
 }
@@ -3791,14 +3820,23 @@ function chSvg(w,h){
 }
 function chIsBoaCall(c){ return c.wait <= effectiveBerthThreshold(c.port); }
 
+/* Round the axis top up to a value whose four quarters are readable, so a
+   3.1h maximum prints 0/1/2/3/4 instead of 0.0/0.8/1.6/2.3/3.1. */
+function chNiceStep(v){
+  var c=[0.25,0.5,1,2,2.5,3,5,10,15,20,25,50,100,200,250,500,1000];
+  for(var i=0;i<c.length;i++){ if(c[i]>=v-1e-9) return c[i]; }
+  return Math.ceil(v);
+}
+
 /* ── Horizontal bars ─────────────────────────────────────────────── */
 function chBarsH(rows,opt){
   if(!rows.length) return chEmpty(opt.emptyMsg||'No calls in the selected range.');
   var W=opt.w||1094, rowH=opt.rowH||(rows.length>14?22:26), padT=6, padB=opt.padB||38;
   var padL=opt.padL||196, padR=opt.padR||210;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
-  var max=0; rows.forEach(function(r){ if(r.value>max) max=r.value; });
-  if(!(max>0)) max=1;
+  var dmax=0; rows.forEach(function(r){ if(r.value>dmax) dmax=r.value; });
+  if(!(dmax>0)) dmax=1;
+  var max=chNiceStep(dmax/4)*4;
   var s=chSvg(W,H);
   for(var t=0;t<=4;t++){
     var gx=padL+plotW*t/4;
@@ -3898,34 +3936,40 @@ function chLine(rows,opt){
   return s+'</svg>';
 }
 
-/* ── Grouped bars: BOA vs non-BOA waiting time by country ────────── */
-function chWaitBars(rows,opt){
-  if(!rows.length) return chEmpty('No waiting-time data in the selected range.');
+/* ── Waiting time by country / region, one series per chart ───────── */
+/* One series only. The old chart drew BOA and non-BOA side by side on one
+   scale, which flattened both: a 0.6h BOA bar is invisible next to an 89h
+   non-BOA bar. Each series now gets its own chart and its own scale. */
+function chWaitBars1(rows,opt){
+  if(!rows.length) return chEmpty(opt.emptyMsg||'No waiting-time data in the selected range.');
   var dens=rows.length>14;
-  var W=opt.w||1094, rowH=opt.rowH||(dens?30:40), padT=8, padB=opt.padB||42, padL=opt.padL||196, padR=opt.padR||150;
-  var bh=dens?12:14, gap=dens?3:4;
+  var W=opt.w||1094, rowH=opt.rowH||(dens?26:34), padT=8, padB=opt.padB||42,
+      padL=opt.padL||196, padR=opt.padR||150;
   var H=padT+padB+rows.length*rowH, plotW=W-padL-padR;
-  var max=0; rows.forEach(function(r){ if(r.boa>max) max=r.boa; if(r.non>max) max=r.non; });
-  if(!(max>0)) max=1;
+  var dmax=0; rows.forEach(function(r){ if(r.n>0 && r.value>dmax) dmax=r.value; });
+  if(!(dmax>0)) dmax=1;
+  var step=chNiceStep(dmax/4), max=step*4, dec=(step<1?1:0);
+  var col=opt.color||CH_C.primary, bh=Math.max(9, Math.min(14, Math.round(rowH-12)));
   var s=chSvg(W,H);
   for(var t=0;t<=4;t++){
     var gx=padL+plotW*t/4;
     s+='<line x1="'+gx.toFixed(1)+'" y1="'+padT+'" x2="'+gx.toFixed(1)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+15)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+(max*t/4).toFixed(0)+'h</text>';
+    s+='<text x="'+gx.toFixed(1)+'" y="'+(H-padB+15)+'" font-size="10" fill="'+CH_C.grey+'" text-anchor="middle">'+(max*t/4).toFixed(dec)+'h</text>';
   }
   rows.forEach(function(r,i){
-    var y0=padT+i*rowH+2;
-    s+='<text x="'+(padL-9)+'" y="'+(y0+bh-2)+'" font-size="11" fill="'+CH_C.navy+'" text-anchor="end">'+chEsc(r.label)+'</text>';
-    s+='<text x="'+(padL-9)+'" y="'+(y0+2*bh+gap-2)+'" font-size="9" fill="'+CH_C.grey+'" text-anchor="end">'+chEsc(r.sub)+'</text>';
-    var series=[[r.boa,CH_C.primary,y0],[r.non,CH_C.accent,y0+bh+gap]];
-    series.forEach(function(sr){
-      var bw=Math.max(1.5, plotW*(sr[0]/max));
-      s+='<rect x="'+padL+'" y="'+sr[2]+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+sr[1]+'" rx="2"><title>'+chEsc(r.label+'  '+sr[0].toFixed(1)+'h')+'</title></rect>';
-      s+='<text x="'+(padL+bw+7).toFixed(1)+'" y="'+(sr[2]+bh-3)+'" font-size="10.5" font-weight="600" fill="'+sr[1]+'">'+sr[0].toFixed(1)+'h</text>';
-    });
+    var y=padT+i*rowH, cy=y+rowH/2;
+    s+='<text x="'+(padL-9)+'" y="'+(cy+4).toFixed(1)+'" font-size="11" fill="'+(r.accent?'#E97132':CH_C.navy)+'" text-anchor="end">'+chEsc(r.label)+'</text>';
+    if(r.n>0 && r.value>0){
+      var bw=Math.max(1.5, plotW*(r.value/max));
+      s+='<rect x="'+padL+'" y="'+(cy-bh/2).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh+'" fill="'+col+'" rx="2"><title>'+chEsc(r.label+'  '+r.value.toFixed(1)+'h on '+r.n+' calls')+'</title></rect>';
+      s+='<text x="'+(padL+bw+7).toFixed(1)+'" y="'+(cy+4).toFixed(1)+'" font-size="10.5" font-weight="600" fill="'+col+'">'+r.value.toFixed(1)+'h'+
+         '<tspan font-size="9" font-weight="400" fill="'+CH_C.grey+'">  &middot;  '+r.n+' calls</tspan></text>';
+    } else {
+      s+='<text x="'+padL+'" y="'+(cy+4).toFixed(1)+'" font-size="9.5" fill="'+CH_C.grey+'">'+(r.n>0?'0.0h'+'  &middot;  '+r.n+' calls':'no calls')+'</text>';
+    }
   });
   s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(padL+plotW)+'" y2="'+(H-padB)+'" stroke="'+CH_C.grid+'" stroke-width="1"/>';
-  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="9.5" fill="'+CH_C.grey+'">Average waiting time in hours (BOA and non-BOA series computed on disjoint call sets)</text>';
+  s+='<text x="'+padL+'" y="'+(H-4)+'" font-size="9.5" fill="'+CH_C.grey+'">'+chEsc(opt.xlab||'Average waiting time in hours')+'</text>';
   return s+'</svg>';
 }
 
@@ -3934,16 +3978,19 @@ function chWaitBars(rows,opt){
 function chOthersNote(byPort, hostId){
   var el=document.getElementById(hostId);
   if(!el) return;
-  var ops=[];
+  var ops=[], cn=[];
   Object.keys(byPort).forEach(function(p){
-    if(chCountry(p)==='Others') ops.push(p+' ('+byPort[p]+')');
+    var k=chCountry(p);
+    if(k==='Others') ops.push(p+' ('+byPort[p]+')');
+    else if(k==='China (Other)') cn.push(p+' ('+byPort[p]+')');
   });
-  if(ops.length){
-    el.innerHTML='<b>Others</b> = '+chEsc(ops.sort().join(', '))+
-      '  &mdash; ports whose UN/LOCODE has no named country mapping yet.';
-  } else {
-    el.innerHTML='Every port in this range maps to a named country / region, so there is no residual <b>Others</b> bucket.';
-  }
+  var bits=[];
+  if(ops.length) bits.push('<b>Others</b> = '+chEsc(ops.sort().join(', '))+
+    '  &mdash; ports whose UN/LOCODE has no named country mapping yet.');
+  if(cn.length) bits.push('<b>China (Other)</b> = '+chEsc(cn.sort().join(', '))+
+    '  &mdash; mainland codes with no coastal-region mapping yet.');
+  el.innerHTML = bits.length ? bits.join(' &nbsp;&middot;&nbsp; ')
+    : 'Every port in this range maps to a named country / region, so there is no residual <b>Others</b> bucket.';
 }
 
 /* ── Master renderer ─────────────────────────────────────────────── */
@@ -4043,7 +4090,8 @@ function renderPortCharts(){
   rowsA.sort(function(a,b){ return b.value-a.value; });
   var WA=chDrawW('chartCountryCalls', 2400);
   document.getElementById('chartCountryCalls').innerHTML=
-    chBarsH(rowsA,{w:WA, padL:Math.min(196, Math.round(WA*0.34)),
+    chBarsH(rowsA,{w:WA, rowH:(chBox()?20:undefined),
+      padL:Math.min(196, Math.round(WA*0.34)),
       padR:Math.min(210, Math.round(WA*0.27)), dec:1,
       xlab:(WA<600 ? 'Calls per week' : 'Average port calls per week  ·  orange = Red Sea & Middle East focus markets')});
   chOthersNote(cntBy, 'chartCountryOthers');
@@ -4121,27 +4169,39 @@ function renderPortCharts(){
   document.getElementById('chartBoaTrend').innerHTML=
     chLine(rowsD,{w:chDrawW('chartBoaTrend', 1600), h:(chBox()?300:236), max:100});
 
-  // ---- Chart 5: waiting time BOA vs non-BOA by country / region
+  // ---- Charts 5 and 6: waiting time, one chart per series
   var grp={};
   calls.forEach(function(c){
     var k=chCountry(c.port);
     var g=grp[k]||(grp[k]={bs:0,bn:0,ns:0,nn:0});
     if(chIsBoaCall(c)){ g.bs+=c.wait; g.bn++; } else { g.ns+=c.wait; g.nn++; }
   });
-  var rowsE=Object.keys(grp).map(function(k){
-    var g=grp[k];
-    return {label:k, boa:g.bn?g.bs/g.bn:0, non:g.nn?g.ns/g.nn:0,
-            sub:'BOA '+g.bn+' / non-BOA '+g.nn, n:g.bn+g.nn,
-            accent:(k==='Red Sea'||k==='Middle East (Gulf)')};
-  }).filter(function(r){ return r.n>0; });
-  rowsE.sort(function(a,b){ return b.n-a.n; });
-  var WE=chDrawW('chartWaitRegion', 2400);
-  document.getElementById('chartWaitRegion').innerHTML=
-    chWaitBars(rowsE,{w:WE, rowH:(chBox()?26:undefined), padL:Math.min(196, Math.round(WE*0.19)), padR:150});
+  var keysE=Object.keys(grp).filter(function(k){ return grp[k].bn+grp[k].nn>0; });
+  keysE.sort(function(a,b){
+    var ta=grp[a].bn+grp[a].nn, tb=grp[b].bn+grp[b].nn;
+    if(tb!==ta) return tb-ta;                 // identical order in both charts
+    return a<b?-1:1;
+  });
+  var rowsBoa=[], rowsNon=[];
+  keysE.forEach(function(k){
+    var g=grp[k], acc=(k==='Red Sea'||k==='Middle East (Gulf)');
+    rowsBoa.push({label:k, value:(g.bn?g.bs/g.bn:0), n:g.bn, accent:acc});
+    rowsNon.push({label:k, value:(g.nn?g.ns/g.nn:0), n:g.nn, accent:acc});
+  });
+  var WBOA=chDrawW('chartWaitBoa', 1600);
+  document.getElementById('chartWaitBoa').innerHTML=
+    chWaitBars1(rowsBoa,{w:WBOA, color:CH_C.primary, rowH:(chBox()?21:undefined),
+      padL:Math.min(196, Math.round(WBOA*0.30)), padR:Math.min(160, Math.round(WBOA*0.24)),
+      xlab:'Average waiting time in hours  \u00b7  BOA calls only'});
+  var WNON=chDrawW('chartWaitNon', 1600);
+  document.getElementById('chartWaitNon').innerHTML=
+    chWaitBars1(rowsNon,{w:WNON, color:CH_C.accent, rowH:(chBox()?21:undefined),
+      padL:Math.min(196, Math.round(WNON*0.30)), padR:Math.min(160, Math.round(WNON*0.24)),
+      xlab:'Average waiting time in hours  \u00b7  non-BOA calls only'});
   chOthersNote(cntBy, 'chartWaitOthers');
   var __box=chBox();
   if(__box){
-    ['chartCountryCalls','chartBoaByPort','chartBoaTrend','chartWaitRegion'].forEach(function(id){
+    ['chartCountryCalls','chartBoaByPort','chartBoaTrend','chartWaitBoa','chartWaitNon'].forEach(function(id){
       var el=document.getElementById(id);
       var cw=(el && el.clientWidth>80)?el.clientWidth:__box.w;
       chSlideFit(id, {w:cw, h:__box.h, availH:__box.h-150});
