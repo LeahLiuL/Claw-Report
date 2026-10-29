@@ -4107,7 +4107,7 @@ function renderPortCharts(){
   calls.forEach(function(c){ var k=chCountry(c.port); byCountry[k]=(byCountry[k]||0)+1; });
   var rowsA=Object.keys(byCountry).map(function(k){
     var perWk=byCountry[k]/win.weeks;
-    return {label:k, value:perWk, accent:(k==='Red Sea'||k==='Middle East (Gulf)'),
+    return {label:k, value:perWk,
             text:perWk.toFixed(1)+' /wk  ('+byCountry[k]+')',
             tip:k+'  '+byCountry[k]+' calls  '+perWk.toFixed(2)+' per week'};
   });
@@ -4117,7 +4117,7 @@ function renderPortCharts(){
     chBarsH(rowsA,{w:WA, rowH:(chBox()?20:undefined),
       padL:Math.min(196, Math.round(WA*0.34)),
       padR:Math.min(210, Math.round(WA*0.27)), dec:1,
-      xlab:(WA<600 ? 'Calls per week' : 'Average port calls per week  ·  orange = Red Sea & Middle East focus markets')});
+      xlab:(WA<600 ? 'Calls per week' : 'Average port calls per week')});
   chOthersNote(cntBy, 'chartCountryOthers');
 
   // ---- Chart 2: Red Sea / Middle East port table
