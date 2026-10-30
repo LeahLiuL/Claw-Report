@@ -53,11 +53,48 @@ def _age_min():
 
 
 def _owner():
-    """锁内容(持有者名); 不存在返回 None。"""
+    """锁内容原文; 不存在返回 None。"""
     try:
         with open(LOCK, encoding="utf-8") as f:
             return f.read().strip()
     except OSError:
+        return None
+
+
+def _parse(content):
+    """解析锁内容 -> (owner, pid, ts)。
+
+    新格式 'owner|pid|HH:MM'（2026-10-30 起：rob_fast 死进程持锁 30 分钟、
+    daily_movement 全量更新等 5 分钟超时的陈旧死锁事故后引入）；
+    老格式（纯 owner 名）pid/ts 为 None，仍走 STALE_MIN 兜底。"""
+    if not content:
+        return None, None, None
+    parts = content.split("|")
+    owner = parts[0].strip()
+    pid = None
+    try:
+        pid = int(parts[1])
+    except (IndexError, ValueError):
+        pass
+    ts = parts[2].strip() if len(parts) > 2 else None
+    return owner, pid, ts
+
+
+def _pid_alive(pid):
+    """Windows 下检测进程是否存活。
+
+    返回 True/False；无法判断(异常/无效 pid)返回 None —— 保守不判死，走原兜底。"""
+    if not pid or pid <= 0:
+        return None
+    try:
+        import ctypes
+        # PROCESS_QUERY_LIMITED_INFORMATION: 同用户进程下 OpenProcess 失败 ≈ 进程已不存在
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+        return False
+    except Exception:
         return None
 
 
@@ -66,8 +103,11 @@ def status():
     if o is None:
         print("[lock] free")
         return 0
-    print("[lock] held by '%s' (age %.1f min%s)" %
-          (o, a, "  <-- STALE, will be stolen" if a >= STALE_MIN else ""))
+    owner, pid, ts = _parse(o)
+    extra = " pid=%s started=%s" % (pid, ts) if pid else " (old format)"
+    dead = "  <-- HOLDER DEAD, will be stolen in seconds" if _pid_alive(pid) is False else ""
+    stale = "  <-- STALE, will be stolen" if a >= STALE_MIN else ""
+    print("[lock] held by '%s' (age %.1f min%s)%s%s" % (owner, a, extra, dead, stale))
     return 0
 
 
@@ -80,7 +120,8 @@ def acquire(owner, wait_s=0):
             try:
                 fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 try:
-                    os.write(fd, owner.encode("utf-8"))
+                    os.write(fd, ("%s|%d|%s" % (owner, os.getpid(),
+                          time.strftime("%H:%M"))).encode("utf-8"))
                 finally:
                     os.close(fd)
                 return True
@@ -93,19 +134,26 @@ def acquire(owner, wait_s=0):
             except OSError:
                 pass
             continue
-        cur = _owner()
-        if cur == owner:
+        cur_owner, cur_pid, _cur_ts = _parse(_owner())
+        # 新格式且持有进程已死 → 陈旧死锁, 几秒内自愈(2026-10-30 rob_fast 事故)
+        if cur_owner and cur_pid is not None and _pid_alive(cur_pid) is False:
+            try:
+                os.remove(LOCK)
+            except OSError:
+                pass
+            continue
+        if cur_owner == owner:
             return False           # 可重入: 外层同 owner 已持有
         if time.time() >= deadline:
             raise LockHeld("lock held by '%s' (age %.1f min), waited %ds" %
-                           (cur, age, wait_s))
+                           (cur_owner, age, wait_s))
         time.sleep(POLL_S)
 
 
 def release(owner):
     """释放锁。仅当锁 owner 匹配才删；不存在或他人持有则不动。幂等。"""
-    cur = _owner()
-    if cur is None or cur != owner:
+    cur_owner, _p, _t = _parse(_owner())
+    if cur_owner is None or cur_owner != owner:
         return
     try:
         os.remove(LOCK)
