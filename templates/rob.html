@@ -122,6 +122,12 @@ function _loadXlsx(cb) {
   .warn { color: #d64545; font-weight: 700; }
   .ok { color: #2e8b57; }
   .bunker { color: #c77d00; font-weight: 700; }
+  /* ---- port→port 计算器内表格：深色容器内改用浅色主题, 保证数字可读 ---- */
+  .legcalc .trendtbl { background: #fff; }
+  .legcalc .trendtbl td { color: #16263a; }
+  .legcalc .trendtbl td.n { color: #16263a; }
+  .legcalc .trendtbl td.n.bunker { color: #c77d00; }
+  .legcalc .trendtbl tr:nth-child(even) td { background: #f2f6fa; }
   /* ---- voyage rotation 展开 ---- */
   .caret { cursor: pointer; font-size: 13px; color: #1F4E79; user-select: none; }
   .caret:hover { color: #F6A623; }
