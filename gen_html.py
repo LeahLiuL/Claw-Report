@@ -6285,19 +6285,36 @@ def main():
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
     col_defs_full    = [{"key":c[0],"label":c[1],"defaultVisible":c[3]} for c in FULL_COLUMNS]
 
-    # ── 历史年份数据（2024/2025）：读取同目录 history_YYYY.json 内嵌到页面 ──
+    # ── 历史年份数据（2024/2025）：读取 history_YYYY.json 内嵌到页面 ──
+    # 注意：history_*.json 随仓库一起提交，位于 SCRIPT_DIR；GEN_DIR（P 盘生成结果目录）
+    # 里可能没有，所以两个位置都要找，避免 auto_update 重建时把 HIST_DATA 变成空对象。
+    _hist_dirs = []
+    for _d in (GEN_DIR, SCRIPT_DIR, os.getcwd()):
+        if _d and _d not in _hist_dirs:
+            _hist_dirs.append(_d)
     hist_data = {}
     for _hy in ('2024', '2025'):
-        _hp = os.path.join(GEN_DIR, 'history_%s.json' % _hy)
-        if os.path.exists(_hp):
+        _hp = None
+        for _d in _hist_dirs:
+            _cand = os.path.join(_d, 'history_%s.json' % _hy)
+            if os.path.exists(_cand):
+                _hp = _cand
+                break
+        if _hp:
             try:
                 with open(_hp, encoding='utf-8') as _hf:
                     hist_data[_hy] = json.load(_hf)
-                print('  -> hist %s: %d rows' % (_hy, len(hist_data[_hy].get('fullSchedule', []))))
+                print('  -> hist %s: %d rows (%s)' % (_hy, len(hist_data[_hy].get('fullSchedule', [])), _hp))
             except Exception as _he:
                 print('  [WARN] load %s failed: %s' % (_hp, _he))
         else:
-            print('  [WARN] %s not found (year %s disabled)' % (_hp, _hy))
+            print('  [WARN] history_%s.json not found in %s (year %s disabled)'
+                  % (_hy, _hist_dirs, _hy))
+
+    # 硬保护：历史数据缺失时不要静默产出空年份选择器
+    if not hist_data:
+        print('  [WARN] hist_data is EMPTY - year selector will be inert', flush=True)
+
 
     html = HTML_TEMPLATE
     html = html.replace('__TODAY_DATA__',       json.dumps(data, ensure_ascii=False))
