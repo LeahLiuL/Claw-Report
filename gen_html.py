@@ -1549,6 +1549,11 @@ function _loadXlsx(cb){
         <div class="sub" id="headerDate">Loading&hellip;</div>
       </div>
       <div class="header-right">
+        <select id="yearSel" onchange="switchYear(this.value)" title="选择年份" style="padding:6px 10px;border-radius:6px;border:1px solid #cfd8dc;background:#fff;color:#222;font-size:13px;font-weight:600;cursor:pointer;">
+          <option value="2026">2026 YTD</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
         <button class="btn btn-history" onclick="openHistory()">&#128203; History</button>
         <button class="btn btn-export" id="btnExport" onclick="exportExcel()">&#8595; Export Excel</button>
         <button class="btn btn-export" onclick="openExportTablesModal()">&#128196; Export Tables</button>
@@ -6181,7 +6186,7 @@ function updateCtrlH(){
 window.addEventListener('resize', updateCtrlH);
 
 function init(){
-  loadSnapshots(); saveSnapshot(TODAY_DATA);
+  loadSnapshots(); if(!window.__HIST_YEAR) saveSnapshot(TODAY_DATA);
   // 同步 "Show 已下线" 勾选框的初始视觉与状态
   document.querySelectorAll('.decom-cb').forEach(function(b){ b.checked = SHOW_DECOM; });
   document.querySelectorAll('.decom-toggle').forEach(function(lbl){
@@ -6201,6 +6206,27 @@ function init(){
   updateCtrlH();
 }
 // init() only called after login success (see LOGIN section above)
+
+// ── 历史年份数据 + 年份切换（2024/2025）──────────────────────────────────
+// 通过 ?year=2024/2025 在 init() 之前替换 TODAY_DATA；init 仍只执行一次，
+// 因此不会重复绑定事件，也不会把历史数据写进 snapshot（见 saveSnapshot 守卫）。
+const HIST_DATA = __HIST_DATA__;
+function switchYear(y){
+  location.href = location.pathname + (y==='2026' ? '' : ('?year=' + encodeURIComponent(y)));
+}
+(function(){
+  try{
+    var _y = new URLSearchParams(location.search).get('year');
+    if(_y && _y !== '2026' && HIST_DATA && HIST_DATA[_y]){
+      var _keep = {portRegionMap: TODAY_DATA.portRegionMap, laneTradeMap: TODAY_DATA.laneTradeMap};
+      Object.keys(TODAY_DATA).forEach(function(k){ delete TODAY_DATA[k]; });
+      Object.assign(TODAY_DATA, HIST_DATA[_y], _keep);
+      window.__HIST_YEAR = _y;
+    }
+    var _sel = document.getElementById('yearSel');
+    if(_sel) _sel.value = (window.__HIST_YEAR || '2026');
+  }catch(e){ console.warn('hist switch failed', e); }
+})();
 
 // ── Bootstrap: if already authenticated this session, render immediately ──
 // Placed at the very end so every top-level data assignment (MAINT_RECORDS,
@@ -6259,8 +6285,23 @@ def main():
     col_defs_summary = [{"key":c[0],"label":c[1],"defaultVisible":c[2]} for c in SUMMARY_COLUMNS]
     col_defs_full    = [{"key":c[0],"label":c[1],"defaultVisible":c[3]} for c in FULL_COLUMNS]
 
+    # ── 历史年份数据（2024/2025）：读取同目录 history_YYYY.json 内嵌到页面 ──
+    hist_data = {}
+    for _hy in ('2024', '2025'):
+        _hp = os.path.join(GEN_DIR, 'history_%s.json' % _hy)
+        if os.path.exists(_hp):
+            try:
+                with open(_hp, encoding='utf-8') as _hf:
+                    hist_data[_hy] = json.load(_hf)
+                print('  -> hist %s: %d rows' % (_hy, len(hist_data[_hy].get('fullSchedule', []))))
+            except Exception as _he:
+                print('  [WARN] load %s failed: %s' % (_hp, _he))
+        else:
+            print('  [WARN] %s not found (year %s disabled)' % (_hp, _hy))
+
     html = HTML_TEMPLATE
     html = html.replace('__TODAY_DATA__',       json.dumps(data, ensure_ascii=False))
+    html = html.replace('__HIST_DATA__',        json.dumps(hist_data, ensure_ascii=False, separators=(',', ':')))
     html = html.replace('__COLUMN_DEFS_SUMMARY__', json.dumps(col_defs_summary, ensure_ascii=False))
     html = html.replace('__COLUMN_DEFS_FULL__',    json.dumps(col_defs_full,    ensure_ascii=False))
     html = html.replace('__MAINT_DATA__',          json.dumps(maint, ensure_ascii=False))
