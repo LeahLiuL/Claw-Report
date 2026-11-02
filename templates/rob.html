@@ -1005,13 +1005,16 @@ function calcLeg(k){
   var names=['LSFO','HSFO','MGO','ULSFO'];
   var h='<table class="trendtbl" style="font-size:13px;margin-top:4px"><tr><th>Oil</th><th>Net 净变化</th><th>Bunker 加油</th><th>Consumed 消耗</th></tr>';
   for(var q=0;q<4;q++){
-    var consumed=Math.round((tot[q]+bk[q])*100)/100;
-    h+='<tr><td>'+names[q]+'</td><td class="n">'+fmt(tot[q])+'</td><td class="n bunker">'+fmt(bk[q])+'</td><td class="n">'+fmt(consumed)+'</td></tr>';
+    // legs.ls 后端已是"净变化 + 加油"(与航次同口径), 故 tot 即消耗;
+    // 旧代码 tot+bk 会把加油重复计入一次(实测 CUL SHEKOU 2634 虚高 833 MT)。
+    var consumed=Math.round(tot[q]*100)/100;
+    var net=Math.round((tot[q]-bk[q])*100)/100;
+    h+='<tr><td>'+names[q]+'</td><td class="n">'+fmt(net)+'</td><td class="n bunker">'+fmt(bk[q])+'</td><td class="n">'+fmt(consumed)+'</td></tr>';
   }
   h+='</table>';
   h+='<div style="margin-top:4px;color:#9fb3c8">区间天数 '+fmt(days)+' 天'
-    + (days>0?' · LSFO 日均 '+fmt(Math.round((tot[0]+bk[0])/days*100)/100)+' MT/day':'')
-    + (anyNull?' &nbsp;<span style="color:#e0a458">⚠ 部分港口缺 BERTH ROB，结果可能不完整</span>':'')
+    + (days>0?' · LSFO 日均 '+fmt(Math.round(tot[0]/days*100)/100)+' MT/day':'')
+    + (anyNull?' &nbsp;<span style="color:#e0a458">⚠ 该区间有缺 ROB 读数的港口段，消耗被低估（以下限计）</span>':'')
     + '</div>';
   out.innerHTML=h;
 }
