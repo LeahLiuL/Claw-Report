@@ -171,6 +171,15 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     now = datetime.datetime.now()
+    # 零值脏数据防护: 若该船该油种在整条读数序列里存在 >0 值, 则 0.0 视为脏数据
+    # (如 RACINE 多条 BERTH 报 lsfo=0 而前后都是 1800+ MT), 取边界读数时跳过;
+    # 若该油种全程为 0(船本就不烧该油), 0 是真实值, 保留。
+    has_pos = [False, False, False, False]
+    for _src in (berth_series, noon_series):
+        for _p in _src:
+            for _k in range(4):
+                if _p[1][_k] is not None and _p[1][_k] > 0:
+                    has_pos[_k] = True
     if bunker_by_date:
         for dstr, tmap in bunker_by_date.items():
             try:
@@ -183,13 +192,19 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     # 期末允许紧邻下一航次首港 berth 的最大滞后(超过则视为更晚航次的读数, 不应用于本航次)
     END_GAP = datetime.timedelta(days=10)
     for k in range(4):
+        # 该油种在整条序列里全程无正读数 -> 本船不烧这类油, 消耗应显示为缺失("-"),
+        # 而不是误导性的 "0.0 MT"(会让人以为航次真的零消耗)。
+        if not has_pos[k]:
+            cons[k] = None
+            continue
         # 期初: 窗口 [start, 本航次end] 内时间最近的 BERTH/NOON 读数(需求2: 只用本航次首港之后
         #       读数, 不乱用更早或更晚日期); 窗口内无点则期初缺失 -> 本航次无 BERTH/NOON 数据。
         start_upper = end_dt or now
         start_cands = []
         for src, tag in ((berth_series, "B"), (noon_series, "N")):
             for p in src:
-                if start_dt <= p[0] <= start_upper and p[1][k] is not None:
+                if (start_dt <= p[0] <= start_upper and p[1][k] is not None
+                        and not (has_pos[k] and p[1][k] <= 0)):
                     start_cands.append((p[0], tag, p[1][k]))
         if start_cands:
             start_cands.sort(key=lambda x: (x[0], x[1]))   # 时间最近优先; 同时刻 BERTH 优先
@@ -201,7 +216,8 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             end_cands = []
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
                 for p in src:
-                    if end_dt <= p[0] <= el and p[1][k] is not None:
+                    if (end_dt <= p[0] <= el and p[1][k] is not None
+                            and not (has_pos[k] and p[1][k] <= 0)):
                         end_cands.append((p[0], tag, p[1][k]))
             if end_cands:
                 end_cands.sort(key=lambda x: (x[0], x[1]))
@@ -209,7 +225,8 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         else:
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
                 for p in reversed(src):
-                    if p[0] <= now and p[1][k] is not None:
+                    if (p[0] <= now and p[1][k] is not None
+                            and not (has_pos[k] and p[1][k] <= 0)):
                         last[k] = p[1][k]; l_basis[k] = tag; break
                 if last[k] is not None:
                     break
@@ -322,8 +339,11 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
             # berth_series / noon_series 为该船 BERTH / NOON 的 ROB 点; _window_consumption
             # 内部按本航次首港berth(start_dt) / 下一航次首港berth(end_dt) 取期初/期末 ROB,
             # 期末优先取 end_dt 之后最近读数(下一航次首港 berth 对应); 找不到 BERTH 时用 NOON 兜底。
+            # 进行中航次(end 在未来或缺失): 传 None 让 _window_consumption 走"至今最近读数"
+            # 分支, 显示至今的部分消耗; 否则期末窗口落在未来, 永远取不到读数 -> 整段空白。
+            end_for_calc = end_dt if (end_dt is not None and end_dt <= now) else None
             cons, bunker_total, bunker_oil, basis = _window_consumption(
-                berth_series, noon_series, start_dt, end_dt, v_bunker)
+                berth_series, noon_series, start_dt, end_for_calc, v_bunker)
             # ---- legs: 相邻 berth 段油耗(供前端 port->port 任意区间累加) ----
             # 优先用 BERTH 报告 ROB(berth_series), 找不到时同款 NOON 兜底; 每段 from=上一港
             # berth 之后最近 ROB, to=下一港 berth 之后最近 ROB; 与航次总油耗同一公式,
