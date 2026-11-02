@@ -292,7 +292,7 @@ function _loadXlsx(cb) {
       </div>
       <div class="panel">
         <h3>Custom Period Consumption (自选时间段油耗)</h3>
-        <div class="panel-note">任选时间段查看某些船的油耗：选好 <b>From / To</b>，可用 <b>Vessel</b> 框按船名或代码过滤，点 <b>Apply</b>。油耗 = 该时段内 ROB 的<b>下降量之和</b>（自动排除加油）。<b>Bunker</b> = 该时段《燃油添加日志》记录的加油量（仅体积，不含价格）。<b>Avg/day</b> = 总油耗 ÷ 天数。每条船需 ≥2 条 ROB 记录才会显示。</div>
+        <div class="panel-note">任选时间段查看某些船的油耗：选好 <b>From / To</b>，可用 <b>Vessel</b> 框按船名或代码过滤，点 <b>Apply</b>。油耗 = <b>首报ROB − 末报ROB + 该时段加油量</b>（与航次算法一致，对数据缺口/加油稳健）。<b>Bunker</b> = 该时段《燃油添加日志》记录的加油量（仅体积，不含价格）。<b>Avg/day</b> = 总油耗 ÷ 天数。每条船需 ≥2 条 ROB 记录才会显示。</div>
         <div class="trendbar" style="padding:0 0 10px;box-shadow:none;margin:0 0 8px;background:transparent">
           <span class="lbl">From:</span><input type="date" id="perFrom">
           <span class="lbl">To:</span><input type="date" id="perTo">
@@ -1325,36 +1325,50 @@ function renderPeriod() {
       });
     }
     if (sel.length < 2) return;
-    var cons = [0, 0, 0, 0];
-    for (var i = 1; i < sel.length; i++) {
-      var a = sel[i - 1], b = sel[i];
-      for (var k = 0; k < 4; k++) {
-        var av = a[keys[k]], bv = b[keys[k]];
-        if (av == null || bv == null) continue;
-        var d2 = av - bv;
-        if (d2 > 0) cons[k] += d2;          // 只累加下降量 = 消耗(排除加油)
-      }
-    }
-    var tot = cons[0] + cons[1] + cons[2] + cons[3];
+    // 净消耗 = 首有效ROB − 末有效ROB + 区间加油量（与航次算法一致；对数据缺口/加油/中间0值脏数据稳健）
+    // 旧"逐段下降量之和"：① 缺口内含加油时会把缺口内真实消耗整段漏掉；② 会被中间 lsfo=0 的脏数据当成巨量消耗累加。
     var d0 = (sel[0].t || '').slice(0, 10), d1 = (sel[sel.length - 1].t || '').slice(0, 10);
     var days = Math.round((new Date(d1) - new Date(d0)) / 86400000);
-    var bk = 0, bkT = { ls: 0, hs: 0, mg: 0, us: 0 };
+    var cons = [0, 0, 0, 0];
     var bt = (DATA.bunkering_types && DATA.bunkering_types[v]) ? DATA.bunkering_types[v] : null;
+    var legacyBk = (DATA.bunkering && DATA.bunkering[v]) ? DATA.bunkering[v] : null;
+    for (var k = 0; k < 4; k++) {
+      var fv = null, lv = null, fd = d0, ld = d1;
+      for (var i = 0; i < sel.length; i++) {
+        var x = parseFloat(sel[i][keys[k]]);
+        if (!isNaN(x) && x > 0) { fv = x; fd = (sel[i].t || '').slice(0, 10); break; }
+      }
+      for (var i = sel.length - 1; i >= 0; i--) {
+        var x = parseFloat(sel[i][keys[k]]);
+        if (!isNaN(x) && x > 0) { lv = x; ld = (sel[i].t || '').slice(0, 10); break; }
+      }
+      if (fv == null || lv == null) continue;
+      var c = fv - lv;
+      if (bt) {
+        Object.keys(bt).forEach(function(dd) {
+          if (dd >= fd && dd <= ld) { var o = bt[dd] || {}; c += (o[keys[k]] || 0); }
+        });
+      } else if (legacyBk) {
+        Object.keys(legacyBk).forEach(function(dd) {
+          if (dd >= fd && dd <= ld) c += (legacyBk[dd] || 0);
+        });
+      }
+      cons[k] = c < 0 ? 0 : c;
+    }
+    var bkT = { ls: 0, hs: 0, mg: 0, us: 0 };
     if (bt) {
-      Object.keys(bt).forEach(function(d) {
-        if ((!from || d >= from) && (!to || d <= to)) {
-          var o = bt[d] || {};
+      Object.keys(bt).forEach(function(dd) {
+        if (dd >= d0 && dd <= d1) {
+          var o = bt[dd] || {};
           bkT.ls += (o.ls || 0); bkT.hs += (o.hs || 0);
           bkT.mg += (o.mg || 0); bkT.us += (o.us || 0);
         }
       });
-      bk = bkT.ls + bkT.hs + bkT.mg + bkT.us;
+    } else if (legacyBk) {
+      Object.keys(legacyBk).forEach(function(dd) { if (dd >= d0 && dd <= d1) bkT.ls += (legacyBk[dd] || 0); });
     }
-    if (!bk && DATA.bunkering && DATA.bunkering[v]) {
-      Object.keys(DATA.bunkering[v]).forEach(function(d) {
-        if ((!from || d >= from) && (!to || d <= to)) bk += (DATA.bunkering[v][d] || 0);
-      });
-    }
+    var tot = cons[0] + cons[1] + cons[2] + cons[3];
+    var bk = bkT.ls + bkT.hs + bkT.mg + bkT.us;
     out.push({ vessel: v, code: sel[0].c || '', lane: sel[0].l || '', n: sel.length,
                ls: cons[0], hs: cons[1], mg: cons[2], us: cons[3],
                tot: tot, days: days, bunker: Math.round(bk * 100) / 100, bkT: bkT,
