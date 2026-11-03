@@ -1566,6 +1566,7 @@ function _loadXlsx(cb){
     <button class="tab-btn active" data-tab="summaryView" onclick="switchTab('summaryView',this)">&#128202; Summary</button>
     <button class="tab-btn" data-tab="fullScheduleView" onclick="switchTab('fullScheduleView',this)">&#128203; Full Schedule</button>
     <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
+    <button class="tab-btn" data-tab="vesselCallsView" onclick="switchTab('vesselCallsView',this)">&#128674; Vessel Calls</button>
     <button class="tab-btn" data-tab="maintView" onclick="switchTab('maintView',this)">&#128203; Maintenance</button>
     <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
   </div>
@@ -1849,6 +1850,47 @@ function _loadXlsx(cb){
 <!-- ═══════════════════════════════════════════════════════════════════
      VIEW 4: Speed Analytics
      ═══════════════════════════════════════════════════════════════════ -->
+<div id="vesselCallsView" class="tab-content">
+  <div class="controls" style="flex-wrap:wrap;">
+    <span style="font-weight:600;font-size:14px;">&#128197; Window:</span>
+    <span id="vcWindow" style="font-size:12px;font-weight:600;color:#1F4E79;">&mdash;</span>
+    <label style="margin-left:16px;font-size:12px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+      <input type="checkbox" id="vcShowDecom" onchange="onVcDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    </label>
+    <span class="stat-chip" id="vcChip" style="margin-left:12px;">&mdash; calls</span>
+  </div>
+  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 12px;line-height:1.6;">
+    <b>1 call</b> = one terminal visit already berthed in the current year (ETB from Jan&nbsp;1 to today).
+    Bunker-only calls excluded (port marked <i>(Bunkering)</i>, remark <i>Only for bunker</i> / <i>Bunker</i>, or voyage flagged bunker);
+    remarks such as <i>NAS Bunker 180T</i> are real calls and stay counted.
+    Duplicate rows of the same call (same vessel / voyage / port / ETB) are merged &mdash; a genuine second berthing in the same voyage counts separately.
+  </p>
+  <div id="vcKpis" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;"></div>
+
+  <h3 style="margin:16px 0 8px;color:#1F4E79;">&#128674; Terminal Calls by Vessel</h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Click a column header to sort. Avg stay = average Port Stay(hr) of that vessel's counted calls.</p>
+  <div class="table-wrap" style="max-height:560px;overflow-y:auto;">
+    <table id="vcTable" style="min-width:auto;">
+      <thead><tr id="vcThead"></tr></thead>
+      <tbody id="vcTbody"></tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;">
+    <div class="table-wrap" style="flex:1;min-width:340px;">
+      <h4 style="margin:16px 0 8px;color:#1F4E79;font-size:13px;">&#128202; Calls by Lane</h4>
+      <table id="vcLaneTable" style="min-width:auto;">
+        <thead><tr id="vcLaneThead"></tr></thead>
+        <tbody id="vcLaneTbody"></tbody>
+      </table>
+    </div>
+    <div style="flex:1;min-width:340px;">
+      <h4 style="margin:16px 0 8px;color:#1F4E79;font-size:13px;">&#128200; Top 10 Vessels by Calls</h4>
+      <div id="vcTopChart" style="padding:2px;"></div>
+    </div>
+  </div>
+</div>
+
 <div id="speedView" class="tab-content">
   <div class="controls">
     <span style="font-weight:600;font-size:14px;margin-right:8px;">&#128674; Vessel Filter:</span>
@@ -2319,8 +2361,218 @@ function switchTab(viewId, btn){
   }
   // Close any open column/filter dropdown
   document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
+  if(viewId==='vesselCallsView'){ renderVesselCalls(); }
   updateCtrlH();
 }
+
+/* ══════════════════════════════════════════════════════════════
+   VESSEL TERMINAL CALLS (YTD) — 每艘船今年至今靠泊（terminal）次数
+   口径：
+     · 只算已经靠上的挂靠：ETB 在今年 1/1 ~ 数据日期之间（不含未来计划）
+     · 纯加油挂靠剔除：PORT 带 (Bunkering)、remark 为 Only for bunker / Bunker、
+       或 voy 里带 bunker；remark 只是提到加油（如 NAS Bunker 180T）照常计入
+     · 同一次挂靠被重复记录（同船/同航次/同港/同 ETB）合并为 1 次；
+       同一航次在同一港口真正二次进靠（ETB 不同）算 2 次
+     · 已下线船受 "Show 已下线" 开关控制
+   ══════════════════════════════════════════════════════════════ */
+var vcSortKey='calls', vcSortDir=-1;
+
+function vcTrimLower(s){
+  var t=(s===null||s===undefined)?'':String(s);
+  var SP=' \t\r\n';
+  while(t.length && SP.indexOf(t.charAt(0))>=0) t=t.slice(1);
+  while(t.length && SP.indexOf(t.charAt(t.length-1))>=0) t=t.slice(0,t.length-1);
+  return t.toLowerCase();
+}
+
+/* 纯加油挂靠？（注意：remark 里顺带提到加油的真挂靠不算） */
+function vcIsBunkerOnly(sr){
+  if((String(sr.port||'')).toLowerCase().indexOf('bunker')>=0) return true;
+  var rk=vcTrimLower(sr.remark).split(' ').filter(function(x){return x;}).join(' ');
+  if(rk.indexOf('only for bunker')===0) return true;
+  if(rk==='bunker'||rk==='bunkering') return true;
+  if((String(sr.voy||'')).toLowerCase().indexOf('bunker')>=0) return true;
+  return false;
+}
+
+function vcBuild(){
+  var fs=TODAY_DATA.fullSchedule||[];
+  var today=TODAY_DATA.date||'';
+  var yr=today.slice(0,4);
+  var from=yr+'-01-01';
+  var seen={}, calls=[];
+  for(var i=0;i<fs.length;i++){
+    var sr=fs[i];
+    if(sr.isSummary) continue;                       // 摘要行是最近挂靠的副本，跳过
+    if(!SHOW_DECOM && isDecommissioned(sr.vessel)) continue;
+    if(vcIsBunkerOnly(sr)) continue;
+    var etb=sr.etbRaw||'';
+    if(!etb || etb<from || etb>today) continue;      // 本年度 + 已靠上
+    var key=sr.vessel+'|'+(sr.voy||'')+'|'+(sr.port||'')+'|'+etb+'|'+(sr.etb||'');
+    if(seen[key]) continue;                          // 同一次挂靠重复行合并
+    seen[key]=1;
+    calls.push(sr);
+  }
+  var byV={}, byL={};
+  for(var j=0;j<calls.length;j++){
+    var c=calls[j], v=c.vessel;
+    var r=byV[v];
+    if(!r){ r=byV[v]={vessel:v, code:c.code||'', routes:{}, ports:{}, calls:0, staySum:0, stayN:0, last:'', lastPort:'', decom:isDecommissioned(v)}; }
+    r.calls++;
+    if(c.route) r.routes[c.route]=1;
+    if(c.port) r.ports[c.port]=1;
+    var st=parseFloat(c.portStay);
+    if(!isNaN(st)){ r.staySum+=st; r.stayN++; }
+    var t=(c.etbRaw||'')+' '+(c.etb||'');
+    if(t>r.last){ r.last=t; r.lastDate=c.etbRaw||''; r.lastPort=c.port||''; }
+    var ln=c.route||'—';
+    var L=byL[ln];
+    if(!L){ L=byL[ln]={lane:ln, calls:0, vessels:{}}; }
+    L.calls++; L.vessels[v]=1;
+  }
+  var rows=[], k;
+  for(k in byV){ if(byV.hasOwnProperty(k)){
+    var x=byV[k];
+    x.routeList=Object.keys(x.routes).sort().join('/');
+    x.portN=Object.keys(x.ports).length;
+    x.avgStay=x.stayN?(x.staySum/x.stayN):null;
+    rows.push(x);
+  }}
+  var lanes=[];
+  for(k in byL){ if(byL.hasOwnProperty(k)){
+    var L2=byL[k]; L2.vesselN=Object.keys(L2.vessels).length; lanes.push(L2);
+  }}
+  return {rows:rows, lanes:lanes, total:calls.length, from:from, to:today, vesselN:rows.length};
+}
+
+function vcNum(n, d){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return d? Number(n).toFixed(d) : String(n);
+}
+
+function vcSortBy(key){
+  if(vcSortKey===key){ vcSortDir=-vcSortDir; } else { vcSortKey=key; vcSortDir=(key==='vessel'||key==='code'||key==='routeList'||key==='last')?1:-1; }
+  renderVesselCalls();
+}
+
+function vcTile(label, value, sub){
+  return '<div style="flex:1;min-width:150px;background:#f5f8fb;border:1px solid #dbe4ee;border-radius:8px;padding:10px 14px;">'
+       + '<div style="font-size:10px;color:#8a9bb0;letter-spacing:.05em;text-transform:uppercase;">'+label+'</div>'
+       + '<div style="font-size:22px;font-weight:700;color:#1F4E79;line-height:1.3;">'+value+'</div>'
+       + (sub?'<div style="font-size:11px;color:#8a9bb0;margin-top:1px;">'+sub+'</div>':'')
+       + '</div>';
+}
+
+function onVcDecomToggle(cb){
+  var main=document.querySelector('.decom-cb');
+  if(main){ main.checked=!!cb.checked; onDecomToggle(main); }
+  else { SHOW_DECOM=!!cb.checked; renderVesselCalls(); }
+}
+
+function renderVesselCalls(){
+  var tbody=document.getElementById('vcTbody');
+  if(!tbody) return;
+  var d=vcBuild();
+
+  var win=document.getElementById('vcWindow');
+  if(win) win.textContent=d.from+'  →  '+d.to;
+  var chip=document.getElementById('vcChip');
+  if(chip) chip.textContent=d.total.toLocaleString()+' calls · '+d.vesselN+' vessels';
+  var cbx=document.getElementById('vcShowDecom');
+  if(cbx) cbx.checked=SHOW_DECOM;
+
+  // ── KPI ──
+  var avg=d.vesselN?(d.total/d.vesselN):0;
+  var sortedCalls=d.rows.map(function(r){return r.calls;}).sort(function(a,b){return a-b;});
+  var med=sortedCalls.length? (sortedCalls.length%2? sortedCalls[(sortedCalls.length-1)/2]
+            : (sortedCalls[sortedCalls.length/2-1]+sortedCalls[sortedCalls.length/2])/2) : 0;
+  var top=d.rows.slice().sort(function(a,b){return b.calls-a.calls;})[0];
+  var kp=document.getElementById('vcKpis');
+  if(kp){
+    kp.innerHTML = vcTile('Terminal calls YTD', d.total.toLocaleString(), d.from+' → '+d.to)
+                 + vcTile('Vessels', String(d.vesselN), top? ('Top: '+top.vessel) : '')
+                 + vcTile('Avg calls / vessel', vcNum(avg,1), 'Median '+vcNum(med,0))
+                 + vcTile('Ports touched', String(d.rows.reduce(function(a,r){return a+r.portN;},0)), 'Sum of distinct ports per vessel');
+  }
+
+  // ── 表格 ──
+  var cols=[
+    {key:'vessel',   label:'Vessel',      align:'left'},
+    {key:'code',     label:'Code',        align:'left'},
+    {key:'routeList',label:'Route',       align:'left'},
+    {key:'calls',    label:'Calls',       align:'right'},
+    {key:'portN',    label:'Ports',       align:'right'},
+    {key:'avgStay',  label:'Avg stay (h)',align:'right'},
+    {key:'last',     label:'Last call',   align:'left'}
+  ];
+  var thead=document.getElementById('vcThead');
+  if(thead){
+    thead.innerHTML=cols.map(function(c){
+      var mark=(vcSortKey===c.key)? (vcSortDir<0?' ▾':' ▴'):'';
+      return '<th style="text-align:'+c.align+';cursor:pointer;white-space:nowrap;" onclick="vcSortBy(\''+c.key+'\')">'+c.label+mark+'</th>';
+    }).join('');
+  }
+  var rows=d.rows.slice();
+  rows.sort(function(a,b){
+    var x=a[vcSortKey], y=b[vcSortKey];
+    if(vcSortKey==='calls'||vcSortKey==='portN'||vcSortKey==='avgStay'){
+      x=(x===null||x===undefined)?-1:x; y=(y===null||y===undefined)?-1:y;
+      return (x-y)*vcSortDir;
+    }
+    x=String(x||''); y=String(y||'');
+    return (x<y?-1:(x>y?1:0))*vcSortDir;
+  });
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#8a9bb0;padding:18px;">No calls in this window.</td></tr>';
+  } else {
+    tbody.innerHTML=rows.map(function(r,i){
+      var dec=r.decom? ' <span style="font-size:10px;color:#c0392b;">(已下线)</span>':'';
+      var last=r.lastDate? (r.lastDate+' · '+r.lastPort) : '—';
+      return '<tr>'
+        + '<td style="text-align:left;white-space:nowrap;">'+r.vessel+dec+'</td>'
+        + '<td style="text-align:left;">'+(r.code||'—')+'</td>'
+        + '<td style="text-align:left;">'+(r.routeList||'—')+'</td>'
+        + '<td style="text-align:right;font-weight:600;color:#1F4E79;">'+r.calls+'</td>'
+        + '<td style="text-align:right;">'+r.portN+'</td>'
+        + '<td style="text-align:right;">'+vcNum(r.avgStay,1)+'</td>'
+        + '<td style="text-align:left;white-space:nowrap;">'+last+'</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // ── 按航线 ──
+  var lth=document.getElementById('vcLaneThead');
+  if(lth) lth.innerHTML='<th style="text-align:left;">Lane</th><th style="text-align:right;">Calls</th>'
+                      +'<th style="text-align:right;">Vessels</th><th style="text-align:right;">Share</th>';
+  var lanes=d.lanes.slice().sort(function(a,b){return b.calls-a.calls;});
+  var ltb=document.getElementById('vcLaneTbody');
+  if(ltb){
+    ltb.innerHTML=lanes.length? lanes.map(function(L){
+      var sh=d.total? (L.calls/d.total*100):0;
+      return '<tr><td style="text-align:left;">'+L.lane+'</td>'
+        + '<td style="text-align:right;font-weight:600;">'+L.calls+'</td>'
+        + '<td style="text-align:right;">'+L.vesselN+'</td>'
+        + '<td style="text-align:right;">'+sh.toFixed(1)+'%</td></tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#8a9bb0;padding:14px;">—</td></tr>';
+  }
+
+  // ── Top 10 柱状 ──
+  var chart=document.getElementById('vcTopChart');
+  if(chart){
+    var top10=d.rows.slice().sort(function(a,b){return b.calls-a.calls;}).slice(0,10);
+    var max=top10.length? top10[0].calls : 1;
+    chart.innerHTML=top10.map(function(r){
+      var w=Math.max(2, Math.round(r.calls/max*100));
+      return '<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11px;">'
+        + '<div style="width:118px;text-align:right;color:#33475b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+r.vessel+'">'+r.vessel+'</div>'
+        + '<div style="flex:1;background:#eef2f7;border-radius:3px;height:14px;position:relative;">'
+        + '<div style="width:'+w+'%;background:linear-gradient(90deg,#2E75B6,#5B9BD5);height:14px;border-radius:3px;"></div></div>'
+        + '<div style="width:34px;text-align:right;font-weight:600;color:#1F4E79;">'+r.calls+'</div>'
+        + '</div>';
+    }).join('');
+  }
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════
    DECOMMISSIONED VESSELS (已下线)
@@ -2360,6 +2612,7 @@ function onDecomToggle(cb){
   });
   renderSummary();
   renderFullSchedule();
+  renderVesselCalls();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -6201,6 +6454,7 @@ function init(){
   initFullSchedule();
   initPortView();
   initSpeedView();
+  renderVesselCalls();
   boaInit();
   initMaintView();
   updateCtrlH();
