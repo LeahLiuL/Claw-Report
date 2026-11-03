@@ -657,8 +657,10 @@ function _loadXlsx(cb){
   <div class="controls" style="flex-wrap:wrap;">
     <span style="font-weight:600;font-size:14px;">&#128197; Window:</span>
     <span id="vcWindow" style="font-size:12px;font-weight:600;color:#1F4E79;">&mdash;</span>
-    <label style="margin-left:16px;font-size:12px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
-      <input type="checkbox" id="vcShowDecom" onchange="onVcDecomToggle(this)"> Show &#24050;&#19979;&#32447;
+    <label class="decom-toggle" style="margin-left:16px;" title="&#26174;&#31034;/&#38544;&#34255;&#24050;&#19979;&#32447;&#33337;&#33337; (deprecated vessels)">
+      <input type="checkbox" class="decom-cb" id="vcShowDecom" onchange="onDecomToggle(this)">
+      <span class="decom-dot">+</span>
+      <span>Show &#24050;&#19979;&#32447;</span>
     </label>
     <span class="stat-chip" id="vcChip" style="margin-left:12px;">&mdash; calls</span>
   </div>
@@ -689,7 +691,7 @@ function _loadXlsx(cb){
     </div>
     <div style="flex:1;min-width:340px;">
       <h4 style="margin:16px 0 8px;color:#1F4E79;font-size:13px;">&#128200; Top 10 Vessels by Calls</h4>
-      <div id="vcTopChart" style="padding:2px;"></div>
+      <div id="vcTopChart" style="padding:2px 12px 2px 2px;"></div>
     </div>
   </div>
 </div>
@@ -1264,12 +1266,6 @@ function vcTile(label, value, sub){
        + '<div style="font-size:22px;font-weight:700;color:#1F4E79;line-height:1.3;">'+value+'</div>'
        + (sub?'<div style="font-size:11px;color:#8a9bb0;margin-top:1px;">'+sub+'</div>':'')
        + '</div>';
-}
-
-function onVcDecomToggle(cb){
-  var main=document.querySelector('.decom-cb');
-  if(main){ main.checked=!!cb.checked; onDecomToggle(main); }
-  else { SHOW_DECOM=!!cb.checked; renderVesselCalls(); }
 }
 
 function renderVesselCalls(){
