@@ -1549,7 +1549,7 @@ function _loadXlsx(cb){
         <div class="sub" id="headerDate">Loading&hellip;</div>
       </div>
       <div class="header-right">
-        <select id="yearSel" onchange="switchYear(this.value)" title="选择年份" style="padding:6px 10px;border-radius:6px;border:1px solid #cfd8dc;background:#fff;color:#222;font-size:13px;font-weight:600;cursor:pointer;">
+        <select id="yearSel" onchange="switchYear(this.value)" title="Select year" style="padding:6px 10px;border-radius:6px;border:1px solid #cfd8dc;background:#fff;color:#222;font-size:13px;font-weight:600;cursor:pointer;">
           <option value="2026">2026 YTD</option>
           <option value="2025">2025</option>
           <option value="2024">2024</option>
@@ -1600,10 +1600,10 @@ function _loadXlsx(cb){
       <button class="col-toggle-btn" id="colToggleBtn1" onclick="toggleColDropdown('1')">&#9881; Columns</button>
       <div class="col-dropdown" id="colDropdown1"></div>
     </div>
-    <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
+    <label class="decom-toggle" title="Show / hide decommissioned vessels">
       <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
       <span class="decom-dot">+</span>
-      <span>Show 已下线</span>
+      <span>Show decommissioned</span>
     </label>
     <span class="stat-chip" id="statTotal">&#8212; vessels</span>
     <span class="delay-chip" id="statDelay">&#8212; delayed</span>
@@ -1646,10 +1646,10 @@ function _loadXlsx(cb){
       <div class="col-dropdown" id="colDropdown2"></div>
     </div>
     <button class="filter-btn" id="laneOrderBtn" onclick="openLaneOrderModal()">&#8644; Lane Order</button>
-    <label class="decom-toggle" title="显示/隐藏已下线船舶 (deprecated vessels)">
+    <label class="decom-toggle" title="Show / hide decommissioned vessels">
       <input type="checkbox" class="decom-cb" onchange="onDecomToggle(this)">
       <span class="decom-dot">+</span>
-      <span>Show 已下线</span>
+      <span>Show decommissioned</span>
     </label>
     <span class="stat-chip" id="statTotal2">&#8212; rows</span>
   </div>
@@ -1692,7 +1692,7 @@ function _loadXlsx(cb){
 
   <!-- Port Wait Analysis -->
   <h3 style="margin:16px 0 8px;color:#1F4E79;">&#9889; Port Wait Time Analysis</h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. BOA Rate = calls berthed within the selected window / total calls in selected range. The BOA window follows the Over-range selector above: All over = standard (CNSHA/CNNGB 12h, others 6h); 12h+ = 12h for all ports; 24h+ = 24h for all ports; 48h+ = 48h for all ports (wait beyond the window counts as no BOA). Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>&#35745;&#20837; counted</b> as-is &#183; <b>&#21034;&#38500; excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 8px;">Ports normalized (terminal suffixes merged). Bunkering-only calls excluded. BOA Rate = calls berthed within the selected window / total calls in selected range. The BOA window follows the Over-range selector above: All over = standard (CNSHA/CNNGB 12h, others 6h); 12h+ = 12h for all ports; 24h+ = 24h for all ports; 48h+ = 48h for all ports (wait beyond the window counts as no BOA). Each remark category can be handled three ways in the <b>Remark</b> dropdown: <b>Counted</b> as-is &#183; <b>Excluded</b> from both numerator and denominator &#183; <b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0). Ranked best&#8594;worst by default.</p>
   <div class="sub-controls" style="padding:8px 12px;margin-bottom:8px;">
     <span style="font-weight:600;font-size:13px;margin-right:6px;">&#9201; Over-range:</span>
     <label class="range-opt sel" id="port-opt-all"><input type="radio" name="portrange" value="all" checked> All over (&gt; standard)</label>
@@ -1854,11 +1854,13 @@ function _loadXlsx(cb){
   <div class="controls" style="flex-wrap:wrap;">
     <span style="font-weight:600;font-size:14px;">&#128197; Window:</span>
     <span id="vcWindow" style="font-size:12px;font-weight:600;color:#1F4E79;">&mdash;</span>
-    <label class="decom-toggle" style="margin-left:16px;" title="&#26174;&#31034;/&#38544;&#34255;&#24050;&#19979;&#32447;&#33337;&#33337; (deprecated vessels)">
+    <label class="decom-toggle" style="margin-left:16px;" title="Show / hide decommissioned vessels">
       <input type="checkbox" class="decom-cb" id="vcShowDecom" onchange="onDecomToggle(this)">
       <span class="decom-dot">+</span>
-      <span>Show &#24050;&#19979;&#32447;</span>
+      <span>Show decommissioned</span>
     </label>
+    <input type="text" id="vcSearch" placeholder="&#128269; Search vessel / code / route / port&hellip;" oninput="renderVesselCalls()" style="width:260px;">
+    <button class="btn btn-export" onclick="exportVesselCallsExcel()">&#8595; Export Excel</button>
     <span class="stat-chip" id="vcChip" style="margin-left:12px;">&mdash; calls</span>
   </div>
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 12px;line-height:1.6;">
@@ -1962,8 +1964,8 @@ function _loadXlsx(cb){
     <input type="text" id="maintPortSearch" placeholder="&#128269; Search ports..." oninput="onMaintPortSearch()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:160px;">
   </div>
 
-  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log 维护台账 (follows Operator &amp; ETD filters above). 判定规则: Port Log 维护 = I 列 Y；Vessel Schedule 维护 = J 列 &quot;Maintain timely&quot;（Not maintained 即未维护）。两类未维护明细已分开列出。</p>
-  <p style="font-size:12px;color:#1F4E79;margin:0 0 8px;font-weight:600;">&#128336; Maintenance 数据更新时间：<span id="maintSourceTs">—</span></p>
+  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px;">Source: Vessel Schedule / Port Log maintenance log (follows Operator &amp; ETD filters above). Rule: Port Log maintained = column I is Y; Vessel Schedule maintained = column J is &quot;Maintain timely&quot; (anything else = not maintained). The two kinds of unmaintained records are listed separately below.</p>
+  <p style="font-size:12px;color:#1F4E79;margin:0 0 8px;font-weight:600;">&#128336; Maintenance data updated: <span id="maintSourceTs">—</span></p>
 
   <!-- Overall chips -->
   <div class="boa-chips" id="maintChips">
@@ -1976,9 +1978,9 @@ function _loadXlsx(cb){
 
   <!-- Per-Port Maintenance Rate (dedicated rate summary) -->
   <h3 style="margin:22px 0 8px;color:#1F4E79;">&#128202; Per-Port Maintenance Rate
-    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">每个港口 Port Log / Vessel Schedule 维护率（当前筛选下，点表头可排序）</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Port Log / Vessel Schedule maintenance rate per port (current filters; click a header to sort)</span>
   </h3>
-  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Port Log Rate = 已维护 Port Log 的 calls ÷ 该港总 calls；Vessel Sched Rate = Maintain timely 的 calls ÷ 该港总 calls。绿 ≥80%，橙 ≥50%，红 &lt;50%。</p>
+  <p style="font-size:11px;color:#8a9bb0;margin:0 0 6px;">Port Log Rate = calls with Port Log maintained &divide; total calls at that port; Vessel Sched Rate = calls with &quot;Maintain timely&quot; &divide; total calls at that port. Green &ge;80%, amber &ge;50%, red &lt;50%.</p>
   <div class="table-wrap" style="max-height:520px;overflow-y:auto;">
     <table id="maintRateTable" style="min-width:auto;"><thead><tr id="maintRateThead"></tr></thead><tbody id="maintRateTbody"></tbody></table>
   </div>
@@ -1996,8 +1998,8 @@ function _loadXlsx(cb){
   </div>
 
   <!-- Unmaintained Details: Port Log and Vessel Schedule separated -->
-  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Port Log 未维护明细 <span id="maintPlogNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
-    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Port Log Y/N = N 的船期（未维护 Port Log）</span>
+  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Port Log Not Maintained <span id="maintPlogNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Schedules with Port Log Y/N = N (Port Log not maintained)</span>
     <span style="font-size:11px;font-weight:400;margin-left:8px;white-space:nowrap;">
       <input id="maintPlogNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
     </span>
@@ -2006,8 +2008,8 @@ function _loadXlsx(cb){
     <table id="maintPlogNoTable" style="min-width:auto;"><thead><tr id="maintPlogNoThead"></tr></thead><tbody id="maintPlogNoTbody"></tbody></table>
   </div>
 
-  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Vessel Schedule 未维护明细 <span id="maintVsNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
-    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Vessel Schedule Maintain Status = Not maintained 的船期（未维护船期）</span>
+  <h3 style="margin:24px 0 4px;color:#C0392B;">&#128308; Vessel Schedule Not Maintained <span id="maintVsNoCount" style="font-size:11px;font-weight:400;color:#C0392B;">&#8212;</span>
+    <span style="font-size:11px;font-weight:400;margin-left:8px;color:#8a9bb0;">Schedules with Maintain Status = Not maintained</span>
     <span style="font-size:11px;font-weight:400;margin-left:8px;white-space:nowrap;">
       <input id="maintVsNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
     </span>
@@ -2038,7 +2040,7 @@ function _loadXlsx(cb){
       <button class="modal-close" onclick="closeExportTablesModal()">&#10005;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">勾选需要导出的表；未勾选的不导出。所有勾选的表将写入同一个 Excel 文件（每张表一个工作表）。导出内容反映当前筛选 / 列可见性。</p>
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Tick the tables to export; unticked tables are skipped. All selected tables go into one Excel file, each on its own worksheet. The export follows the current filters and column visibility.</p>
       <div id="exportTableChecks" style="max-height:52vh;overflow:auto;border:1px solid #e3e9f0;border-radius:6px;padding:6px 10px;"></div>
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
         <button class="btn" onclick="exportSelToggleAll(true)" style="font-size:12px;padding:4px 10px;">&#10003; All</button>
@@ -2059,7 +2061,7 @@ function _loadXlsx(cb){
       <button class="modal-close" onclick="closeLaneOrderModal()">&#10005;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">调整列表中 lane 的上下顺序，Full Schedule 即按此顺序展示。点击 ▲/▼ 移动，顺序自动保存（刷新后保留）。</p>
+      <p style="font-size:11px;color:#8a9bb0;margin:0 0 10px;">Reorder lanes with the arrows (&uarr;/&darr;). Full Schedule follows this order; the order is saved automatically and survives a refresh.</p>
       <div id="laneOrderList" style="max-height:54vh;overflow:auto;border:1px solid #e3e9f0;border-radius:6px;padding:4px 6px;"></div>
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
         <button class="btn" onclick="resetLaneOrder()" style="font-size:12px;padding:4px 10px;">&#8634; Reset to default</button>
@@ -2397,7 +2399,8 @@ function vcIsBunkerOnly(sr){
   return false;
 }
 
-function vcBuild(){
+function vcBuild(q){
+  var qs=(q===undefined||q===null)?'':String(q).trim().toLowerCase();
   var fs=TODAY_DATA.fullSchedule||[];
   var today=TODAY_DATA.date||'';
   var yr=today.slice(0,4);
@@ -2408,6 +2411,10 @@ function vcBuild(){
     if(sr.isSummary) continue;                       // 摘要行是最近挂靠的副本，跳过
     if(!SHOW_DECOM && isDecommissioned(sr.vessel)) continue;
     if(vcIsBunkerOnly(sr)) continue;
+    if(qs){
+      var hay=((sr.vessel||'')+' '+(sr.code||'')+' '+(sr.route||'')+' '+(sr.port||'')+' '+(sr.voy||'')).toLowerCase();
+      if(hay.indexOf(qs)<0) continue;
+    }
     var etb=sr.etbRaw||'';
     if(!etb || etb<from || etb>today) continue;      // 本年度 + 已靠上
     var key=sr.vessel+'|'+(sr.voy||'')+'|'+(sr.port||'')+'|'+etb+'|'+(sr.etb||'');
@@ -2465,10 +2472,27 @@ function vcTile(label, value, sub){
        + '</div>';
 }
 
+/* Rows in the same order as the on-screen table (shared with the Excel export) */
+function vcSortedRows(d){
+  var rows=(d.rows||[]).slice();
+  rows.sort(function(a,b){
+    var x=a[vcSortKey], y=b[vcSortKey];
+    if(vcSortKey==='calls'||vcSortKey==='portN'||vcSortKey==='avgStay'){
+      x=(x===null||x===undefined)?-1:x; y=(y===null||y===undefined)?-1:y;
+      return (x-y)*vcSortDir;
+    }
+    x=String(x||''); y=String(y||'');
+    return (x<y?-1:(x>y?1:0))*vcSortDir;
+  });
+  return rows;
+}
+
 function renderVesselCalls(){
   var tbody=document.getElementById('vcTbody');
   if(!tbody) return;
-  var d=vcBuild();
+  var qEl=document.getElementById('vcSearch');
+  var q=qEl? qEl.value : '';
+  var d=vcBuild(q);
 
   var win=document.getElementById('vcWindow');
   if(win) win.textContent=d.from+'  →  '+d.to;
@@ -2508,21 +2532,13 @@ function renderVesselCalls(){
       return '<th style="text-align:'+c.align+';cursor:pointer;white-space:nowrap;" onclick="vcSortBy(\''+c.key+'\')">'+c.label+mark+'</th>';
     }).join('');
   }
-  var rows=d.rows.slice();
-  rows.sort(function(a,b){
-    var x=a[vcSortKey], y=b[vcSortKey];
-    if(vcSortKey==='calls'||vcSortKey==='portN'||vcSortKey==='avgStay'){
-      x=(x===null||x===undefined)?-1:x; y=(y===null||y===undefined)?-1:y;
-      return (x-y)*vcSortDir;
-    }
-    x=String(x||''); y=String(y||'');
-    return (x<y?-1:(x>y?1:0))*vcSortDir;
-  });
+  var rows=vcSortedRows(d);
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#8a9bb0;padding:18px;">No calls in this window.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#8a9bb0;padding:18px;">'
+      + (q.trim()? 'No vessel matches &ldquo;'+q.trim().replace(/[<>&]/g,'')+'&rdquo;.' : 'No calls in this window.') + '</td></tr>';
   } else {
     tbody.innerHTML=rows.map(function(r,i){
-      var dec=r.decom? ' <span style="font-size:10px;color:#c0392b;">(已下线)</span>':'';
+      var dec=r.decom? ' <span style="font-size:10px;color:#c0392b;">(DECOMMISSIONED)</span>':'';
       var last=r.lastDate? (r.lastDate+' · '+r.lastPort) : '—';
       return '<tr>'
         + '<td style="text-align:left;white-space:nowrap;">'+r.vessel+dec+'</td>'
@@ -2571,18 +2587,162 @@ function renderVesselCalls(){
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   DECOMMISSIONED VESSELS (已下线)
-   源 Excel 中已退租/下线的船，船名带 "-已下线" 后缀。
-   Summary 与 Full Schedule 默认隐藏这些船（含其筛选下拉、导出、统计数）；
-   需要查看历史时勾选工具栏的 "Show 已下线" 即可临时显示。
+   VESSEL CALLS -> EXCEL
+   Mirrors the on-screen tab 1:1: same rows, same sort, same search filter.
+   Sheet 1 = the per-vessel table, Sheet 2 = Calls by Lane.
    ═══════════════════════════════════════════════════════════════════ */
-var DECOM_MARK = '已下线';
+function exportVesselCallsExcel(){
+  if(typeof XLSX==='undefined'){ alert('Excel library not loaded. Please reload the page.'); return; }
+  var qEl=document.getElementById('vcSearch');
+  var q=qEl? qEl.value.trim() : '';
+  var d=vcBuild(q);
+  if(!d.total){ alert('Nothing to export - no calls in the current view.'); return; }
+
+  var todayStr=TODAY_DATA.date||'';
+  function bd(){ var s={style:'thin',color:{rgb:'BFBFBF'}}; return {top:s,bottom:s,left:s,right:s}; }
+  var B=bd();
+  function F(rgb){ return {patternType:'solid',fgColor:{rgb:rgb}}; }
+  var tS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:14},fill:F('2E75B6'),alignment:{horizontal:'center',vertical:'center'},border:B};
+  var sS={font:{name:'Arial',bold:true,color:{rgb:'1F4E79'},sz:9},fill:F('DCE9F7'),alignment:{horizontal:'center',vertical:'center'},border:B};
+  var hS={font:{name:'Arial',bold:true,color:{rgb:'FFFFFF'},sz:10},fill:F('1F4E79'),alignment:{horizontal:'center',vertical:'center',wrapText:true},border:B};
+  var fS={font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B,alignment:{horizontal:'center',vertical:'center'}};
+
+  function cell(v,align,bold,fill,color){
+    return {v:(v===null||v===undefined)?'':v,
+            s:{font:{name:'Arial',sz:9,bold:!!bold,color:{rgb:color||'333333'}},fill:F(fill||'FFFFFF'),border:B,
+               alignment:{horizontal:align||'left',vertical:'center'}}};
+  }
+
+  var rows=vcSortedRows(d);
+  var heads=['Vessel','Code','Route','Calls','Ports','Avg stay (h)','Last call date','Last port'];
+  var nCols=heads.length;
+
+  var sheet=[];
+  var tr=[]; for(var i=0;i<nCols;i++) tr[i]={v:(i===0?'CUL VESSEL TERMINAL CALLS (YTD)   --   As of '+todayStr:''),s:tS};
+  sheet.push(tr);
+
+  var avgCalls=d.vesselN? (d.total/d.vesselN) : 0;
+  var sub='Window '+d.from+'  ->  '+d.to+'   |   '+d.total.toLocaleString()+' calls   |   '+d.vesselN+(d.vesselN===1?' vessel':' vessels')+'   |   Avg '
+        + avgCalls.toFixed(1)+' calls per vessel'+(q? '   |   Filter: "'+q+'"' : '');
+  var sr=[]; for(var j=0;j<nCols;j++) sr[j]={v:(j===0?sub:''),s:sS};
+  sheet.push(sr);
+
+  sheet.push(heads.map(function(h){ return {v:h,s:hS}; }));
+
+  var iEven=0;
+  rows.forEach(function(r){
+    var fill=(iEven++%2===0)?'FFFFFF':'F7FAFD';
+    sheet.push([
+      cell(r.vessel + (r.decom? ' '+DECOM_TAG : ''),'left',true,fill,'1F4E79'),
+      cell(r.code||'','left',false,fill),
+      cell(r.routeList||'','left',false,fill),
+      cell(Number(r.calls),'right',true,fill,'1F4E79'),
+      cell(Number(r.portN),'right',false,fill),
+      cell(r.avgStay===null||r.avgStay===undefined?'':Number(Number(r.avgStay).toFixed(1)),'right',false,fill),
+      cell(r.lastDate||'','center',false,fill),
+      cell(r.lastPort||'','left',false,fill)
+    ]);
+  });
+
+  var totPorts=rows.reduce(function(a,r){ return a+r.portN; },0);
+  sheet.push([
+    {v:'TOTAL ('+rows.length+' vessels)',s:{font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B,alignment:{horizontal:'left',vertical:'center'}}},
+    {v:'',s:{font:{name:'Arial',sz:9},fill:F('EDF2F8'),border:B}},
+    {v:'',s:{font:{name:'Arial',sz:9},fill:F('EDF2F8'),border:B}},
+    {v:d.total,s:{font:{name:'Arial',bold:true,sz:9,color:{rgb:'C0392B'}},fill:F('EDF2F8'),border:B,alignment:{horizontal:'right',vertical:'center'}}},
+    {v:totPorts,s:{font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B,alignment:{horizontal:'right',vertical:'center'}}},
+    {v:'',s:{font:{name:'Arial',sz:9},fill:F('EDF2F8'),border:B}},
+    {v:'',s:{font:{name:'Arial',sz:9},fill:F('EDF2F8'),border:B}},
+    {v:'',s:{font:{name:'Arial',sz:9},fill:F('EDF2F8'),border:B}}
+  ]);
+
+  var ws=XLSX.utils.aoa_to_sheet(sheet);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:nCols-1}},{s:{r:1,c:0},e:{r:1,c:nCols-1}}];
+  ws['!cols']=[{wch:30},{wch:9},{wch:16},{wch:9},{wch:8},{wch:13},{wch:16},{wch:12}];
+  var totalRows=sheet.length;
+  ws['!rows']=[{hpt:26},{hpt:20},{hpt:26}];
+  for(var k=3;k<totalRows;k++) ws['!rows'].push({hpt:16});
+  ws['!autofilter']={ref:'A3:'+XLSX.utils.encode_col(nCols-1)+String(totalRows-1)};
+  ws['!freeze']={xSplit:0,ySplit:3};
+
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Vessel Calls');
+
+  // ── Sheet 2: calls by lane ──
+  var lanes=d.lanes.slice().sort(function(a,b){ return b.calls-a.calls; });
+  var lh=['Lane','Calls','Vessels','Share of calls'];
+  var sh2=[];
+  var tr2=[]; for(var m=0;m<lh.length;m++) tr2[m]={v:(m===0?'CALLS BY LANE   --   '+d.from+'  ->  '+d.to:''),s:tS};
+  sh2.push(tr2);
+  sh2.push(lh.map(function(h){ return {v:h,s:hS}; }));
+  lanes.forEach(function(L,idx){
+    var fill=(idx%2===0)?'FFFFFF':'F7FAFD';
+    var share=d.total? (L.calls/d.total) : 0;
+    sh2.push([
+      cell(L.lane,'left',true,fill,'1F4E79'),
+      cell(Number(L.calls),'right',true,fill,'1F4E79'),
+      cell(Number(L.vesselN),'right',false,fill),
+      {v:Number((share*100).toFixed(1)),s:{font:{name:'Arial',sz:9},fill:F(fill),border:B,alignment:{horizontal:'right',vertical:'center'}}}
+    ]);
+  });
+  sh2.push([
+    {v:'TOTAL',s:{font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B}},
+    {v:d.total,s:{font:{name:'Arial',bold:true,sz:9,color:{rgb:'C0392B'}},fill:F('EDF2F8'),border:B,alignment:{horizontal:'right',vertical:'center'}}},
+    {v:d.vesselN,s:{font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B,alignment:{horizontal:'right',vertical:'center'}}},
+    {v:100,s:{font:{name:'Arial',bold:true,sz:9},fill:F('EDF2F8'),border:B,alignment:{horizontal:'right',vertical:'center'}}}
+  ]);
+  var ws2=XLSX.utils.aoa_to_sheet(sh2);
+  ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:3}}];
+  ws2['!cols']=[{wch:16},{wch:10},{wch:10},{wch:15}];
+  ws2['!rows']=[{hpt:26},{hpt:24}];
+  for(var n=2;n<sh2.length;n++) ws2['!rows'].push({hpt:16});
+  XLSX.utils.book_append_sheet(wb,ws2,'Calls by Lane');
+
+  XLSX.writeFile(wb,'CUL Vessel Calls YTD '+todayStr+'.xlsx');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DECOMMISSIONED VESSELS
+   Ships that have been redelivered / taken out of service still carry the
+   suffix "已下线" in their name in the source Excel. Summary and Full Schedule
+   hide them by default (including their filter dropdowns, exports and
+   counters); tick "Show decommissioned" in the toolbar to reveal them.
+   ═══════════════════════════════════════════════════════════════════ */
+var DECOM_MARK = '已下线';          // CN marker kept: it is what the source Excel writes
+var DECOM_TAG  = '(DECOMMISSIONED)'; // English label shown on screen and in exports
+var DECOM_SET  = {};                 // cleaned ship names that are decommissioned
 var SHOW_DECOM = false;
 try{ SHOW_DECOM = sessionStorage.getItem('showDecom')==='1'; }catch(e){ SHOW_DECOM=false; }
 
-function isDecommissioned(v){ return typeof v==='string' && v.indexOf(DECOM_MARK)>=0; }
+/* Strip the CN suffix from ship names once per load (after loadSnapshots, so
+   cached history snapshots are covered) and remember which ones were flagged,
+   so every table / dropdown / Excel export reads in English. */
+function normalizeVesselLabels(){
+  function fix(o){
+    if(o && typeof o.vessel==='string' && o.vessel.indexOf(DECOM_MARK)>=0){
+      var clean = o.vessel.split('-' + DECOM_MARK).join('').split(DECOM_MARK).join('').replace(/[\s-]+$/, '');
+      DECOM_SET[clean] = 1;
+      o.vessel = clean;
+    }
+  }
+  (TODAY_DATA.vessels||[]).forEach(fix);
+  (TODAY_DATA.fullSchedule||[]).forEach(fix);
+  if(typeof MAINT_RECORDS!=='undefined' && MAINT_RECORDS) MAINT_RECORDS.forEach(fix);
+  if(typeof SNAPSHOTS==='object' && SNAPSHOTS){
+    Object.keys(SNAPSHOTS).forEach(function(k){
+      if(SNAPSHOTS[k] && SNAPSHOTS[k].forEach) SNAPSHOTS[k].forEach(fix);
+    });
+  }
+}
 
-/* 按当前 SHOW_DECOM 状态重建 Summary / Full Schedule 的数据源 */
+function isDecommissioned(v){
+  if(typeof v!=='string') return false;
+  if(v.indexOf(DECOM_MARK)>=0) return true;
+  if(DECOM_SET[v]===1) return true;
+  return v.indexOf(DECOM_TAG)>=0;
+}
+
+/* Rebuild the Summary / Full Schedule data sources for the current SHOW_DECOM state */
 function applyDecomFilter(){
   summaryData = (TODAY_DATA.vessels||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
   fullData    = (TODAY_DATA.fullSchedule||[]).filter(function(r){ return SHOW_DECOM || !isDecommissioned(r.vessel); });
@@ -3554,7 +3714,7 @@ function exportSelectedTables(){
       else if(it.rich==='maintvvd'){ if(exportMaintVvdExcel(wb)) count++; }
       else { if(_tabSheetFromDom(it.id, 'CUL DAILY MOVEMENT — '+it.label+'  —  As of '+todayStr, it.sheet, wb, it.skipFirst)) count++; }
     });
-    if(count===0){ alert('请至少勾选一张表再导出。'); return; }
+    if(count===0){ alert('Please tick at least one table to export.'); return; }
     XLSX.writeFile(wb,'CUL Daily Movement '+todayStr+'.xlsx');
     closeExportTablesModal();
   });
@@ -3809,7 +3969,7 @@ function buildRemarkFilterDropdown(){
   });
 
   var html='<div class="rm-hint">'+
-    '<b>计入</b> counted as-is · <b>剔除</b> out of both numerator &amp; denominator · '+
+    '<b>Counted</b> as-is · <b>Excluded</b> out of both numerator &amp; denominator · '+
     '<b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0)'+
     '</div>';
   REMARK_CATEGORIES.forEach(function(cat){
@@ -3819,13 +3979,13 @@ function buildRemarkFilterDropdown(){
       '<span class="rm-name" title="'+cat.label+'">'+cat.label+'</span>'+
       '<span class="rm-cnt">'+(cnt[cat.key]||0)+'</span>'+
       '<span class="rm-seg">'+
-        segBtn(cat.key,'include',m,'计入')+
-        segBtn(cat.key,'exclude',m,'剔除','rm-ex')+
+        segBtn(cat.key,'include',m,'Counted')+
+        segBtn(cat.key,'exclude',m,'Excluded','rm-ex')+
         segBtn(cat.key,'boa',    m,'BOA','rm-boa')+
       '</span></div>';
   });
   html+='<div class="filter-actions" style="border-top:1px solid #e4ecf5;border-bottom:none;margin:6px 0 0;padding-top:6px;">'+
-        '<button onclick="resetRemarkMode()">Reset all to 计入</button></div>';
+        '<button onclick="resetRemarkMode()">Reset all to Counted</button></div>';
   dd.innerHTML=html;
 }
 function segBtn(cat,mode,cur,label,cls){
@@ -3871,7 +4031,7 @@ function updateRemarkFilterBtn(){
     return;
   }
   var bits=[];
-  if(nEx)  bits.push(nEx+' 剔除');
+  if(nEx)  bits.push(nEx+' excluded');
   if(nBoa) bits.push(nBoa+' BOA');
   btn.textContent=bits.join(' · ');
   btn.style.background='#fff3e0';
@@ -6006,7 +6166,7 @@ function renderMaintChips(recs){
   document.getElementById('maintChipPortLog').textContent = plog.toLocaleString() + ' (' + plogPct.toFixed(1) + '%)';
   document.getElementById('maintChipPortLogNo').textContent = plogNo.toLocaleString() + ' (' + maintPct(plogNo, total).toFixed(1) + '%)';
   document.getElementById('maintChipVSched').textContent = VSCHED_AVAILABLE
-    ? vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)' : '— (列已停供)';
+    ? vs.toLocaleString() + ' (' + vsPct.toFixed(1) + '%)' : '— (column discontinued)';
   document.getElementById('maintChipVSchedNo').textContent = VSCHED_AVAILABLE
     ? vsNo.toLocaleString() + ' (' + maintPct(vsNo, total).toFixed(1) + '%)' : '—';
   document.getElementById('statMaint').textContent = total.toLocaleString() + ' calls';
@@ -6023,7 +6183,7 @@ function buildMaintDetailBlocks(g){
     'Port Log: <b style="color:#2E7D32;">Y</b> maintained / <b style="color:#C0392B;">N</b> not maintained; ' +
     (VSCHED_AVAILABLE
       ? 'Vessel Sched: <b style="color:#2E7D32;">Maintain timely</b> / <b style="color:#C0392B;">Not maintained</b>'
-      : 'Vessel Sched: <b style="color:#8a9bb0;">— 列已停供(上游不再导出)</b>') + '</div>' +
+      : 'Vessel Sched: <b style="color:#8a9bb0;">&mdash; column discontinued (no longer exported upstream)</b>') + '</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:2px 0 8px;">' +
     '<thead><tr style="background:#e8eff6;color:#1F4E79;"><th style="padding:3px 6px;text-align:left;">Service</th><th style="padding:3px 6px;text-align:left;">Vessel</th><th style="padding:3px 6px;text-align:left;">Voyage</th><th style="padding:3px 6px;text-align:left;">Dir</th><th style="padding:3px 6px;text-align:left;">Operator</th><th style="padding:3px 6px;text-align:left;">Port</th><th style="padding:3px 6px;text-align:left;">ETD</th><th style="padding:3px 6px;text-align:left;">Port Log</th><th style="padding:3px 6px;text-align:left;">Vessel Sched</th></tr></thead><tbody>';
   arr.forEach(function(r, i){
@@ -6318,7 +6478,7 @@ function renderMaintUnmaintained(){
   document.getElementById('maintPlogNoTbody').innerHTML = rowsHtml(plogNo, 'N', !!qPlog);
   document.getElementById('maintVsNoTbody').innerHTML = VSCHED_AVAILABLE
     ? rowsHtml(vsNo, 'Not maintained', !!qVs)
-    : '<tr><td colspan="11" style="text-align:center;color:#8a9bb0;padding:12px;">Vessel Schedule 列已停供（上游 2026-08 起不再导出），无法统计 Not maintained。</td></tr>';
+    : '<tr><td colspan="11" style="text-align:center;color:#8a9bb0;padding:12px;">Vessel Schedule column discontinued (no longer exported since 2026-08); “Not maintained” cannot be counted.</td></tr>';
   document.getElementById('maintPlogNoCount').textContent = '(' + plogNo.length.toLocaleString() + ' calls)';
   document.getElementById('maintVsNoCount').textContent = VSCHED_AVAILABLE ? '(' + vsNo.length.toLocaleString() + ' calls)' : '—';
 }
@@ -6435,7 +6595,9 @@ function updateCtrlH(){
 window.addEventListener('resize', updateCtrlH);
 
 function init(){
-  loadSnapshots(); if(!window.__HIST_YEAR) saveSnapshot(TODAY_DATA);
+  loadSnapshots();
+  normalizeVesselLabels();          // "-已下线" suffix -> clean name + (DECOMMISSIONED) tag
+  if(!window.__HIST_YEAR) saveSnapshot(TODAY_DATA);
   // 同步 "Show 已下线" 勾选框的初始视觉与状态
   document.querySelectorAll('.decom-cb').forEach(function(b){ b.checked = SHOW_DECOM; });
   document.querySelectorAll('.decom-toggle').forEach(function(lbl){
