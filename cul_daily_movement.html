@@ -2723,6 +2723,15 @@ function classifyRemark(remark){
   return 'other';
 }
 
+/* Remark 类别，但先把 voy 里写了 BUNKER 的（BUNKERONLY / ONLYBUNKER / BUNKER）
+   认成纯加油挂靠 —— 这类记录 remark 往往是空的，只按 remark 判定会漏。
+   与 Vessel Calls 的 vcIsBunkerOnly() 保持同一口径。 */
+function classifyCall(sr){
+  var v=String((sr&&sr.voy)||'').toLowerCase();
+  if(v.indexOf('bunker')>=0) return 'bunker';
+  return classifyRemark((sr&&sr.remark)||'');
+}
+
 // ── Remark handling: how each remark category feeds the berth rate ──────────
 // null                      → every category counted (no filter at all)
 // {cat:'exclude'|'boa', …}  → only the non-default categories are stored;
@@ -2767,7 +2776,7 @@ function buildRemarkFilterDropdown(){
   var dd=document.getElementById('remarkFilterDropdown');
   var usedCats={}, cnt={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
-    var cat=classifyRemark(sr.remark);
+    var cat=classifyCall(sr);
     if(cat){ usedCats[cat]=true; cnt[cat]=(cnt[cat]||0)+1; }
   });
 
@@ -3133,7 +3142,7 @@ function buildPortWaitData(){
 
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
-    var cat=classifyRemark(remark)||'other';
+    var cat=classifyCall(sr)||'other';
 
     // ── Remark handling ────────────────────────────────────────────────────
     // Three modes, chosen per category in the Remark dropdown:
@@ -3496,7 +3505,7 @@ function getFilteredCalls(){
     if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
-    var cat=classifyRemark(remark)||'other';
+    var cat=classifyCall(sr)||'other';
     // Same three-way remark handling as the Port Wait table: exclude drops the
     // call entirely, boa keeps it with wait 0 (see remarkModeOf).
     var mode=remarkModeOf(cat);
@@ -3894,7 +3903,7 @@ function buildBoaCalls(){
     if(selPortSearch && port.toLowerCase().indexOf(selPortSearch.toLowerCase())<0) return;
     // ── Remark handling (same three-way rule as the Port Wait table) ──
     // exclude → dropped; boa → kept but wait forced to 0, i.e. berth on arrival
-    var mode=remarkModeOf(classifyRemark(sr.remark||'')||'other');
+    var mode=remarkModeOf(classifyCall(sr)||'other');
     if(mode==='exclude') return;
     // Blank/invalid WAIT → 0, consistent with buildPortWaitData / getFilteredCalls.
     // (Real case 2026-09: ZHI YING HE SHUN 2631S return call at CNXMN, ETB 09-04,
