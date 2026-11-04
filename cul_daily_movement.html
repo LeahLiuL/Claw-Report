@@ -2308,7 +2308,7 @@ function exportPortWaitVvdExcel(wb){
                  boa:!!cl.boaExempt,
                  status:(w<=th?'Berth':'Over'),
                  included:cl.boaExempt?'Yes (BOA exempt)':'Yes',
-                 cat:cl.cat||'', remark:cl.remark||'',
+                 cat:cl.cat||'', remark:(cl.remarkDisp||cl.remark||''),
                  sortKey:cl.dateKey||''});
     });
     (rec.excludedCalls||[]).forEach(function(cl){
@@ -2317,7 +2317,7 @@ function exportPortWaitVvdExcel(wb){
                  eta:cl.eta||'', etb:cl.etb||'', etd:cl.etd||'',
                  wait:w, waitRaw:w, boa:false,
                  status:(w<=th?'Berth':'Over'),
-                 included:'No (excluded by remark filter)', cat:cl.cat||'', remark:cl.remark||'',
+                 included:'No (excluded by remark filter)', cat:cl.cat||'', remark:(cl.remarkDisp||cl.remark||''),
                  sortKey:''});
     });
   });
@@ -2646,10 +2646,10 @@ var REMARK_CATEGORIES = [
   // 7b. 换单（Document Switch）。排在 Bunker 之后：纯加油+换单的挂靠仍归 Bunker / Supply，
   //     这样「Bunker 剔除」的 BOA 口径不会被打乱。
   {key:'docswitch',   label:'Document Switch',
-   keywords:['switch doc','doc switch','document switch','switch docs','switch document','docment','switich','换单']},
+   keywords:['switch doc','doc switch','document switch','switch docs','switch document','docment','switich','switchdocument','docswitch','换单']},
   // 8. 加班靠/虚拟挂靠
   {key:'adhoc',       label:'Ad Hoc / Extra Call',
-   keywords:['ad hoc','adhoc','ad-hoc','extra call','add call','private call','dummy','虚拟挂靠','不显示']},
+   keywords:['ad hoc','adhoc','ad-hoc','add-hoc','extra call','add call','addcall','private call','privatecall','dummy','虚拟挂靠','不显示']},
   // 9. 码头设备故障（吊机/导轨/舱盖/停电）（R6 映射至此）
   {key:'equipment',   label:'Terminal Equipment Failure',
    keywords:['crane','吊机','导轨','guide rail','hatch cover','舱盖','power outage','power failure','停电','高压电','绑扎','gantry','岸桥']},
@@ -2723,13 +2723,34 @@ function classifyRemark(remark){
   return 'other';
 }
 
-/* Remark 类别，但先把 voy 里写了 BUNKER 的（BUNKERONLY / ONLYBUNKER / BUNKER）
-   认成纯加油挂靠 —— 这类记录 remark 往往是空的，只按 remark 判定会漏。
-   与 Vessel Calls 的 vcIsBunkerOnly() 保持同一口径。 */
+/* Remark 类别的唯一入口。voy 列有时不写航次号、直接写业务语义
+   （ONLYBUNKER / BUNKERONLY / BUNKER / PRIVATECALL / ADDCALL / ADHOC /
+   PRIVATECALL-SWITCHDOCUMENT / OMIT），这类记录 remark 往往是空的，只看
+   remark 会把它们当成干净靠泊（noremark），筛选也就永远抓不到。
+   判定顺序（Leah 2026-11-04：voy 里的备注信息也要进筛选）：
+     ① voy 含 BUNKER       → bunker（纯加油挂靠，优先级最高）
+     ② remark 能归到具体类 → 用 remark（人工写的理由最可信）
+     ③ remark 为空/归不出  → 用 voy 里的其它标记
+   纯航次号（2639W 之类）不命中任何关键词，仍归 noremark / other，
+   所以正常挂靠的分类与数字完全不变。与 Vessel Calls 的 vcIsBunkerOnly() 同口径。 */
 function classifyCall(sr){
-  var v=String((sr&&sr.voy)||'').toLowerCase();
-  if(v.indexOf('bunker')>=0) return 'bunker';
-  return classifyRemark((sr&&sr.remark)||'');
+  var voy=String((sr&&sr.voy)||'').trim();
+  var rem=String((sr&&sr.remark)||'').trim();
+  if(/bunker/i.test(voy)) return 'bunker';
+  var cr=classifyRemark(rem);
+  if(cr!=='other' && cr!=='noremark') return cr;
+  var cv=voy ? classifyRemark(voy) : 'noremark';
+  if(cv!=='other' && cv!=='noremark') return cv;
+  return cr;
+}
+
+/* voy 里的业务标记（BUNKERONLY / PRIVATECALL / OMIT …）。没有 remark 文本时
+   用它填 Remark 列，让用户看得出这条凭什么被归到该类别。 */
+function voyMarkerOf(voy){
+  var v=String(voy||'').trim();
+  if(!v) return '';
+  var c=classifyRemark(v);
+  return (c==='other' || c==='noremark') ? '' : v;
 }
 
 // ── Remark handling: how each remark category feeds the berth rate ──────────
@@ -2783,7 +2804,9 @@ function buildRemarkFilterDropdown(){
   var html='<div class="rm-hint">'+
     '<b>Counted</b> as-is · <b>Excluded</b> out of both numerator &amp; denominator · '+
     '<b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0)'+
-    '</div>';
+    '</div>'+
+    '<div class="rm-hint" style="padding-top:0;">Voyage field counts too: ONLYBUNKER / BUNKERONLY, '+
+    'PRIVATECALL / ADDCALL, SWITCHDOCUMENT, OMIT are read as the same categories.</div>';
   REMARK_CATEGORIES.forEach(function(cat){
     if(!usedCats[cat.key] && cat.key!=='other') return;
     var m=remarkModeOf(cat.key);
@@ -3143,6 +3166,8 @@ function buildPortWaitData(){
     var wait=parseFloat(sr.wait)||0;
     var remark=sr.remark||'';
     var cat=classifyCall(sr)||'other';
+    // voy 里写的业务标记（BUNKERONLY / PRIVATECALL / OMIT…），remark 为空时才用
+    var voyMark=remark ? '' : voyMarkerOf(sr.voy);
 
     // ── Remark handling ────────────────────────────────────────────────────
     // Three modes, chosen per category in the Remark dropdown:
@@ -3159,7 +3184,7 @@ function buildPortWaitData(){
                       calls:[], totalWait:0, maxWait:0, longWaitCalls:0, overCalls:0, berthedCalls:0,
                       remarks:{}, excludedCalls:[]};
       }
-      byPort[port].excludedCalls.push({wait:wait, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
+      byPort[port].excludedCalls.push({wait:wait, remark:remark, remarkDisp:(remark||voyMark), remarkFromVoy:(!remark && !!voyMark), cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, rawPort:rawPort});
       totalExcludedByRemark++;
       return;  // excluded calls do not count in berth rate numerator or denominator
     }
@@ -3176,15 +3201,15 @@ function buildPortWaitData(){
     var rec=byPort[port];
 
     // Filtered call — add to stats
-    rec.calls.push({wait:effWait, waitRaw:wait, boaExempt:exempt, remark:remark, cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
+    rec.calls.push({wait:effWait, waitRaw:wait, boaExempt:exempt, remark:remark, remarkDisp:(remark||voyMark), remarkFromVoy:(!remark && !!voyMark), cat:cat, vessel:sr.vessel, code:sr.code||'', voy:sr.voy, eta:sr.eta, etb:sr.etb, etd:sr.etd, etbRaw:sr.etbRaw||'', dateKey:era, rawPort:rawPort, port:port});
     rec.totalWait+=effWait;
     if(effWait>rec.maxWait) rec.maxWait=effWait;
     if(effWait>=24) rec.longWaitCalls++;
     if(portOverInRange(effWait, port))     rec.overCalls++;
     if(effWait <= effectiveBerthThreshold(port)) rec.berthedCalls++;  // BOA = berthed within the selected window (follows Over-range); effWait 0 always qualifies
-    if(remark){
+    if(remark || voyMark){        // voy 标记也算备注，否则该港口的分类列会是空的
       if(!rec.remarks[cat]) rec.remarks[cat]=[];
-      rec.remarks[cat].push(remark);
+      rec.remarks[cat].push(remark || voyMark);
     }
   });
 
@@ -3334,7 +3359,7 @@ function renderPortWaitTable(){
         '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.etb||'')+'</td>'+
         '<td style="font-size:11px;color:#6a7b8d;">'+escapeHtml(cl.etd||'')+'</td>'+
         '<td class="center '+wClass+'" style="font-size:12px;">'+wDisp+'</td>'+
-        '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':'color:#8a9bb0;')+'">'+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
+        '<td style="font-size:11px;'+(cl.remark?'color:#C00000;':(cl.remarkFromVoy?'color:#b26a00;font-style:italic;':'color:#8a9bb0;'))+'"'+(cl.remarkFromVoy?' title="Written in the voyage field, not the remark column"':'')+'>'+(cl.remarkDisp?escapeHtml(cl.remarkDisp):'—')+'</td>'+
         '</tr>';
     });
     // Show excluded calls if remark handling is active
@@ -3354,7 +3379,7 @@ function renderPortWaitTable(){
           '<td style="font-size:10px;color:#6a7b8d;">'+escapeHtml(cl.etb||'')+'</td>'+
           '<td style="font-size:10px;color:#6a7b8d;">'+escapeHtml(cl.etd||'')+'</td>'+
           '<td class="center" style="font-size:11px;">'+(cl.wait||0).toFixed(1)+'</td>'+
-          '<td style="font-size:10px;"><span style="background:#f5f5f5;color:#999;padding:1px 5px;border-radius:3px;">'+catLabel+'</span> '+(cl.remark?escapeHtml(cl.remark):'—')+'</td>'+
+          '<td style="font-size:10px;"><span style="background:#f5f5f5;color:#999;padding:1px 5px;border-radius:3px;">'+catLabel+'</span> '+(cl.remarkDisp?escapeHtml(cl.remarkDisp):'—')+'</td>'+
           '</tr>';
       });
     }
