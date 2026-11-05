@@ -787,11 +787,27 @@ def main():
                     setc(row, c, rr["display"].get(c), bd=True)
                 row += 1; shown += 1
             # Remark: 源文件所有行 remark, 不限于最接近今天
+            # ⚠️ 2026-11-05 修 HONG DA XIN 728「12月宁波莫名出现 Bunkering」:
+            #    ① port 必须用【源表原文】(display[1]), 不能用归一化后的 rr['port']
+            #       —— 归一化会把 'SGSIN(Bunkering)' 变成 'SGSIN(BUNKERING)', 与网页端
+            #          显示的原文大小写不一致, gen_html 全等比对必然失败;
+            #    ② 追加 ETA 日期(mm/dd), 用于区分「同一 voy 同一港口」的多次挂靠
+            #       (如 2647W CNNGB 有 11/21 与 12/06 两条, 只靠 voy+port 无法定位);
+            #    ③ 不在窗口内的行不写 remark —— 页面上没有那一行, 写了也无处可挂,
+            #       旧逻辑会把它兜底甩到块内最后一行, 造成张冠李戴。
             for i, rr in enumerate(s["rows"]):
                 rem = rr["remark"]
                 if not rem: continue
+                if rr["etb"] is None:
+                    continue
+                if not (lo <= rr["etb"].date() <= hi):
+                    continue
                 voy = rr["voy"] or nearest_voy_upward(s["rows"], i)
-                txt = f"Remark:{voy} {rr['port']} {rem}"
+                port_raw = rr["display"].get(1)
+                port_raw = str(port_raw).strip() if port_raw is not None else str(rr["port"])
+                eta_v = rr["display"].get(9)
+                eta_txt = eta_v.strftime("%m/%d") if isinstance(eta_v, datetime) else ""
+                txt = " ".join(f"Remark:{voy} {port_raw} {eta_txt} {rem}".split())
                 setc(row, 1, txt)
                 row += 1
             row += 1   # 块间空行

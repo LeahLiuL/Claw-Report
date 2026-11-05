@@ -143,6 +143,19 @@ def _dedup_key(rec):
         return None
     return tuple(parts)
 
+def _merge_remark(dst, src):
+    """去重合并时保留备注：被丢弃行上的 remark 不能跟着消失。
+
+    同一个挂靠被重复采集时，备注可能只挂在其中一条上（也常因 build 只写
+    首条而落在前一条），若直接丢行，页面上这条备注就没了。
+    """
+    a = str(dst.get('remark') or '').strip()
+    b = str(src.get('remark') or '').strip()
+    if not b or b == a or b in a:
+        return
+    dst['remark'] = (a + '; ' + b) if a else b
+
+
 # ── Extract data ──────────────────────────────────────────────────────────
 def extract(excel_path, pic_map=None):
     pic_map = pic_map or {}
@@ -156,6 +169,8 @@ def extract(excel_path, pic_map=None):
     cur_lane = ''         # 向上最近的 lane 行（col1 经 is_lane_code 确认为 lane 且 col9 非日期）
     rows_total = ws_src.max_row
     i = 1
+    remark_unmatched_total = 0
+    _warn_budget = [10]   # 前 10 条逐条打印, 其余只计数(避免旧大Excel刷屏)
     while i <= rows_total:
         c16 = ws_src.cell(i, 16).value
         c1_i = ws_src.cell(i, 1).value
@@ -178,7 +193,7 @@ def extract(excel_path, pic_map=None):
             pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
 
             schedule_rows = []   # list of (row, route) — route = 该行向上最近的 lane 行
-            remark = ''
+            remark_unmatched = 0   # 定位不到挂靠行的 remark 计数(块级), 汇总后打印
             remarks_by_row = {}  # row_number -> remark for per-row association
             j = i + 2
             while j <= rows_total:
@@ -191,30 +206,133 @@ def extract(excel_path, pic_map=None):
                 if c1_j and isinstance(c1_j, str) and c1_j.strip().startswith('Remark'):
                     remark_text = c1_j.strip().replace('Remark:', '').replace('Remark :', '').strip()
                     if remark_text:
-                        # Parse remark to find target row: first two tokens = voyage + terminal/port
+                        # Remark 行格式: "Remark:<voy> <port> [mm/dd] <正文>"
+                        #   port 为源表原文; mm/dd 可选(2026-11-05 起 build 写出), 用来区分
+                        #   同一 voy + 同一港口的多次挂靠。
+                        # ⚠️ 2026-11-05 修复「HONG DA XIN 728 12/06 宁波莫名出现 Bunkering」:
+                        #   旧逻辑按字符串全等比对 voy/port, 而 build 当年写的是归一化 port
+                        #   ('SGSIN(Bunkering)' → 'SGSIN(BUNKERING)'), 与显示值大小写不一致 →
+                        #   永远匹配不上 → 兜底「甩到块内最后一行」→ 四条加油备注连着覆盖,
+                        #   最后一条 'Bunkering'(2630E) 落在 12/06 CNNGB 上。
+                        #   现改为归一化比对(忽略大小写/空格, 必要时忽略括号内终端后缀),
+                        #   **彻底取消「兜底到最后一行」**, 定位不到就丢弃并告警, 绝不张冠李戴。
                         parts = remark_text.split()
-                        if len(parts) >= 2 and schedule_rows:
-                            target_voy, target_port = parts[0], parts[1]
-                            # Strip the leading voyage + terminal/port tokens; keep only the remark content
-                            remark_body = ' '.join(parts[2:])
-                            matched = False
-                            for (sr, _srt) in schedule_rows:
-                                sr_voy = get_str(ws_src.cell(sr, 7).value)
-                                sr_port = get_str(ws_src.cell(sr, 1).value)
-                                if sr_voy == target_voy and sr_port == target_port:
-                                    if sr in remarks_by_row:
-                                        remarks_by_row[sr] = remarks_by_row[sr] + '; ' + remark_body
-                                    else:
-                                        remarks_by_row[sr] = remark_body
-                                    matched = True
-                                    break
-                            if not matched:
-                                # Fallback: assign to last schedule row
-                                remarks_by_row[schedule_rows[-1][0]] = remark_body
-                        elif schedule_rows:
-                            remarks_by_row[schedule_rows[-1][0]] = remark_text
+
+                        def _n(s):
+                            return re.sub(r'\s+', '', str(s or '')).upper()
+
+                        def _np(s):   # 去掉括号内终端/备注后缀: SGSIN(Bunkering) -> SGSIN
+                            return re.sub(r'\(.*?\)', '', str(s or ''))
+
+                        def _port_eq(cell, tgt):
+                            """港口比对：归一化相等 / 去括号相等 / 首 token 相等。
+
+                            源表 PORT 单元格里常带附注（'CJK & NGB\\nanchoage'、
+                            'SGSIN(Bunkering)'），备注行只写港口码，需容错。
+                            """
+                            if _n(cell) == _n(tgt) or _n(_np(cell)) == _n(_np(tgt)):
+                                return True
+                            toks = [t for t in re.split(r'[\s/&,;]+', str(cell or '')) if t]
+                            return any(_n(t) == _n(tgt) or _n(_np(t)) == _n(_np(tgt)) for t in toks)
+
+                        def _isdate(t):
+                            return bool(re.fullmatch(r'\d{1,2}/\d{1,2}', t or ''))
+
+                        def _isvoy(t):
+                            # 航次形如 2647W / 2611E / 2605S(4 位数字 + 至多 2 位方向码)
+                            return bool(re.fullmatch(r'\d{3,4}[A-Z]{0,2}', (t or '').strip().upper()))
+
+                        # 两种行格式:
+                        #   ① 常规: "<voy> <port> [mm/dd] <正文>"
+                        #   ② 源行没有 Voy.No 时: build 拿不到航次, 首 token 就是港口
+                        #      ("Remark: HKHKG 03/18 change ship name and flag only")
+                        #      —— 不能只靠 PORT_CODES 判: HKHKG/CNCJK/CNSHK 等港不在码表里,
+                        #      故再加"首 token 不像航次 + 第二个 token 是日期"作为识别条件。
+                        if parts and (_n(parts[0]) in PORT_CODES or
+                                      (not _isvoy(parts[0]) and len(parts) > 1
+                                       and _isdate(parts[1]))):
+                            target_voy, target_port = '', parts[0]
+                            i0 = 1
                         else:
-                            remark = remark_text  # fallback: no schedule rows yet
+                            target_voy = parts[0] if parts else ''
+                            target_port = parts[1] if len(parts) > 1 else ''
+                            i0 = 2
+                        target_date = parts[i0] if len(parts) > i0 and _isdate(parts[i0]) else ''
+                        remark_body = ' '.join(parts[i0 + (1 if target_date else 0):]).strip()
+                        if not remark_body and target_date:
+                            # 源备注本身就是个日期(如 'Remark:2604W CNNGB 02/02 02/02'):
+                            # 别把唯一内容当日期吃掉, 否则这条备注会变空消失
+                            remark_body = target_date
+
+                        def _put(sr, body):
+                            body = (body or '').strip()
+                            if not body:
+                                return
+                            cur = remarks_by_row.get(sr)
+                            if not cur:
+                                remarks_by_row[sr] = body
+                                return
+                            # 同样的句子不重复堆(源表同一备注被采两次时会撞成 'xx; xx')
+                            if body in [x.strip() for x in cur.split(';')]:
+                                return
+                            remarks_by_row[sr] = cur + '; ' + body
+
+                        def _rows_for(voy='', port='', dstr=''):
+                            out = []
+                            for (sr, _srt) in schedule_rows:
+                                if voy and _n(get_str(ws_src.cell(sr, 7).value)) != _n(voy):
+                                    continue
+                                if port and not _port_eq(get_str(ws_src.cell(sr, 1).value), port):
+                                    continue
+                                if dstr:
+                                    ev = ws_src.cell(sr, 9).value
+                                    if not isinstance(ev, datetime) or ev.strftime('%m/%d') != dstr:
+                                        continue
+                                out.append(sr)
+                            return out
+
+                        def _attempt(voy, port, dstr, body, need_unique=False):
+                            if not voy and not port:
+                                return False
+                            hit = _rows_for(voy, port, dstr)
+                            if not hit:
+                                return False
+                            if need_unique:
+                                # 同一挂靠可能被源表重复采集(去重前会有多行),
+                                # 按 voyage+port+ETA 去重后再判"是否唯一"
+                                sig = set()
+                                for _sr in hit:
+                                    _ev = ws_src.cell(_sr, 9).value
+                                    sig.add((_n(get_str(ws_src.cell(_sr, 7).value)),
+                                             _n(get_str(ws_src.cell(_sr, 1).value)),
+                                             _ev.strftime('%Y-%m-%d %H:%M')
+                                             if isinstance(_ev, datetime) else ''))
+                                if len(sig) > 1:
+                                    return False
+                            _put(hit[0], body)
+                            return True
+
+                        ok = _attempt(target_voy, target_port, target_date, remark_body)
+                        if not ok:
+                            ok = _attempt(target_voy, target_port, '', remark_body)
+                        if not ok and target_date:
+                            # 日期其实不是独立字段(旧格式正文恰好以 mm/dd 开头) → 并回正文重试
+                            _body2 = ' '.join(parts[i0:]).strip()
+                            if _attempt(target_voy, target_port, '', _body2):
+                                ok, remark_body = True, _body2
+                        if not ok:
+                            # 航次号能唯一锁定时才按船期兜底(多港备注如 "CJK & NGB" 靠这一层)
+                            ok = _attempt(target_voy, '', '', remark_body, need_unique=True)
+                        if not ok and not target_voy:
+                            # 无 voy 的备注: 靠 港口+日期 唯一锁定
+                            ok = _attempt('', target_port, target_date, remark_body, need_unique=True)
+
+                        if not ok:
+                            remark_unmatched += 1
+                            if _warn_budget[0] > 0:
+                                _warn_budget[0] -= 1
+                                print('  [WARN] Remark 无法定位到具体挂靠行, 已丢弃: %s'
+                                      % remark_text[:90])
                     j += 1
                     continue
                 c16_j = ws_src.cell(j, 16).value
@@ -234,12 +352,16 @@ def extract(excel_path, pic_map=None):
             else:
                 i = rows_total + 1
 
+            remark_unmatched_total += remark_unmatched
             vessel_blocks.append({'route': block_route, 'vessel_full': vessel_full,
                                    'vessel_code': vessel_code, 'pic': pic,
                                    'schedule_rows': schedule_rows,
                                    'remarks_by_row': remarks_by_row})
         else:
             i += 1
+    if remark_unmatched_total:
+        print('  [WARN] 共 %d 条 Remark 无法定位到挂靠行(已丢弃, 不再兜底到最后一行)'
+              % remark_unmatched_total)
 
     # ── Summary: nearest ETB per vessel (dedup by vessel across routes) ──
     # Rule: prefer ETB >= today (next upcoming call); among futures pick earliest;
@@ -367,12 +489,15 @@ def extract(excel_path, pic_map=None):
                 _deduped.append(_rec)
             elif FULL_DEDUP_KEEP == 'last':
                 # 重复且保留后者：作废先出现的那条，当前行顶替其位置
+                # 备注不随被作废的行一起丢 —— 两条是同一挂靠，备注应合并保留
+                _merge_remark(_rec, _kept[_key])
                 _deduped[_hit] = None
                 _seen[_key] = len(_deduped)
                 _kept[_key] = _rec
                 _deduped.append(_rec)
             else:
                 # 'first' —— 保留先出现的那条，当前行丢弃
+                _merge_remark(_kept[_key], _rec)
                 continue
         # 高亮标记补回保留行（_kept 与 _deduped 里的 dict 是同一对象，直接改即可）
         for _k, _r in _kept.items():
