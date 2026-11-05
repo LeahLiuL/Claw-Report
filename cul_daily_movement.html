@@ -3458,6 +3458,14 @@ function togglePortWaitDetail(pid){
   if(detail.style.display==='none'){
     detail.style.display='';
     if(icon) icon.innerHTML='&#9660;';
+    // The table scrolls INSIDE .table-wrap, so on the last ports the expanded
+    // rows land below the fold and the user sees a bare header (Leah, 11-05:
+    // "CNXGG has 2 calls but the detail is empty"). Pull them into view.
+    var wrap=detail.closest ? detail.closest('.table-wrap') : null;
+    if(wrap){
+      var over=detail.getBoundingClientRect().bottom - wrap.getBoundingClientRect().bottom;
+      if(over > 0) wrap.scrollTop += over + 10;
+    }
   }else{
     detail.style.display='none';
     if(icon) icon.innerHTML='&#9654;';
