@@ -163,6 +163,11 @@ function _loadXlsx(cb){
   .rm-hint { font-size:10.5px; color:#8a9bb0; padding:2px 16px 6px; line-height:1.55; }
   .rm-hint b { color:#5a697a; }
   .stat-chip { margin-left: auto; background: #EBF3FB; border: 1px solid #c3d9f0; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #1F4E79; font-weight: 600; }
+  .ctl-spacer { flex: 1 1 0; min-width: 0; }
+  .stat-chip.count-chip { display: inline-flex; align-items: center; gap: 7px; margin-left: 0; background: #1F4E79; border-color: #1F4E79; color: #ffffff; }
+  .stat-chip.count-chip b { font-weight: 700; font-size: 12.5px; color: #ffffff; }
+  .stat-chip.count-chip #statTotal2 { font-weight: 500; font-size: 11.5px; color: rgba(255,255,255,.78); }
+  .stat-chip.count-chip .cc-sep { color: rgba(255,255,255,.45); }
   .delay-chip { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #c00000; font-weight: 600; }
   td.delay { background: #fff0f0 !important; color: #c00000; font-weight: 700; }
   td.ontime { color: #27ae60; font-weight: 600; }
@@ -454,7 +459,8 @@ function _loadXlsx(cb){
       <span class="decom-dot">+</span>
       <span>Show decommissioned</span>
     </label>
-    <span class="stat-chip" id="statTotal2">&#8212; rows</span>
+    <span class="ctl-spacer"></span>
+    <span class="stat-chip count-chip" title="Distinct vessels and rows under the current date range and filters"><b id="statVessel2">&#8212; vessels</b><span class="cc-sep">&#183;</span><span id="statTotal2">&#8212; rows</span></span>
   </div>
   <div class="table-wrap">
     <table id="fullTable">
@@ -1856,6 +1862,15 @@ function getFilteredFull(){
   return data;
 }
 
+/* One chip for the filtered row count, one for the distinct vessels behind it,
+   so the tab answers "how many ships is this?" without exporting. */
+function setFullCounts(data){
+  var vs = new Set();
+  (data||[]).forEach(function(r){ if(r.vessel) vs.add(String(r.vessel).trim().toUpperCase()); });
+  document.getElementById('statTotal2').textContent = (data||[]).length + ' rows';
+  document.getElementById('statVessel2').textContent = vs.size + ' vessels';
+}
+
 function renderFullSchedule(){
   const data=getFilteredFull();
   // Build header
@@ -1863,8 +1878,8 @@ function renderFullSchedule(){
     buildTableHeader('2', {col: fullSortCol, dir: fullSortDir});
 
   const tbody=document.getElementById('fullTbody');
-  if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['2'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal2').textContent='0 rows';return;}
-  document.getElementById('statTotal2').textContent=data.length+' rows';
+  if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['2'].size+'" class="no-data">No matching records found.</td></tr>';setFullCounts(data);return;}
+  setFullCounts(data);
 
   const defs = COLUMN_DEFS_FULL;
   let prevVessel = '';
