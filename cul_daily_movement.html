@@ -87,6 +87,16 @@ function _loadXlsx(cb){
   .eta-label { font-size: 12px; color: #5a6e82; font-weight: 600; margin-right: -6px; }
   .date-type-select { padding: 6px 8px; border: 1px solid #c8d6e5; border-radius: 6px; background: #fff; color: #333; font-size: 12px; font-weight: 600; cursor: pointer; }
   .eta-sep { color: #a8b8c8; font-weight: 400; margin: 0 -2px; }
+  /* Vessel Calls —— 时间窗口 */
+  .vc-presets { display: flex; gap: 4px; }
+  .vc-preset {
+    padding: 0 10px; height: 30px; border: 1px solid #c9d5e2; border-radius: 5px;
+    background: #fff; color: #1F4E79; font-size: 11.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: .15s; letter-spacing: .02em;
+  }
+  .vc-preset:hover { background: #EBF3FB; border-color: #2E75B6; }
+  .vc-preset.on { background: #1F4E79; border-color: #1F4E79; color: #fff; }
+  .vc-sep { color: #a8b8c8; font-weight: 400; margin: 0 -6px; }
   .controls select { min-width: 130px; }
   .col-toggle-btn {
     padding: 6px 14px; border: 1px solid #c9d5e2; border-radius: 5px;
@@ -662,8 +672,18 @@ function _loadXlsx(cb){
 <div id="vesselCallsView" class="tab-content">
   <div class="controls" style="flex-wrap:wrap;">
     <span style="font-weight:600;font-size:14px;">&#128197; Window:</span>
-    <span id="vcWindow" style="font-size:12px;font-weight:600;color:#1F4E79;">&mdash;</span>
-    <label class="decom-toggle" style="margin-left:16px;" title="Show / hide decommissioned vessels">
+    <input type="date" id="vcFrom" title="ETB from" onchange="onVcRangeChange()"
+           style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:132px;">
+    <span class="vc-sep">&rarr;</span>
+    <input type="date" id="vcTo" title="ETB to" onchange="onVcRangeChange()"
+           style="font-size:12px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;width:132px;">
+    <div class="vc-presets" id="vcPresets">
+      <button type="button" class="vc-preset" data-r="ytd" onclick="vcSetPreset('ytd')" title="Year to date">YTD</button>
+      <button type="button" class="vc-preset" data-r="6m" onclick="vcSetPreset('6m')" title="Last 6 months">6M</button>
+      <button type="button" class="vc-preset" data-r="3m" onclick="vcSetPreset('3m')" title="Last 3 months">3M</button>
+      <button type="button" class="vc-preset" data-r="mtd" onclick="vcSetPreset('mtd')" title="Month to date">MTD</button>
+    </div>
+    <label class="decom-toggle" style="margin-left:10px;" title="Show / hide decommissioned vessels">
       <input type="checkbox" class="decom-cb" id="vcShowDecom" onchange="onDecomToggle(this)">
       <span class="decom-dot">+</span>
       <span>Show decommissioned</span>
@@ -673,7 +693,8 @@ function _loadXlsx(cb){
     <span class="stat-chip" id="vcChip" style="margin-left:12px;">&mdash; calls</span>
   </div>
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 12px;line-height:1.6;">
-    <b>1 call</b> = one terminal visit already berthed in the current year (ETB from Jan&nbsp;1 to today).
+    <b>1 call</b> = one terminal visit already berthed inside the selected window (never later than the data date).
+    The window filters on <b>ETB</b>; the default <i>YTD</i> runs from Jan&nbsp;1 to the data date.
     Bunker-only calls excluded (port marked <i>(Bunkering)</i>, remark <i>Only for bunker</i> / <i>Bunker</i>, or voyage flagged bunker);
     remarks such as <i>NAS Bunker 180T</i> are real calls and stay counted.
     Duplicate rows of the same call (same vessel / voyage / port / ETB) are merged &mdash; a genuine second berthing in the same voyage counts separately.
@@ -1223,12 +1244,61 @@ function vcIsBunkerOnly(sr){
   return false;
 }
 
+/* ── 时间窗口：默认本年 1/1 → 数据日期；可选，不许超出数据日期或早于年初 ── */
+var VC_BOUNDS=null;
+function vcBounds(){
+  if(VC_BOUNDS) return VC_BOUNDS;
+  var today=TODAY_DATA.date||'';
+  VC_BOUNDS={lo:today.slice(0,4)+'-01-01', hi:today};
+  return VC_BOUNDS;
+}
+function vcShift(iso, months){                       // 往前推 n 个月，日超出月末则取月末
+  if(!iso) return iso;
+  var p=iso.split('-'), y=+p[0], m=+p[1], d=+p[2];
+  var t=new Date(Date.UTC(y, m-1-months, 1));
+  var lastDay=new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+1, 0)).getUTCDate();
+  var mm=('0'+(t.getUTCMonth()+1)).slice(-2);
+  var dd=('0'+Math.min(d,lastDay)).slice(-2);
+  return t.getUTCFullYear()+'-'+mm+'-'+dd;
+}
+function vcResolveRange(){
+  var b=vcBounds();
+  var fEl=document.getElementById('vcFrom'), tEl=document.getElementById('vcTo');
+  var from=(fEl&&fEl.value)? fEl.value : b.lo;
+  var to  =(tEl&&tEl.value)? tEl.value : b.hi;
+  // 浏览器回填的旧值整段落在数据范围外（如切到 2025 年）→ 回到默认全程
+  if(from>b.hi || to<b.lo){ from=b.lo; to=b.hi; }
+  if(from>to){ var t=from; from=to; to=t; }        // 先后顺序填反了就自动换回来
+  if(from<b.lo) from=b.lo;                        // 不早于年初
+  if(to>b.hi)   to=b.hi;                          // 不晚于数据日期：未来计划靠泊一律不算
+  if(from>to)   from=to;
+  return {from:from, to:to};
+}
+function vcMarkPreset(k){
+  var box=document.getElementById('vcPresets');
+  if(!box) return;
+  var bs=box.getElementsByTagName('button');
+  for(var i=0;i<bs.length;i++){
+    var on=(k!=='' && bs[i].getAttribute('data-r')===k);
+    if(on) bs[i].classList.add('on'); else bs[i].classList.remove('on');
+  }
+}
+function vcSetPreset(k){
+  var b=vcBounds(), from=b.lo;
+  if(k==='6m')      from=vcShift(b.hi,6);
+  else if(k==='3m') from=vcShift(b.hi,3);
+  else if(k==='mtd') from=b.hi.slice(0,7)+'-01';
+  var fEl=document.getElementById('vcFrom'), tEl=document.getElementById('vcTo');
+  if(fEl) fEl.value=from;
+  if(tEl) tEl.value=b.hi;
+  renderVesselCalls();
+}
+function onVcRangeChange(){ renderVesselCalls(); }
+
 function vcBuild(q){
   var qs=(q===undefined||q===null)?'':String(q).trim().toLowerCase();
   var fs=TODAY_DATA.fullSchedule||[];
-  var today=TODAY_DATA.date||'';
-  var yr=today.slice(0,4);
-  var from=yr+'-01-01';
+  var rng=vcResolveRange(), from=rng.from, to=rng.to;
   var seen={}, calls=[];
   for(var i=0;i<fs.length;i++){
     var sr=fs[i];
@@ -1240,7 +1310,7 @@ function vcBuild(q){
       if(hay.indexOf(qs)<0) continue;
     }
     var etb=sr.etbRaw||'';
-    if(!etb || etb<from || etb>today) continue;      // 本年度 + 已靠上
+    if(!etb || etb<from || etb>to) continue;         // 落在窗口内 + 已靠上
     var key=vkey(sr)+'|'+(sr.voy||'')+'|'+(sr.port||'')+'|'+etb+'|'+(sr.etb||'');  // 同船改名前后同一 key
     if(seen[key]) continue;                          // 同一次挂靠重复行合并
     seen[key]=1;
@@ -1275,7 +1345,7 @@ function vcBuild(q){
   for(k in byL){ if(byL.hasOwnProperty(k)){
     var L2=byL[k]; L2.vesselN=Object.keys(L2.vessels).length; lanes.push(L2);
   }}
-  return {rows:rows, lanes:lanes, total:calls.length, from:from, to:today, vesselN:rows.length};
+  return {rows:rows, lanes:lanes, total:calls.length, from:from, to:to, vesselN:rows.length};
 }
 
 function vcNum(n, d){
@@ -1318,8 +1388,19 @@ function renderVesselCalls(){
   var q=qEl? qEl.value : '';
   var d=vcBuild(q);
 
-  var win=document.getElementById('vcWindow');
-  if(win) win.textContent=d.from+'  →  '+d.to;
+  // 同步时间窗输入框（含 min/max 约束）与预设按钮高亮
+  var b=vcBounds();
+  var fEl=document.getElementById('vcFrom'), tEl=document.getElementById('vcTo');
+  if(fEl){ fEl.min=b.lo; fEl.max=b.hi; if(fEl.value!==d.from) fEl.value=d.from; }
+  if(tEl){ tEl.min=b.lo; tEl.max=b.hi; if(tEl.value!==d.to)   tEl.value=d.to;   }
+  var pk='';
+  if(d.from===b.lo && d.to===b.hi) pk='ytd';
+  else if(d.to===b.hi){
+    if(d.from===vcShift(b.hi,6))           pk='6m';
+    else if(d.from===vcShift(b.hi,3))      pk='3m';
+    else if(d.from===b.hi.slice(0,7)+'-01') pk='mtd';
+  }
+  vcMarkPreset(pk);
   var chip=document.getElementById('vcChip');
   if(chip) chip.textContent=d.total.toLocaleString()+' calls · '+d.vesselN+' vessels';
   var cbx=document.getElementById('vcShowDecom');
@@ -1333,7 +1414,7 @@ function renderVesselCalls(){
   var top=d.rows.slice().sort(function(a,b){return b.calls-a.calls;})[0];
   var kp=document.getElementById('vcKpis');
   if(kp){
-    kp.innerHTML = vcTile('Terminal calls YTD', d.total.toLocaleString(), d.from+' → '+d.to)
+    kp.innerHTML = vcTile('Terminal calls in window', d.total.toLocaleString(), d.from+' → '+d.to)
                  + vcTile('Vessels', String(d.vesselN), top? ('Top: '+top.vessel) : '')
                  + vcTile('Avg calls / vessel', vcNum(avg,1), 'Median '+vcNum(med,0))
                  + vcTile('Ports touched', String(d.rows.reduce(function(a,r){return a+r.portN;},0)), 'Sum of distinct ports per vessel');
@@ -1423,6 +1504,7 @@ function exportVesselCallsExcel(){
   if(!d.total){ alert('Nothing to export - no calls in the current view.'); return; }
 
   var todayStr=TODAY_DATA.date||'';
+  var b0=vcBounds();
   function bd(){ var s={style:'thin',color:{rgb:'BFBFBF'}}; return {top:s,bottom:s,left:s,right:s}; }
   var B=bd();
   function F(rgb){ return {patternType:'solid',fgColor:{rgb:rgb}}; }
@@ -1442,7 +1524,8 @@ function exportVesselCallsExcel(){
   var nCols=heads.length;
 
   var sheet=[];
-  var tr=[]; for(var i=0;i<nCols;i++) tr[i]={v:(i===0?'CUL VESSEL TERMINAL CALLS (YTD)   --   As of '+todayStr:''),s:tS};
+  var rangeLbl=(d.from===b0.lo && d.to===b0.hi)? ('YTD   --   As of '+todayStr) : (d.from+'  ->  '+d.to);
+  var tr=[]; for(var i=0;i<nCols;i++) tr[i]={v:(i===0?'CUL VESSEL TERMINAL CALLS   --   '+rangeLbl:''),s:tS};
   sheet.push(tr);
 
   var avgCalls=d.vesselN? (d.total/d.vesselN) : 0;
@@ -1522,7 +1605,9 @@ function exportVesselCallsExcel(){
   for(var n=2;n<sh2.length;n++) ws2['!rows'].push({hpt:16});
   XLSX.utils.book_append_sheet(wb,ws2,'Calls by Lane');
 
-  XLSX.writeFile(wb,'CUL Vessel Calls YTD '+todayStr+'.xlsx');
+  XLSX.writeFile(wb,(d.from===b0.lo && d.to===b0.hi)
+      ? ('CUL Vessel Calls YTD '+todayStr+'.xlsx')
+      : ('CUL Vessel Calls '+d.from+' ~ '+d.to+'.xlsx'));
 }
 
 /* ═══════════════════════════════════════════════════════════════════
