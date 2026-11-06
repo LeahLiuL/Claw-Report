@@ -93,6 +93,23 @@ COL_HEADERS = ["PORT","man in","wait","Proforma","ltm eta","ltm etd","VOY. NO",
                "date","ETA","ETB","ETD","run","Port Stay(hr)","fsp distance",
                "speed","ETA Delay/Ahead"]
 
+# ── 船名变更(vessel rename) ────────────────────────────────────────────────
+# 用户 2026-11-06 确认的业务口径:
+#   ① 改船名时只改【文件夹名】, 源 Excel 里的历史航段仍然写旧船名, 之后的航段写新船名;
+#   ② 所以船名**不能只看文件夹名**, 要综合 "源文件段标题内容 + PIC汇总表";
+#   ③ PIC汇总.xlsx 会新增一列 rename(曾用名), 登记该船用过的旧名(可多个, ; 分隔);
+#   ④ 页面上: 旧航段显示旧船名, 新航段显示新船名, 但统计上算【同一条船】。
+#
+# 判定规则(保守): 段标题里的船名只有在【本船已知名集合】内才采用;
+#   已知名集合 = PIC B列当前显示名 + PIC rename列曾用名 + 文件夹规范名。
+#   不在集合内的段标题船名一律视为"源文件残留"(如 KR TASMAN 文件前几段标题仍是
+#   CUL LAEMCHABANG —— 那是另一条船, 用户已确认), 按当前显示名展示并告警。
+PIC_HEADER_ROW = 1
+PIC_RENAME_COL_FALLBACK = 7      # 表头找不到 rename 关键字时的兜底位置
+PIC_RENAME_HEADER_KEYS = ("RENAME", "RENAMED", "重命名", "曾用名", "旧船名", "原名",
+                          "FORMERNAME", "OLDNAME")
+RENAME_SPLIT_RE = re.compile(r"[;；,，/、|\n]+")
+
 SEGMENT_TITLE = "CUL VESSEL DAILY MOVEMENT  "
 
 def norm(s): return str(s or "").strip().upper().replace(" ", "")
@@ -362,14 +379,19 @@ def _pick_data_sheet(wb):
     """
     return wb[wb.sheetnames[0]]
 
-def read_source(path, vessel_code=None, folder_name=None):
+def read_source(path, vessel_code=None, folder_name=None, alias_names=None, name_map=None):
     """读源数据表(自动挑选正确的 sheet)。按表头名(非固定列位)映射到大Excel列, 兼容源列序差异(如ASR多TERMINAL列)。
-    返回 dict: route, code, rows[ {display:{col:val}, etb:datetime|None, voy, port, remark} ]。
+    返回 dict: route, code, rows[ {display:{col:val}, etb:datetime|None, voy, port, remark, seg_disp} ]。
+
     - 日期列(C5/C6/C8/C9/C10/C11)统一为 datetime(真实日期) 或 文本标记(OMIT/Mon..)。
     - Voy.No 若空, 向上就近取最近的有航次号的行。
     - 段标题检测(两层):
       1. KNOWN_LANES 匹配 C1/C9 (已知航线码 → 段标题, 港口名不会误判)
       2. 回退: C4 或 C9 匹配船代码/文件夹名 (未知航线码如 NSCT1, 但段标题行总有船名/代码)
+
+    船名变更(2026-11-06): 每条数据行带 seg_disp = 该段标题里【本船已知的船名】
+    (已知 = 当前显示名 + PIC rename 列曾用名 + 文件夹名)。段标题只写代码、或写着
+    不属于本船的船名(源文件残留)时 seg_disp 为空 -> 上层用当前显示名兜底。
     """
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = _pick_data_sheet(wb)
@@ -391,6 +413,32 @@ def read_source(path, vessel_code=None, folder_name=None):
     vessel_markers = set()
     if vessel_code: vessel_markers.add(norm(vessel_code))
     if folder_name: vessel_markers.add(norm(folder_name))
+    # 曾用名也要能认出来: 改名后旧段标题写的是旧船名, 不加入就会漏判成"数据行"
+    _alias_names = [a for a in (alias_names or []) if a]
+    for _a in _alias_names:
+        vessel_markers.add(norm(_a))
+    name_map = name_map or {}
+    cur_seg_disp = ""          # 当前段采用的船名(空 = 用上层当前显示名)
+    seg_names_seen = []        # 采用过的船名(用于日志)
+    seg_names_ignored = []     # 段标题里出现、但不属于本船的"像船名"文本(用于告警)
+
+    def _apply_seg_name(c4_val, c9_val):
+        """段标题行 -> 更新"该段采用的船名"(闭包改 cur_seg_disp)。
+
+        只在段标题明确写出【本船已知名】(当前显示名 / 曾用名 / 文件夹名)时才切换;
+        只写船代码、或写着别船船名(源文件残留)时不切换, 沿用上一段的名字 ——
+        源表按时间顺序排, 段头名字的变化点就是改名点。
+        """
+        nonlocal cur_seg_disp
+        picked = pick_seg_name(c4_val, c9_val, name_map)
+        if picked:
+            if picked not in seg_names_seen:
+                seg_names_seen.append(picked)
+            cur_seg_disp = picked
+            return
+        un = find_unregistered_seg_name(c4_val, c9_val)
+        if un and un not in seg_names_ignored:
+            seg_names_ignored.append(un)
 
     # ── 预扫: 先按【段标题结构位置】把文件里出现的(未知)航线码登记进白名单 ──
     # 这样正式扫描时 is_lane_code 就能认它们, 避免"新 lane 恒假 → 沿用上一条航线"。
@@ -429,13 +477,16 @@ def read_source(path, vessel_code=None, folder_name=None):
         det = detect_route(vessel_code, c1v, c9v)
         if det:
             route = det
+            _apply_seg_name(ws.cell(r, 4).value, c9v)   # 首个 PORT 表头之上的段名
             break
         # 该行 C1 就是本船的船名/船代码(段头的船名单元格), 不是航线 —— 继续向上找
         if vessel_markers and s1 in vessel_markers:
+            _apply_seg_name(c1v, c9v)
             continue
         # 新 lane: 段标题行(C1 非港口码)原样保留为航线; 港口码不当航线, 继续向上找
         if not is_port_code(c1v):
             route = str(c1v).strip()
+            _apply_seg_name(ws.cell(r, 4).value, c9v)
             break
     if not route:
         # 兜底: R1C1 原文(仅当上方真的无任何段标题行时); 港口码会被 is_port_code 否决。
@@ -474,6 +525,7 @@ def read_source(path, vessel_code=None, folder_name=None):
         seg_route = detect_route(vessel_code, c1, c9_val)
         if seg_route:
             current_route = seg_route
+            _apply_seg_name(ws.cell(r, 4).value, c9_val)
             continue    # 段标题行本身不作为数据行
         # 2. 回退: C4 或 C9 匹配船代码/文件夹名 (未知航线码, 但段标题行总有船名)
         c4_val = ws.cell(r, 4).value
@@ -483,10 +535,12 @@ def read_source(path, vessel_code=None, folder_name=None):
         # 例: ZHONG GU CHENG DU 段头有一行 C1='ZGCD'(就是船代码),
         # 不排除的话会被当成独立航线 'ZGCD', 多出一个假的航线分组。
         if vessel_markers and norm(c1) in vessel_markers:
+            _apply_seg_name(c1, c4_val)
             continue
         if vessel_markers and (c4_str in vessel_markers or c9_str in vessel_markers) and not is_port_code(c1):
             # 段标题行(C4/C9 含船名/代码), 更新航线为 C1; 港口码不当 lane
             current_route = str(c1).strip() if c1 else current_route
+            _apply_seg_name(c4_val, c9_val)
             continue
         display = {}
         for tcol in range(1, 17):
@@ -501,6 +555,7 @@ def read_source(path, vessel_code=None, folder_name=None):
             "port": s1,
             "remark": ws.cell(r, 18).value or ws.cell(r, 19).value,
             "row_route": current_route,      # ← 该行所属的实际航线(支持一船多段)
+            "seg_disp": cur_seg_disp,        # ← 该段标题里的船名(已知才采用, 空=用当前显示名)
         })
     # 未标航线的首段(段头只有船代码、无 lane): 继承本文件里第一个已知航线,
     # 避免产生空 lane / 假 lane 分组(如 ZHONG GU CHENG DU 首段 -> AEM)。
@@ -522,7 +577,9 @@ def read_source(path, vessel_code=None, folder_name=None):
             rr["display"][tcol] = norm_date_value(rr["display"].get(tcol))
         rr["display"][7] = rr["voy_raw"]
         rr["voy"] = rr["voy_raw"]
-    return {"route": route, "code": code, "rows": raw}
+    return {"route": route, "code": code, "rows": raw,
+            "seg_names": seg_names_seen,          # 本文件采用过的段船名(按出现顺序)
+            "seg_names_ignored": seg_names_ignored}  # 未登记/别船的段标题船名(仅告警)
 
 def load_vessel_csv(path):
     """GitHub 仓库内 vessel.csv: 船名(或文件夹名)-> {code, display}。用户手动维护。
@@ -542,25 +599,46 @@ def load_pic(path):
     """PIC 权威表: 优先 xlsx(人工编辑主文件), 回退 csv(镜像)。按文件夹名取PIC。
     取不到返回空dict(回退旧大Excel)。"""
     if str(path).lower().endswith(".xlsx"):
-        return _load_pic_xlsx(path)
+        return _load_pic_col(path, "folder", "pic")
     return _load_pic_csv(path)
 
+def _pic_cols(ws):
+    """按【表头名】定位 PIC汇总 的列号 —— 不再硬编码列位。
+
+    背景(2026-11-06): 用户在 B「船名(显示)」与原「文件夹名」之间插入了
+    C「重命名」列, 原布局 1=航线 2=船名 3=文件夹名 4=船代码 5=PIC 6=状态
+    整体右移一位 —— 硬编码列位会读到空值, 全船队丢代码/显示名(FATAL)。
+    现按表头关键字定位, 列序再变也不会错; 表头识别不到时回退旧布局。
+    返回 {'route','display','rename','folder','code','pic','status'}, 缺失的键不出现。
+    """
+    cols = {}
+    for c in range(1, ws.max_column + 1):
+        h = norm_h(ws.cell(PIC_HEADER_ROW, c).value)
+        if not h:
+            continue
+        if 'route' not in cols and h in ("航线", "SERVICE", "ROUTE", "LANE", "服务"):
+            cols['route'] = c
+        elif 'rename' not in cols and any(norm_h(k) in h for k in PIC_RENAME_HEADER_KEYS):
+            cols['rename'] = c
+        elif 'folder' not in cols and ("文件夹" in h or h.startswith("FOLDER")):
+            cols['folder'] = c
+        elif 'code' not in cols and ("代码" in h or "CODE" in h):
+            cols['code'] = c
+        elif 'display' not in cols and ("船名" in h or "VESSEL" in h or "SHIP" in h or "DISPLAY" in h):
+            cols['display'] = c
+        elif 'pic' not in cols and h.startswith("PIC"):
+            cols['pic'] = c
+        elif 'status' not in cols and ("状态" in h or "STATUS" in h):
+            cols['status'] = c
+    # 兜底: 表头没认出来时用旧布局(插入"重命名"列之前的列序)
+    if 'folder' not in cols and 'code' not in cols:
+        cols.setdefault('display', 2); cols.setdefault('folder', 3)
+        cols.setdefault('code', 4);    cols.setdefault('pic', 5)
+        cols.setdefault('status', 6)
+    return cols
+
 def _load_pic_xlsx(path):
-    d = {}
-    if not os.path.exists(path):
-        return d
-    try:
-        wb = openpyxl.load_workbook(path, data_only=True)
-    except Exception:
-        return d
-    ws = wb[wb.sheetnames[0]]
-    # 表头: 航线|船名(显示)|文件夹名|船代码|PIC|状态 -> C3=文件夹名, C5=PIC
-    for r in range(2, ws.max_row + 1):
-        fol = ws.cell(r, 3).value
-        pic = ws.cell(r, 5).value
-        if fol is not None and str(fol).strip():
-            d[norm(str(fol).strip())] = str(pic or "").strip()
-    return d
+    return _load_pic_col(path, "folder", "pic")
 
 def _load_pic_csv(path):
     d = {}
@@ -575,14 +653,14 @@ def _load_pic_csv(path):
     return d
 
 def load_pic_code_map(path):
-    """PIC汇总.xlsx: A=航线 B=船名(显示) C=文件夹名 D=船代码 E=PIC F=状态。
-    返回 {规范化文件夹名: 船代码}。这是 vessel code 的【唯一权威源】(2026-09-30 用户确认:
-    船代码与 PIC 都只认这张表, 不再回退 vessel.csv / 硬编码兜底表)。"""
-    return _load_pic_col(path, 3, 4)
+    """PIC汇总.xlsx「船代码」列 -> {规范化文件夹名: 船代码}。
+    这是 vessel code 的【唯一权威源】(2026-09-30 用户确认: 船代码与 PIC 都只认这张表,
+    不再回退 vessel.csv / 硬编码兜底表)。列位置按表头定位(见 _pic_cols)。"""
+    return _load_pic_col(path, "folder", "code")
 
-def _load_pic_col(path, key_col, val_col):
-    """PIC汇总.xlsx 通用取值: 以 key_col 列(C=文件夹名)为键, 取 val_col 列的值。
-    列索引: 1=航线 2=船名显示 3=文件夹名 4=船代码 5=PIC 6=状态。"""
+def _load_pic_col(path, key_name, val_name):
+    """PIC汇总.xlsx 通用取值: 以 key_name 列(如 'folder')为键, 取 val_name 列(如 'code')的值。
+    列位置【按表头定位】, 见 _pic_cols() —— 用户加减列不会影响取值。"""
     d = {}
     if not os.path.exists(path):
         print(f"  [FATAL] PIC汇总.xlsx 不可读(权威源缺失): {path}")
@@ -593,16 +671,115 @@ def _load_pic_col(path, key_col, val_col):
         print(f"  [FATAL] PIC汇总.xlsx 打开失败(权威源缺失): {e}")
         return d
     ws = wb[wb.sheetnames[0]]
-    for r in range(2, ws.max_row + 1):
-        k = ws.cell(r, key_col).value
-        v = ws.cell(r, val_col).value
+    cols = _pic_cols(ws)
+    kc, vc = cols.get(key_name), cols.get(val_name)
+    if not kc or not vc:
+        _hdr = [str(ws.cell(PIC_HEADER_ROW, c).value) for c in range(1, ws.max_column + 1)]
+        print(f"  [FATAL] PIC汇总.xlsx 找不到「{key_name}」/「{val_name}」列 —— 表头={_hdr}")
+        return d
+    for r in range(PIC_HEADER_ROW + 1, ws.max_row + 1):
+        k = ws.cell(r, kc).value
+        v = ws.cell(r, vc).value
         if k and str(k).strip() and v and str(v).strip():
             d[norm(str(k).strip())] = str(v).strip()
     return d
 
 def load_pic_display_map(path):
-    """PIC汇总.xlsx B列(船名显示) —— 页面显示名的【唯一权威源】, key = C列文件夹名。"""
-    return _load_pic_col(path, 3, 2)
+    """PIC汇总.xlsx「船名(显示)」列 —— 页面显示名的【唯一权威源】, key = 文件夹名列。
+    列位置按表头定位(2026-11-06 用户插入"重命名"列后不再硬编码)。"""
+    return _load_pic_col(path, "folder", "display")
+
+def _find_rename_col(ws):
+    """在 PIC汇总表头行里找 rename 列。用户 2026-11-06 实际用的表头是「重命名」(C列)。
+    表头匹配宽松: 重命名 / RENAME / 曾用名 / 旧船名 / 原名 / Former Name 均认。"""
+    return _pic_cols(ws).get("rename")
+
+def load_pic_rename_map(path):
+    """PIC汇总.xlsx「重命名」列: {规范化文件夹名: [登记名1, 登记名2, ...]}。
+
+    用户 2026-11-06: 改船名后, 源文件旧航段仍写旧船名, 旧名必须在这里登记,
+    否则会被当成"别船残留"忽略(见 pick_seg_name)。列位置按表头定位, 兜底 G 列。
+    多个名字用 ; , ， 、 / 分隔。无该列/全空时返回空 dict(行为与改动前一致)。
+    """
+    if not os.path.exists(path):
+        return {}
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception as e:
+        print(f"  [WARN] PIC汇总.xlsx 打开失败, 跳过曾用名(重命名)读取: {e}")
+        return {}
+    ws = wb[wb.sheetnames[0]]
+    col = _find_rename_col(ws)
+    if not col:
+        return {}
+    cols = _pic_cols(ws)
+    fol_col = cols.get("folder") or 3
+    d = {}
+    for r in range(PIC_HEADER_ROW + 1, ws.max_row + 1):
+        fol = ws.cell(r, fol_col).value
+        val = ws.cell(r, col).value
+        if not fol or val is None:
+            continue
+        names = [x.strip() for x in RENAME_SPLIT_RE.split(str(val)) if x.strip()]
+        if names:
+            d[norm(str(fol).strip())] = names
+    if d:
+        print(f"  [曾用名] PIC汇总「重命名」列(第{col}列) 读到 {len(d)} 艘船的名字登记")
+    return d
+
+def build_vessel_name_map(display, folder, aliases):
+    """构造本船【已知名集合】: 规范化名字 -> 标准显示写法。
+
+    - 当前显示名(display) / 文件夹规范名 -> 统一映射到 display
+    - 每个曾用名(rename 列) -> 保留用户登记时的写法(旧船名原样显示)
+    用于判定源文件段标题里的船名是否属于本船。
+    """
+    m = {}
+    for n in (display, folder):
+        if n:
+            m[norm(n)] = display or n
+    for a in aliases or []:
+        if a and norm(a) not in m:
+            m[norm(a)] = a
+    return m
+
+def pick_seg_name(c4_val, c9_val, name_map):
+    """从段标题行的 C4/C9 里挑出【本船已知的船名】, 返回标准写法; 挑不到返回 ""。
+
+    源里段标题布局两种: C4=船名/C9=代码, 或 C4=代码/C9=船名 —— 两个位置都看。
+    只有落在本船已知名集合(当前名 + 曾用名 + 文件夹名)内才采用,
+    其它文字(残留的别船船名、'DOC Switch Only'、'MON 1600 - TUE 0500' 等)一律不采。
+    """
+    if not name_map:
+        return ""
+    for v in (c4_val, c9_val):
+        if isinstance(v, str):
+            k = norm(v)
+            if k and k in name_map:
+                return name_map[k]
+    return ""
+
+def find_unregistered_seg_name(c4_val, c9_val):
+    """段标题里出现、但不属于本船的"像船名的文本" —— 仅用于告警提示(不采用)。
+    过滤掉代码/时间段/备注词/航线码, 减少噪音。"""
+    for v in (c4_val, c9_val):
+        if not isinstance(v, str):
+            continue
+        s = v.strip()
+        if len(s) < 4 or not any(ch.isalpha() for ch in s):
+            continue
+        if re.fullmatch(r"[A-Z]{2,6}\d{0,3}", s):          # 纯代码(H728/CUHP/KRTM)
+            continue
+        if re.search(r"\d{1,2}[:.]?\d{0,2}\s*-\s*\w{2,3}\s*\d", s):   # 时间窗 TUE 1500 - TUE 2400
+            continue
+        if re.match(r"^(MON|TUE|WED|THU|FRI|SAT|SUN)\b", s, re.I):
+            continue
+        if re.search(r"(OMIS|OMIT|DOC SWITCH|BUNKER|SUPPLY|CHANGE SHIP|REMARK)", s, re.I):
+            continue
+        if norm(s) in KNOWN_LANES or is_port_code(s):
+            continue
+        return s
+    return ""
 
 def canon_route(folder, src_route):
     """算规范航线码: 先应用文件夹级覆盖, 再做同航线合并, 空则回退。"""
@@ -639,10 +816,11 @@ def main():
     hi = date(args.year, 12, 31)
 
     print(f"[基准日] {today}  年份窗口 {args.year} -> [{lo} ~ {hi}]")
-    print("=== 1/4 读权威表(PIC汇总 = 船代码/显示名/PIC 的唯一来源) ===")
+    print("=== 1/4 读权威表(PIC汇总 = 船代码/显示名/PIC/曾用名 的唯一来源) ===")
     pic_tbl = load_pic(args.pic)                    # C文件夹名 -> E PIC
     pic_code_tbl = load_pic_code_map(args.pic)      # C文件夹名 -> D 船代码  (唯一权威)
     pic_disp_tbl = load_pic_display_map(args.pic)   # C文件夹名 -> B 显示名  (唯一权威)
+    pic_rename_tbl = load_pic_rename_map(args.pic)  # C文件夹名 -> [曾用名...] (G列 rename)
     if pic_code_tbl or pic_disp_tbl:
         print(f"  [权威源] PIC汇总.xlsx: {len(pic_code_tbl)} 条代码 / {len(pic_disp_tbl)} 条显示名 / {len(pic_tbl)} 条PIC")
     else:
@@ -667,38 +845,62 @@ def main():
         vcode = pic_code_tbl.get(key)
         if not vcode:
             print(f"  [WARN] PIC汇总.xlsx 未登记船代码: {base} → 请在该表 D 列补登 (D=代码, keys C=文件夹名)")
-        d = read_source(p, vessel_code=vcode, folder_name=base)
-        route = canon_route(base, d["route"])   # 应用覆盖+合并(覆盖表按规范船名)
-        # 船代码: PIC汇总唯一权威; 未登记时才回退源 R1C9(避免页面出现空代码)
-        code = vcode or d["code"]
         # 显示名: PIC汇总 B列唯一权威; 未登记时回退文件夹规范名
         disp = pic_disp_tbl.get(key) or base
         if not pic_disp_tbl.get(key):
             print(f"  [WARN] PIC汇总.xlsx 未登记显示名: {base} → 请在该表 B 列补登")
+        # 曾用名(rename 列): 改过船名的船, 源文件旧航段仍写旧名 —— 旧名必须登记在这里,
+        # 否则会被当成"别船残留"忽略掉(见 pick_seg_name)。
+        aliases = pic_rename_tbl.get(key, [])
+        name_map = build_vessel_name_map(strip_retired(disp), base, aliases)
+        d = read_source(p, vessel_code=vcode, folder_name=base,
+                        alias_names=aliases, name_map=name_map)
+        route = canon_route(base, d["route"])   # 应用覆盖+合并(覆盖表按规范船名)
+        # 船代码: PIC汇总唯一权威; 未登记时才回退源 R1C9(避免页面出现空代码)
+        code = vcode or d["code"]
         if retired:
             disp = strip_retired(disp) + RETIRED_SUFFIX   # 网页端靠此后缀识别已下线船
-        # ── 按逐行航线拆分子块(支持一船多段, 如 ZYHS SGX→NP2)
+        # ── 段船名诊断日志(每船一行, 便于核对改名是否被正确识别) ──
+        _seen = d.get("seg_names") or []
+        _ign = d.get("seg_names_ignored") or []
+        if _seen or _ign:
+            _s = ", ".join(_seen) if _seen else "—"
+            print(f"  [{base}] 段标题船名 采用: {_s}" + (f" | 未登记忽略: {', '.join(_ign)}" if _ign else ""))
+            if _ign:
+                print(f"     └ 若 {', '.join(_ign)} 确为本船【改名前】的船名, 请在 PIC汇总 rename 列登记;"
+                      f" 否则视为源文件残留, 已按当前名 {strip_retired(disp)} 显示")
+        # ── 按 (逐行航线, 该段船名) 拆分子块(支持一船多段 + 一艘船改名前后的不同船名)
         #     但拆之前先用 ±30天窗口过滤: 只有多段同时有窗口内数据才拆;
         #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
-        sub_routes = {}   # route -> [rows with row_route]
+        _cur_name = strip_retired(disp)      # 当前船名(不带 -已下线 后缀)
+        sub_routes = {}   # (route, seg_disp) -> [rows with row_route]
         for rr in d["rows"]:
             sr = canon_route(base, rr.get("row_route", route))
-            sub_routes.setdefault(sr, []).append(rr)
+            # 段名统一去 -已下线 后缀再分组, 避免同一艘下线船拆出"带后缀/不带后缀"两块
+            seg_name = strip_retired(rr.get("seg_disp") or disp)
+            sub_routes.setdefault((sr, seg_name), []).append(rr)
         # 对每段检查是否有 窗口内数据
         active_segments = {}
-        for sub_r, sub_rows in sub_routes.items():
+        for seg_key, sub_rows in sub_routes.items():
             has_data = any(rr.get("etb") is not None and lo <= rr["etb"].date() <= hi for rr in sub_rows)
             if has_data:
-                active_segments[sub_r] = sub_rows
+                active_segments[seg_key] = sub_rows
         if len(active_segments) > 1:
-            print(f"  [{base}] 拆为 {len(active_segments)} 个航线段(仅窗口内有数据): {', '.join(active_segments.keys())}")
+            _desc = ", ".join(f"{r}/{n}" for (r, n) in active_segments.keys())
+            print(f"  [{base}] 拆为 {len(active_segments)} 个航线段(仅窗口内有数据): {_desc}")
         elif len(active_segments) == 0:
             # 整个文件都没有窗口内数据 — 保留第一段(船仍显示, 只是无港口行)
-            first_r = next(iter(sub_routes))
-            active_segments = {first_r: sub_routes[first_r]}
-        for sub_r, sub_rows in active_segments.items():
-            ships.append({"folder": base, "route": sub_r, "code": code,
-                          "display": disp, "rows": sub_rows, "retired": retired})
+            first_k = next(iter(sub_routes))
+            active_segments = {first_k: sub_routes[first_k]}
+        for (sub_r, seg_name), sub_rows in active_segments.items():
+            # 下线船统一补后缀(网页端靠该标记识别下线船)
+            _disp = strip_retired(seg_name)
+            if retired and not _disp.endswith(RETIRED_SUFFIX):
+                _disp += RETIRED_SUFFIX
+            # vid = 船身份(同一 folder = 同一条船), 前端据此把改名前后的段合并统计
+            ships.append({"folder": base, "vid": base, "route": sub_r, "code": code,
+                          "display": _disp, "cur": _cur_name,
+                          "rows": sub_rows, "retired": retired})
     _ret_blocks = sum(1 for s in ships if s.get("retired"))
     print(f"  写出船块数: {len(ships)} (在营 {len(ships)-_ret_blocks} / 已下线 {_ret_blocks})")
 
@@ -769,7 +971,13 @@ def main():
             setc(row, 4, disp, font=bold)
             setc(row, 8, "DATE")
             setc(row, 9, s["code"])
-            setc(row, 16, "PIC: " + pic_clean)   # 始终带PIC:前缀, 保证网页解析识别块(含无PIC新船)
+            # C16 = 块标志行。除 "PIC:" 外附两个隐藏元数据, 供 gen_html 识别"同一条船":
+            #   VID = 船身份(同一文件夹 = 同一条船, 改船名后仍是它)
+            #   CUR = 当前船名(改名后 PIC/文件夹的最新名)
+            # 改名前后的两个段: C4 各写当时的船名(旧名/新名), VID 相同 -> 页面合并统计。
+            _vid = str(s.get("vid") or fol or "").replace("|", "/").replace("=", "-").strip()
+            _cur = str(s.get("cur") or disp or "").replace("|", "/").replace("=", "-").strip()
+            setc(row, 16, "PIC: " + pic_clean + " |VID=" + _vid + " |CUR=" + _cur)
             row += 1
             # 列头
             for c, h in enumerate(COL_HEADERS, 1):

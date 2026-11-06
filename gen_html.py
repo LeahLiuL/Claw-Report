@@ -188,9 +188,28 @@ def extract(excel_path, pic_map=None):
             # 重置后: 块内有 lane 行则用它(同船跨 lane), 否则兜底本块自己的 block_route。
             cur_lane = ''
             vessel_full = get_str(ws_src.cell(i, 4).value)
+            # ── 块标志行(C16) 解析 ──────────────────────────────────────────
+            # 格式（2026-11-06 起）: "PIC: Leah Liu |VID=CUL HAIPHONG |CUR=CUL HAIPHONG"
+            #   VID = 船身份（同一文件夹 = 同一条船；改船名后旧段/新段 VID 相同）
+            #   CUR = 当前船名（最近的名字），用于筛选/分组，不用于单元格显示
+            # 老格式只有 "PIC: xxx"，此时 VID/CUR 缺失 → 全部回退船名本身，行为不变。
+            _c16 = str(c16)
+            _pic_txt = _c16
+            _meta = {}
+            if '|' in _c16:
+                _segs = [s.strip() for s in _c16.split('|')]
+                _pic_txt = _segs[0]
+                for _s in _segs[1:]:
+                    if '=' in _s:
+                        _k, _v = _s.split('=', 1)
+                        _meta[_k.strip().upper()] = _v.strip()
             # CODE（2026-09-22）：优先 PIC汇总 D 列按船名匹配，查不到再回退 PIC 行 col9
             vessel_code = pic_map.get(_norm_vessel(vessel_full)) or get_str(ws_src.cell(i, 9).value)
-            pic = c16.replace('PIC:', '').replace('PIC :', '').strip()
+            pic = _pic_txt.replace('PIC:', '').replace('PIC :', '').strip()
+            # 船身份: 同一条船改名前后的段共用同一个 VID；缺标记时退化为船名
+            vessel_vid = _meta.get('VID') or _norm_vessel(vessel_full) or vessel_full
+            # 当前船名: 改名后 PIC/文件夹的最新名
+            vessel_cur = _meta.get('CUR') or vessel_full
 
             schedule_rows = []   # list of (row, route) — route = 该行向上最近的 lane 行
             remark_unmatched = 0   # 定位不到挂靠行的 remark 计数(块级), 汇总后打印
@@ -355,6 +374,7 @@ def extract(excel_path, pic_map=None):
             remark_unmatched_total += remark_unmatched
             vessel_blocks.append({'route': block_route, 'vessel_full': vessel_full,
                                    'vessel_code': vessel_code, 'pic': pic,
+                                   'vid': vessel_vid, 'vessel_cur': vessel_cur,
                                    'schedule_rows': schedule_rows,
                                    'remarks_by_row': remarks_by_row})
         else:
@@ -366,12 +386,14 @@ def extract(excel_path, pic_map=None):
     # ── Summary: nearest ETB per vessel (dedup by vessel across routes) ──
     # Rule: prefer ETB >= today (next upcoming call); among futures pick earliest;
     #       if no future ETB, pick the most recent past ETB (closest to today).
-    vessel_rows = {}  # vessel_full -> list of (etb_d, row, route, vb)
+    # 2026-11-06 起按【船身份 vid】聚合：同一艘船改名后旧段/新段仍只出一行
+    # （显示的是"最近那条船期"所属段的名字，因此自然显示新名）。
+    vessel_rows = {}  # vid -> list of (etb_d, row, route, vb)
     for vb in vessel_blocks:
         for (r, rt) in vb['schedule_rows']:
             etb_v = ws_src.cell(r, 10).value
             if isinstance(etb_v, datetime):
-                vessel_rows.setdefault(vb['vessel_full'], []).append((etb_v.date(), r, rt, vb))
+                vessel_rows.setdefault(vb.get('vid') or vb['vessel_full'], []).append((etb_v.date(), r, rt, vb))
 
     vessel_best = {}
     summary_row_set = set()
@@ -391,6 +413,8 @@ def extract(excel_path, pic_map=None):
         rec = {
             'route':       best_rt,
             'vessel':      vb['vessel_full'],
+            'vesselCur':   vb.get('vessel_cur') or vb['vessel_full'],
+            'vid':         vb.get('vid') or vb['vessel_full'],
             'code':        vb['vessel_code'],
             'pic':         vb['pic'],
             'port':        get_str(ws_src.cell(r, 1).value),
@@ -427,6 +451,8 @@ def extract(excel_path, pic_map=None):
             full_schedule.append({
                 'route':       rt,
                 'vessel':      vb['vessel_full'],
+                'vesselCur':   vb.get('vessel_cur') or vb['vessel_full'],
+                'vid':         vb.get('vid') or vb['vessel_full'],
                 'code':        vb['vessel_code'],
                 'pic':         vb['pic'],
                 'port':        get_str(ws_src.cell(r, 1).value),
@@ -597,8 +623,12 @@ def _norm_vessel(s):
     return re.sub(r'[^A-Z0-9]', '', str(s).upper())
 
 def load_pic_code_map(pic_path=None):
-    """PIC汇总.xlsx: A=航线 B=船名 C=文件夹名 D=船代码 E=PIC F=状态。
-    返回 {规范化船名: 船代码}。文件不可达时返回空 dict（回退旧 col9 逻辑）。"""
+    """PIC汇总.xlsx: 返回 {规范化船名: 船代码}，文件不可达时返回空 dict（回退旧 col9 逻辑）。
+
+    列位置【按表头定位】(2026-11-06)：用户在原 B「船名(显示)」后插入了「重命名」列，
+    旧硬编码 row[3]=D 列(原船代码) 现在变成"文件夹名" —— 会把 Code 列整列污染成船名。
+    表头识别: 「船名…」→ 船名列（排除"重命名"）；「…代码/CODE」→ 代码列。
+    """
     pic_path = pic_path or PIC_XLSX
     m = {}
     if not os.path.exists(pic_path):
@@ -607,11 +637,21 @@ def load_pic_code_map(pic_path=None):
     try:
         wb = openpyxl.load_workbook(pic_path, read_only=True, data_only=True)
         ws = wb.active
+        col_name, col_code = 1, 3          # 旧布局兜底(B=船名, D=船代码)
         for ri, row in enumerate(ws.iter_rows(values_only=True), 1):
             if ri == 1:
-                continue  # header
-            vessel = row[1] if len(row) > 1 else None
-            code = row[3] if len(row) > 3 else None   # D 列 = 船代码
+                col_name = col_code = None
+                for i, h in enumerate(row):
+                    hs = str(h or '').upper().replace(' ', '')
+                    if col_name is None and ('船名' in hs or 'VESSEL' in hs or 'SHIP' in hs):
+                        col_name = i
+                    if col_code is None and ('代码' in hs or 'CODE' in hs):
+                        col_code = i
+                col_name = 1 if col_name is None else col_name
+                col_code = 3 if col_code is None else col_code
+                continue
+            vessel = row[col_name] if len(row) > col_name else None
+            code = row[col_code] if len(row) > col_code else None
             if vessel and code:
                 m[_norm_vessel(vessel)] = str(code).strip()
         wb.close()
@@ -2310,14 +2350,29 @@ loadColVisibility();
 // Default: null means "show all" (empty Set also means show all, used after init)
 var filterSelections = {route1: null, vessel1: null, pic1: null, route2: null, vessel2: null, pic2: null};
 
+// ── 船名变更(rename)支持 ────────────────────────────────────────────────
+// 一艘船改过名后: 旧航段 vessel=旧名、新航段 vessel=新名, 但 vid(船身份)相同。
+//   · 单元格照原样显示 r.vessel（旧段旧名、新段新名 —— 用户要求）
+//   · 筛选/统计/分组用 vkey() 合并为一艘船
+//   · 下拉选项与过滤值用 fval()：显示"当前船名"，选一次就能看到这艘船的全部航段
+function fval(r, type){
+  if(type === 'vessel'){
+    return (r.vesselCur === undefined || r.vesselCur === null || r.vesselCur === '') ? r.vessel : r.vesselCur;
+  }
+  return r[type];
+}
+function vkey(r){
+  return (r.vid === undefined || r.vid === null || r.vid === '') ? r.vessel : r.vid;
+}
+
 function setAllFilterOptions(type, viewId){
   var key = type + viewId;
   // Build set of all possible values
   var allValues;
   if(viewId==='1'){
-    allValues = new Set(summaryData.map(function(r){return r[type];}));
+    allValues = new Set(summaryData.map(function(r){return fval(r, type);}));
   } else {
-    allValues = new Set(fullData.map(function(r){return r[type];}));
+    allValues = new Set(fullData.map(function(r){return fval(r, type);}));
   }
   filterSelections[key] = new Set(allValues);
 }
@@ -2335,7 +2390,7 @@ function buildFilterDropdown(type, viewId){
 
   // Get all unique values
   var dataArr = viewId==='1' ? summaryData : fullData;
-  var values = [...new Set(dataArr.map(function(r){return r[type];}))];
+  var values = [...new Set(dataArr.map(function(r){return fval(r, type);}))];
   if(type==='route'){
     values.sort(function(a,b){return routeOrderKey(a)-routeOrderKey(b);});
   } else {
@@ -2389,7 +2444,7 @@ function updateFilterButton(type, viewId){
   var key = type + viewId;
   var fs = filterSelections[key];
   var dataArr = viewId==='1' ? summaryData : fullData;
-  var totalValues = new Set(dataArr.map(function(r){return r[type];})).size;
+  var totalValues = new Set(dataArr.map(function(r){return fval(r, type);})).size;
   var isNone = fs && fs.has('\x00NONE\x00');
   if(fs===null || (!isNone && fs.size===totalValues)){
     btn.textContent = type==='route' ? 'All Routes' : type==='vessel' ? 'All Vessels' : 'All PIC';
@@ -2548,16 +2603,16 @@ function vcBuild(q){
     }
     var etb=sr.etbRaw||'';
     if(!etb || etb<from || etb>today) continue;      // 本年度 + 已靠上
-    var key=sr.vessel+'|'+(sr.voy||'')+'|'+(sr.port||'')+'|'+etb+'|'+(sr.etb||'');
+    var key=vkey(sr)+'|'+(sr.voy||'')+'|'+(sr.port||'')+'|'+etb+'|'+(sr.etb||'');  // 同船改名前后同一 key
     if(seen[key]) continue;                          // 同一次挂靠重复行合并
     seen[key]=1;
     calls.push(sr);
   }
   var byV={}, byL={};
   for(var j=0;j<calls.length;j++){
-    var c=calls[j], v=c.vessel;
-    var r=byV[v];
-    if(!r){ r=byV[v]={vessel:v, code:c.code||'', routes:{}, ports:{}, calls:0, staySum:0, stayN:0, last:'', lastPort:'', decom:isDecommissioned(v)}; }
+    var c=calls[j], vk=vkey(c), v=c.vesselCur||c.vessel;   // 聚合按船身份, 展示用当前船名
+    var r=byV[vk];
+    if(!r){ r=byV[vk]={vessel:v, code:c.code||'', routes:{}, ports:{}, calls:0, staySum:0, stayN:0, last:'', lastPort:'', decom:isDecommissioned(v)}; }
     r.calls++;
     if(c.route) r.routes[c.route]=1;
     if(c.port) r.ports[c.port]=1;
@@ -2568,7 +2623,7 @@ function vcBuild(q){
     var ln=c.route||'—';
     var L=byL[ln];
     if(!L){ L=byL[ln]={lane:ln, calls:0, vessels:{}}; }
-    L.calls++; L.vessels[v]=1;
+    L.calls++; L.vessels[vk]=1;
   }
   var rows=[], k;
   for(k in byV){ if(byV.hasOwnProperty(k)){
@@ -2924,9 +2979,9 @@ function getFilteredSummary(){
   const delay=document.getElementById('filterDelay').value;
   let data=summaryData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
-    if(selVessel && !selVessel.has(r.vessel)) return false;
+    if(selVessel && !selVessel.has(fval(r, 'vessel'))) return false;
     if(selPic && !selPic.has(r.pic)) return false;
-    if(q && !`${r.route} ${r.vessel} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.voy} ${r.remark}`.toLowerCase().includes(q)) return false;
+    if(q && !`${r.route} ${r.vessel} ${r.vesselCur||''} ${r.port} ${r.wait} ${r.pic} ${r.code} ${r.voy} ${r.remark}`.toLowerCase().includes(q)) return false;
     if(delay==='delay') return r.etaDelay.toLowerCase().includes('delay');
     if(delay==='ahead') return r.etaDelay.toLowerCase().includes('ahead');
     if(delay==='normal') return !r.etaDelay;
@@ -2990,8 +3045,8 @@ function renderSummary(){
   const tbody=document.getElementById('summaryTbody');
   if(!data.length){tbody.innerHTML='<tr><td colspan="'+visibleCols['1'].size+'" class="no-data">No matching records found.</td></tr>';document.getElementById('statTotal').textContent='0 vessels';document.getElementById('statDelay').textContent='0 delayed';return;}
   const dc=data.filter(r=>r.etaDelay && r.etaDelay.toLowerCase().includes('delay'));
-  document.getElementById('statTotal').textContent=new Set(data.map(r=>r.vessel)).size+' vessels';
-  document.getElementById('statDelay').textContent=new Set(dc.map(r=>r.vessel)).size+' delayed';
+  document.getElementById('statTotal').textContent=new Set(data.map(r=>vkey(r))).size+' vessels';
+  document.getElementById('statDelay').textContent=new Set(dc.map(r=>vkey(r))).size+' delayed';
 
   const defs = COLUMN_DEFS_SUMMARY;
   tbody.innerHTML = data.map(function(r, rowIdx){
@@ -3072,7 +3127,7 @@ function buildVesselLaneRank(){
   var upcoming = {};   // vessel -> {k: lane 序号, eta: 'YYYY-MM-DD'}
   var fallback = {};   // vessel -> 历史最小的 lane 序号
   fullData.forEach(function(r){
-    var v = r.vessel;
+    var v = vkey(r);
     if(!v) return;
     var k = routeOrderKey(r.route);
     if(!(v in fallback) || k < fallback[v]) fallback[v] = k;
@@ -3088,7 +3143,7 @@ function buildVesselLaneRank(){
 }
 
 function laneRankOf(r){
-  return (r.vessel in vesselLaneRank) ? vesselLaneRank[r.vessel] : routeOrderKey(r.route);
+  return (vkey(r) in vesselLaneRank) ? vesselLaneRank[vkey(r)] : routeOrderKey(r.route);
 }
 
 // Full Schedule 默认排序：Lane 顺序 → 船名聚簇 → 簇内 ETA 升序（跨 lane 交错）→ Port/Voy
@@ -3098,7 +3153,7 @@ function defaultFullSort(data){
   data.sort(function(a,b){
     var la = laneRankOf(a), lb = laneRankOf(b);
     if(la!==lb) return la-lb;                                  // 1. 整簇锚定 lane（用户默认/自定义序）
-    var v = (a.vessel||'').localeCompare(b.vessel||'');        // 2. 同 lane → 船名聚簇
+    var v = String(vkey(a)||'').localeCompare(String(vkey(b)||''));  // 2. 同 lane → 船聚簇(改名前后同一艘)
     if(v!==0) return v;
     var ea = a.etbSort||a.etaSort||a.etbRaw||a.etaRaw||'';
     var eb = b.etbSort||b.etaSort||b.etbRaw||b.etaRaw||'';
@@ -3116,7 +3171,7 @@ function refreshFullGrouping(){
   // 按默认排序后的顺序分配交替底色，保证视觉上相邻船连续换色
   var seen = {}, gi = 0;
   defaultFullSort(fullData.slice()).forEach(function(r){
-    if(!(r.vessel in seen)){ seen[r.vessel] = gi%2; gi++; }
+    if(!(vkey(r) in seen)){ seen[vkey(r)] = gi%2; gi++; }
   });
   vesselGroupMap = seen;
 }
@@ -3158,11 +3213,11 @@ function getFilteredFull(){
   const dateKey = dateMode === 'etb' ? 'etbRaw' : 'etaRaw';
   let data=fullData.filter(r=>{
     if(selRoute && !selRoute.has(r.route)) return false;
-    if(selVessel && !selVessel.has(r.vessel)) return false;
+    if(selVessel && !selVessel.has(fval(r, 'vessel'))) return false;
     if(selPic && !selPic.has(r.pic)) return false;
     if(etaFrom && r[dateKey] < etaFrom) return false;
     if(etaTo   && r[dateKey] > etaTo)   return false;
-    if(q && !`${r.route} ${r.vessel} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
+    if(q && !`${r.route} ${r.vessel} ${r.vesselCur||''} ${r.port} ${r.wait} ${r.manIn} ${r.pic} ${r.code} ${r.voy} ${r.date} ${r.remark}`.toLowerCase().includes(q)) return false;
     return true;
   });
   if(fullSortCol>=0){
@@ -3188,7 +3243,7 @@ function getFilteredFull(){
    so the tab answers "how many ships is this?" without exporting. */
 function setFullCounts(data){
   var vs = new Set();
-  (data||[]).forEach(function(r){ if(r.vessel) vs.add(String(r.vessel).trim().toUpperCase()); });
+  (data||[]).forEach(function(r){ if(r.vessel) vs.add(String(vkey(r)).trim().toUpperCase()); });
   document.getElementById('statTotal2').textContent = (data||[]).length + ' rows';
   document.getElementById('statVessel2').textContent = vs.size + ' vessels';
 }
@@ -3206,15 +3261,15 @@ function renderFullSchedule(){
   const defs = COLUMN_DEFS_FULL;
   let prevVessel = '';
   tbody.innerHTML = data.map(function(r, idx){
-    var gc = vesselGroupMap[r.vessel]===0 ? 'vessel-group-even' : 'vessel-group-odd';
+    var gc = vesselGroupMap[vkey(r)]===0 ? 'vessel-group-even' : 'vessel-group-odd';
     var boundaryCls = '';
-    if(r.vessel !== prevVessel){
+    if(vkey(r) !== prevVessel){
       boundaryCls = ' vessel-group-first';
       if(idx>0) boundaryCls += ' vessel-group-last-prev';
-      prevVessel = r.vessel;
+      prevVessel = vkey(r);
     }
     var endCls = '';
-    if(idx===data.length-1 || data[idx+1].vessel !== r.vessel){
+    if(idx===data.length-1 || vkey(data[idx+1]) !== vkey(r)){
       endCls = ' vessel-group-last';
     }
     var cls = gc+boundaryCls+endCls;
@@ -3372,12 +3427,15 @@ function exportFullScheduleExcel(wb){
   var merges=[{s:{r:0,c:0},e:{r:0,c:numCols-1}}];
   for(var i=0;i<exportData.length;i++){
     var r=exportData[i];
-    if(r.vessel!==prevVessel){
+    if(vkey(r)!==prevVessel){
       // Per-vessel title row: always show the 4 identity fields (Lane/route, Vessel, Code, PIC)
       // as one merged cell, independent of UI column hiding (detail rows still respect hiding)
       // Title Lane = 该船的锚定 lane（与页面聚簇位置一致）；单航线船即其航线
-      var anchorLane=(r.vessel in vesselLaneRank) ? (getLaneOrder()[vesselLaneRank[r.vessel]]||r.route||'') : (r.route||'');
-      var titleText='Lane: '+anchorLane+'    Vessel: '+(r.vessel||'')+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
+      // 改过名的船(vesselCur 与段名不同): 标题显示【当前船名】, 并附曾用名, 便于追溯
+      var anchorLane=(vkey(r) in vesselLaneRank) ? (getLaneOrder()[vesselLaneRank[vkey(r)]]||r.route||'') : (r.route||'');
+      var _vn = r.vesselCur || r.vessel || '';
+      if(r.vessel && _vn && r.vessel !== _vn){ _vn += ' (was ' + r.vessel + ')'; }
+      var titleText='Lane: '+anchorLane+'    Vessel: '+_vn+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
       var titleRow=[];
       for(var c=0;c<numCols;c++) titleRow[c]={v:'',s:vTitleS};
       titleRow[0]={v:titleText,s:vTitleS};
@@ -3386,7 +3444,7 @@ function exportFullScheduleExcel(wb){
       merges.push({s:{r:tRow,c:0},e:{r:tRow,c:numCols-1}});
       // Column header row
       sheetData.push(headers.map(function(h){return{v:h,s:hS};}));
-      prevVessel=r.vessel;
+      prevVessel=vkey(r);
     }
     var fc='FFFFFF';
     if(r.isSummary) fc='FFF3CD';
