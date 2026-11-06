@@ -133,9 +133,12 @@ def _dedup_key(rec):
        重复而合并（实测会把 2530 行误杀到 578 行）。
     ⚠️ *Sort 对非 datetime 一律返回 ''，若直接用会让所有"无时间"的行撞成同一个键。
        故 *Sort 为空时退回显示值，以保留 OMIT / Mon 等文本标记之间的区别。
+    ⚠️ 船要用【船身份 vid】而不是显示名: 改过名的船在旧/新航段里 vessel 分别是旧名/新名,
+       同一次挂靠若两边都出现, 用显示名做键就合并不掉(2026-11-06 自检发现)。
+       老大 Excel 没有 vid 时自动退回船名, 行为与改动前一致。
     三个时间全为空 → 无从判断是否同一船期，返回 None，调用方保留该行不去重。
     """
-    parts = [str(rec.get('vessel', '')), str(rec.get('port', ''))]
+    parts = [str(rec.get('vid') or rec.get('vessel', '')), str(rec.get('port', ''))]
     for _f in FULL_DEDUP_TIME_FIELDS:
         _s = str(rec.get(_f + 'Sort', '') or '')
         parts.append(_s if _s else str(rec.get(_f, '')))

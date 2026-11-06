@@ -836,6 +836,8 @@ def main():
     ships = []   # {folder, route, code, display, rows, retired}
     retired_cnt = sum(1 for _f in fleet if _f[3])
     print(f"  扫描到船目录 {len(fleet)} 个 (在营 {len(fleet)-retired_cnt} / 已下线 {retired_cnt})")
+    # 全船队目录名集合: 用于识别"改船名后旧目录没删, 同一艘船被当成两条"的情况
+    _fleet_keys = {norm(b) for (_p, _f, b, _r) in fleet if b}
     for folder_path, fol, base, retired in fleet:
         p = latest_xlsx(folder_path)
         if not p:
@@ -852,6 +854,12 @@ def main():
         # 曾用名(rename 列): 改过船名的船, 源文件旧航段仍写旧名 —— 旧名必须登记在这里,
         # 否则会被当成"别船残留"忽略掉(见 pick_seg_name)。
         aliases = pic_rename_tbl.get(key, [])
+        # 自检(2026-11-06): B列显示名若等于「重命名」列里的旧名, 说明只改了文件夹名、
+        # 忘了把显示名换成新船名 —— 此时新旧两个航段都会显示成旧名(详见 build_vessel_name_map)。
+        _alias_keys = {norm(a) for a in aliases if a}
+        if _alias_keys and key and norm(disp) in _alias_keys:
+            print(f"  [WARN] {base}: PIC汇总 B列显示名「{strip_retired(disp)}」= 「重命名」列登记的旧名。"
+                  f" 当前名应填新船名, 否则旧/新航段都会显示成旧名。")
         name_map = build_vessel_name_map(strip_retired(disp), base, aliases)
         d = read_source(p, vessel_code=vcode, folder_name=base,
                         alias_names=aliases, name_map=name_map)
@@ -869,10 +877,19 @@ def main():
             if _ign:
                 print(f"     └ 若 {', '.join(_ign)} 确为本船【改名前】的船名, 请在 PIC汇总 rename 列登记;"
                       f" 否则视为源文件残留, 已按当前名 {strip_retired(disp)} 显示")
+                # 自检: 被忽略的名字若正好是另一个【仍在磁盘上】的船目录 -> 多半是改名后
+                # 旧目录没删, 同一艘船会在页面上出现两次(旧名一块 + 新名一块), 且各占各的VID。
+                _dup = [n for n in _ign if norm(n) in _fleet_keys and norm(n) != key]
+                if _dup:
+                    print(f"  [提示] {base}: 段标题里的「{', '.join(_dup)}」正好是磁盘上另一个船目录。"
+                          f" 若两者实为同一艘船(改名后旧目录没删), 请移除旧目录; 否则忽略本条。")
         # ── 按 (逐行航线, 该段船名) 拆分子块(支持一船多段 + 一艘船改名前后的不同船名)
         #     但拆之前先用 ±30天窗口过滤: 只有多段同时有窗口内数据才拆;
         #     历史航次(如 CUL HUANGPU 的 CHT/SL1/CST)无窗口内数据则自动忽略。 ──
-        _cur_name = strip_retired(disp)      # 当前船名(不带 -已下线 后缀)
+        # 当前船名: 必须带上 -已下线 后缀 —— 网页端 isDecommissioned()/Vessel Calls
+        # 都靠这个标记识别下线船。早先写成 strip_retired(disp) 会让下线标记在
+        # 筛选下拉与 Vessel Calls 里消失(2026-11-06 自检发现)。
+        _cur_name = disp
         sub_routes = {}   # (route, seg_disp) -> [rows with row_route]
         for rr in d["rows"]:
             sr = canon_route(base, rr.get("row_route", route))

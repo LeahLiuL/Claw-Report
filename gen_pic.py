@@ -20,7 +20,7 @@ gen_pic.py —— 汇总/维护当前船队的 PIC 对照表
   3. 改船名后文件夹名变了、但表里「文件夹名」列还没改时, 用「重命名」列自动认领该行
      (把文件夹名更新为新名), 避免同一艘船在表里裂成"旧名无目录 + 新名缺代码"两行。
 """
-import os, glob, argparse
+import os, re, glob, argparse
 import openpyxl
 from build_fleet_movement import (norm, canon_route, collect_vessel_folders, strip_retired,
                                   RETIRED_SUFFIX, load_vessel_csv, _load_pic_col, _pic_cols,
@@ -106,41 +106,122 @@ def load_existing_table(path):
     return out, header
 
 
-def claim_by_rename(existing, key, base):
-    """改船名场景: 文件夹名改成新名后, 表里「文件夹名」列可能仍是旧名, 直接按 key 查不到。
-    此时用「重命名」列认领 —— 登记值(规范化后)等于新文件夹名, 说明这一行就是它。
-    认领成功则把该行 folder 更新为新名(下次按新名即可命中), 并返回该行。"""
-    hit = None
+SPLIT_RE = re.compile(r"[;；,，/、|\n]+")
+
+
+def _split_names(v):
+    return [x.strip() for x in SPLIT_RE.split(str(v or "")) if x.strip()]
+
+
+def _merge_names(raw, extra):
+    """把 extra 里的名字补进已有登记(去重, 保持原顺序, 分号分隔)。"""
+    names = _split_names(raw)
+    have = {norm(n) for n in names}
+    for e in extra:
+        if e and norm(e) not in have:
+            names.append(e)
+            have.add(norm(e))
+    return ";".join(names)
+
+
+def read_src_codes(path):
+    """源文件里出现过的船代码集合(第9列非日期的文本)。
+
+    改名认领(规则C)用: read_source 只返回"第一个找到的代码", 而改名期间源文件里
+    旧段头写的是旧代码、新段头写新代码 —— 只比一个值会漏。这里把整列都收进来,
+    只要表里登记的代码在文件中出现过就认为是同一艘船(代码是船的稳定身份)。
+    """
+    codes = set()
+    try:
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        ws = wb[wb.sheetnames[0]]
+        for row in ws.iter_rows(min_col=9, max_col=9, values_only=True):
+            v = row[0] if row else None
+            if isinstance(v, str):
+                s = v.strip().upper()
+                if 2 <= len(s) <= 10 and " " not in s and not s.startswith("="):
+                    codes.add(s)
+        wb.close()
+    except Exception as e:
+        print(f"  [WARN] 读取源文件代码失败: {os.path.basename(path)} ({e})")
+    return codes
+
+
+def claim_by_rename(existing, key, base, disk_keys=None, src_names=None, src_codes=None):
+    """改船名场景: 文件夹改名为 base 后, 表里「文件夹名」列可能还是旧名 —— 认领同一行。
+
+    2026-11-06 修: 原实现只认「重命名」列里写了【新名】的情况, 但用户的正常操作是
+    "只改文件夹名"(表和源文件都不动), 于是认领失败 → 同一艘船在表里裂成两行
+    (旧名目录已不存在 + 新名缺代码/PIC), 页面丢 PIC、丢代码。改为多证据认领:
+
+      A 表里「重命名」列已登记新名 base                (用户按说明登记过)
+      B 新目录源文件的段标题里出现该行旧名/显示名      (只改了 folder 名的情形)
+      C 该行船代码在新目录源文件里出现过, 且旧目录已不在磁盘 (船代码是船的稳定身份)
+
+    ⚠️ 只有【唯一候选】才认领: 多候选时只告警, 绝不猜 —— 猜错会把两条船的
+       代码/PIC 串到一起, 比多一行更难发现。旧目录仍在磁盘的行不参与 B/C(那是两台船)。
+    认领成功后: 旧名自动补进「重命名」列(下一轮 build 才能把旧航段显示成旧名),
+    文件夹名与显示名更新为新名。
+    """
+    disk_keys = disk_keys or set()
+    src_names = {norm(n) for n in (src_names or []) if n}
+    src_codes = {str(c).strip().upper() for c in (src_codes or []) if str(c).strip()}
+    hits = {}       # id(ex) -> (rule, ex); rule 越靠前证据越强
     for k, ex in existing.items():
-        names = [x.strip() for x in str(ex.get("rename") or "").replace("；", ";").replace("，", ",")
-                 .replace("、", ";").replace("/", ";").split(";") if x.strip()]
+        names = _split_names(ex.get("rename"))
         if any(norm(n) == key for n in names):
-            hit = ex
-            break
-    if not hit:
+            hits.setdefault(id(ex), ("A", ex))
+            continue
+        if norm(str(ex.get("folder") or "")) not in disk_keys:      # 旧目录已不在磁盘
+            own = [ex.get("folder"), strip_retired(ex.get("disp") or "")]
+            if src_names and any(norm(n) in src_names for n in own + names if n):
+                hits.setdefault(id(ex), ("B", ex))
+                continue
+            if src_codes and str(ex.get("code") or "").strip().upper() in src_codes:
+                hits.setdefault(id(ex), ("C", ex))
+
+    if not hits:
         return None
-    print(f"  [改名跟随] 表内旧行「{hit['folder']}」的重命名列含「{base}」→ 文件夹名更新为新名")
+    if len(hits) > 1:
+        cands = ", ".join(f"{ex['folder']}(规则{r})" for (r, ex) in hits.values())
+        print(f"  [WARN] 新目录「{base}」有 {len(hits)} 个疑似改名前身: {cands} —— 不自动认领,"
+              f" 请手工把对应行的「文件夹名」改成新名(其余行删掉)")
+        return None
+
+    rule, hit = next(iter(hits.values()))
+    old_folder = str(hit.get("folder") or "").strip()
+    old_disp = strip_retired(str(hit.get("disp") or "").strip())
+    # 旧名(目录名 / 旧显示名)补登记, 供 build 判定"旧航段仍写旧名"
+    hit["rename"] = _merge_names(hit.get("rename"), [n for n in (old_folder, old_disp)
+                                                     if n and norm(n) != key])
     hit["folder"] = base
+    if norm(hit.get("disp") or "") != key:
+        hit["disp"] = base          # 新名以文件夹名(用户改的名字)为准; 不符时改 B 列即可
     for k in [k for k, v in existing.items() if v is hit]:
         existing.pop(k, None)
     existing[key] = hit
+    print(f"  [改名跟随/规则{rule}] 「{old_folder}」→「{base}」: 沿用原行的代码={hit.get('code') or '?'}"
+          f" / PIC={hit.get('pic') or '?'} / 重命名列={hit['rename'] or '—'}")
     return hit
 
 
 
 def read_src_meta(path, base_name):
-    """取源文件的航线与船代码候选(仅新船兜底用)。
+    """取源文件的航线 / 船代码 / 段标题里出现过的船名(新船兜底 + 改名认领用)。
     用 read_source 的完整解析(含段标题检测 + lanes_in_file 继承), 避免只取 R1C1
-    得到港口码/日期之类的脏值(如 TB FENGZE 曾取到 INNSA)。"""
+    得到港口码/日期之类的脏值(如 TB FENGZE 曾取到 INNSA)。
+    段标题船名: 本函数不传 name_map, 所以所有"像船名"的段标题都会落到
+    seg_names_ignored —— 对改名场景正好是【旧船名】, 用于认领表里的旧行。"""
     from build_fleet_movement import read_source
     try:
         d = read_source(path, vessel_code=None, folder_name=base_name)
         # 优先取任意一行所属的真实航线(row_route 已做段标题识别与继承)
         routes = [rr.get("row_route") for rr in d.get("rows", []) if rr.get("row_route")]
-        return (routes[0] if routes else d.get("route", "")), d.get("code")
+        names = list(d.get("seg_names") or []) + list(d.get("seg_names_ignored") or [])
+        return (routes[0] if routes else d.get("route", "")), d.get("code"), names
     except Exception as e:
         print(f"  [WARN] 读源失败跳过 lane 解析: {base_name} ({e})")
-        return "", None
+        return "", None, []
 
 
 def main():
@@ -156,15 +237,21 @@ def main():
 
     fleet = collect_vessel_folders(args.src)   # 含 "已下线船舶/" 子目录
     rows, scanned, new_cnt = [], set(), 0
+    # 磁盘上实际存在的目录名 —— 认领改名前身时用它排除"旧目录还在"的行(那是两台船)
+    disk_keys = {norm(b) for (_p, _f, b, _r) in fleet if b}
     for folder_path, fol, base, retired in fleet:
         p = latest_xlsx(folder_path)
         if not p: continue
         key = norm(base)
         scanned.add(key)
         ex = existing.get(key)
-        # 改船名后文件夹名变了、表里还写旧文件夹名的情况: 用「重命名」列认领
+        c1 = c9 = None
+        seg_names = []
         if not ex:
-            ex = claim_by_rename(existing, key, base)
+            # 冷路径(新目录/改过名的目录): 读一次源, 拿航线 + 船代码 + 段标题船名,
+            # 用于认领改名前身; 认领失败再当新船兜底。正常船不会走到这里。
+            c1, c9, seg_names = read_src_meta(p, base)
+            ex = claim_by_rename(existing, key, base, disk_keys, seg_names, read_src_codes(p))
         # ── 表里有 -> 完全保留人工登记 ──
         if ex:
             rows.append({"route": ex["route"], "disp": ex["disp"], "rename": ex.get("rename", ""),
@@ -174,7 +261,6 @@ def main():
             continue
         # ── 表里没有 -> 兜底补值并提醒人工复核 ──
         new_cnt += 1
-        c1, c9 = read_src_meta(p, base)
         vent = vessel.get(key)
         code = (vent or {}).get("code") or (str(c9).strip() if c9 else "")
         disp = strip_retired((vent or {}).get("display") or strip_retired(fol))
