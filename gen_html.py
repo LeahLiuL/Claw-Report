@@ -4101,6 +4101,24 @@ var R_CODE_MAP = {
   R9:'phase',      R10:'congestion'
 };
 
+/* 纯加油挂靠（Bunker Only）唯一判定 —— Leah 2026-11-09。
+   只有备注/voy 明确表达「这条挂靠只为了加油」才算；其余写 BUNKER、
+   BUNKER CALL、Bunkering、加油量或牌号的，一律按正常靠泊处理。
+   覆盖：only for bunker / bunker only / bunker call only / only bunker call /
+        ONLYBUNKER / BUNKERONLY / only for switch docs and bunkering。 */
+function isBunkerOnly(s){
+  var t=String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  if(!t) return false;
+  if(/^onlybunker|^bunkeronly/.test(t)) return true;
+  if(/\bonly (?:for )?(?:\S+ ){0,3}bunker/.test(t)) return true;   // only ... bunker
+  if(/\bbunker\w*(?: \w+)? only\b/.test(t)) return true;           // bunker ... only
+  return false;
+}
+/* 加油「信息」识别（不含裸 supply / fuel，避免误抓 "crane power supply"
+   和 "fuel supply unit heater" 这类设备故障）。命中但没写 bunker only
+   的记录由 classifyCall() 直接归 noremark，按正常靠泊计入。 */
+var BUNKER_INFO_RE = /bunker|加油|lsfo|mgo|ulsfo|vlsfo|hsfo|\b\d+(?:\.\d+)?\s*(?:mt|tons?)\b|\b\d{3,4}\s*cst\b|l\.o\s*supply|fresh water|淡水|\bfo\s+supply\b/i;
+
 var REMARK_CATEGORIES = [
   // 1. 潮汐/水深（不含裸 tide —— "Strong tide make previous vessel working delay" 属塞港）
   {key:'tide',        label:'Tide / Draft',
@@ -4122,12 +4140,12 @@ var REMARK_CATEGORIES = [
   // 7. 塞港/等泊（R1、R3、R4、R8、R10 均映射至此）
   {key:'congestion',  label:'Port Congestion',
    keywords:['congestion','congested','congesiton','塞港','拥堵','拥挤','压港','集中到港','前船','previous vessel','preceding','场地爆满','bunch','等泊','waiting','convoy','canal']},
-  // 7. 加油/物料供应。注意：不能用裸 'cst'（会误抓 CST 航线名），改用 "380CST" 牌号形态
-  {key:'bunker',      label:'Bunker / Supply',
-   patterns:[/\d+(\.\d+)?\s*mt\b/i, /\b\d{3}\s*cst\b/i],
-   keywords:['bunker','加油','bunkering','fuel','lsfo','mgo','ulsfo','vlsfo','l.o','lo supply','fresh water','淡水','supply']},
-  // 7b. 换单（Document Switch）。排在 Bunker 之后：纯加油+换单的挂靠仍归 Bunker / Supply，
-  //     这样「Bunker 剔除」的 BOA 口径不会被打乱。
+  // 7. 纯加油挂靠。由 classifyRemark() 开头的 isBunkerOnly() 特判进入，
+  //    这里不再放关键词，避免把只写了加油量的正常靠泊抓进来。
+  {key:'bunker',      label:'Bunker Only (no cargo)',
+   patterns:[], keywords:[]},
+  // 7b. 换单（Document Switch）。"only for bunker + doc switch" 由 isBunkerOnly()
+  //     优先归 Bunker Only，避免「Bunker 剔除」的 BOA 口径被打乱。
   {key:'docswitch',   label:'Document Switch',
    keywords:['switch doc','doc switch','document switch','switch docs','switch document','docment','switich','switchdocument','docswitch','换单']},
   // 8. 加班靠/虚拟挂靠
@@ -4185,7 +4203,9 @@ function classifyRemark(remark){
     if(mapped) return mapped;
     return 'other';           // 未知 R 码（如 R11）
   }
-  // ② 否则按语义类顺序匹配，先命中先归
+  // ② 纯加油挂靠优先：明确写了 bunker only 就直接归 bunker
+  if(isBunkerOnly(r)) return 'bunker';
+  // ③ 否则按语义类顺序匹配，先命中先归
   var rl=r.toLowerCase();
   // 末尾两项不参与关键词匹配：'noremark' 由开头特判，'other' 是全部落空时的兜底。
   // 原先写成 length-1 只跳过最后一项，新增分类时会静默错位。
@@ -4210,16 +4230,23 @@ function classifyRemark(remark){
    （ONLYBUNKER / BUNKERONLY / BUNKER / PRIVATECALL / ADDCALL / ADHOC /
    PRIVATECALL-SWITCHDOCUMENT / OMIT），这类记录 remark 往往是空的，只看
    remark 会把它们当成干净靠泊（noremark），筛选也就永远抓不到。
-   判定顺序（Leah 2026-11-04：voy 里的备注信息也要进筛选）：
-     ① voy 含 BUNKER       → bunker（纯加油挂靠，优先级最高）
-     ② remark 能归到具体类 → 用 remark（人工写的理由最可信）
-     ③ remark 为空/归不出  → 用 voy 里的其它标记
-   纯航次号（2639W 之类）不命中任何关键词，仍归 noremark / other，
-   所以正常挂靠的分类与数字完全不变。与 Vessel Calls 的 vcIsBunkerOnly() 同口径。 */
+   判定顺序（Leah 2026-11-04：voy 里的备注信息也要进筛选；
+             Leah 2026-11-09：只有明确写 bunker only 才算纯加油挂靠）：
+     ① 明确写 bunker only（remark 或 voy）→ bunker（优先级最高）
+     ② 只是加油信息 / 油量 / BUNKER CALL → noremark，按正常靠泊计入
+     ③ remark 能归到具体类 → 用 remark（人工写的理由最可信）
+     ④ remark 为空/归不出  → 用 voy 里的其它标记
+   纯航次号（2639W 之类）不命中任何关键词，仍归 noremark / other。
+   voy 里只写 BUNKER / BUNKERCALL、或 remark 里只写加油量的，不再进 bunker。
+   注意：Vessel Calls 页的 vcIsBunkerOnly() 目前仍是旧口径，如需统一要单独改。 */
 function classifyCall(sr){
   var voy=String((sr&&sr.voy)||'').trim();
   var rem=String((sr&&sr.remark)||'').trim();
-  if(/bunker/i.test(voy)) return 'bunker';
+  if(isBunkerOnly(voy) || isBunkerOnly(rem)) return 'bunker';
+  // ② 只是加油信息（没写 bunker only）→ 正常靠泊。放在具体类别之前，
+  //    避免散落到 other / adhoc / docswitch 后被别的类别模式误伤。
+  if(BUNKER_INFO_RE.test(rem) || BUNKER_INFO_RE.test(voy)) return 'noremark';
+  // ③ 以下按原顺序：remark 优先、voy 兜底
   var cr=classifyRemark(rem);
   if(cr!=='other' && cr!=='noremark') return cr;
   var cv=voy ? classifyRemark(voy) : 'noremark';
@@ -4288,8 +4315,9 @@ function buildRemarkFilterDropdown(){
     '<b>Counted</b> as-is · <b>Excluded</b> out of both numerator &amp; denominator · '+
     '<b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0)'+
     '</div>'+
-    '<div class="rm-hint" style="padding-top:0;">Voyage field counts too: ONLYBUNKER / BUNKERONLY, '+
-    'PRIVATECALL / ADDCALL, SWITCHDOCUMENT, OMIT are read as the same categories.</div>';
+    '<div class="rm-hint" style="padding-top:0;">Bunker Only counts only when "bunker only" is written '+
+    '(remark or voyage: ONLYBUNKER / BUNKERONLY). Bunker qty, BUNKER CALL, Bunkering = normal call. '+
+    'Voyage markers PRIVATECALL / ADDCALL / SWITCHDOCUMENT / OMIT still count.</div>';
   REMARK_CATEGORIES.forEach(function(cat){
     if(!usedCats[cat.key] && cat.key!=='other') return;
     var m=remarkModeOf(cat.key);
