@@ -4206,7 +4206,7 @@ var PURE_RCODE_RE = /^\s*R(\d{1,2})(?:\s*[;,\/&+]\s*R\d{1,2})*\s*$/i;
    cls = 规范三类（boa / excluded，供异常清单与导出用）；cat = 网页分类 key。
    留空 = COUNTED 由 classifyRemark() 开头的空值特判处理，不在此表。 */
 var STANDARD_PHRASES = {
-  'previous vessel delay':          {cls:'boa',      cat:'congestion'},
+  'previous vessel etd delay':      {cls:'boa',      cat:'congestion'},
   'tide / draft':                   {cls:'boa',      cat:'tide'},
   'port closure / holiday':         {cls:'boa',      cat:'portclosure'},
   'port closure / weather':         {cls:'boa',      cat:'weather'},
