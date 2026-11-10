@@ -114,6 +114,11 @@ def main():
     our_files = []
     if not args.no_commit:
         sh(["add", "-u"])
+        # 报告级归档是每日新增的**未跟踪**文件, `add -u` 不会带上, 必须显式加,
+        # 否则首跑生成的 rob_reports.jsonl 永远进不了仓库, 线上航次就取不到 BERTH 边界。
+        for extra in ("rob_data/rob_reports.jsonl",):
+            if os.path.exists(os.path.join(REPO, extra)):
+                sh(["add", "--", extra])
         if args.paths:
             sh(["add", "--"] + args.paths)
         st = sh(["diff", "--cached", "--name-only"]).stdout.strip()

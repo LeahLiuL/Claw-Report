@@ -34,6 +34,9 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 DM_HTML = os.path.join(BASE, "cul_daily_movement.html")
 ROB_DIR = os.path.join(BASE, "rob_data")
 HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
+# 报告级归档(harvest_reports.py 产出): 一封报告一行。日快照每船每天只有一条,
+# 而船长每天实际会发 NOON+BERTH+SAILING 多封, BERTH 恰恰是航次边界的取数来源。
+REPORTS_JSONL = os.path.join(ROB_DIR, "rob_reports.jsonl")
 OFFLINE_MARK = "已下线"
 
 
@@ -123,29 +126,75 @@ def load_history(history_csv=HISTORY_CSV, berth_only=False):
     默认 False: 返回全部类型, 由调用方按类型拆分 —— 航次油耗用 BERTH 优先,
     找不到 BERTH 时按需求用当天 NOON 兜底(见 _window_consumption)。
     依赖 rob_history.csv 的 report_type 列已正确标注; 该列由 Outlook 历史回填
-    (backfill_history.py)基于附件正文内容补全。"""
+    (backfill_history.py)基于附件正文内容补全。
+
+    另会合并 rob_data/rob_reports.jsonl(报告级归档, 若存在)。日快照是「船×日=1 行」,
+    同一船的 BERTH/SAILING 报告大量被当天最新一封覆盖; 归档补齐这些时刻后, 航次边界
+    才能取到真正的靠泊读数。**只补日快照里没有的时刻**(同船同分钟视为同一份报告),
+    不覆盖既有口径 —— 保证既有航次数字不因接入归档而突变。"""
     hist = defaultdict(list)  # vessel -> [(dt, oils, rtype), ...]
-    if not os.path.exists(history_csv):
-        return hist
-    try:
-        with open(history_csv, encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                v = (row.get("vessel") or "").strip()
-                if is_offline(v):
-                    continue
-                rt = (row.get("report_type") or "").strip().upper()
-                if berth_only and rt != "BERTH":
-                    continue
-                dt = _parse_rt((row.get("report_time") or "")[:16])
-                if dt is None:
-                    continue
-                oils = (_num(row.get("lsfo")), _num(row.get("hsfo")),
-                        _num(row.get("mgo")), _num(row.get("ulsfo")))
-                if all(o is None for o in oils):
-                    continue
-                hist[v].append((dt, oils, rt))
-    except Exception as e:
-        print("[WARN] voyage: read history failed:", e)
+    seen = set()              # (vessel, 'YYYY-MM-DD HH:MM')
+
+    def _push(v, dt, oils, rt):
+        k = (v, dt.strftime("%Y-%m-%d %H:%M"))
+        if k in seen:
+            return False
+        seen.add(k)
+        hist[v].append((dt, oils, rt))
+        return True
+
+    if os.path.exists(history_csv):
+        try:
+            with open(history_csv, encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    v = (row.get("vessel") or "").strip()
+                    if is_offline(v):
+                        continue
+                    rt = (row.get("report_type") or "").strip().upper()
+                    if berth_only and rt != "BERTH":
+                        continue
+                    dt = _parse_rt((row.get("report_time") or "")[:16])
+                    if dt is None:
+                        continue
+                    oils = (_num(row.get("lsfo")), _num(row.get("hsfo")),
+                            _num(row.get("mgo")), _num(row.get("ulsfo")))
+                    if all(o is None for o in oils):
+                        continue
+                    _push(v, dt, oils, rt)
+        except Exception as e:
+            print("[WARN] voyage: read history failed:", e)
+
+    n_arch = 0
+    if os.path.exists(REPORTS_JSONL):
+        try:
+            with open(REPORTS_JSONL, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        r = json.loads(line)
+                    except Exception:
+                        continue
+                    v = (r.get("vessel") or "").strip()
+                    if not v or is_offline(v):
+                        continue
+                    rt = (r.get("report_type") or "").strip().upper()
+                    if berth_only and rt != "BERTH":
+                        continue
+                    dt = _parse_rt((r.get("received") or "")[:16])
+                    if dt is None:
+                        continue
+                    oils = (_num(r.get("lsfo")), _num(r.get("hsfo")),
+                            _num(r.get("mgo")), _num(r.get("ulsfo")))
+                    if all(o is None for o in oils):
+                        continue
+                    if _push(v, dt, oils, rt):
+                        n_arch += 1
+        except Exception as e:
+            print("[WARN] voyage: read rob_reports failed:", e)
+    if n_arch:
+        print("[voyage] +%d 条报告级读数 (rob_reports.jsonl)" % n_arch)
     return hist
 
 

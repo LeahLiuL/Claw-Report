@@ -223,6 +223,47 @@ def build_folder_list(inbox):
     return out
 
 
+# 默认收件箱树之外、但仍可能躺着船长原始报告的容器。
+# 2026-11-10 实测: 联机存档里存在两个平级收件箱 —— 默认的『收件箱』(66023 封)
+# 和一个英文『Inbox』(824 封), 后者不在任何子树里, 之前的 build_folder_list 从
+# 默认收件箱往下走, 永远扫不到它。垃圾邮件/已删除邮件同理(船长报告被判垃圾是常态)。
+# 刻意**不含『已发送邮件』**: 那里是 Leah 转发的副本, ReceivedTime 是转发时间而非
+# 船长发信时间, 一旦混入会把 report_time 整体后移, 让"最新报告"判定失真。
+EXTRA_CONTAINER_KEYS = ("inbox", "junk email", "垃圾邮件",
+                        "deleted items", "已删除邮件")
+
+
+def build_extra_folders(store, default_inbox):
+    """收集默认收件箱树之外、收信时间真实可用的容器(平级 Inbox/垃圾/已删除)。
+    只下探一层(主邮箱 Deleted Items 下有 Port Condition / Master 子文件夹)。"""
+    out = []
+    try:
+        root = store.GetRootFolder()
+        dname = (default_inbox.Name or "").strip().lower()
+    except Exception:
+        return out
+    try:
+        tops = list(root.Folders)
+    except Exception:
+        return out
+    for f in tops:
+        try:
+            nm = (f.Name or "").strip().lower()
+        except Exception:
+            continue
+        if nm not in EXTRA_CONTAINER_KEYS:
+            continue
+        if nm == dname:          # 默认收件箱已由 build_folder_list 递归覆盖
+            continue
+        out.append(f)
+        try:
+            for c in f.Folders:  # 仅一层, 避免在大存档上反复 COM 往返
+                out.append(c)
+        except Exception:
+            pass
+    return out
+
+
 def build_sender_index(folders, sender_map, per_folder=300, cap_per_sender=15):
     """按用户提供的船长邮箱, 在全部文件夹里预建索引: sender -> 最近若干封邮件(新在前)。
     用 get_sender() 解析真实 SMTP(CULINES 内部 Exchange 存的是 X.500, 直接按 SMTP
@@ -1522,11 +1563,17 @@ def main():
             # 支持多 store(主邮箱 + Vessel Report 等共享邮箱), 分别取收件箱和子文件夹
             all_inboxes = []
             all_folders = []
+            extra_folders = []
             for s in stores:
                 try:
                     _inb = s.GetDefaultFolder(6)
                     all_inboxes.append(_inb)
                     all_folders.extend(build_folder_list(_inb))
+                    ex = build_extra_folders(s, _inb)
+                    if ex:
+                        extra_folders.extend(ex)
+                        print("  + extra containers [%s]: %s"
+                              % (s.DisplayName, [f.Name for f in ex]))
                 except Exception as e:
                     print("[WARN] store %s GetDefaultFolder failed: %s" % (s.DisplayName, e))
             inbox = all_inboxes[0]
@@ -1542,8 +1589,12 @@ def main():
             cache = build_folder_cache(inbox)
             # 全量文件夹列表(含所有 store 的收件箱顶层船文件夹 + 嵌套 + 同名不去重),
             # 供 sender 索引和主题兜底
+            # folder_list 只含收件箱树, 保持常规检索的耗时不变(58 船 × 每文件夹一次
+            # 主题 Restrict)。额外容器近 30 天基本是空的(2026-11-10 实测), 塞进常规
+            # 遍历只会拖慢日常刷新, 因此只在下面的深度兜底里使用。
             folder_list = all_folders
-            sender_index = build_sender_index(all_inboxes + folder_list, sender_map)
+            deep_folders = all_folders + extra_folders
+            sender_index = build_sender_index(all_inboxes + all_folders, sender_map)
             # 全船队 norm(船名 + 船代码): 用于识别"共用文件夹"(MEDKON 里同时有
             # MEDKON DON / MEDKON LIA), 命中这类文件夹时必须按主题认船防串数据
             fleet_norms = set()
@@ -1580,7 +1631,7 @@ def main():
                 print("stale vessels (older than %dh or MISS): %d -> %s"
                       % (STALE_HOURS, len(stale),
                          ", ".join(r["vessel"] for r in stale)))
-                deep_refresh_stale(inbox, folder_list, stale, sender_map,
+                deep_refresh_stale(inbox, deep_folders, stale, sender_map,
                                     all_inboxes=all_inboxes)
             save_sender_map(sender_map)
             print("refreshed this run: %d/%d" % (n_new, len(targets)))
