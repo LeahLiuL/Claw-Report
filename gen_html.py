@@ -2060,8 +2060,10 @@ function _loadXlsx(cb){
   <p style="font-size:11px;color:#8a9bb0;margin:8px 0 12px;line-height:1.6;">
     <b>1 call</b> = one terminal visit already berthed inside the selected window (never later than the data date).
     The window filters on <b>ETB</b>; the default <i>YTD</i> runs from Jan&nbsp;1 to the data date.
-    Bunker-only calls excluded (port marked <i>(Bunkering)</i>, remark <i>Only for bunker</i> / <i>Bunker</i>, or voyage flagged bunker);
-    remarks such as <i>NAS Bunker 180T</i> are real calls and stay counted.
+    Bunker-only calls excluded only when <i>bunker only</i> is written in the remark or voyage
+    (<i>Only for bunker</i>, <i>Bunker Only</i>, <i>ONLYBUNKER</i> / <i>BUNKERONLY</i>) &mdash; same rule as Port Wait.
+    A port marked <i>(Bunkering)</i>, <i>BUNKER CALL</i>, <i>Bunkering</i> or a bunker quantity
+    (e.g. <i>NAS Bunker 180T</i>) is a real call and stays counted.
     Duplicate rows of the same call (same vessel / voyage / port / ETB) are merged &mdash; a genuine second berthing in the same voyage counts separately.
   </p>
   <div id="vcKpis" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;"></div>
@@ -2583,8 +2585,9 @@ function switchTab(viewId, btn){
    VESSEL TERMINAL CALLS (YTD) — 每艘船今年至今靠泊（terminal）次数
    口径：
      · 只算已经靠上的挂靠：ETB 在今年 1/1 ~ 数据日期之间（不含未来计划）
-     · 纯加油挂靠剔除：PORT 带 (Bunkering)、remark 为 Only for bunker / Bunker、
-       或 voy 里带 bunker；remark 只是提到加油（如 NAS Bunker 180T）照常计入
+     · 纯加油挂靠剔除：与 Port Wait 共用 isBunkerOnlyCall(sr)，只有 remark / voy
+       明确写 bunker only 才剔除；PORT 带 (Bunkering)、只写 BUNKER CALL /
+       Bunkering / 油量（如 NAS Bunker 180T）照常计入
      · 同一次挂靠被重复记录（同船/同航次/同港/同 ETB）合并为 1 次；
        同一航次在同一港口真正二次进靠（ETB 不同）算 2 次
      · 已下线船受 "Show 已下线" 开关控制
@@ -2599,14 +2602,11 @@ function vcTrimLower(s){
   return t.toLowerCase();
 }
 
-/* 纯加油挂靠？（注意：remark 里顺带提到加油的真挂靠不算） */
+/* 纯加油挂靠？两页共用 isBunkerOnlyCall()（Port Wait 侧同一真源），
+   避免 Vessel Calls 用旧口径把只写了加油量 / BUNKER CALL 的真靠泊剔掉。
+   判定只看 remark / voy 里有没有明确写 bunker only。 */
 function vcIsBunkerOnly(sr){
-  if((String(sr.port||'')).toLowerCase().indexOf('bunker')>=0) return true;
-  var rk=vcTrimLower(sr.remark).split(' ').filter(function(x){return x;}).join(' ');
-  if(rk.indexOf('only for bunker')===0) return true;
-  if(rk==='bunker'||rk==='bunkering') return true;
-  if((String(sr.voy||'')).toLowerCase().indexOf('bunker')>=0) return true;
-  return false;
+  return isBunkerOnlyCall(sr);
 }
 
 /* ── 时间窗口：默认本年 1/1 → 数据日期；可选，不许超出数据日期或早于年初 ── */
@@ -4114,6 +4114,15 @@ function isBunkerOnly(s){
   if(/\bbunker\w*(?: \w+)? only\b/.test(t)) return true;           // bunker ... only
   return false;
 }
+/* 两页共用的唯一入口：这一条挂靠是不是「纯加油挂靠」。
+   Port Wait（buildPortWaitData / getFilteredCalls / buildBoaCalls / 港口下拉）
+   与 Vessel Calls（vcBuild）都走这里，同一条记录两页不会各算各的。
+   只看 remark / voy 有没有明确写 bunker only；port 名带 (Bunkering)、
+   只写 BUNKER CALL / Bunkering / 油量的，一律是正常靠泊。 */
+function isBunkerOnlyCall(sr){
+  if(!sr) return false;
+  return isBunkerOnly(sr.remark) || isBunkerOnly(sr.voy);
+}
 /* 加油「信息」识别（不含裸 supply / fuel，避免误抓 "crane power supply"
    和 "fuel supply unit heater" 这类设备故障）。命中但没写 bunker only
    的记录由 classifyCall() 直接归 noremark，按正常靠泊计入。 */
@@ -4238,7 +4247,7 @@ function classifyRemark(remark){
      ④ remark 为空/归不出  → 用 voy 里的其它标记
    纯航次号（2639W 之类）不命中任何关键词，仍归 noremark / other。
    voy 里只写 BUNKER / BUNKERCALL、或 remark 里只写加油量的，不再进 bunker。
-   注意：Vessel Calls 页的 vcIsBunkerOnly() 目前仍是旧口径，如需统一要单独改。 */
+   两页统一：Vessel Calls 的 vcIsBunkerOnly() 现在直接调用 isBunkerOnlyCall(sr)。 */
 function classifyCall(sr){
   var voy=String((sr&&sr.voy)||'').trim();
   var rem=String((sr&&sr.remark)||'').trim();
@@ -4316,7 +4325,7 @@ function buildRemarkFilterDropdown(){
     '<b>BOA</b> kept in the denominator and counted as berth-on-arrival (wait &#8594; 0)'+
     '</div>'+
     '<div class="rm-hint" style="padding-top:0;">Bunker Only counts only when "bunker only" is written '+
-    '(remark or voyage: ONLYBUNKER / BUNKERONLY). Bunker qty, BUNKER CALL, Bunkering = normal call. '+
+    '(remark or voyage: ONLYBUNKER / BUNKERONLY). Bunker qty, BUNKER CALL, Bunkering, port tagged (Bunkering) = normal call. '+
     'Voyage markers PRIVATECALL / ADDCALL / SWITCHDOCUMENT / OMIT still count.</div>';
   REMARK_CATEGORIES.forEach(function(cat){
     if(!usedCats[cat.key] && cat.key!=='other') return;
@@ -4429,7 +4438,7 @@ function buildPortFilterDropdown(){
   var allPorts={};
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var p=normalizePort(sr.port);
-    if(p && !isBunkeringPort(sr.port)) allPorts[p]=true;
+    if(p) allPorts[p]=true;   // 港口名 (Bunkering) 不再排除，见 isBunkerOnlyCall()
   });
   var sorted=Object.keys(allPorts).sort();
   var kw = (document.getElementById('portFilterSearchBox') ? document.getElementById('portFilterSearchBox').value : '').toLowerCase();
@@ -4639,7 +4648,8 @@ function normalizePort(p){
   return s.trim();
 }
 
-// Is this a bunkering-only call?
+// 港口名里带 (Bunkering) 只是加油信息，不再作为排除依据（Leah 2026-11-09 口径）。
+// 函数保留供展示/诊断使用；是否排除统一走 isBunkerOnlyCall(sr)。
 function isBunkeringPort(p){
   return /bunker/i.test(p||'');
 }
@@ -4658,8 +4668,8 @@ function buildPortWaitData(){
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
-    // Skip bunkering-only calls
-    if(isBunkeringPort(rawPort)) return;
+    // 纯加油挂靠不再按港口名跳过：统一交给 classifyCall() + remarkMode，
+    // 与 Vessel Calls 同口径（只有写了 bunker only 才排除，且仍可在明细里查看）
     var port=normalizePort(rawPort);
     if(!port) return;
 
@@ -5038,7 +5048,6 @@ function getFilteredCalls(){
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
-    if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
     var era=portWaitDateRaw(sr);
@@ -5435,7 +5444,6 @@ function buildBoaCalls(){
   TODAY_DATA.fullSchedule.forEach(function(sr){
     var rawPort=sr.port||'';
     if(!rawPort) return;
-    if(isBunkeringPort(rawPort)) return;
     var port=normalizePort(rawPort);
     if(!port) return;
     var era=portWaitDateRaw(sr);
