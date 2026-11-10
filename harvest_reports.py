@@ -89,7 +89,13 @@ def make_key(vessel, recv, subject):
 
 
 def build_pool(folders, cutoff, label=""):
-    """扫一遍给定文件夹, 返回带附件的邮件池。每封只读一次必要属性。"""
+    """扫一遍给定文件夹, 返回带附件的邮件池。
+
+    ⚠️ 池里只存 EntryID + StoreID, **不存 COM 邮件对象**。
+    2026-11-10 实测: 直接把 `it` 缓存在池里, 扫完 192 个文件夹(约 8,000 封)后
+    这些引用全部失效, 后续 `it.Attachments` 抛异常又被上层 except 吞掉,
+    结果 51 艘船里 49 艘归档 0 条(只有先处理的船侥幸成功)。按 ID 重新取才可靠。
+    """
     filt = "[ReceivedTime] >= '%s'" % cutoff.strftime("%m/%d/%Y %I:%M %p")
     pool = []
     t_all = time.time()
@@ -102,6 +108,10 @@ def build_pool(folders, cutoff, label=""):
             fname = fo.Name or ""
         except Exception:
             fname = "?"
+        try:
+            sid = fo.StoreID
+        except Exception:
+            sid = ""
         fnorm = R.norm(fname)
         n = 0
         try:
@@ -117,7 +127,7 @@ def build_pool(folders, cutoff, label=""):
                     eid = it.EntryID
                 except Exception:
                     continue
-                pool.append({"eid": eid, "it": it, "recv": recv, "subj": subj,
+                pool.append({"eid": eid, "sid": sid, "recv": recv, "subj": subj,
                              "sn": R.norm(subj), "fn": fnorm, "folder": fname})
                 n += 1
         except Exception:
@@ -160,7 +170,23 @@ def main():
     ap.add_argument("--no-extra", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="邮件池小于阈值时仍继续(默认中止, 防止静默产出空归档)")
+    ap.add_argument("--no-guard", action="store_true",
+                    help="跳过 Outlook 健康检查/自动重启")
     args = ap.parse_args()
+
+    # Outlook 自检 + 自愈: 断链会静默产出空归档, 必须在抓取前先确认它真的能用。
+    # 恢复不了就直接退出(非零), 让 rob_update.bat 记录警告并保留既有归档。
+    if not args.no_guard:
+        try:
+            import outlook_guard
+            outlook_guard.ensure_ready()
+        except ImportError:
+            print("[GUARD] outlook_guard.py 不存在, 跳过自检", flush=True)
+        except Exception as e:
+            print("[GUARD][FAIL] %s" % e, flush=True)
+            print("[GUARD] Outlook 无法恢复到可用状态, 本轮跳过抓取"
+                  "(保留既有归档, 下一轮重试)", flush=True)
+            return 1
 
     if args.rebuild and os.path.exists(OUT_FILE):
         os.remove(OUT_FILE)
@@ -207,30 +233,51 @@ def main():
         return 1
 
     n_new = 0
+    # 按 ID 重取邮件对象 —— 池里不持有 COM 引用(见 build_pool 说明)
+    import win32com.client
+    _ns = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+
+    def _get_item(p):
+        try:
+            return _ns.GetItemFromID(p["eid"], p["sid"]) if p.get("sid") \
+                else _ns.GetItemFromID(p["eid"])
+        except Exception:
+            return None
+
     fout = open(OUT_FILE, "a", encoding="utf-8")
     for i, rec in enumerate(fleet, 1):
         t0 = time.time()
         cands = pick(rec, pool)
         rows = []
         tried = 0
+        sk_noatt = 0      # 没有可解析的 xlsx 附件
+        sk_dead = 0       # 邮件对象取不回来(EntryID 失效)
+        sk_parse = 0      # 能读文件但解不出油量
         for p in cands:
             if tried >= args.max_per_vessel:
                 break
             key = make_key(rec["vessel"], str(p["recv"]), p["subj"])
             if key in done:
                 continue
+            it = _get_item(p)
+            if it is None:
+                sk_dead += 1
+                continue
             try:
-                att = R.pick_report_attachment(p["it"])
+                att = R.pick_report_attachment(it)
             except Exception:
                 att = None
             if att is None:
+                sk_noatt += 1
                 continue
             tried += 1
             try:
                 rob = R.extract_rob(att)
             except Exception:
+                sk_parse += 1
                 continue
             if not any(k in rob for k in OIL_KEYS):
+                sk_parse += 1
                 continue
             try:
                 aname = att.FileName or ""
@@ -257,9 +304,10 @@ def main():
             fout.write(json.dumps(r, ensure_ascii=False) + "\n")
         fout.flush()
         n_new += len(rows)
-        print("[%2d/%2d] %-24s cand=%-4d new=%-3d cum=%-5d (%.0fs)"
+        print("[%2d/%2d] %-24s cand=%-4d new=%-3d cum=%-5d "
+              "skip(noatt=%d dead=%d parse=%d) (%.0fs)"
               % (i, len(fleet), rec["vessel"], len(cands), len(rows), n_new,
-                 time.time() - t0), flush=True)
+                 sk_noatt, sk_dead, sk_parse, time.time() - t0), flush=True)
     fout.close()
     print("\nDONE archived_new=%d total=%d -> %s" % (n_new, len(done), OUT_FILE))
 

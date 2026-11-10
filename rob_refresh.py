@@ -1556,6 +1556,18 @@ def main():
     if not args.no_outlook:
         sender_map = load_sender_map()
         OL_STATE["attempted"] = True      # 区分"没连上"和"压根没尝试(--no-outlook 重建)"
+        # Outlook 自检 + 自愈。资源耗尽时 connect_outlook 仍能拿到 store,
+        # 但 Restrict 静默返回空集 —— 刷新会"成功"却把当天写成"无报告",
+        # 比直接连不上更危险(会覆盖掉正确数据)。恢复不了就放弃本轮, 保留既有数据。
+        try:
+            import outlook_guard
+            outlook_guard.ensure_ready()
+        except ImportError:
+            print("[WARN] outlook_guard.py 不存在, 跳过自检")
+        except Exception as _ge:
+            print("[WARN] Outlook 无法恢复到可用状态(%s), 放弃本轮刷新, 保留既有数据"
+                  % str(_ge)[:120])
+            return 1
         stores = connect_outlook()
         if not stores:
             print("[WARN] CULINES Outlook store not found, keep old data")
