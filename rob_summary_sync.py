@@ -69,13 +69,16 @@ def _outlook_alive():
         return False
 
 
-def ensure_outlook(max_wait=300, minimize=True):
-    """保证 Outlook 可用: 没开就拉起, 并等 Exchange 缓存同步到可用为止。
+def ensure_outlook(max_wait=600, minimize=True):
+    """保证 Outlook 可用: 没开就拉起, 并等 Exchange 缓存**完全**同步(mode>=700)。
 
     为什么要等: Outlook 刚启动时"进程在、能连 COM", 但缓存还没同步完,
     此时 Restrict 只返回已同步的那一小部分 —— 刷新会照常跑完却抓不到新报告,
-    且看不出任何异常(2026-09-22 / 10-09 都栽在这里)。
+    且看不出任何异常(2026-09-22 / 10-09 / 11-09 都栽在这里, 11-09 丢了 10 艘)。
+    2026-11-10 收紧: mode<700 时不再放行, 等满 max_wait 仍未就绪则 exit(2),
+    由调用方 bat 跳过本轮, 留待下个时段自动补抓。
     """
+    import sys
     import time
     import subprocess
     import win32com.client
@@ -104,20 +107,22 @@ def ensure_outlook(max_wait=300, minimize=True):
                 mode = ns.ExchangeConnectionMode
             except Exception:
                 pass
-            if mode:                       # 0 = 还没建立 Exchange 连接
+            if mode and mode >= 700:       # 0 = 还没建立 Exchange 连接
                 try:
                     n = ns.GetDefaultFolder(6).Items.Count
                 except Exception:
                     n = 0
-                if n > 200:                # 收件箱有货 = 缓存可用
+                if n > 200:                # 收件箱有货 + 缓存完全连接 = 可安全扫描
                     break
         except Exception:
             pass
         time.sleep(5)
 
     print("[outlook] ready: mode=%s inbox=%d (%.0fs)" % (mode, n, time.time() - t0))
-    if mode and mode < 700:
-        print("[outlook][WARN] mode=%s < 700, 缓存可能还没全同步, 结果可能不全" % mode)
+    if not mode or mode < 700:
+        print("[outlook][SKIP] cache not synced after %.0fs (mode=%s) -> exit 2; next scheduled run will backfill"
+              % (time.time() - t0, mode))
+        sys.exit(2)
 
     if started and minimize and app is not None:
         try:

@@ -45,12 +45,21 @@ def norm(s):
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-def ensure_outlook():
-    """Make sure Outlook is running and the MAPI cache is warm."""
+def ensure_outlook(max_wait=600):
+    """Make sure Outlook is running and the MAPI cache is FULLY synced.
+
+    Only mode >= 700 (cached-connected-full) is safe to scan.  Dispatch can
+    succeed while the cache is still syncing (mode=400 right after launch):
+    scanning then silently misses most reports (2026-11-09 lost 10 vessels
+    this way).  So wait up to max_wait; on timeout exit(2) so the calling
+    .bat skips this round instead of pushing half-synced data.
+    """
     import subprocess
+    import sys
     import time
     import win32com.client
 
+    app = None
     try:
         app = win32com.client.Dispatch("Outlook.Application")
         ns = app.GetNamespace("MAPI")
@@ -58,37 +67,46 @@ def ensure_outlook():
             ns.Logon("", "", False, False)
         except Exception:
             pass
-        return app, ns
     except Exception:
-        pass
+        app = None
 
-    # Not available -> try to launch Outlook
-    paths = [
-        r"C:\Program Files\Microsoft Office\Root\Office16\OUTLOOK.EXE",
-        r"C:\Program Files (x86)\Microsoft Office\Root\Office16\OUTLOOK.EXE",
-        r"C:\Program Files\Microsoft Office\Office16\OUTLOOK.EXE",
-    ]
-    p = next((x for x in paths if os.path.exists(x)), None)
-    if p:
+    if app is None:
+        paths = [
+            r"C:\Program Files\Microsoft Office\Root\Office16\OUTLOOK.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Root\Office16\OUTLOOK.EXE",
+            r"C:\Program Files\Microsoft Office\Office16\OUTLOOK.EXE",
+        ]
+        p = next((x for x in paths if os.path.exists(x)), None)
+        if not p:
+            print("[outlook] unavailable and OUTLOOK.EXE not found")
+            sys.exit(2)
         print("[outlook] not running, launching: %s" % p)
         subprocess.Popen([p])
-        for _ in range(60):  # up to ~5 min
-            time.sleep(5)
+
+    mode = 0
+    t0 = time.time()
+    while time.time() - t0 < max_wait:
+        try:
+            app = win32com.client.Dispatch("Outlook.Application")
+            ns = app.GetNamespace("MAPI")
             try:
-                app = win32com.client.Dispatch("Outlook.Application")
-                ns = app.GetNamespace("MAPI")
                 ns.Logon("", "", False, False)
-                try:
-                    if ns.ExchangeConnectionMode == 700:
-                        print("[outlook] ready (mode=700)")
-                        return app, ns
-                except Exception:
-                    pass
-                print("[outlook] waiting for sync ...")
             except Exception:
-                continue
-        raise RuntimeError("Outlook did not become ready in time")
-    raise RuntimeError("Outlook unavailable and OUTLOOK.EXE not found")
+                pass
+            try:
+                mode = ns.ExchangeConnectionMode or 0
+            except Exception:
+                mode = 0
+            if mode >= 700:
+                print("[outlook] ready (mode=%s, %.0fs)" % (mode, time.time() - t0))
+                return app, ns
+        except Exception:
+            pass
+        print("[outlook] waiting for sync (mode=%s, %.0fs elapsed) ..." % (mode, time.time() - t0))
+        time.sleep(10)
+
+    print("[outlook][SKIP] cache not synced after %.0fs (mode=%s) -> exit 2; next scheduled run will backfill" % (max_wait, mode))
+    sys.exit(2)
 
 
 def walk_folders(f, depth=0, out=None):
