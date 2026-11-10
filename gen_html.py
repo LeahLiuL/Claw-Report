@@ -4200,21 +4200,47 @@ function remarkColor(key){ return REMARK_COLORS[key] || '#95a5a6'; }
 // 纯 R 码形式：整句只由 R# 与分隔符组成（"R1"、"R1/R5"、"R4; R10"、"R9/R1/R2"）
 var PURE_RCODE_RE = /^\s*R(\d{1,2})(?:\s*[;,\/&+]\s*R\d{1,2})*\s*$/i;
 
+/* 10 句标准 remark → 网页细分类别（Leah 2026-11-10 定稿）。
+   只比对第一个逗号前的文字、整句精确匹配；未命中仍走原有关键词 / R 码逻辑，
+   所以历史 remark 的归类与所有统计数字完全不变。
+   cls = 规范三类（boa / excluded，供异常清单与导出用）；cat = 网页分类 key。
+   留空 = COUNTED 由 classifyRemark() 开头的空值特判处理，不在此表。 */
+var STANDARD_PHRASES = {
+  'previous vessel delay':          {cls:'boa',      cat:'congestion'},
+  'tide / draft':                   {cls:'boa',      cat:'tide'},
+  'port closure / holiday':         {cls:'boa',      cat:'portclosure'},
+  'port closure / weather':         {cls:'boa',      cat:'weather'},
+  'terminal equipment / operation': {cls:'boa',      cat:'equipment'},
+  'commercial / cargo / pfs':       {cls:'boa',      cat:'cargo'},
+  'inspection / customs':           {cls:'boa',      cat:'inspection'},
+  'vessel breakdown / repair':      {cls:'boa',      cat:'vslfault'},
+  'bunker supply only':             {cls:'excluded', cat:'bunker'},
+  'doc switch only':                {cls:'excluded', cat:'docswitch'}
+};
+function standardPhraseOf(remark){
+  var r=String(remark||'').trim();
+  if(!r) return null;
+  return STANDARD_PHRASES[r.split(',')[0].trim().toLowerCase()] || null;
+}
+
 function classifyRemark(remark){
   // 无备注（含纯空白）→ 独立成档 'noremark'，不再混进 'other'。
   // 'other' 现在只代表「有备注但归类不出」，实测只有 12 条。
   if(!String(remark||'').trim()) return 'noremark';
   var r=String(remark);
-  // ① R 码优先：按 R_CODE_MAP 映射到语义类别（组合码取第一个 = 主因）
+  // ① 标准短语优先：只比对第一个逗号前的文字，整句精确匹配
+  var sp=standardPhraseOf(r);
+  if(sp) return sp.cat;
+  // ② R 码优先：按 R_CODE_MAP 映射到语义类别（组合码取第一个 = 主因）
   var rm=r.match(PURE_RCODE_RE);
   if(rm){
     var mapped=R_CODE_MAP['R'+parseInt(rm[1],10)];
     if(mapped) return mapped;
     return 'other';           // 未知 R 码（如 R11）
   }
-  // ② 纯加油挂靠优先：明确写了 bunker only 就直接归 bunker
+  // ③ 纯加油挂靠优先：明确写了 bunker only 就直接归 bunker
   if(isBunkerOnly(r)) return 'bunker';
-  // ③ 否则按语义类顺序匹配，先命中先归
+  // ④ 否则按语义类顺序匹配，先命中先归
   var rl=r.toLowerCase();
   // 末尾两项不参与关键词匹配：'noremark' 由开头特判，'other' 是全部落空时的兜底。
   // 原先写成 length-1 只跳过最后一项，新增分类时会静默错位。
@@ -4247,7 +4273,8 @@ function classifyRemark(remark){
      ④ remark 为空/归不出  → 用 voy 里的其它标记
    纯航次号（2639W 之类）不命中任何关键词，仍归 noremark / other。
    voy 里只写 BUNKER / BUNKERCALL、或 remark 里只写加油量的，不再进 bunker。
-   两页统一：Vessel Calls 的 vcIsBunkerOnly() 现在直接调用 isBunkerOnlyCall(sr)。 */
+   两页统一：Vessel Calls 的 vcIsBunkerOnly() 现在直接调用 isBunkerOnlyCall(sr)。
+   标准短语由 classifyRemark() 内的 STANDARD_PHRASES 精确匹配优先处理。 */
 function classifyCall(sr){
   var voy=String((sr&&sr.voy)||'').trim();
   var rem=String((sr&&sr.remark)||'').trim();
