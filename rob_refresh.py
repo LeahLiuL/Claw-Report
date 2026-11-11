@@ -80,6 +80,38 @@ def drop_offline(fleet):
     return keep
 
 
+def load_offline_fleet():
+    """已下线船清单（船名带 `-已下线` 后缀，来自船期表）。
+
+    2026-11-11: 这些船默认**不进主表**（drop_offline 已在 load_fleet 里剔除），
+    但需要在页面上留一个开关能查看/导出，所以单独产出这份清单。
+    只取标识信息，ROB 读数在 build_html 里从历史 CSV 补最后一笔。
+    """
+    out = []
+    if not os.path.exists(DM_HTML):
+        return out
+    try:
+        html = open(DM_HTML, encoding="utf-8").read()
+        m = re.search(r"const\s+TODAY_DATA\s*=\s*", html)
+        if not m:
+            return out
+        data, _ = json.JSONDecoder().raw_decode(html[m.end():])
+        for v in data.get("vessels", []):
+            raw = (v.get("vessel") or "").strip()
+            if not is_offline(raw):
+                continue
+            out.append({
+                "vessel": raw.replace("-" + OFFLINE_MARK, "").replace(OFFLINE_MARK, "").strip(),
+                "name_raw": raw,
+                "code": (v.get("code") or "").strip(),
+                "lane": (v.get("route") or "").strip(),
+                "pic": (v.get("pic") or "").strip(),
+            })
+    except Exception as e:
+        print("[WARN] load_offline_fleet failed:", e)
+    return out
+
+
 def load_fleet():
     if os.path.exists(DM_HTML):
         try:
@@ -1021,6 +1053,40 @@ def build_html(results):
                     })
         except Exception as e:
             print("[WARN] read history csv failed:", e)
+    # ---- 已下线船(默认不展示, 前端『已下线』开关控制显隐/导出) ----
+    # 主表 vessels 已剔除下线船; 这里单独出一份, 取历史 CSV 里最后一笔有效读数作参考,
+    # 让用户点开开关时能看到「退租前最后的 ROB」而不是一片空白。
+    offline = []
+    try:
+        _offl = load_offline_fleet()
+        if _offl:
+            _last = {}
+            _offnames = {o["vessel"] for o in _offl}
+            if os.path.exists(HISTORY_CSV):
+                with open(HISTORY_CSV, encoding="utf-8-sig") as f:
+                    for row in csv.DictReader(f):
+                        v = (row.get("vessel") or "").strip()
+                        if v not in _offnames:
+                            continue
+                        oils = [_num(row.get("lsfo")), _num(row.get("hsfo")),
+                                _num(row.get("mgo")), _num(row.get("ulsfo"))]
+                        if all(o is None for o in oils):
+                            continue
+                        key = (row.get("report_time") or row.get("date") or "")[:19]
+                        if key >= _last.get(v, {}).get("report_time", ""):
+                            _last[v] = {"report_time": key, "ls": oils[0], "hs": oils[1],
+                                        "mg": oils[2], "us": oils[3]}
+            for o in _offl:
+                r = _last.get(o["vessel"], {})
+                o.update({"rob_lsfo": r.get("ls"), "rob_hsfo": r.get("hs"),
+                          "rob_mgo": r.get("mg"), "rob_ulsfo": r.get("us"),
+                          "report_time": r.get("report_time", ""),
+                          "last_date": (r.get("report_time") or "")[:10]})
+                offline.append(o)
+            print("Offline: %d vessels (default hidden) -> %s"
+                  % (len(offline), ", ".join(o["vessel"] for o in offline)))
+    except Exception as e:
+        print("[WARN] build offline list failed:", e)
     # ---- 加油事件: 渲染前优先从《燃油添加日志》Excel 实时重抓(仅体积 MT, 价格不上网) ----
     # 2026-10-21: 让本机刷新/部署时直接吃最新加油日志, 不再依赖 culadmin 推到 git 的滞后版本。
     # 找不到 Excel / openpyxl 缺失 / 任何异常 -> 静默退回下面磁盘上的 bunkering*.json(零回归)。
@@ -1083,6 +1149,7 @@ def build_html(results):
         _upd += "  [邮件池 %s-深度兜底可能漏抓]" % OL_STATE.get("pool_size")
     payload = {"updated": _upd,
                "vessels": vessels,
+               "offline": offline,
                "history": history,
                "bunkering": bunkering,
                "bunkering_types": bunker_types,

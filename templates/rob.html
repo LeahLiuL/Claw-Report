@@ -69,6 +69,17 @@ function _loadXlsx(cb) {
                    outline: none; width: 300px; }
   .toolbar input:focus { border-color: #2E75B6; }
   .toolbar .hint { font-size: 12px; color: #8a99ab; align-self: center; }
+  /* 已下线船开关: 默认关闭(主表不显示), 点开后才并入表格与导出 */
+  .btn-off { padding: 7px 14px; border: 1px solid #b9c6d6; background: #fff; border-radius: 6px;
+             font-size: 13px; color: #5a6e82; cursor: pointer; transition: .15s; white-space: nowrap; }
+  .btn-off:hover { border-color: #8a99ab; color: #1F4E79; }
+  .btn-off.on { background: #6b7785; border-color: #6b7785; color: #fff; font-weight: 600; }
+  .btn-off .cnt { opacity: .75; font-size: 12px; margin-left: 3px; }
+  tr.off td { background: #f6f7f9; color: #8a94a6; font-style: italic; }
+  tr.off td.vessel { font-style: normal; }
+  .off-badge { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 9px;
+               background: #dfe4ea; color: #5a6e82; font-size: 10px; font-weight: 700;
+               letter-spacing: .3px; font-style: normal; vertical-align: middle; }
   .tablewrap { padding: 0 28px 30px; overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden;
           box-shadow: 0 2px 10px rgba(31,78,121,.10); font-size: 13px; }
@@ -191,6 +202,8 @@ function _loadXlsx(cb) {
       <span class="lbl">To:</span><input type="date" id="dashTo" onchange="dashModeChange()">
     </span>
     <button id="dashReset" onclick="dashReset()">Reset</button>
+    <button id="offBtn" class="btn-off" onclick="toggleOffline()"
+            title="已下线/退租船默认不显示。点此把它们的最后一笔 ROB 并入表格，导出也随之包含。">已下线<span class="cnt" id="offCnt"></span></button>
     <span class="hint" id="dashHint">Click column headers to sort</span>
   </div>
   <div id="dashBanner" class="dash-banner" style="display:none"></div>
@@ -340,6 +353,8 @@ function _loadXlsx(cb) {
 <script>
 var ENC = "__ENC__";
 var DATA = null, sortKey = "seq", sortAsc = true;
+// 已下线船: 默认隐藏, 由工具栏『已下线』开关控制是否并入表格/导出
+var SHOW_OFF = false;
 
 function tryUnlock(pwd) {
   try {
@@ -367,6 +382,9 @@ function enterApp() {
     stat(DATA.vessels.length - found, 'Missing / No Report', true);
   buildHistIndex();
   dashSetDateBounds();
+  var offs = (DATA.offline || []);
+  document.getElementById('offCnt').textContent = offs.length ? '(' + offs.length + ')' : '';
+  document.getElementById('offBtn').style.display = offs.length ? '' : 'none';
   renderRows();
 }
 function stat(n, lbl, miss) {
@@ -465,6 +483,54 @@ function computeDashRows(mode) {
     return d;
   });
 }
+// 已下线船行: 只在 Latest 模式给出退租前最后一笔 ROB, 其他模式没有该窗口数据
+function computeOfflineRows(mode) {
+  return (DATA.offline || []).map(function(v) {
+    var d = { vessel:v.vessel, nameRaw:v.name_raw, code:v.code, lane:v.lane, pic:v.pic, seq:'',
+              off:true, found:false,
+              rob_lsfo:null, rob_hsfo:null, rob_ulsfo:null, rob_mgo:null,
+              report_time:v.report_time || '', remark:'Offline vessel / 已下线' };
+    if (mode === 'latest') {
+      d.rob_lsfo = (v.rob_lsfo===undefined?null:v.rob_lsfo);
+      d.rob_hsfo = (v.rob_hsfo===undefined?null:v.rob_hsfo);
+      d.rob_ulsfo = (v.rob_ulsfo===undefined?null:v.rob_ulsfo);
+      d.rob_mgo = (v.rob_mgo===undefined?null:v.rob_mgo);
+      d.report_time = v.report_time || '';
+      d.found = !!(v.report_time);
+      d.remark = 'Offline vessel / 已下线';
+    } else if (mode === 'range') {
+      d.s_ls=d.s_hs=d.s_us=d.s_mg=null; d.c_ls=d.c_hs=d.c_us=d.c_mg=null;
+      d.bunker=null; d.net=null; d.report_time='';
+    }
+    return d;
+  });
+}
+// 表格与导出共用的行集合 —— 保证「导出 = 屏幕上看到的」
+function currentDashRows() {
+  var mode = document.getElementById('dashMode').value;
+  var q = (document.getElementById('q').value || '').toLowerCase();
+  var vs = computeDashRows(mode);
+  if (SHOW_OFF) vs = vs.concat(computeOfflineRows(mode));
+  vs = vs.filter(function(v) {
+    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + (v.pic||'')).toLowerCase().indexOf(q) >= 0;
+  });
+  return vs.slice().sort(function(a, b) {
+    var x = a[sortKey], y = b[sortKey];
+    if (x === null || x === undefined) x = '';
+    if (y === null || y === undefined) y = '';
+    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
+    x = String(x); y = String(y);
+    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
+  });
+}
+function toggleOffline() {
+  SHOW_OFF = !SHOW_OFF;
+  var b = document.getElementById('offBtn');
+  b.classList.toggle('on', SHOW_OFF);
+  b.title = SHOW_OFF ? '已并入表格（导出也会包含）。再点一次隐藏。'
+                     : '已下线/退租船默认不显示。点此把它们的最后一笔 ROB 并入表格，导出也随之包含。';
+  renderRows();
+}
 // 当前模式下主表列定义
 function dashColumns(mode) {
   var idC = [ {k:'seq',t:'No.',c:'c'}, {k:'vessel',t:'Vessel Name',c:'vessel'},
@@ -533,18 +599,7 @@ function updateDashStats(rows, mode) {
 
 function renderRows() {
   var mode = document.getElementById('dashMode').value;
-  var q = (document.getElementById('q').value || '').toLowerCase();
-  var vs = computeDashRows(mode).filter(function(v) {
-    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
-  });
-  vs = vs.slice().sort(function(a, b) {
-    var x = a[sortKey], y = b[sortKey];
-    if (x === null || x === undefined) x = '';
-    if (y === null || y === undefined) y = '';
-    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
-    x = String(x); y = String(y);
-    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
-  });
+  var vs = currentDashRows();
   document.getElementById('dashHead').innerHTML = dashColumnsHtml(mode);
   document.querySelectorAll('#dashHead th[data-k]').forEach(function(th) {
     th.onclick = function() {
@@ -556,10 +611,13 @@ function renderRows() {
   var cols = dashColumns(mode);
   var h = '';
   vs.forEach(function(v) {
-    h += '<tr>';
+    h += '<tr' + (v.off ? ' class="off"' : '') + '>';
     cols.forEach(function(col) {
       var val = v[col.k];
-      if (col.k === 'vessel') { h += '<td class="vessel">' + (val||'') + '</td>'; }
+      if (col.k === 'vessel') {
+        h += '<td class="vessel">' + (val||'') +
+             (v.off ? '<span class="off-badge">已下线</span>' : '') + '</td>';
+      }
       else if (col.k === 'remark') { h += '<td class="'+(v.found?'':'miss')+'">'+(v.found?'':(v.remark||''))+'</td>'; }
       else if (col.k === 'order' || col.k === 'orderd' || col.k === 'special' || col.k === 'planned') { h += '<td></td>'; }
       else { h += '<td class="'+(col.c==='n'?'n':'c')+'">'+fmt(val)+'</td>'; }
@@ -567,7 +625,7 @@ function renderRows() {
     h += '</tr>';
   });
   document.getElementById('rows').innerHTML = h;
-  updateDashStats(vs, mode);
+  updateDashStats(vs.filter(function(v){ return !v.off; }), mode);
 }
 var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC', 'PIC',
                       'ROB LSFO', 'ROB HSFO', 'ROB ULSFO', 'ROB MGO', 'Draft FWD', 'Draft MID', 'Draft AFT', 'Order Status',
@@ -576,18 +634,8 @@ var EXPORT_HEADERS = ['No.', 'Vessel Name', 'Vessel Code', 'Lane', 'Bunker PIC',
 function exportExcel() {
   if (!window.XLSX) { _loadXlsx(exportExcel); return; }
   var mode = document.getElementById('dashMode').value;
-  var q = (document.getElementById('q').value || '').toLowerCase();
-  var vs = computeDashRows(mode).filter(function(v) {
-    return !q || (v.vessel + ' ' + v.code + ' ' + v.lane + ' ' + v.pic).toLowerCase().indexOf(q) >= 0;
-  });
-  vs = vs.slice().sort(function(a, b) {
-    var x = a[sortKey], y = b[sortKey];
-    if (x === null || x === undefined) x = '';
-    if (y === null || y === undefined) y = '';
-    if (typeof x === 'number' && typeof y === 'number') return sortAsc ? x - y : y - x;
-    x = String(x); y = String(y);
-    return sortAsc ? x.localeCompare(y) : y.localeCompare(x);
-  });
+  // 与屏幕完全一致: 搜索词 / 排序 / 已下线开关 全部生效
+  var vs = currentDashRows();
   var cols = dashColumns(mode);
   if (mode === 'latest') {
     cols = cols.concat([{k:'draft_fwd',t:'Draft FWD'},{k:'draft_mid',t:'Draft MID'},{k:'draft_aft',t:'Draft AFT'}]);
@@ -601,6 +649,7 @@ function exportExcel() {
         return dv ? (dv[c.k]===null?'':dv[c.k]) : '';
       }
       var val = v[c.k];
+      if (c.k === 'vessel' && v.off) val = (v.vessel || '') + ' (已下线)';
       if (c.k === 'remark') val = v.found ? '' : (v.remark || '');
       return (val === null || val === undefined) ? '' : val;
     }));
