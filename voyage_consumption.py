@@ -227,7 +227,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     for _src in (berth_series, noon_series):
         for _p in _src:
             for _k in range(4):
-                if _p[1][_k] is not None and _p[1][_k] > 0:
+                if (_p[1][_k] is not None and 0 < _p[1][_k] <= 5000.0):
                     has_pos[_k] = True
     if bunker_by_date:
         for dstr, tmap in bunker_by_date.items():
@@ -240,6 +240,10 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
     # 期末允许紧邻下一航次首港 berth 的最大滞后(超过则视为更晚航次的读数, 不应用于本航次)
     END_GAP = datetime.timedelta(days=10)
+    # 单油种 ROB 物理上限: 中联船队最大船单一油种存油也在 3000 MT 量级,
+    # 超过此值只可能是解析错位(读到总舱容/累计消耗/单位错乱的列)。这类读数一旦被
+    # 当成端点, 会把整船数据污染成几百上千吨的假消耗, 因此直接排除, 不参与端点选取。
+    ROB_ABS_MAX = 5000.0
     for k in range(4):
         # 该油种在整条序列里全程无正读数 -> 本船不烧这类油, 消耗应显示为缺失("-"),
         # 而不是误导性的 "0.0 MT"(会让人以为航次真的零消耗)。
@@ -253,6 +257,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         for src, tag in ((berth_series, "B"), (noon_series, "N")):
             for p in src:
                 if (start_dt <= p[0] <= start_upper and p[1][k] is not None
+                        and p[1][k] <= ROB_ABS_MAX
                         and not (has_pos[k] and p[1][k] <= 0)):
                     start_cands.append((p[0], tag, p[1][k]))
         if start_cands:
@@ -266,19 +271,30 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
                 for p in src:
                     if (end_dt <= p[0] <= el and p[1][k] is not None
+                            and p[1][k] <= ROB_ABS_MAX
                             and not (has_pos[k] and p[1][k] <= 0)):
                         end_cands.append((p[0], tag, p[1][k]))
             if end_cands:
                 end_cands.sort(key=lambda x: (x[0], x[1]))
                 last[k] = end_cands[0][2]; l_basis[k] = end_cands[0][1]
         else:
+            # 进行中航次: 期末取"截至 now 时间上最近"的 BERTH/NOON 读数。
+            # ⚠️ 必须与已结束航次同口径(2026-10-20 定稿: BERTH/NOON 同权重按时间排序,
+            # 同时刻 BERTH 优先)。旧写法 "BERTH 序列先扫, 找到即 break" 是全局 BERTH 优先,
+            # 只要存在任意一条历史 BERTH 就会拿它当期末 —— 归档补回大量 BERTH 后暴露:
+            # SHENGTANG 2634 期末取到 09-14 的旧 BERTH, 而 11-10 NOON 就在手里,
+            # MGO 由 7.13 虚增到 110.17; HONG DA XIN 728 2635 LSFO 171.28 -> 89.14 同因。
+            now_cands = []
             for src, tag in ((berth_series, "B"), (noon_series, "N")):
-                for p in reversed(src):
+                for p in src:
                     if (p[0] <= now and p[1][k] is not None
+                            and p[1][k] <= ROB_ABS_MAX
                             and not (has_pos[k] and p[1][k] <= 0)):
-                        last[k] = p[1][k]; l_basis[k] = tag; break
-                if last[k] is not None:
-                    break
+                        now_cands.append((p[0], tag, p[1][k]))
+            if now_cands:
+                # 时间最近者胜; 同一时刻 (time, True) > (time, False) -> BERTH 胜
+                best = max(now_cands, key=lambda x: (x[0], x[1] == "B"))
+                last[k] = best[2]; l_basis[k] = best[1]
         if first[k] is not None and last[k] is not None:
             raw = first[k] - last[k] + bunker_oil[k]
             # 航次总消耗默认护栏: 油耗为负通常意味期间有加油未登记 / ROB 读数异常, 不可信 -> None。
