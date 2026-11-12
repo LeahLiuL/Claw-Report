@@ -1034,6 +1034,8 @@ function renderDraft() {
 /* ---- rotation 展开状态(按 vessel|voy|start 唯一键) ---- */
 var voyOpen = {};
 var voyByKey = {};
+var voySortAsc = false;   // Voyage 表排序: false = Start 倒序(最新航次在前)
+function toggleVoySort() { voySortAsc = !voySortAsc; renderVoyage(); }
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function legCalcHTML(r, k){
   return '<div class="legcalc" data-vk="'+escAttr(k)+'" style="margin-top:10px;padding:10px;border:1px solid #2a3b50;border-radius:6px;background:#15202e">'
@@ -1277,19 +1279,21 @@ function renderVoyage() {
     return true;
   });
   rows.sort(function(a, b) {
-    var la = (a.lane || '').trim(), lb = (b.lane || '').trim();
-    // 1) Lane 升序(空航线排最后)  2) 同航线内 Start 倒序(最新航次在前)
-    var ea = la ? 0 : 1, eb = lb ? 0 : 1;
-    if (ea !== eb) return ea - eb;
-    var ua = la.toUpperCase(), ub = lb.toUpperCase();
-    if (ua !== ub) return ua < ub ? -1 : 1;
-    return a.start < b.start ? 1 : (a.start > b.start ? -1 : 0);
+    // 主排序: Start(本航次首港 Berth 时间)。默认倒序(最新航次在前)。
+    // 2026-11-12: 旧逻辑先按 Lane 升序, 导致 CUHP 2640(lane=CST, 其余航次 ST3)
+    // 被顶到表头, 看着像"没按时间排"。改为 Start 优先, Lane/航次号只作并列时的次序。
+    var sa = a.start || '', sb = b.start || '';
+    if (sa && sb && sa !== sb) return voySortAsc ? (sa < sb ? -1 : 1) : (sa < sb ? 1 : -1);
+    if (!sa !== !sb) return sa ? -1 : 1;   // 缺 Start 的船永远排在最后(不随方向翻转)
+    var la = (a.lane || '').trim().toUpperCase(), lb = (b.lane || '').trim().toUpperCase();
+    if (la !== lb) return la < lb ? -1 : 1;
+    return String(a.voy) < String(b.voy) ? -1 : 1;
   });
   rows.forEach(function(r) { voyByKey[voyKey(r)] = r; });
   var h = '<table class="trendtbl"><tr>'
     + '<th title="Click to expand rotation"></th>'
     + '<th>Vessel</th><th>Code</th><th>Lane</th><th>Voy</th><th>First Port</th>'
-    + '<th title="First-port Berth time of this voyage">Start</th>'
+    + '<th title="First-port Berth time of this voyage. Click to toggle sort" style="cursor:pointer" onclick="toggleVoySort()">Start ' + (voySortAsc ? '&#9650;' : '&#9660;') + '</th>'
     + '<th title="First-port Berth time of next voyage (= voyage end)">End</th>'
     + '<th title="Days between first-port berths">Days</th>'
     + '<th title="LSFO consumption (MT)">LSFO</th><th title="HSFO consumption (MT)">HSFO</th>'
