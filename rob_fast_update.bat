@@ -31,6 +31,24 @@ echo [2/4] git fetch ... >> %LOG%
 git fetch origin >> %LOG% 2>&1
 if errorlevel 1 echo [WARN] git fetch failed, reconcile via safe-push >> %LOG%
 
+REM ---- [2b/4] sync templates from FETCH_HEAD ----
+REM `git fetch` does not move the working tree, so without this step the render
+REM below uses the template synced at the END of the previous run (code changes
+REM take effect one cycle late). sync_templates.py writes ONLY templates/, with
+REM a path whitelist, HTML validation, backup and atomic replace. Data files
+REM (rob_data/, *.csv, *.json) are never opened for writing.
+echo [2b/4] sync_templates.py ^(templates/ only, never data^) ... >> %LOG%
+if not exist sync_templates.py (
+    git cat-file -e FETCH_HEAD:sync_templates.py 2>nul
+    if not errorlevel 1 git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py 2>nul
+)
+if exist sync_templates.py (
+    "%PYEXE%" sync_templates.py >> %LOG% 2>&1
+    if errorlevel 1 echo [WARN] template sync failed - keep current templates, continue >> %LOG%
+) else (
+    echo [WARN] sync_templates.py not available, keep current templates >> %LOG%
+)
+
 REM ---- [3/4a] original crew report mail sync (primary) ----
 REM 5-day window: even if one scheduled run is missed, the next one backfills.
 echo [3/4] rob_mail_sync (original crew reports) ... >> %LOG%

@@ -41,6 +41,26 @@ echo [1/5] git fetch ...
 git fetch origin >> %LOG% 2>&1
 if errorlevel 1 ( echo [WARN] git fetch failed, will reconcile via safe-push >> %LOG% )
 
+REM ---- [1b/5] sync templates from FETCH_HEAD ----
+REM Why: `git fetch` moves FETCH_HEAD only, NOT the working tree. Before this
+REM step every run rendered with the template synced at the END of the PREVIOUS
+REM run, so a pushed code change always took effect one cycle late.
+REM sync_templates.py writes ONLY templates/ (path whitelist + HTML validation +
+REM backup + atomic replace). It never touches rob_data/, *.csv or *.json.
+REM Bootstrap: on a machine that has not synced this script yet, pull the script
+REM itself straight out of FETCH_HEAD without touching the git index.
+echo [1b/5] sync_templates.py ^(templates/ only, never data^) ...
+if not exist sync_templates.py (
+    git cat-file -e FETCH_HEAD:sync_templates.py 2>nul
+    if not errorlevel 1 git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py 2>nul
+)
+if exist sync_templates.py (
+    "%PYEXE%" sync_templates.py >> %LOG% 2>&1
+    if errorlevel 1 echo [WARN] template sync failed - keep current templates, continue >> %LOG%
+) else (
+    echo [WARN] sync_templates.py not available, keep current templates >> %LOG%
+)
+
 echo [2/5] sync_bunkering.py ^(加油量, 仅体积, 价格不上网^) ...
 if exist sync_bunkering.py (
     "%PYEXE%" sync_bunkering.py >> %LOG% 2>&1
