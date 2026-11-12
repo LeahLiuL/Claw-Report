@@ -386,6 +386,7 @@ function _loadXlsx(cb){
     <button class="tab-btn" data-tab="portView" onclick="switchTab('portView',this)">&#9889; Port Wait</button>
     <button class="tab-btn" data-tab="vesselCallsView" onclick="switchTab('vesselCallsView',this)">&#128674; Vessel Calls</button>
     <button class="tab-btn" data-tab="maintView" onclick="switchTab('maintView',this)">&#128203; Maintenance</button>
+    <button class="tab-btn" data-tab="agentView" onclick="switchTab('agentView',this)">&#128100; Agent / OP</button>
     <button class="tab-btn" data-tab="speedView" onclick="switchTab('speedView',this)">&#128168; Speed</button>
   </div>
 </div>
@@ -836,6 +837,7 @@ function _loadXlsx(cb){
       <input id="maintPlogNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
     </span>
   </h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:4px 0 6px;">Agent / OP shows the <b>primary contact</b> only (Owner Rep first, otherwise the first local agent). Same port = same contact in both tables. Click <b>+N more &#8594;</b> for the full list on the Agent / OP tab.</p>
   <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
     <table id="maintPlogNoTable" style="min-width:auto;"><thead><tr id="maintPlogNoThead"></tr></thead><tbody id="maintPlogNoTbody"></tbody></table>
   </div>
@@ -846,6 +848,7 @@ function _loadXlsx(cb){
       <input id="maintVsNoSearch" type="search" placeholder="Filter: port / vessel / voyage / operator…" oninput="renderMaintUnmaintained()" style="font-size:11px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;width:280px;">
     </span>
   </h3>
+  <p style="font-size:11px;color:#8a9bb0;margin:4px 0 6px;">Same contact rule as above: one primary contact per port; <b>+N more &#8594;</b> opens the full Agent / OP directory.</p>
   <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
     <table id="maintVsNoTable" style="min-width:auto;"><thead><tr id="maintVsNoThead"></tr></thead><tbody id="maintVsNoTbody"></tbody></table>
   </div>
@@ -862,6 +865,28 @@ function _loadXlsx(cb){
       <table id="maintMonthTable" style="min-width:auto;"><thead><tr id="maintMonthThead"></tr></thead><tbody id="maintMonthTbody"></tbody></table>
     </div>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     VIEW: Agent / OP Directory — every port's contacts on one page
+     ═════════════════════════════════════════════════════════════════════ -->
+<div id="agentView" class="tab-content">
+  <div class="controls" style="flex-wrap:wrap;">
+    <span style="font-weight:600;font-size:14px;margin-right:4px;">&#128100; Agent / OP Directory</span>
+    <span style="font-weight:600;font-size:13px;margin:0 6px 0 14px;">&#128205; Port:</span>
+    <select id="agentPortFilter" onchange="onAgentFilterChange()" style="font-size:12px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;min-width:170px;">
+      <option value="ALL">All Ports</option>
+    </select>
+    <input type="text" id="agentSearch" placeholder="&#128269; Search port / name / role / email / phone..." oninput="renderAgentDirectory()" style="margin-left:8px;padding:5px 8px;border:1px solid #b8c6d6;border-radius:4px;font-size:12px;width:300px;">
+    <button onclick="clearAgentFilter()" style="margin-left:6px;padding:4px 10px;font-size:11px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Clear</button>
+  </div>
+  <p style="font-size:11px;color:#8a9bb0;margin:8px 0 6px 28px;">All agent / OP contacts in one place. Pick a port to see only that port; search matches port code, name, role, source, email and phone. The two Maintenance tables show the <b>primary contact</b> only — click <b>+N more &#8594;</b> to jump here with that port pre-selected.</p>
+  <div class="boa-chips" style="padding:0 28px;margin:6px 0 4px;">
+    <div class="boa-chip"><div class="num" id="agentChipPorts">&#8212;</div><div class="lbl2">Ports</div></div>
+    <div class="boa-chip"><div class="num" id="agentChipContacts">&#8212;</div><div class="lbl2">Contacts</div></div>
+    <div class="boa-chip"><div class="num" id="agentChipShowing">&#8212;</div><div class="lbl2">Showing contacts</div></div>
+  </div>
+  <div id="agentCards" style="padding:0 28px 28px;"></div>
 </div>
 
 <!-- ── Export Tables Modal (multi-select → one workbook) ──────────────── -->
@@ -1213,6 +1238,7 @@ function switchTab(viewId, btn){
   // Close any open column/filter dropdown
   document.querySelectorAll('.col-dropdown,.filter-dropdown').forEach(function(d){d.classList.remove('open');});
   if(viewId==='vesselCallsView'){ renderVesselCalls(); }
+  if(viewId==='agentView'){ renderAgentDirectory(); }
   updateCtrlH();
 }
 
@@ -2606,6 +2632,9 @@ function maintAgentParts(port){
   var empty={agent:'',email:'',tel:''};
   var list=(typeof AGENT_BY_PORT!=='undefined' && AGENT_BY_PORT[port]) || [];
   if(!list.length) return empty;
+  // Line 1 = the same primary contact shown on screen (both tables + Excel agree).
+  var main=primaryAgent(port);
+  list=[main].concat(list.filter(function(c){ return c!==main; }));
   var a=[],e=[],t=[];
   list.forEach(function(c){
     // [Owner Rep] / [General Agent] / [Cargo Agent] tag keeps the owner's own
@@ -5370,6 +5399,104 @@ function renderMaintPortRate(){
   tbody.innerHTML = html;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   AGENT / OP DIRECTORY — one page for every port's contacts.
+   The two Maintenance unmaintained tables show only the primary
+   contact; "+N more" jumps here with that port pre-selected.
+   ══════════════════════════════════════════════════════════════ */
+var AGENT_SRC_COLOR = {'Owner Rep':'#1F4E79','General Agent':'#B26B00',
+                       'Cargo Agent':'#6B3FA0','Sub Agent':'#0B6B5E'};
+function agentPorts(){
+  return Object.keys(typeof AGENT_BY_PORT !== 'undefined' ? AGENT_BY_PORT : {}).sort();
+}
+function primaryAgent(port){
+  var list = (typeof AGENT_BY_PORT !== 'undefined' && AGENT_BY_PORT[port]) || [];
+  if(!list.length) return null;
+  for(var i=0;i<list.length;i++){ if(list[i].src === 'Owner Rep') return list[i]; }
+  return list[0];
+}
+function agentBadge(src){
+  if(!src) return '';
+  return ' <span style="display:inline-block;padding:0 5px;border-radius:3px;font-size:9px;color:#fff;background:' +
+         (AGENT_SRC_COLOR[src] || '#8a9bb0') + ';">' + escapeHtml(src) + '</span>';
+}
+function agentContactRow(c){
+  var tel = [];
+  if(c.tel)    tel.push('T: ' + escapeHtml(c.tel));
+  if(c.mobile) tel.push('M: ' + escapeHtml(c.mobile));
+  return '<tr>' +
+    '<td style="text-align:left;"><b>' + escapeHtml(c.name||'') + '</b>' + agentBadge(c.src) + '</td>' +
+    '<td style="text-align:left;color:#5a6b80;font-size:11px;">' + escapeHtml(c.desig||'') + '</td>' +
+    '<td style="text-align:left;">' + (c.email
+        ? '<a href="mailto:' + escapeHtml(c.email) + '" style="color:#1F4E79;">' + escapeHtml(c.email) + '</a>'
+        : '<span style="color:#c3ccd8;">—</span>') + '</td>' +
+    '<td style="text-align:left;">' + (tel.length ? tel.join('<br>') : '<span style="color:#c3ccd8;">—</span>') + '</td>' +
+    '</tr>';
+}
+function renderAgentDirectory(){
+  var box = document.getElementById('agentCards'); if(!box) return;
+  var sel = document.getElementById('agentPortFilter');
+  var port = sel ? sel.value : 'ALL';
+  var qEl = document.getElementById('agentSearch');
+  var q = ((qEl && qEl.value) || '').trim().toLowerCase();
+  var all = agentPorts(), total = 0;
+  all.forEach(function(p){ total += (AGENT_BY_PORT[p] || []).length; });
+  var html = '', shownContacts = 0;
+  all.forEach(function(p){
+    if(port !== 'ALL' && p !== port) return;
+    var hitPort = !!q && p.toLowerCase().indexOf(q) !== -1;
+    var list = (AGENT_BY_PORT[p] || []).filter(function(c){
+      if(!q || hitPort) return true;
+      return [c.name,c.desig,c.src,c.email,c.tel,c.mobile].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    if(!list.length) return;
+    shownContacts += list.length;
+    html += '<div id="agentCard-' + escapeHtml(p) + '" style="background:#fff;border:1px solid #dfe7f1;border-radius:8px;margin:14px 0;overflow:hidden;">' +
+      '<div style="background:#EBF3FB;padding:8px 14px;font-weight:700;color:#1F4E79;font-size:13px;">' +
+        '&#128205; ' + escapeHtml(p) +
+        ' <span style="font-weight:400;color:#6B7A8C;font-size:11px;">' + list.length +
+        ' contact' + (list.length === 1 ? '' : 's') + '</span></div>' +
+      '<div style="overflow-x:auto;"><table style="min-width:auto;margin:0;font-size:11.5px;">' +
+        '<thead><tr>' +
+          '<th style="position:static;text-align:left;">Name</th>' +
+          '<th style="position:static;text-align:left;">Role / Designation</th>' +
+          '<th style="position:static;text-align:left;">Email</th>' +
+          '<th style="position:static;text-align:left;">Tel / Mobile</th>' +
+        '</tr></thead><tbody>' + list.map(agentContactRow).join('') + '</tbody></table></div></div>';
+  });
+  box.innerHTML = html || '<div style="padding:26px;text-align:center;color:#8a9bb0;font-size:12px;">No contacts match the current filter.</div>';
+  var e;
+  if((e = document.getElementById('agentChipPorts')))    e.textContent = all.length;
+  if((e = document.getElementById('agentChipContacts'))) e.textContent = total;
+  if((e = document.getElementById('agentChipShowing')))  e.textContent = shownContacts;
+}
+function initAgentView(){
+  var sel = document.getElementById('agentPortFilter'); if(!sel) return;
+  var all = agentPorts();
+  sel.innerHTML = '<option value="ALL">All Ports (' + all.length + ')</option>' +
+    all.map(function(p){
+      return '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) +
+             ' (' + (AGENT_BY_PORT[p] || []).length + ')</option>';
+    }).join('');
+  renderAgentDirectory();
+}
+function onAgentFilterChange(){ renderAgentDirectory(); }
+function clearAgentFilter(){
+  var s = document.getElementById('agentPortFilter'); if(s) s.value = 'ALL';
+  var q = document.getElementById('agentSearch');     if(q) q.value = '';
+  renderAgentDirectory();
+}
+// Called by the "+N more" link in the two Maintenance tables.
+function openAgentPort(port){
+  var s = document.getElementById('agentPortFilter'); if(s) s.value = port;
+  var q = document.getElementById('agentSearch');     if(q) q.value = '';
+  var btn = document.querySelector('.tab-btn[data-tab="agentView"]');
+  if(btn) switchTab('agentView', btn);
+  renderAgentDirectory();
+  var card = document.getElementById('agentCard-' + port);
+  if(card && card.scrollIntoView) card.scrollIntoView({block:'start'});
+}
+
 var maintSort = { plogNo: {key:'etd', dir:1}, vsNo: {key:'etd', dir:1} };
 
 function maintSortTable(which, key){
@@ -5433,36 +5560,35 @@ function renderMaintUnmaintained(){
               ['agent','Agent / OP'],['agentmail','Email'],['agenttel','Tel / Mobile']];
   var SRC_COLOR = {'Owner Rep':'#1F4E79','General Agent':'#B26B00',
                    'Cargo Agent':'#6B3FA0','Sub Agent':'#0B6B5E'};
-  function agentParts(port){
-    return (AGENT_BY_PORT[port] || []).map(function(c){
-      var src = c.src || '';
-      var badge = src
-        ? ' <span style="display:inline-block;padding:0 4px;border-radius:3px;font-size:9px;' +
-          'color:#fff;background:' + (SRC_COLOR[src] || '#8a9bb0') + ';">' + escapeHtml(src) + '</span>'
-        : '';
-      var tel = [];
-      if(c.tel)    tel.push('T: ' + escapeHtml(c.tel));
-      if(c.mobile) tel.push('M: ' + escapeHtml(c.mobile));
-      return {
-        name : '<b>' + escapeHtml(c.name||'') + '</b>' + badge +
-               (c.desig ? '<div style="color:#8a9bb0;font-size:10px;line-height:1.3;">'
-                          + escapeHtml(c.desig) + '</div>' : ''),
-        email: c.email
-                 ? '<a href="mailto:' + escapeHtml(c.email) + '" style="color:#1F4E79;">'
-                   + escapeHtml(c.email) + '</a>'
-                 : '<span style="color:#c3ccd8;">—</span>',
-        tel  : tel.length ? tel.join('<br>') : '<span style="color:#c3ccd8;">—</span>'
-      };
-    });
+  function agentLine(c){
+    var badge = agentBadge(c.src || '');
+    var tel = [];
+    if(c.tel)    tel.push('T: ' + escapeHtml(c.tel));
+    if(c.mobile) tel.push('M: ' + escapeHtml(c.mobile));
+    return {
+      name : '<b>' + escapeHtml(c.name||'') + '</b>' + badge +
+             (c.desig ? '<div style="color:#8a9bb0;font-size:10px;line-height:1.3;">'
+                        + escapeHtml(c.desig) + '</div>' : ''),
+      email: c.email
+               ? '<a href="mailto:' + escapeHtml(c.email) + '" style="color:#1F4E79;">'
+                 + escapeHtml(c.email) + '</a>'
+               : '<span style="color:#c3ccd8;">—</span>',
+      tel  : tel.length ? tel.join('<br>') : '<span style="color:#c3ccd8;">—</span>'
+    };
   }
+  // 2026-11-12: one contact per port. The full list lives on the Agent / OP
+  // tab; a "+N more" link jumps there with this port selected, so identical
+  // ports show exactly one agent line in BOTH unmaintained tables.
   function agentCellHtml(port, part){
-    var lines = agentParts(port);
-    if(!lines.length) return '<td style="color:#8a9bb0;font-size:11px;">—</td>';
-    var inner = lines.map(function(L, i){
-      var sep = (i < lines.length - 1) ? 'border-bottom:1px dotted #e6ebf2;padding-bottom:3px;' : '';
-      return '<div style="line-height:1.35;margin:3px 0;' + sep + '">' + L[part] + '</div>';
-    }).join('');
-    return '<td style="font-size:11px;vertical-align:top;">' + inner + '</td>';
+    var list = (AGENT_BY_PORT[port] || []);
+    if(!list.length) return '<td style="color:#8a9bb0;font-size:11px;">—</td>';
+    var line = agentLine(primaryAgent(port));
+    var more = (list.length > 1 && part === 'name')
+      ? '<div style="margin-top:3px;"><a href="javascript:void(0)" data-port="' + escapeHtml(port) +
+        '" onclick="openAgentPort(this.dataset.port)" style="font-size:10px;color:#2E75B6;text-decoration:underline;">' +
+        '+' + (list.length - 1) + ' more &#8594;</a></div>'
+      : '';
+    return '<td style="font-size:11px;vertical-align:top;line-height:1.35;">' + line[part] + more + '</td>';
   }
   function headHtml(which){
     var st = maintSort[which], h = '<tr>';
@@ -5641,6 +5767,7 @@ function init(){
   renderVesselCalls();
   boaInit();
   initMaintView();
+  initAgentView();
   updateCtrlH();
 }
 // init() only called after login success (see LOGIN section above)
