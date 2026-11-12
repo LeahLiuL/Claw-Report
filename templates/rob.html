@@ -376,10 +376,11 @@ function enterApp() {
   document.getElementById('lock').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('updatedAt').textContent = 'Updated ' + DATA.updated;
-  var found = DATA.vessels.filter(function(v){return v.found;}).length;
+  var act = activeVessels();
+  var found = act.filter(function(v){return v.found;}).length;
   document.getElementById('stats').innerHTML =
-    stat(DATA.vessels.length, 'Total Vessels') + stat(found, 'ROB Received') +
-    stat(DATA.vessels.length - found, 'Missing / No Report', true);
+    stat(act.length, 'Total Vessels') + stat(found, 'ROB Received') +
+    stat(act.length - found, 'Missing / No Report', true);
   buildHistIndex();
   dashSetDateBounds();
   var offs = (DATA.offline || []);
@@ -456,7 +457,7 @@ function rangeData(vessel, from, to) {
 }
 // 计算当前模式下每行展示数据(已套用 As-of / Range 覆盖)
 function computeDashRows(mode) {
-  return DATA.vessels.map(function(v) {
+  return activeVessels().map(function(v) {
     var d = { vessel:v.vessel, code:v.code, lane:v.lane, pic:v.pic, seq:v.seq,
               rob_lsfo:v.rob_lsfo, rob_hsfo:v.rob_hsfo, rob_ulsfo:v.rob_ulsfo, rob_mgo:v.rob_mgo,
               report_time:v.report_time, found:v.found, remark:v.found?'':(v.remark||'') };
@@ -503,6 +504,18 @@ function computeOfflineRows(mode) {
       d.bunker=null; d.net=null; d.report_time='';
     }
     return d;
+  });
+}
+// 主表用船清单 = DATA.vessels 去掉已下线船。
+// 2026-11-12: 后端别的构建支线可能把下线船(如 SHENGTANG / XIN MING ZHOU 106)
+// 又塞回 vessels, 这里按名单再兜一层, 保证同一艘船不会既在主表又在已下线表。
+function activeVessels() {
+  var off = {};
+  (DATA.offline || []).forEach(function(o) {
+    off[String(o.vessel || '').trim().toUpperCase()] = 1;
+  });
+  return DATA.vessels.filter(function(v) {
+    return !off[String(v.vessel || '').trim().toUpperCase()];
   });
 }
 // 表格与导出共用的行集合 —— 保证「导出 = 屏幕上看到的」
@@ -971,7 +984,7 @@ function renderDraft() {
   if (!DATA) return;
   var sortBy = document.getElementById('draftSort').value;
   var show = document.getElementById('draftShow').value;
-  var rows = DATA.vessels.map(function(v) {
+  var rows = activeVessels().map(function(v) {
     var dm = (DATA.draft_max && DATA.draft_max[v.vessel]) || {};
     return {
       vessel: v.vessel, code: v.code, lane: v.lane, pic: v.pic,

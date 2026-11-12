@@ -112,6 +112,28 @@ def load_offline_fleet():
     return out
 
 
+def offline_name_set():
+    """已下线船的归一化船名集合(已去掉 `-已下线` 后缀)。
+
+    2026-11-12: 原先的过滤只做在 main() 的 drop_offline(fleet) 里, 但另一条
+    构建支线(rob_fast_rebuild) 会把 rob_results.json 里含下线船的旧行直接喂给
+    build_html(), 绕过了 drop_offline —— 结果 SHENGTANG / XIN MING ZHOU 106
+    同时出现在主表和『已下线』清单里。这里出一个名单级兜底, 任何入口都能用。
+    """
+    try:
+        return {norm(o["vessel"]) for o in load_offline_fleet() if o.get("vessel")}
+    except Exception as e:
+        print("[WARN] offline_name_set failed:", e)
+        return set()
+
+
+def is_offline_row(name, off_set=None):
+    """船名本身带后缀, 或归一名命中下线名单 -> 视为下线船。"""
+    if is_offline(name):
+        return True
+    return bool(off_set) and norm(name or "") in off_set
+
+
 def load_fleet():
     if os.path.exists(DM_HTML):
         try:
@@ -969,6 +991,17 @@ def _hours_of(s):
 
 
 def build_html(results):
+    # ---- 已下线船过滤(任何入口都必须过这道闸) ----
+    # 2026-11-12: drop_offline 只在 main() 的 fleet 合并里生效, 其它支线直接把
+    # 含下线船的 results 传进来就会漏。这里按名单统一剔除, 并在下面复用同一份名单。
+    _offl = load_offline_fleet()
+    _off_set = {norm(o["vessel"]) for o in _offl if o.get("vessel")}
+    _dropped = [r.get("vessel", "") for r in results
+                if is_offline_row(r.get("vessel", ""), _off_set)]
+    if _dropped:
+        results = [r for r in results if not is_offline_row(r.get("vessel", ""), _off_set)]
+        print("Offline filter: dropped %d row(s) -> %s"
+              % (len(_dropped), ", ".join(_dropped)))
     # ---- 吃水历史(必须在 vessels 之前解析) ----
     # draft_history.csv 是【累加式】独立文件: date,vessel,draft_fwd,draft_mid,draft_aft
     # 这里同时算出 ①每船各位置/整体的历史最大吃水 ②每船最新一条吃水。
@@ -981,7 +1014,7 @@ def build_html(results):
             with open(DRAFT_CSV, encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     v = row.get("vessel", "")
-                    if is_offline(v):
+                    if is_offline_row(v, _off_set):
                         continue
                     d = (row.get("date") or "")[:10]
                     fwd = _num(row.get("draft_fwd"))
@@ -1032,7 +1065,7 @@ def build_html(results):
             with open(HISTORY_CSV, encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     # 14 列规范: date,vessel,code,lane,pic,lsfo,hsfo,mgo,ulsfo,bw,fw,refeer,found,report_time
-                    if is_offline(row.get("vessel", "")):
+                    if is_offline_row(row.get("vessel", ""), _off_set):
                         continue          # 已下线船的历史不再展示(CSV 归档行保留, 不删)
                     oils = (_num(row.get("lsfo")), _num(row.get("hsfo")),
                             _num(row.get("mgo")), _num(row.get("ulsfo")))
@@ -1058,7 +1091,7 @@ def build_html(results):
     # 让用户点开开关时能看到「退租前最后的 ROB」而不是一片空白。
     offline = []
     try:
-        _offl = load_offline_fleet()
+        _offl = _offl or load_offline_fleet()
         if _offl:
             _last = {}
             _offnames = {o["vessel"] for o in _offl}
@@ -1178,6 +1211,8 @@ def build_xlsx(results):
         print("[WARN] openpyxl missing, skip xlsx:", e)
         return
     snap = datetime.now().strftime("%Y.%-m.%-d") if os.name != "nt" else datetime.now().strftime("%Y.%#m.%#d")
+    _off_set = offline_name_set()
+    results = [r for r in results if not is_offline_row(r.get("vessel", ""), _off_set)]
     ordered = sorted(results, key=lambda r: (r.get("lane", ""), r.get("code", "")))
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1268,6 +1303,9 @@ def write_daily_history(results):
          可随时按 snapshot_time / vessel 筛选任意历史日)
     """
     os.makedirs(HISTORY_DIR, exist_ok=True)
+    # 2026-11-12: 已下线船不进当日快照(rob_fast_rebuild 会把含下线船的旧 results 直接传进来)
+    _off_set = offline_name_set()
+    results = [r for r in results if not is_offline_row(r.get("vessel", ""), _off_set)]
     now = datetime.now()
     snap_time = now.strftime("%Y-%m-%d %H:%M")
     date_tag = now.strftime("%Y-%m-%d")
@@ -1301,8 +1339,11 @@ def write_daily_history(results):
         except Exception:
             pass
     write_header = not os.path.exists(HISTORY_CSV)
+    _off_set = offline_name_set()
     new_rows = []
     for r in results:
+        if is_offline_row(r.get("vessel", ""), _off_set):
+            continue
         rt19 = (r.get("report_time") or "")[:19]
         vessel = r.get("vessel", "")
         if rt19:
@@ -1408,8 +1449,11 @@ def write_draft_history(results):
                         existing.add((row[0], row[1]))
         except Exception:
             pass
+    _off_set = offline_name_set()
     new_rows = []
     for r in results:
+        if is_offline_row(r.get("vessel", ""), _off_set):
+            continue
         rt19 = (r.get("report_time") or "")[:19]
         if not rt19:
             continue
