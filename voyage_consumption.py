@@ -198,18 +198,26 @@ def load_history(history_csv=HISTORY_CSV, berth_only=False):
     return hist
 
 
-def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_date, guard_negative=True):
+def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_date,
+                        guard_negative=True):
     """计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
 
-    公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
-      - 期初 ROB: 优先 BERTH 中 >= start_dt 最近读数; 无则 NOON 中 >= start_dt 最近;
-                  再无则退化取 start 之前最近(BERTH 优先, 再 NOON)。
-      - 期末 ROB: 优先 BERTH 中 >= end_dt 最近读数(下一航次首港 berth 对应);
-                  无则 NOON 中 >= end_dt 最近; 再无则退化取 <= end_dt(或 now) 最近。
-      - 加油量  : 窗口 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计。
-    定稿口径(2026-10-20): 期初/期末均取边界时刻之后【时间上最近】的已标注读数,
-    BERTH/NOON 同权重按时间排序(同时刻 BERTH 优先), 不再全局 BERTH 优先 ——
-    否则航次中间挂靠港的 BERTH 报告会被误当边界读数(CUHP 2629/2630 实测错位 40MT)。
+    公式: 消耗 = 期初 ROB - 期末 ROB + 【两条读数之间】的加油量
+
+    端点(2026-11-12 修正): 期初 = 开航时刻 start_dt 对应的读数, 期末 = 到港时刻 end_dt
+    对应的读数, 各自取边界【前后最近】的一条(BERTH/NOON 同权重, 同时刻 BERTH 优先)。
+    同一个边界永远映射到同一条读数, 因此上一航次的期末 == 下一航次的期初, 相邻航次
+    窗口首尾相接, 既不重叠也不留缝。旧口径只允许往后取, 于是:
+      * CUHP 2640 于 10-02 03:06 开航, 却只能取到 10-09 的 310.83(已含 10-03 加的
+        297.5 MT), 再按 [start,end] 计入该笔加油 -> 393.08, 真实约 178.5;
+      * 边界前刚投过的读数比边界后那份更近时会被跳过, 白丢一段消耗。
+    进行中航次(end_dt=None): 期末取「截至 now 最近」的读数, 显示至今的部分消耗。
+    加油量(2026-11-12 修正): 窗口取【期初读数时刻, 期末读数时刻】, 逐油种各算各的,
+      不再用 [start_dt, end_dt]。这样 ROB(a) - ROB(b) + bunker(a..b) 恒等于 a→b 的真实
+      消耗, 读数落在边界之外也不会再把同一笔加油重复计入。端点缺失才退回航次边界。
+      按日期比较(加油日志只有日期, 没有时分)。
+    BERTH/NOON 不做全局 BERTH 优先 —— 否则航次中间挂靠港的 BERTH 报告会被误当边界读数
+    (CUHP 2629/2630 实测错位 40MT)。
     返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us], basis),
     basis∈{'BERTH','NOON','MIXED',''} 标明本段消耗基于哪种报告。"""
     cons = [None, None, None, None]
@@ -217,6 +225,8 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     last = [None, None, None, None]
     f_basis = [None, None, None, None]
     l_basis = [None, None, None, None]
+    f_dt = [None, None, None, None]   # 期初读数时刻(逐油种, 用于确定加油窗口)
+    l_dt = [None, None, None, None]   # 期末读数时刻
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     now = datetime.datetime.now()
@@ -229,54 +239,82 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             for _k in range(4):
                 if (_p[1][_k] is not None and 0 < _p[1][_k] <= 5000.0):
                     has_pos[_k] = True
-    if bunker_by_date:
-        for dstr, tmap in bunker_by_date.items():
-            try:
-                bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
-            except Exception:
-                continue
-            if start_dt <= bd <= (end_dt or now):
-                for k, t in enumerate(oils):
-                    bunker_oil[k] += float((tmap or {}).get(t) or 0)
-    # 期末允许紧邻下一航次首港 berth 的最大滞后(超过则视为更晚航次的读数, 不应用于本航次)
-    END_GAP = datetime.timedelta(days=10)
+    # 边界读数搜索窗口: 边界前后各容忍一段, 超出则认为该边界确实没有可用读数。
+    # 两侧都不能放太松, 否则会把隔壁航次刚用过的读数借来, 两段就重叠了。
+    PREV_MAX = datetime.timedelta(days=5)
+    NEXT_MAX = datetime.timedelta(days=10)
     # 单油种 ROB 物理上限: 中联船队最大船单一油种存油也在 3000 MT 量级,
     # 超过此值只可能是解析错位(读到总舱容/累计消耗/单位错乱的列)。这类读数一旦被
     # 当成端点, 会把整船数据污染成几百上千吨的假消耗, 因此直接排除, 不参与端点选取。
     ROB_ABS_MAX = 5000.0
+    _prev_s = PREV_MAX.total_seconds()
+    _next_s = NEXT_MAX.total_seconds()
+
+    def _pick(t, k):
+        """边界时刻 t -> 唯一一条 ROB 读数。
+
+        取 [t-PREV_MAX, t+NEXT_MAX] 内【离 t 最近】的那条; 同时刻 BERTH 优先,
+        等距时偏向 t 之后。同一个 t 永远选出同一条读数, 于是「上一航次的期末」与
+        「下一航次的期初」必然是同一读数 —— 相邻航次窗口首尾相接、绝不重叠,
+        同一笔加油不会在两个航次里各算一次, 全船合计守恒。
+
+        这条「双侧最近」规则同时修掉旧口径的两个病(旧口径只允许取边界之后):
+          * CUHP 2640: 10-02 03:06 开航, 之后 7 天无报告, 只能取 10-09 的 310.83,
+            而该值已包含 10-03 加的 297.5, 再按区间计入加油 -> 重复计, 393.08(真值约 178.5);
+          * 反过来, 边界前刚投过一份读数、比边界后那份更近时, 旧口径会跳过它,
+            白丢一段消耗。
+        """
+        best, best_key = None, None
+        for src, tag in ((berth_series, "B"), (noon_series, "N")):
+            for p in src:
+                dt, val = p[0], p[1][k]
+                if val is None or val > ROB_ABS_MAX or (has_pos[k] and val <= 0):
+                    continue
+                gap = (dt - t).total_seconds()
+                if gap < -_prev_s or gap > _next_s:
+                    continue
+                # 排序键: 绝对时距 -> 同为 BERTH 优先 -> 偏向边界之后
+                key = (abs(gap), 0 if tag == "B" else 1, 0 if gap >= 0 else 1)
+                if best_key is None or key < best_key:
+                    best_key, best = key, (dt, val, tag)
+        return best
+
+    def _pick_after(t, k, limit):
+        """兜底: t 之后最近的一条读数(不限距离, 但不超过 limit)。等价于旧口径。"""
+        best, best_key = None, None
+        for src, tag in ((berth_series, "B"), (noon_series, "N")):
+            for p in src:
+                dt, val = p[0], p[1][k]
+                if val is None or val > ROB_ABS_MAX or (has_pos[k] and val <= 0):
+                    continue
+                if dt < t or (limit is not None and dt > limit):
+                    continue
+                key = (dt, 0 if tag == "B" else 1)
+                if best_key is None or key < best_key:
+                    best_key, best = key, (dt, val, tag)
+        return best
+
     for k in range(4):
         # 该油种在整条序列里全程无正读数 -> 本船不烧这类油, 消耗应显示为缺失("-"),
         # 而不是误导性的 "0.0 MT"(会让人以为航次真的零消耗)。
         if not has_pos[k]:
             cons[k] = None
             continue
-        # 期初: 窗口 [start, 本航次end] 内时间最近的 BERTH/NOON 读数(需求2: 只用本航次首港之后
-        #       读数, 不乱用更早或更晚日期); 窗口内无点则期初缺失 -> 本航次无 BERTH/NOON 数据。
-        start_upper = end_dt or now
-        start_cands = []
-        for src, tag in ((berth_series, "B"), (noon_series, "N")):
-            for p in src:
-                if (start_dt <= p[0] <= start_upper and p[1][k] is not None
-                        and p[1][k] <= ROB_ABS_MAX
-                        and not (has_pos[k] and p[1][k] <= 0)):
-                    start_cands.append((p[0], tag, p[1][k]))
-        if start_cands:
-            start_cands.sort(key=lambda x: (x[0], x[1]))   # 时间最近优先; 同时刻 BERTH 优先
-            first[k] = start_cands[0][2]; f_basis[k] = start_cands[0][1]
-        # 期末: 下一航次首港 berth(end) 之后、且紧邻(<= end+END_GAP)的时间最近读数;
-        #       越界(实为更晚航次的读数)则缺失, 避免把后续航次 berth 误当本航次期末。
+        # 期初 / 期末 = 边界时刻各自唯一映射的那条读数(见 _pick)
+        pick = _pick(start_dt, k)
+        if pick is None:
+            # 兜底(旧口径): 边界之后最近的一条, 不限距离。只在 ±5/10 天内一条读数都没有时
+            # 触发 —— 这类超稀疏航次本来也只能算个下限, 但至少不让整行变空白。
+            pick = _pick_after(start_dt, k, end_dt)
+        if pick:
+            f_dt[k], first[k], f_basis[k] = pick[0], pick[1], pick[2]
         if end_dt is not None:
-            el = end_dt + END_GAP
-            end_cands = []
-            for src, tag in ((berth_series, "B"), (noon_series, "N")):
-                for p in src:
-                    if (end_dt <= p[0] <= el and p[1][k] is not None
-                            and p[1][k] <= ROB_ABS_MAX
-                            and not (has_pos[k] and p[1][k] <= 0)):
-                        end_cands.append((p[0], tag, p[1][k]))
-            if end_cands:
-                end_cands.sort(key=lambda x: (x[0], x[1]))
-                last[k] = end_cands[0][2]; l_basis[k] = end_cands[0][1]
+            pick = _pick(end_dt, k)
+            if pick is None:
+                # 同上, 期末也留旧口径兜底, 免得一条读数都没有的超稀疏航次整行空白。
+                pick = _pick_after(end_dt, k, end_dt + NEXT_MAX)
+            if pick:
+                l_dt[k], last[k], l_basis[k] = pick[0], pick[1], pick[2]
         else:
             # 进行中航次: 期末取"截至 now 时间上最近"的 BERTH/NOON 读数。
             # ⚠️ 必须与已结束航次同口径(2026-10-20 定稿: BERTH/NOON 同权重按时间排序,
@@ -294,8 +332,29 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             if now_cands:
                 # 时间最近者胜; 同一时刻 (time, True) > (time, False) -> BERTH 胜
                 best = max(now_cands, key=lambda x: (x[0], x[1] == "B"))
-                last[k] = best[2]; l_basis[k] = best[1]
-        if first[k] is not None and last[k] is not None:
+                last[k] = best[2]; l_basis[k] = best[1]; l_dt[k] = best[0]
+    # 加油量: 按【航次日期区间】归属, 左闭右开 —— 起航日当天的加油算本航次, 到港日当天的
+    # 算下一航次。这样每个日期恰好落在一个航次里, 全船合计守恒, 不会出现漏计或双计。
+    # 旧口径用 datetime 直接比 (start_dt <= bd <= end_dt), 而日志日期是 00:00、航次起点
+    # 是 ETB 时分, 于是「开航当天」的加油永远被算到上一航次 —— 实测 CUL LAEMCHABANG 2642
+    # 开航日 10-02 加的 790.2 MT 被推给上一航次, 本航次期初取到加油前的 155.52 后直接变负数。
+    if bunker_by_date:
+        lo_d = start_dt.date()
+        hi_d = (end_dt or now).date()
+        for dstr, tmap in bunker_by_date.items():
+            try:
+                bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d").date()
+            except Exception:
+                continue
+            if lo_d <= bd < hi_d:
+                for k, t in enumerate(oils):
+                    bunker_oil[k] += float((tmap or {}).get(t) or 0)
+    for k in range(4):
+        if not has_pos[k]:
+            continue
+        # 端点顺序异常(期初读数晚于期末读数, 只可能出现在极稀疏的航次)时不计算,
+        # 否则会得到一个被颠倒的负数。
+        if first[k] is not None and last[k] is not None and f_dt[k] <= l_dt[k]:
             raw = first[k] - last[k] + bunker_oil[k]
             # 航次总消耗默认护栏: 油耗为负通常意味期间有加油未登记 / ROB 读数异常, 不可信 -> None。
             # 但 legs 子段累加需保留原始负值(guard_negative=False): 多段净变化可 telescoping 相加,
@@ -421,7 +480,8 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 if a_dt is None or b_dt is None:
                     continue
                 l_cons, _l_tot, l_oil, _lb = _window_consumption(
-                    berth_series, noon_series, a_dt, b_dt, v_bunker, guard_negative=False)
+                    berth_series, noon_series, a_dt, b_dt, v_bunker,
+                    guard_negative=False)
                 legs.append({
                     "from_port": a_leg.get("port"),
                     "from_etb": a_leg.get("etb"),
