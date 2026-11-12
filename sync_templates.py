@@ -12,8 +12,12 @@ reset --hard。于是每次渲染用的都是"上一轮结束时"同步到的那
 对齐到 FETCH_HEAD。
 
 == 安全边界（写死在代码里，不依赖调用方）==
-  1. 只允许写 templates/ 下的文件，且扩展名在白名单内；
+  1. 只允许写 templates/ 下的文件（扩展名白名单），外加 ALLOW_ROOT_CODE 里显式列出的
+     根目录代码脚本（默认只有 voyage_consumption.py —— 航次油耗算法）。
      任何其它路径（rob_data/、*.csv、*.json、*.jsonl、*.xlsx、*.db ...）一律拒写。
+     ⚠️ 为什么允许这一个脚本：rob_refresh.py 在 [3/5] 才跑，它 import 的
+     voyage_consumption 若还是上一轮的旧版，页面算出来的航次油耗就会滞后一班
+     （2026-11-12 期初口径修正后实测：新模板 + 旧算法 = 页面数字会被下一轮覆盖回去）。
   2. 先把所有 blob 读进内存并校验（非空 / 大小 / HTML 结构完整），
      全部通过才开始落盘；任一不通过就跳过该文件，绝不半截写入。
   3. 落盘前把当前文件备份到 rob_data/tpl_backup/<时间戳>/（.gitignore 已排除，
@@ -37,6 +41,8 @@ import time
 REPO = os.path.dirname(os.path.abspath(__file__))
 TPL_DIR = "templates"
 ALLOW_EXT = (".html", ".htm", ".css", ".js", ".svg", ".ico")
+# 根目录代码脚本白名单（显式列表，不做 *.py 通配 —— 避免把数据/临时脚本带进来）。
+ALLOW_ROOT_CODE = ("voyage_consumption.py",)
 REF_CANDIDATES = ("FETCH_HEAD", "origin/main")
 BACKUP_ROOT = os.path.join("rob_data", "tpl_backup")
 KEEP_BACKUPS = 5
@@ -77,28 +83,30 @@ def resolve_ref():
 
 
 def is_allowed(path):
-    """唯一的放行判断：templates/ 前缀 + 扩展名白名单 + 无路径穿越 + 不在拒绝清单。"""
+    """唯一的放行判断：templates/ 前缀（扩展名白名单）或根目录代码白名单，且不在拒绝清单。"""
     norm = path.replace("\\", "/").strip()
     while norm.startswith("./"):
         norm = norm[2:]
-    if not norm.startswith(TPL_DIR + "/"):
-        return False
-    if ".." in norm.split("/"):
-        return False
-    if not norm.lower().endswith(ALLOW_EXT):
-        return False
     low = norm.lower()
     for pre in FORBIDDEN_PREFIX:
         if low.startswith(pre):
             return False
     for name in FORBIDDEN_NAMES:
-        if low.endswith("/" + name):
+        if low == name or low.endswith("/" + name):
             return False
+    if norm in ALLOW_ROOT_CODE:
+        return True
+    if not norm.startswith(TPL_DIR + "/"):
+        return False
+    if ".." in norm.split("/"):
+        return False
+    if not low.endswith(ALLOW_EXT):
+        return False
     return True
 
 
 def remote_paths(ref):
-    r = git("ls-tree", "-r", "--name-only", ref, "--", TPL_DIR)
+    r = git("ls-tree", "-r", "--name-only", ref, "--", TPL_DIR, *ALLOW_ROOT_CODE)
     if r.returncode != 0:
         return []
     out = r.stdout.decode("utf-8", "replace")
@@ -113,6 +121,15 @@ def validate(path, data):
     """返回 None 表示通过，否则返回拒绝原因。"""
     if not data:
         return "空文件"
+    if path.lower().endswith(".py"):
+        # 代码脚本必须语法完整，否则渲染时 import 直接崩，比不更新更糟。
+        if len(data) < 2000:
+            return "体积异常小 (%d bytes), 疑似被截断" % len(data)
+        try:
+            compile(data.decode("utf-8", "replace"), path, "exec")
+        except SyntaxError as e:
+            return "语法错误: line %s %s" % (e.lineno, e.msg)
+        return None
     if path.lower().endswith((".html", ".htm")):
         if len(data) < MIN_HTML_BYTES:
             return "体积异常小 (%d bytes), 疑似被截断" % len(data)

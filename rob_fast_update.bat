@@ -37,11 +37,12 @@ REM below uses the template synced at the END of the previous run (code changes
 REM take effect one cycle late). sync_templates.py writes ONLY templates/, with
 REM a path whitelist, HTML validation, backup and atomic replace. Data files
 REM (rob_data/, *.csv, *.json) are never opened for writing.
-echo [2b/4] sync_templates.py ^(templates/ only, never data^) ... >> %LOG%
-if not exist sync_templates.py (
-    git cat-file -e FETCH_HEAD:sync_templates.py 2>nul
-    if not errorlevel 1 git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py 2>nul
-)
+echo [2b/4] sync_templates.py ^(templates/ + voyage_consumption.py, never data^) ... >> %LOG%
+REM Refresh the sync tool itself from FETCH_HEAD EVERY run (was: only if missing),
+REM so a newly whitelisted file (voyage_consumption.py) reaches this machine even
+REM when an older copy already exists. .new + move keeps a failed cat-file safe.
+git cat-file -e FETCH_HEAD:sync_templates.py 2>nul && git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py.new 2>nul && move /y sync_templates.py.new sync_templates.py >nul 2>&1
+if exist sync_templates.py.new del /q sync_templates.py.new >nul 2>&1
 if exist sync_templates.py (
     "%PYEXE%" sync_templates.py >> %LOG% 2>&1
     if errorlevel 1 echo [WARN] template sync failed - keep current templates, continue >> %LOG%

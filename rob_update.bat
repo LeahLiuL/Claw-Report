@@ -49,11 +49,14 @@ REM sync_templates.py writes ONLY templates/ (path whitelist + HTML validation +
 REM backup + atomic replace). It never touches rob_data/, *.csv or *.json.
 REM Bootstrap: on a machine that has not synced this script yet, pull the script
 REM itself straight out of FETCH_HEAD without touching the git index.
-echo [1b/5] sync_templates.py ^(templates/ only, never data^) ...
-if not exist sync_templates.py (
-    git cat-file -e FETCH_HEAD:sync_templates.py 2>nul
-    if not errorlevel 1 git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py 2>nul
-)
+echo [1b/5] sync_templates.py ^(templates/ + voyage_consumption.py, never data^) ...
+REM Refresh the sync tool itself from FETCH_HEAD EVERY run (was: only if missing).
+REM Otherwise a machine still holding the first copy would never learn about a
+REM newly whitelisted file (voyage_consumption.py, added 2026-11-12) and would
+REM keep rendering voyage consumption with the previous cycle's algorithm.
+REM Write to .new then move: a failed cat-file can never truncate the script.
+git cat-file -e FETCH_HEAD:sync_templates.py 2>nul && git cat-file blob FETCH_HEAD:sync_templates.py > sync_templates.py.new 2>nul && move /y sync_templates.py.new sync_templates.py >nul 2>&1
+if exist sync_templates.py.new del /q sync_templates.py.new >nul 2>&1
 if exist sync_templates.py (
     "%PYEXE%" sync_templates.py >> %LOG% 2>&1
     if errorlevel 1 echo [WARN] template sync failed - keep current templates, continue >> %LOG%
