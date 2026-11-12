@@ -376,10 +376,11 @@ function enterApp() {
   document.getElementById('lock').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('updatedAt').textContent = 'Updated ' + DATA.updated;
-  var found = DATA.vessels.filter(function(v){return v.found;}).length;
+  var act = activeVessels();
+  var found = act.filter(function(v){return v.found;}).length;
   document.getElementById('stats').innerHTML =
-    stat(DATA.vessels.length, 'Total Vessels') + stat(found, 'ROB Received') +
-    stat(DATA.vessels.length - found, 'Missing / No Report', true);
+    stat(act.length, 'Total Vessels') + stat(found, 'ROB Received') +
+    stat(act.length - found, 'Missing / No Report', true);
   buildHistIndex();
   dashSetDateBounds();
   var offs = (DATA.offline || []);
@@ -456,7 +457,7 @@ function rangeData(vessel, from, to) {
 }
 // 计算当前模式下每行展示数据(已套用 As-of / Range 覆盖)
 function computeDashRows(mode) {
-  return DATA.vessels.map(function(v) {
+  return activeVessels().map(function(v) {
     var d = { vessel:v.vessel, code:v.code, lane:v.lane, pic:v.pic, seq:v.seq,
               rob_lsfo:v.rob_lsfo, rob_hsfo:v.rob_hsfo, rob_ulsfo:v.rob_ulsfo, rob_mgo:v.rob_mgo,
               report_time:v.report_time, found:v.found, remark:v.found?'':(v.remark||'') };
@@ -503,6 +504,18 @@ function computeOfflineRows(mode) {
       d.bunker=null; d.net=null; d.report_time='';
     }
     return d;
+  });
+}
+// 主表用船清单 = DATA.vessels 去掉已下线船。
+// 2026-11-12: 后端别的构建支线可能把下线船(如 SHENGTANG / XIN MING ZHOU 106)
+// 又塞回 vessels, 这里按名单再兜一层, 保证同一艘船不会既在主表又在已下线表。
+function activeVessels() {
+  var off = {};
+  (DATA.offline || []).forEach(function(o) {
+    off[String(o.vessel || '').trim().toUpperCase()] = 1;
+  });
+  return DATA.vessels.filter(function(v) {
+    return !off[String(v.vessel || '').trim().toUpperCase()];
   });
 }
 // 表格与导出共用的行集合 —— 保证「导出 = 屏幕上看到的」
@@ -971,7 +984,7 @@ function renderDraft() {
   if (!DATA) return;
   var sortBy = document.getElementById('draftSort').value;
   var show = document.getElementById('draftShow').value;
-  var rows = DATA.vessels.map(function(v) {
+  var rows = activeVessels().map(function(v) {
     var dm = (DATA.draft_max && DATA.draft_max[v.vessel]) || {};
     return {
       vessel: v.vessel, code: v.code, lane: v.lane, pic: v.pic,
@@ -1021,6 +1034,8 @@ function renderDraft() {
 /* ---- rotation 展开状态(按 vessel|voy|start 唯一键) ---- */
 var voyOpen = {};
 var voyByKey = {};
+var voySortAsc = false;   // Voyage 表排序: false = Start 倒序(最新航次在前)
+function toggleVoySort() { voySortAsc = !voySortAsc; renderVoyage(); }
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function legCalcHTML(r, k){
   return '<div class="legcalc" data-vk="'+escAttr(k)+'" style="margin-top:10px;padding:10px;border:1px solid #2a3b50;border-radius:6px;background:#15202e">'
@@ -1264,19 +1279,21 @@ function renderVoyage() {
     return true;
   });
   rows.sort(function(a, b) {
-    var la = (a.lane || '').trim(), lb = (b.lane || '').trim();
-    // 1) Lane 升序(空航线排最后)  2) 同航线内 Start 倒序(最新航次在前)
-    var ea = la ? 0 : 1, eb = lb ? 0 : 1;
-    if (ea !== eb) return ea - eb;
-    var ua = la.toUpperCase(), ub = lb.toUpperCase();
-    if (ua !== ub) return ua < ub ? -1 : 1;
-    return a.start < b.start ? 1 : (a.start > b.start ? -1 : 0);
+    // 主排序: Start(本航次首港 Berth 时间)。默认倒序(最新航次在前)。
+    // 2026-11-12: 旧逻辑先按 Lane 升序, 导致 CUHP 2640(lane=CST, 其余航次 ST3)
+    // 被顶到表头, 看着像"没按时间排"。改为 Start 优先, Lane/航次号只作并列时的次序。
+    var sa = a.start || '', sb = b.start || '';
+    if (sa && sb && sa !== sb) return voySortAsc ? (sa < sb ? -1 : 1) : (sa < sb ? 1 : -1);
+    if (!sa !== !sb) return sa ? -1 : 1;   // 缺 Start 的船永远排在最后(不随方向翻转)
+    var la = (a.lane || '').trim().toUpperCase(), lb = (b.lane || '').trim().toUpperCase();
+    if (la !== lb) return la < lb ? -1 : 1;
+    return String(a.voy) < String(b.voy) ? -1 : 1;
   });
   rows.forEach(function(r) { voyByKey[voyKey(r)] = r; });
   var h = '<table class="trendtbl"><tr>'
     + '<th title="Click to expand rotation"></th>'
     + '<th>Vessel</th><th>Code</th><th>Lane</th><th>Voy</th><th>First Port</th>'
-    + '<th title="First-port Berth time of this voyage">Start</th>'
+    + '<th title="First-port Berth time of this voyage. Click to toggle sort" style="cursor:pointer" onclick="toggleVoySort()">Start ' + (voySortAsc ? '&#9650;' : '&#9660;') + '</th>'
     + '<th title="First-port Berth time of next voyage (= voyage end)">End</th>'
     + '<th title="Days between first-port berths">Days</th>'
     + '<th title="LSFO consumption (MT)">LSFO</th><th title="HSFO consumption (MT)">HSFO</th>'
