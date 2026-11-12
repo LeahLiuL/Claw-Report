@@ -202,20 +202,23 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                         guard_negative=True):
     """计算航次 [本航次首港berth=start_dt, 下一航次首港berth=end_dt] 内各油种真实消耗。
 
-    公式: 消耗 = 期初 ROB - 期末 ROB + 【两条读数之间】的加油量
+    公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
 
-    端点(2026-11-12 修正): 期初 = 开航时刻 start_dt 对应的读数, 期末 = 到港时刻 end_dt
-    对应的读数, 各自取边界【前后最近】的一条(BERTH/NOON 同权重, 同时刻 BERTH 优先)。
-    同一个边界永远映射到同一条读数, 因此上一航次的期末 == 下一航次的期初, 相邻航次
-    窗口首尾相接, 既不重叠也不留缝。旧口径只允许往后取, 于是:
-      * CUHP 2640 于 10-02 03:06 开航, 却只能取到 10-09 的 310.83(已含 10-03 加的
-        297.5 MT), 再按 [start,end] 计入该笔加油 -> 393.08, 真实约 178.5;
-      * 边界前刚投过的读数比边界后那份更近时会被跳过, 白丢一段消耗。
-    进行中航次(end_dt=None): 期末取「截至 now 最近」的读数, 显示至今的部分消耗。
-    加油量(2026-11-12 修正): 窗口取【期初读数时刻, 期末读数时刻】, 逐油种各算各的,
-      不再用 [start_dt, end_dt]。这样 ROB(a) - ROB(b) + bunker(a..b) 恒等于 a→b 的真实
-      消耗, 读数落在边界之外也不会再把同一笔加油重复计入。端点缺失才退回航次边界。
-      按日期比较(加油日志只有日期, 没有时分)。
+    期初(2026-11-12 修正): 取开航时刻 start_dt【前后最近】的一条读数(窗口 -5d ~ +10d,
+    BERTH/NOON 同权重, 同时刻 BERTH 优先, 等距偏向之后)。
+      旧口径只允许取边界【之后】, 于是报告晚到就会出错 —— CUHP 2640 于 10-02 03:06 开航,
+      之后 7 天没有任何报告, 只能取到 10-09 的 310.83, 而该值已经包含 10-03 加的 297.5 MT,
+      公式又按航次窗口把同一笔加油加了一次 -> 393.08, 真实约 178.5。改取边界前的
+      118.92(09-30 12:28) 后为 201.17, 与前后两段的日均油耗一致(12.8 / 12.9 MT/天)。
+    期末: 口径不变 —— 「下一航次首港 berth(end_dt) 之后、10 天内最近」的一条;
+      进行中航次(end_dt=None)取「截至 now 最近」。刻意不改成前后最近: 边界之后那条
+      通常在加油之后, 若改取边界之前(加油前)的读数, 会把下一航次的加油算进本航次
+      (CUL LAEMCHABANG 2637 实测因此虚高 578 MT)。
+    加油量: 口径不变 —— 仍取 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计。
+
+    护栏: 读数净增超过已登记加油(算出负数)时, 视为「开航后有一笔未登记加油」, 退回到
+    边界之后第一条读数当期初 —— 那笔油已被读数本身吸收, 不再依赖日志(HAIAN MIND 2634:
+    08-18 的 244.0 次日跳到 1229.7, 约 985 MT 无日志记录)。仍为负则置 None。
     BERTH/NOON 不做全局 BERTH 优先 —— 否则航次中间挂靠港的 BERTH 报告会被误当边界读数
     (CUHP 2629/2630 实测错位 40MT)。
     返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us], basis),
@@ -300,19 +303,21 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         if not has_pos[k]:
             cons[k] = None
             continue
-        # 期初 / 期末 = 边界时刻各自唯一映射的那条读数(见 _pick)
+        # 期初: 边界前后最近的那条读数(见 _pick)。这是本次修正的核心 —— 旧口径只许取
+        # 边界之后, 报告晚到就会把一个已经含了加油的读数当成期初, 再把加油加一遍。
         pick = _pick(start_dt, k)
         if pick is None:
             # 兜底(旧口径): 边界之后最近的一条, 不限距离。只在 ±5/10 天内一条读数都没有时
             # 触发 —— 这类超稀疏航次本来也只能算个下限, 但至少不让整行变空白。
             pick = _pick_after(start_dt, k, end_dt)
         if pick:
-            f_dt[k], first[k], f_basis[k] = pick[0], pick[1], pick[2]
+            f_dt[k], first[k], basis_pick = pick[0], pick[1], pick[2]
+            f_basis[k] = basis_pick
+        # 期末: 口径不动, 仍取「下一航次首港 berth 之后、10 天内最近」的一条。
+        # 不跟着改成"前后最近": 边界之后那条往往在加油之后, 若把边界之前(加油前)的读数
+        # 当期末, 会把本该属于下一航次的加油算进本航次(CUL LAEMCHABANG 2637 实测虚高 578)。
         if end_dt is not None:
-            pick = _pick(end_dt, k)
-            if pick is None:
-                # 同上, 期末也留旧口径兜底, 免得一条读数都没有的超稀疏航次整行空白。
-                pick = _pick_after(end_dt, k, end_dt + NEXT_MAX)
+            pick = _pick_after(end_dt, k, end_dt + NEXT_MAX)
             if pick:
                 l_dt[k], last[k], l_basis[k] = pick[0], pick[1], pick[2]
         else:
@@ -333,20 +338,18 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                 # 时间最近者胜; 同一时刻 (time, True) > (time, False) -> BERTH 胜
                 best = max(now_cands, key=lambda x: (x[0], x[1] == "B"))
                 last[k] = best[2]; l_basis[k] = best[1]; l_dt[k] = best[0]
-    # 加油量: 按【航次日期区间】归属, 左闭右开 —— 起航日当天的加油算本航次, 到港日当天的
-    # 算下一航次。这样每个日期恰好落在一个航次里, 全船合计守恒, 不会出现漏计或双计。
-    # 旧口径用 datetime 直接比 (start_dt <= bd <= end_dt), 而日志日期是 00:00、航次起点
-    # 是 ETB 时分, 于是「开航当天」的加油永远被算到上一航次 —— 实测 CUL LAEMCHABANG 2642
-    # 开航日 10-02 加的 790.2 MT 被推给上一航次, 本航次期初取到加油前的 155.52 后直接变负数。
+    # 加油量: 口径不动 —— 仍取 [start_dt, end_dt] 内《燃油添加日志》各油种体积合计。
+    # 曾试过改成「跟随读数时刻」的窗口, 看似更"数学正确", 但边界日归属会整体平移,
+    # 加油量在两航次之间来回搬(全船合计 -18%~+3% 摆动), 用户看到的"加油"列会大面积变化。
+    # 端点修正后这个旧窗口本身也不再造成重复计入: 期初若取到加油之前, 加油就在窗口内;
+    # 期初若取到加油之后, 说明这笔加油属于上一段, 窗口外的读数也不会把它算进来。
     if bunker_by_date:
-        lo_d = start_dt.date()
-        hi_d = (end_dt or now).date()
         for dstr, tmap in bunker_by_date.items():
             try:
-                bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d").date()
+                bd = datetime.datetime.strptime(dstr[:10], "%Y-%m-%d")
             except Exception:
                 continue
-            if lo_d <= bd < hi_d:
+            if start_dt <= bd <= (end_dt or now):
                 for k, t in enumerate(oils):
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
     for k in range(4):
@@ -356,6 +359,17 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         # 否则会得到一个被颠倒的负数。
         if first[k] is not None and last[k] is not None and f_dt[k] <= l_dt[k]:
             raw = first[k] - last[k] + bunker_oil[k]
+            if raw < 0 and guard_negative:
+                # 算出负数, 最常见的原因是【开航后有一次没登记的加油】: 期初取的是开航前
+                # 那份读数, 之后 ROB 突然跳高(如 HAIAN MIND 2634: 08-18 的 244.0 跳到
+                # 08-19 的 1229.7, 约 985 MT 日志里没有), 差额没被 bunker_oil 补上。
+                # 这时退回到「开航后第一条读数」当期内初 —— 那笔未登记加油已经被读数
+                # 本身吸收, 不再需要日志配合, 结果反而正确(旧口径正是这么算的)。
+                alt = _pick_after(start_dt, k, end_dt)
+                if alt is not None and f_dt[k] < alt[0] <= l_dt[k]:
+                    raw2 = alt[1] - last[k] + bunker_oil[k]
+                    if raw2 >= 0:
+                        raw, f_dt[k], first[k], f_basis[k] = raw2, alt[0], alt[1], alt[2]
             # 航次总消耗默认护栏: 油耗为负通常意味期间有加油未登记 / ROB 读数异常, 不可信 -> None。
             # 但 legs 子段累加需保留原始负值(guard_negative=False): 多段净变化可 telescoping 相加,
             # 负值段即"加油导致 ROB 上升", 累加后仍得正确总消耗。
