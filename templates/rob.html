@@ -300,7 +300,7 @@ function _loadXlsx(cb) {
     <div class="trendgrid">
       <div class="panel">
         <h3>Voyage Fuel Consumption (per voyage, ROB-based)</h3>
-        <div class="panel-note"><b>航次号已合并方向</b>：<code>2630W</code> 与 <code>2630E</code> 只是方向不同，属<b>同一航次 2630</b>（Voy 列下方小字显示包含的方向）。因此航次区间 = 该航次<b>全部方向中最早的首港 Berth</b>（例：CUHP 2630 取 2630W 首港 TWKEL）→ <b>下一航次</b>最早的首港 Berth（2631W 首港 TWKEL）。<br>航次油耗 = 该区间内 ROB 的<b>下降量之和</b>（自动排除加油 —— 加油表现为 ROB 上升，不计入消耗）。点行首的 <b>▸</b> 可展开该航次的 <b>rotation 明细</b>（跨方向合并，含挂靠港所属 Voy / ETA / ETB / ETD）。<b>B.LSFO / B.HSFO / B.MGO / B.ULSFO</b> = 该航次《燃油添加日志》记录的分油种加油量（仅体积，不含价格），<b>B.Total</b> 为其合计。<b>Total</b> = LSFO+HSFO+MGO+ULSFO 消耗。单位 MT。状态: completed=已完成 / ongoing=进行中。</div>
+        <div class="panel-note"><b>航次号已合并方向</b>：<code>2630W</code> 与 <code>2630E</code> 只是方向不同，属<b>同一航次 2630</b>（Voy 列下方小字显示包含的方向）。因此航次区间 = 该航次<b>全部方向中最早的首港 Berth</b>（例：CUHP 2630 取 2630W 首港 TWKEL）→ <b>下一航次</b>最早的首港 Berth（2631W 首港 TWKEL）。<br>航次油耗 = <b>期初ROB − 期末ROB + 该航次加油量(B.Total)</b>。期初优先取<b>开航当天</b>的报告；当天没有报告时退回开航前 <b>2 天内</b>的午报（Start 列标 <b style="color:#d6842b">H-2</b>）；两者都没有则该航次不出数（标 <b style="color:#c0392b">H!</b>，需补报告）；<b style="color:#c0392b">H+</b> = 开航后有未登记加油，期初改用开航后的读数。点行首的 <b>▸</b> 可展开该航次的 <b>rotation 明细</b>（跨方向合并，含挂靠港所属 Voy / ETA / ETB / ETD）。<b>B.LSFO / B.HSFO / B.MGO / B.ULSFO</b> = 该航次《燃油添加日志》记录的分油种加油量（仅体积，不含价格），<b>B.Total</b> 为其合计。<b>Total</b> = LSFO+HSFO+MGO+ULSFO 消耗。单位 MT。状态: completed=已完成 / ongoing=进行中。</div>
         <div id="voyTable" style="max-height:560px;overflow:auto"></div>
       </div>
       <div class="panel">
@@ -1310,6 +1310,19 @@ function renderVoyage() {
     var m={'BERTH':['B','#1F4E79'],'NOON':['N','#d6842b'],'MIXED':['M','#b58b00']}[b]||['?','#888'];
     return ' <span style="font-size:10px;padding:0 4px;border-radius:6px;color:#fff;background:'+m[1]+'" title="数据来源: '+b+' (B=BERTH报告, N=NOON报告兜底, M=混合)">'+m[0]+'</span>';
   }
+  // 期初取数来源徽标(2026-11-12): 期初只认「开航当天报告」, 当天没有才用开航前 2 天内的午报,
+  // 两者都没有则不出数。D2 / AFTER / MISSING 都必须显式标注, 提醒去补报告。
+  function headBadge(r){
+    var g = r.head_flag;
+    if(!g || g === 'D0') return '';
+    var m = {
+      'D2':      ['H-2', '#d6842b', 'Head ROB from a NOON report within 2 days before departure (no same-day report)'],
+      'AFTER':   ['H+',  '#c0392b', 'Head ROB taken after departure (unlogged bunker absorbed it)'],
+      'MISSING': ['H!',  '#c0392b', 'No report on the departure day and no NOON in the previous 2 days - not calculated']
+    }[g] || ['?', '#888', g];
+    var t = m[2] + (r.head_note ? ' | ' + r.head_note : '');
+    return ' <span style="font-size:10px;padding:0 4px;border-radius:6px;color:#fff;background:' + m[1] + ';cursor:help" title="' + t.replace(/"/g, '&quot;') + '">' + m[0] + '</span>';
+  }
   rows.forEach(function(r) {
     var k = voyKey(r);
     var open = !!voyOpen[k];
@@ -1326,7 +1339,7 @@ function renderVoyage() {
       + '<td title="航次号已去掉方向字母: 2630W + 2630E = 同一航次 2630">' + r.voy
       + (r.voy_dirs ? ' <span class="rotsub">' + r.voy_dirs + '</span>' : '') + '</td>'
       + '<td>' + r.first_port + '</td>'
-      + '<td>' + r.start + '</td><td>' + (r.end || '—') + '</td><td>' + (r.days == null ? '—' : r.days) + '</td>'
+      + '<td>' + r.start + headBadge(r) + '</td><td>' + (r.end || '—') + '</td><td>' + (r.days == null ? '—' : r.days) + '</td>'
       + '<td class="n">' + fmt(r.ls) + '</td><td class="n">' + fmt(r.hs) + '</td><td class="n">' + fmt(r.mg) + '</td><td class="n">' + fmt(r.us) + '</td>'
       + '<td class="n">' + (r.hasData ? fmt(Math.round(tot * 100) / 100) : '—') + '</td>'
       + '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
