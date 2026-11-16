@@ -204,14 +204,13 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
 
     公式: 消耗 = 期初 ROB - 期末 ROB + 期间加油量
 
-    期初(head_mode='strict', 2026-11-12 用户定稿): 分三档, **不跨大开航时刻**。
-      1) 当天报告优先 —— 与 start_dt 同一日历日内的读数(BERTH/NOON 同权重, 取离
-         start_dt 最近的一条, 同距 BERTH 优先);
-      2) 当天没有 -> 开航前 2 天内的 NOON(午报), 取最近的一份;
-      3) 都没有 -> 期初缺失, 本油种不出数(显示 "—"), 由 head_flag='MISSING' 标注。
-      为什么不用宽窗口: 船在开航港常加油, 期初若取到加油前/加油后相差很大的读数,
-      整段消耗就偏几十上百吨。CUHP 2640(10-02 03:06 开航) 就是典型: 当天 BERTH 报告
-      未入库, 只能退到 09-30 的午报, 这时必须**标注**不是当天报告。
+    期初(head_mode='strict', 2026-11-16 用户定稿): **只认开航当天**, 绝不跨天回退。
+      1) 当天有读数 -> 取离开航时刻最近的一份(BERTH 优先只在同时刻/等距时生效);
+         用的是 BERTH 记档位 D0, 用的是午报记档位 N0(前端显 "N" 徽标);
+      2) 当天什么都没有 -> 期初缺失, 本油种不出数(显示 "—"), head_flag='MISSING'。
+      为什么不用宽窗口/不做回退: 船在开航港常加油, 隔一两天读数差几十上百吨, 期初若取到
+      加油前/加油后差别很大的读数, 整段消耗就偏几十上百吨(CUHP 2640 曾因回退 2 天出 201.17,
+      用当天 BERTH 报告应为 178.52)。宁可空着标出来让人补报告。
     期初(head_mode='loose', 旧口径, 仅 Port->Port 分段计算沿用): 取边界前后最近
       (-5d ~ +10d, 等距偏后), 窗口内无读数再兜底取边界之后最近。分段跨度只有 1~5 天,
       读数极稀疏, 严格口径会让绝大多数港口段无数据, 故保持宽松(前端已提示"消耗被低估")。
@@ -228,9 +227,9 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     (CUHP 2629/2630 实测错位 40MT)。
     返回 (cons[ls,hs,mg,us], bunker_total, bunker_oil[ls,hs,mg,us], basis, head_info),
     basis∈{'BERTH','NOON','MIXED',''} 标明本段消耗基于哪种报告;
-    head_info = {'flag': 'D0'|'D2'|'AFTER'|'MISSING'|'', 'note': str},
-    flag 反映期初取数质量(D0=当天报告, D2=用了开航前 2 天内的午报,
-    AFTER=护栏退回开航后读数, MISSING=期初无报告未出数)。"""
+    head_info = {'flag': 'D0'|'N0'|'AFTER'|'MISSING'|'', 'note': str},
+    flag 反映期初取数质量(D0=当天 BERTH 报告, N0=当天只有午报,
+    AFTER=护栏退回开航后读数, MISSING=当天无报告未出数)。"""
     cons = [None, None, None, None]
     first = [None, None, None, None]
     last = [None, None, None, None]
@@ -238,7 +237,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     l_basis = [None, None, None, None]
     f_dt = [None, None, None, None]   # 期初读数时刻(逐油种, 用于确定加油窗口)
     l_dt = [None, None, None, None]   # 期末读数时刻
-    f_grade = [""] * 4                # 期初取数档位: D0 当天 / D2 前两天午报 / AFTER / MISSING
+    f_grade = [""] * 4                # 期初取数档位: D0 当天BERTH / N0 当天午报 / AFTER / MISSING
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     now = datetime.datetime.now()
@@ -309,13 +308,16 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         return best
 
     def _pick_head_strict(t, k):
-        """期初取数(严格口径, 2026-11-12 用户定稿): 当天 > 前两天午报 > 缺失。
+        """期初取数(严格口径, 2026-11-16 用户定稿): 只认开航【当天】的报告, 不跨天回退。
 
-        1) 与 t 同一日历日内的读数(BERTH/NOON 同权重), 取离 t 最近; 同距 BERTH 优先。
-           当天有多份(BERTH + NOON)时也只选一条, 保证相邻航次的端点唯一。
-        2) 当天没有 -> [t-2d, t) 内的 NOON(午报), 取最近的一份; 不含 BERTH/SAILING,
-           因为用户只认午报作为日常读数, 且港口里 BERTH 报告可能停在加油前后。
-        3) 都没有 -> None(不出数), 由 f_grade='MISSING' 标注, 允许人工核对后补报告。
+        1) 当天有读数(BERTH 或 NOON) -> 取离 start_dt 最近的一条, 同时刻/等距 BERTH 优先;
+        2) 当天只有午报 -> 用午报, 档位 N0(前端显 "N" 徽标); 用的是 BERTH 则档位 D0;
+        3) 当天什么都没有 -> None(不出数), 由 f_grade='MISSING' 标注, 提示补报告。
+        用户明确否决了"向前回退 2 天午报": 船多在开航港加油, 隔一两天读数差几十到上百吨,
+        宁可空着标出来, 也不给一个可能是加油前/后的错数(CUHP 2640 曾因回退 2 天出 201.17)。
+        当天内部仍按"最接近开航时刻"取, 不搞 BERTH 无条件优先 —— 同一日历日里 BERTH 可能在
+        离港前很早就发了, 无条件优先会把更早的读数当期初, 凭空多算几十吨
+        (CUL XIAMEN 2630 实测 36.05 -> 79.14)。同一天只选一条读数, 保证相邻航次端点唯一。
         """
         d0 = t.date()
         best, best_key = None, None
@@ -327,18 +329,8 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                     continue
                 key = (abs((dt - t).total_seconds()), 0 if tag == "B" else 1)
                 if best_key is None or key < best_key:
-                    best_key, best = key, (dt, val, tag, "D0")
-        if best is not None:
-            return best
-        lo = t - datetime.timedelta(days=HEAD_PREV_DAYS)
-        best, best_dt = None, None
-        for p in noon_series:
-            dt, val = p[0], p[1][k]
-            if dt >= t or dt < lo or val is None or val > ROB_ABS_MAX \
-                    or (has_pos[k] and val <= 0):
-                continue
-            if best_dt is None or dt > best_dt:
-                best_dt, best = dt, (dt, val, "N", "D2")
+                    best_key = key
+                    best = (dt, val, tag, "D0" if tag == "B" else "N0")
         return best
 
     for k in range(4):
@@ -347,7 +339,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         if not has_pos[k]:
             cons[k] = None
             continue
-        # 期初: strict 口径按「当天 -> 前 2 天午报 -> 缺失」三档(见 _pick_head_strict);
+        # 期初: strict 口径按「当天 BERTH -> 当天 NOON -> 缺失」三档(见 _pick_head_strict);
         # loose 口径沿用旧的边界前后最近, 并兜底边界之后最近。
         if head_mode == "strict":
             pick = _pick_head_strict(start_dt, k)
@@ -436,8 +428,8 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     if used:
         basis = "BERTH" if all(b == "B" for b in used) else ("NOON" if all(b == "N" for b in used) else "MIXED")
     # ---- 期初取数质量标注(供前端徽标/tooltip) ----
-    # 严重度: MISSING > AFTER > D2 > D0; 四油种取最差的一档作为整行 flag。
-    rank = {"D0": 0, "D2": 1, "AFTER": 2, "MISSING": 3}
+    # 严重度: MISSING > AFTER > N0 > D0; 四油种取最差的一档作为整行 flag。
+    rank = {"D0": 0, "N0": 1, "D2": 1, "AFTER": 2, "MISSING": 3}
     flag = ""
     for k in range(4):
         if not has_pos[k]:
@@ -453,7 +445,9 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         g, dt = f_grade[k] or "D0", f_dt[k]
         when = dt.strftime("%Y-%m-%d %H:%M") if dt else "—"
         if g == "MISSING":
-            notes.append("%s head: no report on the ETB day nor NOON within 2 days before" % label[k])
+            notes.append("%s head: no BERTH and no NOON report on the ETB day" % label[k])
+        elif g == "N0":
+            notes.append("%s head %s NOON (same day, no BERTH report)" % (label[k], when))
         elif g == "D2":
             notes.append("%s head %s NOON (not same-day)" % (label[k], when))
         elif g == "AFTER":
@@ -464,7 +458,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
 
 def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None,
                     head_mode="strict"):
-    """head_mode='strict'(默认, 2026-11-12 定稿): 期初只认当天报告 / 开航前 2 天午报, 缺则标注。
+    """head_mode='strict'(默认, 2026-11-16 定稿): 期初只认当天 BERTH / 当天 NOON, 缺则标注。
     'loose': 旧的边界前后最近(仅用于对比历史数字, 页面不再使用)。"""
     fs = load_full_schedule(dm_html)
     if not fs:
