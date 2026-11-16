@@ -53,10 +53,20 @@ def collect_vessels(history_csv):
     return vs
 
 
-def scan_vessel(vessel, code, inbox, folder, since_dt):
-    """扫描单船: 递归文件夹树 + 收件箱主题。返回报告列表。"""
+def scan_vessel(vessel, code, inbox, folder, since_dt, until_dt=None, skip_inbox_top=False):
+    """扫描单船: 递归文件夹树 + 收件箱主题。返回报告列表。
+
+    until_dt(可选): 只收 [since_dt, until_dt) 内的报告。2026-11-16 加, 用于只补
+    早期缺失窗口(如 1-7 月), 跳过已入库的 8-11 月, 避免重复解析上万封附件。
+    skip_inbox_top: 跳过收件箱顶层扫描。中文收件箱有 66023 封, subject like 无日期
+      限制会全表扫描极慢(单船 20 分钟跑不完); 老报告都在船名文件夹里, 回补时可跳过。"""
     out = []
     cutoff = since_dt.strftime("%m/%d/%Y %H:%M %p")
+    if until_dt is not None:
+        restrict_expr = ("[ReceivedTime] >= '%s' AND [ReceivedTime] < '%s'"
+                         % (cutoff, until_dt.strftime("%m/%d/%Y %H:%M %p")))
+    else:
+        restrict_expr = "[ReceivedTime] >= '%s'" % cutoff
     nv = R.norm(vessel); nc = R.norm(code or "")
     tokens = [t for t in (nv, nc) if len(t) >= 4]
     if not tokens:
@@ -64,7 +74,7 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
 
     def scan_folder(fo):
         try:
-            items = fo.Items.Restrict("[ReceivedTime] >= '%s'" % cutoff)
+            items = fo.Items.Restrict(restrict_expr)
             items.Sort("[ReceivedTime]", True)
         except Exception:
             return
@@ -74,6 +84,8 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
             except Exception:
                 continue
             if rt < since_dt:
+                continue
+            if until_dt is not None and rt >= until_dt:
                 continue
             try:
                 subj = it.Subject or ""
@@ -123,8 +135,15 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
         for fo in scan_folders:
             scan_folder(fo)
     # (b) 收件箱顶层(主题含船名 token)
+    if skip_inbox_top:
+        return out
     try:
-        sql = "@SQL=\"urn:schemas:httpmail:subject\" like '%%%s%%'" % nv
+        # 2026-11-16: 必须带日期条件, 否则对中文收件箱 66023 封全表 subject like 极慢
+        sql = ("@SQL=(\"urn:schemas:httpmail:subject\" like '%%%s%%') AND "
+               "(\"urn:schemas:httpmail:datereceived\" >= '%s')" % (nv, cutoff))
+        if until_dt is not None:
+            sql += (" AND (\"urn:schemas:httpmail:datereceived\" < '%s')"
+                    % until_dt.strftime("%m/%d/%Y %H:%M %p"))
         items = inbox.Items.Restrict(sql)
         items.Sort("[ReceivedTime]", True)
         for it in items:
@@ -133,6 +152,8 @@ def scan_vessel(vessel, code, inbox, folder, since_dt):
             except Exception:
                 continue
             if rt < since_dt:
+                continue
+            if until_dt is not None and rt >= until_dt:
                 continue
             att = R.pick_report_attachment(it)
             if att is None:
@@ -209,7 +230,12 @@ def _store_inboxes():
     而一个月前的旧报告(如 CUHP/H728 的 7-9 月 BERTH/NOON)全在『联机存档』store 里,
     导致 backfill 漏抓旧报告、report_type 无法回填(全库空标注集中在 7-10 月)。
     存档 store 的 GetDefaultFolder(6) 取错/为空(10-10 实测), 必须 root -> 收件箱 按名字导航;
-    注意 norm() 会剔除中文, 不能用 norm 匹配『收件箱』, 须用原始名字。"""
+    注意 norm() 会剔除中文, 不能用 norm 匹配『收件箱』, 须用原始名字。
+
+    2026-11-16 关键修正: 联机存档 store 顶层同时有英文 'Inbox'(1273 封, 只有 10 月后)
+    和中文 '收件箱'(66023 封, H1 就有 27479 封, 各船报告子文件夹全在这里)。旧代码遇到
+    第一个 Inbox 就 break, 选中空壳那个 -> 1-9 月老报告 100% 漏抓(CUHP 只扫到 10-05 后)。
+    改为: 同一 store 内把所有名字像收件箱的文件夹都收集起来, 按 Items.Count 取最大的。"""
     import win32com.client
     OL = win32com.client.Dispatch("Outlook.Application")
     NS = OL.GetNamespace("MAPI")
@@ -223,12 +249,17 @@ def _store_inboxes():
         except Exception:
             continue
         inbox = None
+        best_count = -1
         try:
             for f in root.Folders:
                 fn = (f.Name or "").strip()
                 if fn in ("收件箱", "Inbox", "INBOX") or fn.upper() == "INBOX":
-                    inbox = f
-                    break
+                    try:
+                        cnt = f.Items.Count
+                    except Exception:
+                        cnt = 0
+                    if cnt > best_count:
+                        best_count, inbox = cnt, f
         except Exception:
             pass
         if inbox is None:
@@ -236,6 +267,7 @@ def _store_inboxes():
                 inbox = st.GetDefaultFolder(6)   # 主邮箱兑底
             except Exception:
                 continue
+        print("[store] %s -> inbox=%s (%d items)" % (name, inbox.Name, best_count))
         idx = {}
 
         def walk(f, d=0):
@@ -256,10 +288,14 @@ def _store_inboxes():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", default="2026-01-01", help="YYYY-MM-DD 起始(回溯窗口)")
+    ap.add_argument("--until", default=None,
+                    help="YYYY-MM-DD 上界(不含), 只补 [since,until) 缺失窗口, 跳过已有数据")
     ap.add_argument("--vessel", default=None, help="只回填某船(调试)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--resume", action="store_true",
                     help="跳过 Outlook 扫描, 直接读取上次 dump 的 backfill_found.json 做合并")
+    ap.add_argument("--skip-inbox-top", action="store_true",
+                    help="跳过收件箱顶层全表扫描(中文收件箱 66023 封极慢), 老报告在船名文件夹内")
     args = ap.parse_args()
 
     since_dt = datetime.strptime(args.since, "%Y-%m-%d")
@@ -267,6 +303,13 @@ def main():
         since_dt = since_dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
     except Exception:
         pass
+    until_dt = None
+    if args.until:
+        until_dt = datetime.strptime(args.until, "%Y-%m-%d")
+        try:
+            until_dt = until_dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        except Exception:
+            pass
     store_boxes = _store_inboxes()
     if not store_boxes:
         print("[ERR] Outlook 未连接"); return 1
@@ -284,15 +327,18 @@ def main():
         found = tmp.get("found", {})
         found_meta = tmp.get("meta", {})
     else:
-        for vessel, code in vessels.items():
+        nvessel = len(vessels)
+        for vi, (vessel, code) in enumerate(vessels.items(), 1):
             reps_all = []
+            print("[scan %d/%d] %s ..." % (vi, nvessel, vessel), flush=True)
             for sname, inbox, idx in store_boxes:
                 folder, exact = R.match_folder(idx, vessel, code)
                 if folder is None:
                     # 退而求其次: 收件箱顶层主题 Restrict(scan_vessel 内已含)
                     pass
                 try:
-                    reps_all.extend(scan_vessel(vessel, code, inbox, folder, since_dt))
+                    reps_all.extend(scan_vessel(vessel, code, inbox, folder, since_dt, until_dt,
+                                                args.skip_inbox_top))
                 except Exception as e:
                     print("[WARN] scan %s @ %s failed: %s" % (vessel, sname, e))
             # 跨 store 去重(同一封邮件可能主邮箱/存档都有): 按 report_time 保留类型优先者

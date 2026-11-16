@@ -37,6 +37,10 @@ HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 # 报告级归档(harvest_reports.py 产出): 一封报告一行。日快照每船每天只有一条,
 # 而船长每天实际会发 NOON+BERTH+SAILING 多封, BERTH 恰恰是航次边界的取数来源。
 REPORTS_JSONL = os.path.join(ROB_DIR, "rob_reports.jsonl")
+# 2026 早期(1-7月)回补归档(backfill_early_reports.py 产出): 老报告散在联机存档收件箱顶层,
+# 不在船名文件夹, 日常 harvest 抓不到。独立文件, 与日常归档分开, 每轮渲染一并读入。
+# 用 (vessel, 分钟) 去重, 与 rob_reports.jsonl 重叠也只算一次 —— 互不干扰。
+BACKFILL_JSONL = os.path.join(ROB_DIR, "rob_reports_backfill.jsonl")
 OFFLINE_MARK = "已下线"
 
 
@@ -165,9 +169,13 @@ def load_history(history_csv=HISTORY_CSV, berth_only=False):
             print("[WARN] voyage: read history failed:", e)
 
     n_arch = 0
-    if os.path.exists(REPORTS_JSONL):
+    # 日常归档 + 2026 早期回补归档, 都按 (vessel, 分钟) 去重合并(先日常后回补)。
+    for jpath in (REPORTS_JSONL, BACKFILL_JSONL):
+        if not os.path.exists(jpath):
+            continue
+        n_this = 0
         try:
-            with open(REPORTS_JSONL, encoding="utf-8") as f:
+            with open(jpath, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -190,11 +198,14 @@ def load_history(history_csv=HISTORY_CSV, berth_only=False):
                     if all(o is None for o in oils):
                         continue
                     if _push(v, dt, oils, rt):
-                        n_arch += 1
+                        n_this += 1
         except Exception as e:
-            print("[WARN] voyage: read rob_reports failed:", e)
+            print("[WARN] voyage: read %s failed: %s" % (os.path.basename(jpath), e))
+        n_arch += n_this
+        if n_this:
+            print("[voyage] +%d 条报告级读数 (%s)" % (n_this, os.path.basename(jpath)))
     if n_arch:
-        print("[voyage] +%d 条报告级读数 (rob_reports.jsonl)" % n_arch)
+        print("[voyage] 报告级读数合计 +%d" % n_arch)
     return hist
 
 

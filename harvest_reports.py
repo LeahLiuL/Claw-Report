@@ -172,6 +172,10 @@ def main():
                     help="邮件池小于阈值时仍继续(默认中止, 防止静默产出空归档)")
     ap.add_argument("--no-guard", action="store_true",
                     help="跳过 Outlook 健康检查/自动重启")
+    ap.add_argument("--include-archive", action="store_true",
+                    help="2026-11-16 历史回补用: 连联机存档 store 一起扫, 且每个 store 选最大收件箱"
+                         "(存档有英文 Inbox 1273 空壳 + 中文收件箱 66023, 老报告全在后者)。"
+                         "日常抓取勿加, 否则重复扫存档拖慢")
     args = ap.parse_args()
 
     # Outlook 自检 + 自愈: 断链会静默产出空归档, 必须在抓取前先确认它真的能用。
@@ -199,16 +203,45 @@ def main():
                  if k in r["vessel"].upper() or k == (r.get("code") or "").upper()]
     print("fleet=%d days=%d archived=%d" % (len(fleet), args.days, len(done)), flush=True)
 
-    stores = R.connect_outlook()
+    if args.include_archive:
+        # 历史回补: 扫主邮箱 + 联机存档, 每个 store 按 Items.Count 选最大的收件箱。
+        # 存档 store 有两个"收件箱": 英文 Inbox(1273, 只有10月后) 和 中文收件箱(66023, 含全部老报告)。
+        import win32com.client as _w
+        _ns = _w.Dispatch("Outlook.Application").GetNamespace("MAPI")
+        stores = []
+        for s in _ns.Stores:
+            if "CULINES.COM" not in (s.DisplayName or "").upper():
+                continue
+            try:
+                root = s.GetRootFolder()
+                best, best_n = None, -1
+                for f in root.Folders:
+                    fn = (f.Name or "").strip()
+                    if fn in ("收件箱", "Inbox", "INBOX") or fn.upper() == "INBOX":
+                        try:
+                            cnt = f.Items.Count
+                        except Exception:
+                            cnt = 0
+                        if cnt > best_n:
+                            best, best_n = f, cnt
+                if best is not None:
+                    stores.append((s, best))
+                    print("[archive] %s -> inbox=%s (%d)" % (s.DisplayName, best.Name, best_n), flush=True)
+            except Exception as e:
+                print("[archive] skip %s: %s" % (s.DisplayName, e), flush=True)
+    else:
+        stores = [(s, None) for s in (R.connect_outlook() or [])]
     if not stores:
         raise SystemExit("no CULINES store")
 
     folders = []
-    for s in stores:
-        try:
-            _inb = s.GetDefaultFolder(6)
-        except Exception:
-            continue
+    for s, _forced_inbox in stores:
+        _inb = _forced_inbox
+        if _inb is None:
+            try:
+                _inb = s.GetDefaultFolder(6)
+            except Exception:
+                continue
         folders.append(_inb)
         folders.extend(R.build_folder_list(_inb))
         if not args.no_extra:
