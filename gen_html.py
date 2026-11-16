@@ -61,7 +61,7 @@ FULL_COLUMNS = [
     ('speed',       'Speed',            True,   True),   # C15
     ('etaDelay',    'ETA Delay',        True,   True),   # C16
     ('etdDelay',    'ETD Delay',        True,   False),  # C17
-    ('remark',      'Remark',           True,   False),
+    ('remark',      'Remark',           True,   True),   # Wait>24h无备注时显示 Port Congestion
     ('pic',         'PIC',              True,   True),
 ]
 # Summary view columns (subset)
@@ -79,7 +79,7 @@ SUMMARY_COLUMNS = [
     ('portStay',   'Port Stay(hr)',    True),
     ('etaDelay',   'ETA Delay',        True),
     ('etdDelay',   'ETD Delay',        True),
-    ('remark',     'Remark',           False),
+    ('remark',     'Remark',           True),
     ('pic',        'PIC',              True),
 ]
 
@@ -94,6 +94,27 @@ def get_str(v):
     if v is None: return ''
     if isinstance(v, datetime): return v.strftime('%m/%d %H:%M')
     return str(v).strip()
+
+# ── Port Congestion 自动标注 (2026-11-16 用户口径) ──────────────────────────
+# Wait > 24h 且该行没有任何 remark → remark 显示 "Port Congestion";
+# remark 已有内容的行原样保留, 绝不追加。Summary / Full Schedule / 导出 Excel 同源。
+CONGESTION_WAIT_H = 24.0
+CONGESTION_LABEL = 'Port Congestion'
+
+def _parse_wait_hours(v):
+    try:
+        return float(str(v).strip())
+    except (TypeError, ValueError):
+        return None
+
+def _row_remark(wait_val, remark):
+    r = str(remark or '').strip()
+    if r:
+        return r                      # 已有备注: 原样保留
+    h = _parse_wait_hours(wait_val)
+    if h is not None and h > CONGESTION_WAIT_H:
+        return CONGESTION_LABEL       # Wait>24h 且无备注 → 标注拥堵
+    return r
 
 def fmt_sort(v):
     """Minute-precision sortable key 'YYYY-MM-DD HH:MM'.
@@ -537,6 +558,19 @@ def extract(excel_path, pic_map=None):
         full_schedule = _deduped
     print('  Full Schedule 去重[%s/keep=%s]: 移除 %d 行重复船期, 剩余 %d 行'
           % (FULL_DEDUP_MODE, FULL_DEDUP_KEEP, full_dedup_removed, len(full_schedule)))
+
+    # ── Port Congestion 自动标注（去重【之后】做：标注跟保留行自己的 wait 走，
+    #    否则被丢弃行(wait>24)的标注会经 _merge_remark 带到保留行(wait<=24)上）──
+    _cong_cnt = 0
+    for _lst in (results, full_schedule):
+        for _rec in _lst:
+            if not str(_rec.get('remark') or '').strip():
+                _h = _parse_wait_hours(_rec.get('wait'))
+                if _h is not None and _h > CONGESTION_WAIT_H:
+                    _rec['remark'] = CONGESTION_LABEL
+                    _cong_cnt += 1
+    if _cong_cnt:
+        print('  [Port Congestion] Wait>24h 且无备注: 自动标注 %d 行 (Summary+Full)' % _cong_cnt)
 
     return {
         'date': today.strftime('%Y-%m-%d'),
@@ -1640,6 +1674,7 @@ function _loadXlsx(cb){
   .ahead-tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 700; background: #f0fff4; color: #1a7340; border: 1px solid #b7dfca; }
   .no-data { text-align: center; padding: 40px; color: #8a9bb0; font-size: 14px; }
   .remark-cell { max-width: 260px; white-space: normal; line-height: 1.4; color: #5a6e82; font-size: 11.5px; }
+  .remark-cell.congestion-note { color: #e67e22; font-weight: 600; }
   .remark-note { display: block; max-width: 200px; white-space: normal; line-height: 1.3; color: #e67e22; font-size: 10.5px; font-weight: normal; margin-top: 2px; }
   .vessel-label {
     font-weight: 700; color: #1F4E79; font-size: 12px;
@@ -2360,7 +2395,7 @@ var visibleCols = {
 //   - a column in "all" & in "hidden" -> keep hidden (user's explicit choice)
 //   - a column in "all" & not in "hidden" -> keep visible (covers both default-visible
 //     and a default-hidden column the user explicitly turned on)
-var COLVIS_KEY = 'cul_movement_cols';
+var COLVIS_KEY = 'cul_movement_cols_v2';   // v2: Remark 改为默认显示(2026-11-16 Port Congestion 口径), 丢弃旧保存状态
 function loadColVisibility(){
   try{
     var raw = localStorage.getItem(COLVIS_KEY);
@@ -3183,6 +3218,7 @@ function renderSummary(){
       if(col.key==='portStay')  return '<td class="td-center">'+v+'</td>';
       if(col.key==='etaDelay')  return '<td class="td-center">'+delayTag(v)+'</td>';
       if(col.key==='etdDelay')  return '<td class="td-center">'+delayTag(v)+'</td>';
+      if(col.key==='remark')    return '<td class="remark-cell'+(String(v).toLowerCase()==='port congestion'?' congestion-note':'')+'">'+v+'</td>';
       return '<td>'+v+'</td>';
     });
     return '<tr>'+cells.filter(c=>c!==null).join('')+'</tr>';
@@ -3406,6 +3442,7 @@ function renderFullSchedule(){
       if(col.key==='portStay')   return '<td class="td-center">'+v+'</td>';
       if(col.key==='etaDelay')   return '<td class="td-center">'+delayTag(v)+'</td>';
       if(col.key==='etdDelay')   return '<td class="td-center">'+delayTag(v)+'</td>';
+      if(col.key==='remark')     return '<td class="remark-cell'+(String(v).toLowerCase()==='port congestion'?' congestion-note':'')+'">'+v+'</td>';
       return '<td>'+v+'</td>';
     });
     return '<tr class="'+cls+'">'+cells.filter(c=>c!==null).join('')+'</tr>';
