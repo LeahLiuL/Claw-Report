@@ -3620,6 +3620,8 @@ function exportFullScheduleExcel(wb){
     defs.forEach(function(col){
       if(!exportKeys.has(col.key)) return;
       var v = r[col.key]||'';
+      // Excel export: Speed 2 decimals, identical to the on-screen table
+      if(col.key==='speed') v = fmtSpeed2(v);
       if(col.key==='vessel') row.push({v:v,s:bS});
       else if(col.key==='etaDelay'||col.key==='etdDelay') row.push({v:v,s:ds(v)});
       else if(['route','port','voy','eta','etb','etd','portStay','proforma','ltmEta','ltmEtd','wait','date','run','fspDistance','speed','manIn'].includes(col.key)) row.push({v:v,s:cS});
