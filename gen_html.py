@@ -3398,6 +3398,17 @@ function setFullCounts(data){
   document.getElementById('statVessel2').textContent = vs.size + ' vessels';
 }
 
+// Full Schedule: Speed shows 2 decimals; #DIV/0!, #VALUE! and empty stay as-is.
+// Sorting and Excel export still use the raw source value (full precision).
+function fmtSpeed2(v){
+  if(v===null || v===undefined) return '';
+  var t=String(v).trim();
+  if(!t) return '';
+  var n=Number(t);
+  if(!isFinite(n)) return v;
+  return n.toFixed(2);
+}
+
 function renderFullSchedule(){
   const data=getFilteredFull();
   // Build header
@@ -3433,7 +3444,8 @@ function renderFullSchedule(){
       if(col.key==='code')       return '<td class="td-center"><span class="badge-code">'+v+'</span></td>';
       if(col.key==='pic')        return '<td>'+v+'</td>';
       if(col.key==='port')       return '<td class="td-center td-mono"><strong>'+v+'</strong></td>';
-      if(col.key==='manIn' || col.key==='wait' || col.key==='run' || col.key==='fspDistance' || col.key==='speed') return '<td class="td-center">'+v+'</td>';
+      if(col.key==='speed') return '<td class="td-center">'+fmtSpeed2(v)+'</td>';
+      if(col.key==='manIn' || col.key==='wait' || col.key==='run' || col.key==='fspDistance') return '<td class="td-center">'+v+'</td>';
       if(col.key==='proforma')   return '<td class="proforma-cell">'+v+'</td>';
       if(col.key==='voy')        return '<td class="td-center td-mono">'+v+'</td>';
       if(col.key==='ltmEta' || col.key==='ltmEtd') return '<td class="td-center td-mono" style="font-size:11px">'+v+'</td>';
