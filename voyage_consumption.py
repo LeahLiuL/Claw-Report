@@ -249,6 +249,11 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     f_dt = [None, None, None, None]   # 期初读数时刻(逐油种, 用于确定加油窗口)
     l_dt = [None, None, None, None]   # 期末读数时刻
     f_grade = [""] * 4                # 期初取数档位: D0 当天BERTH / N0 当天午报 / AFTER / MISSING
+    # 逐油种记录"为什么这一格是空的"(cons[k]=None 的原因), 供前端在空值单元格标注。
+    # 之前只有期初质量档位 f_grade, 导致"期末缺/加油不匹配"这类空值完全无提示。
+    # NA=本船不烧该油, MISSING=期初当天无报告, TAIL=期末无读数,
+    # ORDER=期初晚于期末, NEG=负数护栏(期间加油未与本航次匹配)。
+    f_empty = [""] * 4
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     now = datetime.datetime.now()
@@ -349,6 +354,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         # 而不是误导性的 "0.0 MT"(会让人以为航次真的零消耗)。
         if not has_pos[k]:
             cons[k] = None
+            f_empty[k] = "NA"
             continue
         # 期初: strict 口径按「当天 BERTH -> 当天 NOON -> 缺失」三档(见 _pick_head_strict);
         # loose 口径沿用旧的边界前后最近, 并兜底边界之后最近。
@@ -356,6 +362,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             pick = _pick_head_strict(start_dt, k)
             if pick is None:
                 f_grade[k] = "MISSING"
+                f_empty[k] = "MISSING"
                 continue          # 该油种期初无报告 -> 不出数(行内显示 "—")
         else:
             pick = _pick(start_dt, k)
@@ -364,6 +371,7 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                 # 触发 —— 这类超稀疏航次本来也只能算个下限, 但至少不让整行变空白。
                 pick = _pick_after(start_dt, k, end_dt)
             if pick is None:
+                f_empty[k] = "MISSING"
                 continue
         f_dt[k], first[k], basis_pick = pick[0], pick[1], pick[2]
         f_basis[k] = basis_pick
@@ -408,11 +416,19 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
                 for k, t in enumerate(oils):
                     bunker_oil[k] += float((tmap or {}).get(t) or 0)
     for k in range(4):
-        if not has_pos[k]:
+        if not has_pos[k] or f_empty[k]:
+            continue
+        # 期末无读数(下一航次边界之后 10 天内没有任何报告) -> 这一格算不出来。
+        # 此前什么都不记, 前端只看到空白, 无从判断是"没数据"还是"数据丢了"。
+        if first[k] is None or last[k] is None:
+            f_empty[k] = "TAIL"
             continue
         # 端点顺序异常(期初读数晚于期末读数, 只可能出现在极稀疏的航次)时不计算,
         # 否则会得到一个被颠倒的负数。
-        if first[k] is not None and last[k] is not None and f_dt[k] <= l_dt[k]:
+        if f_dt[k] > l_dt[k]:
+            f_empty[k] = "ORDER"
+            continue
+        if True:
             raw = first[k] - last[k] + bunker_oil[k]
             if raw < 0 and guard_negative:
                 # 算出负数, 最常见的原因是【开航后有一次没登记的加油】: 期初取的是开航前
@@ -431,6 +447,9 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             # 负值段即"加油导致 ROB 上升", 累加后仍得正确总消耗。
             if raw < 0 and guard_negative:
                 cons[k] = None
+                # 负数护栏: 期末 ROB 高于期初 + 本航次登记加油量, 说明期间有加油
+                # 没匹配到本航次(日志缺记录, 或加油日归属到相邻航次)。
+                f_empty[k] = "NEG"
             else:
                 cons[k] = round(raw, 2)
     bunker_total = round(sum(bunker_oil), 2)
@@ -463,7 +482,15 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
             notes.append("%s head %s NOON (not same-day)" % (label[k], when))
         elif g == "AFTER":
             notes.append("%s head %s taken after departure (bunker not logged)" % (label[k], when))
-    head_info = {"flag": flag, "note": "; ".join(notes)}
+    # 逐油种空值原因 + 人话说明, 供前端在每个空单元格上给出 hover 提示。
+    _en = []
+    for k, _label in enumerate(["LSFO", "HSFO", "MGO", "ULSFO"]):
+        if f_empty[k] and f_empty[k] != "NA":
+            _en.append(_label + ": " + f_empty[k])
+    empty_note = "; ".join(_en)
+    head_info = {"flag": flag, "note": "; ".join(notes),
+                 "empty_flags": {o: f_empty[i] for i, o in enumerate(oils)},
+                 "empty_note": empty_note}
     return cons, bunker_total, bunker_oil, basis, head_info
 
 
@@ -617,6 +644,8 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
                 "basis": basis,
                 "head_flag": head_info["flag"],
                 "head_note": head_info["note"],
+                "empty_flags": head_info.get("empty_flags", {}),
+                "empty_note": head_info.get("empty_note", ""),
                 "legs": legs,
             })
     # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后

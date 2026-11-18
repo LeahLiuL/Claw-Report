@@ -145,6 +145,7 @@ function _loadXlsx(cb) {
   .rotbox { text-align: left; padding: 6px 2px 10px; }
   .rottitle { font-size: 12.5px; color: #1F4E79; margin-bottom: 5px; }
   .rotsub { color: #8a99ab; font-size: 11.5px; font-weight: 400; }
+  .emptyflag { display:inline-block; min-width:13px; height:13px; line-height:13px; text-align:center; border-radius:50%; background:#c0392b; color:#fff; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:2px; }
   .trendtbl.rot { width: auto; min-width: 560px; margin-top: 2px; background: #fbfdff; }
   .trendtbl.rot th { background: #e8eff6; color: #1F4E79; }
   .dash-banner { margin: 0 28px 8px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
@@ -396,6 +397,24 @@ function fmt(v) {
   if (v === null || v === undefined) return '';
   if (typeof v === 'number') return (v % 1 === 0) ? v.toString() : v.toFixed(2);
   return v;
+}
+// 空值原因标识(2026-11-18): cons 为 null 时后端给出原因码, 在空单元格上显示红色 !。
+// 之前空值完全无提示 —— 用户看到 LSFO 空白却不知道是期初缺报告、期末缺读数,
+// 还是期间加油没匹配上(负数护栏)。这里按油种给出 hover 说明, 不影响有数的单元格。
+var EMPTY_REASON = {
+  MISSING: '开航当天无 BERTH / NOON 报告, 期初 ROB 缺失, 未计算 — 请补报告',
+  TAIL:    '航次结束后 10 天内无 ROB 报告, 期末 ROB 缺失, 未计算 — 请补报告',
+  ORDER:   '期初 ROB 读数晚于期末, 端点顺序异常, 未计算',
+  NEG:     '期间 ROB 上升, 但加油量未匹配到本航次(日志缺记录或加油日归属到相邻航次), 未计算 — 请核对加油日志'
+};
+function oilCell(r, field, code) {
+  var v = r[field];
+  var g = (r.empty_flags || {})[code];
+  var tip = EMPTY_REASON[g] || g || '';
+  if (r.empty_note) tip += ' | ' + r.empty_note;
+  var warn = (v === null || v === undefined) && g && g !== 'NA'
+    ? ' <span class="emptyflag" title="' + tip.replace(/"/g, '&quot;') + '">!</span>' : '';
+  return '<td class="n">' + fmt(v) + warn + '</td>';
 }
 function _num(v) {
   if (v === null || v === undefined || v === '') return null;
@@ -1340,7 +1359,7 @@ function renderVoyage() {
       + (r.voy_dirs ? ' <span class="rotsub">' + r.voy_dirs + '</span>' : '') + '</td>'
       + '<td>' + r.first_port + '</td>'
       + '<td>' + r.start + headBadge(r) + '</td><td>' + (r.end || '—') + '</td><td>' + (r.days == null ? '—' : r.days) + '</td>'
-      + '<td class="n">' + fmt(r.ls) + '</td><td class="n">' + fmt(r.hs) + '</td><td class="n">' + fmt(r.mg) + '</td><td class="n">' + fmt(r.us) + '</td>'
+      + oilCell(r, 'ls', 'ls') + oilCell(r, 'hs', 'hs') + oilCell(r, 'mg', 'mg') + oilCell(r, 'us', 'us')
       + '<td class="n">' + (r.hasData ? fmt(Math.round(tot * 100) / 100) : '—') + '</td>'
       + '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
       + '<td class="n bunker">' + fmt(r.bunker_mg) + '</td><td class="n bunker">' + fmt(r.bunker_us) + '</td>'
