@@ -55,6 +55,52 @@ def load_done():
     return done
 
 
+def scan_folders(inbox, fleet_idx=None):
+    """收件箱顶层 + 船名文件夹(及其 Master 子目录)。
+
+    2026-11-18 修正: 1-7 月老报告散在顶层, 但 8 月以后的 ROB 报告大多归进了
+    收件箱/{船名} 和 收件箱/{船名}/{船名} Master。旧脚本只扫顶层, 导致
+    7-28 ~ 今天 这批报告(如 H708 10-07 的 BERTH/NOON)全部漏掉 —— 日常采集
+    --days 3 够不着, 早期回补 --until 7-27 也够不着, 成了 80 天空档。
+
+    只收录【名字能匹配船队 token 的文件夹】及其子文件夹(Master 等), 以及顶层本身。
+    收件箱下还有 DG(3.5万)、收件箱_2024(6.1万)、TRADE 等大归档夹, 对它们逐个跑
+    DASL 是分钟级灾难, 且它们不装 ROB 报告 —— 明确跳过。"""
+    out = [inbox]
+
+    def is_vessel_folder(name):
+        n = R.norm(name or "")
+        if not n:
+            return False
+        for token in (fleet_idx or {}):
+            if len(token) >= 4 and token in n:
+                return True
+        return False
+
+    def walk(f, depth=0, parent_is_vessel=False):
+        if depth > 3:
+            return
+        try:
+            children = list(f.Folders)
+        except Exception:
+            return
+        for c in children:
+            try:
+                cn = c.Name or ""
+            except Exception:
+                continue
+            # 一级: 只进船名文件夹; 更深: 父是船名夹则进(Master/PRE Stowage 等)
+            if depth == 0:
+                if is_vessel_folder(cn):
+                    out.append(c)
+                    walk(c, depth + 1, True)
+            elif parent_is_vessel:
+                out.append(c)
+                walk(c, depth + 1, True)
+    walk(inbox)
+    return out
+
+
 def largest_inboxes():
     """每个 CULINES store 选 Items.Count 最大的收件箱(存档有英文 Inbox 空壳 + 中文收件箱)。"""
     ns = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
@@ -132,7 +178,8 @@ def main():
     ap.add_argument("--until", default="2026-07-27", help="上界(不含)")
     ap.add_argument("--vessel", default="", help="只抓某船/代码(调试)")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--max-per-kw", type=int, default=4000, help="每个关键词最多解析多少封")
+    ap.add_argument("--max-per-kw", type=int, default=4000, help="每个关键词每文件夹最多解析多少封")
+    ap.add_argument("--skip-top", action="store_true", help="跳过收件箱顶层(只扫船名文件夹)")
     args = ap.parse_args()
 
     done = load_done()
@@ -148,94 +195,103 @@ def main():
     t_start = time.time()
     try:
         for sname, inbox in boxes:
-            # 存档船名文件夹 1-7 月没有 ROB 报告, 只扫收件箱顶层; 主邮箱顶层 1-7 月为 0, 跳过也行
-            for kw in REPORT_KWS:
-                sql = ("@SQL=(\"urn:schemas:httpmail:subject\" LIKE '%%%s%%') AND "
-                       "(\"urn:schemas:httpmail:datereceived\" >= '%s') AND "
-                       "(\"urn:schemas:httpmail:datereceived\" < '%s')"
-                       % (kw, since_s, until_s))
+            folders = scan_folders(inbox, fleet_idx)
+            if args.skip_top:
+                folders = [f for f in folders if f is not inbox]
+            print("[%s] scan %d folders (top + sub)" % (sname[:12], len(folders)), flush=True)
+            for fo in folders:
                 try:
-                    items = inbox.Items.Restrict(sql)
-                    total = items.Count
-                except Exception as e:
-                    print("  [%s/%s] Restrict ERR %s" % (sname, kw, e), flush=True)
-                    continue
-                print("[%s] %s: %d candidates" % (sname[:12], kw, total), flush=True)
-                if total == 0:
-                    continue
-                it = items.GetFirst()
-                n = 0
-                nrob = 0
-                skipped = 0
-                kw_t0 = time.time()
-                while it is not None and n < args.max_per_kw:
-                    n += 1
+                    fname = fo.Name or "TOPLEVEL"
+                except Exception:
+                    fname = "?"
+                for kw in REPORT_KWS:
+                    sql = ("@SQL=(\"urn:schemas:httpmail:subject\" LIKE '%%%s%%') AND "
+                           "(\"urn:schemas:httpmail:datereceived\" >= '%s') AND "
+                           "(\"urn:schemas:httpmail:datereceived\" < '%s')"
+                           % (kw, since_s, until_s))
                     try:
-                        recv = str(it.ReceivedTime)[:19]
-                        subj = it.Subject or ""
-                    except Exception:
-                        it = items.GetNext()
-                        continue
-                    try:
-                        sender = R.get_sender(it)
-                    except Exception:
-                        sender = ""
-                    vm = match_vessel(subj, fleet_idx, sender)
-                    if vm is None:
-                        it = items.GetNext()
-                        continue
-                    vessel, code = vm
-                    key = make_key(vessel, recv, subj)
-                    if key in done:
-                        skipped += 1
-                        it = items.GetNext()
-                        continue
-                    try:
-                        att = R.pick_report_attachment(it)
-                    except Exception:
-                        att = None
-                    if att is None:
-                        it = items.GetNext()
-                        continue
-                    try:
-                        aname = att.FileName or ""
-                        rob = R.extract_rob(att)
-                    except Exception:
-                        it = items.GetNext()
-                        continue
-                    if not any(k in rob for k in OIL_KEYS):
-                        it = items.GetNext()
-                        continue
-                    kind = (rob.get("REPORT_KIND") or "").strip().upper()
-                    if not kind:
-                        su = subj.upper()
-                        for k in R.REPORT_KEYS:
-                            if k in su:
-                                kind = k
-                                break
-                    row = {
-                        "key": key, "vessel": vessel, "code": code,
-                        "received": recv, "subject": subj,
-                        "folder": "TOPLEVEL", "attach": aname,
-                        "report_type": kind, "kind_src": "body/file",
-                        "lsfo": rob.get("LSFO"), "hsfo": rob.get("HSFO"),
-                        "mgo": rob.get("MGO"), "ulsfo": rob.get("ULSFO"),
-                        "bw": rob.get("BW"), "fw": rob.get("FW"),
-                        "refeer": rob.get("REEFER"), "speed": rob.get("SPEED"),
-                    }
-                    if fout is not None:
-                        fout.write(json.dumps(row, ensure_ascii=False) + "\n")
-                        fout.flush()
-                    done.add(key)
-                    n_new += 1
-                    nrob += 1
-                    try:
-                        it = items.GetNext()
+                        items = fo.Items.Restrict(sql)
+                        total = items.Count
                     except Exception as e:
-                        print("      [WARN] GetNext 中断(RPC?): %s" % str(e)[:60], flush=True)
-                        break   # 本关键词剩余跳过, 不拖垮整个脚本
-                print("      解析 %d 封, 命中 %d, 去重跳过 %d, 新增 %d, 耗时 %.0fs"
-                      % (n, nrob, skipped, n_new, time.time() - kw_t0), flush=True)
+                        print("  [%s/%s/%s] Restrict ERR %s" % (sname[:10], fname[:12], kw, e), flush=True)
+                        continue
+                    if total == 0:
+                        continue
+                    print("[%s/%s] %s: %d candidates" % (sname[:10], fname[:16], kw, total), flush=True)
+                    it = items.GetFirst()
+                    n = 0
+                    nrob = 0
+                    skipped = 0
+                    kw_t0 = time.time()
+                    while it is not None and n < args.max_per_kw:
+                        n += 1
+                        try:
+                            recv = str(it.ReceivedTime)[:19]
+                            subj = it.Subject or ""
+                        except Exception:
+                            it = items.GetNext()
+                            continue
+                        try:
+                            sender = R.get_sender(it)
+                        except Exception:
+                            sender = ""
+                        vm = match_vessel(subj, fleet_idx, sender)
+                        if vm is None:
+                            it = items.GetNext()
+                            continue
+                        vessel, code = vm
+                        key = make_key(vessel, recv, subj)
+                        if key in done:
+                            skipped += 1
+                            it = items.GetNext()
+                            continue
+                        try:
+                            att = R.pick_report_attachment(it)
+                        except Exception:
+                            att = None
+                        if att is None:
+                            it = items.GetNext()
+                            continue
+                        try:
+                            aname = att.FileName or ""
+                            rob = R.extract_rob(att)
+                        except Exception:
+                            it = items.GetNext()
+                            continue
+                        if not any(k in rob for k in OIL_KEYS):
+                            it = items.GetNext()
+                            continue
+                        kind = (rob.get("REPORT_KIND") or "").strip().upper()
+                        if not kind:
+                            su = subj.upper()
+                            for k in R.REPORT_KEYS:
+                                if k in su:
+                                    kind = k
+                                    break
+                        row = {
+                            "key": key, "vessel": vessel, "code": code,
+                            "received": recv, "subject": subj,
+                            "folder": fname, "attach": aname,
+                            "report_type": kind, "kind_src": "body/file",
+                            "lsfo": rob.get("LSFO"), "hsfo": rob.get("HSFO"),
+                            "mgo": rob.get("MGO"), "ulsfo": rob.get("ULSFO"),
+                            "bw": rob.get("BW"), "fw": rob.get("FW"),
+                            "refeer": rob.get("REEFER"), "speed": rob.get("SPEED"),
+                        }
+                        if fout is not None:
+                            fout.write(json.dumps(row, ensure_ascii=False) + "\n")
+                            fout.flush()
+                        done.add(key)
+                        n_new += 1
+                        nrob += 1
+                        try:
+                            it = items.GetNext()
+                        except Exception as e:
+                            print("      [WARN] GetNext 中断(RPC?): %s" % str(e)[:60], flush=True)
+                            break
+                    if nrob or n:
+                        print("      解析 %d 封, 命中 %d, 去重跳过 %d, 累计新增 %d, 耗时 %.0fs"
+                              % (n, nrob, skipped, n_new, time.time() - kw_t0), flush=True)
     finally:
         if fout is not None:
             fout.close()

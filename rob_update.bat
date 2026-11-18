@@ -25,6 +25,32 @@ if exist harvest_reports.py (
     echo [WARN] harvest_reports.py not found, skip >> %LOG%
 )
 
+REM ---- [0b/5] rolling backfill (once per day) ----
+REM DASL backfill misses reports in same-named Master folders on wide windows
+REM (2026-11-18: H708 10-05~10-08 all missed). backfill_reliable.py walks each
+REM vessel folder by index -> deterministic. Rolling 45d window closes the gap
+REM between harvest --days 3 and the old one-off backfill. key-dedup = idempotent.
+REM Runs BEFORE git lock (never touches git). A date stamp keeps it once/day
+REM so the 01:00 run skips. Script self-updates from FETCH_HEAD each run.
+echo [0b/5] backfill_reliable.py ^(rolling 45d, once/day^) ...
+for /f "tokens=2-4 delims=/ " %%a in ('%date%') do set TODAY=%%c-%%a-%%b
+if exist "rob_data\.backfill_%TODAY%.done" (
+    echo [0b/5] already ran today, skip >> %LOG%
+) else (
+    git cat-file -e FETCH_HEAD:backfill_reliable.py 2>nul && git cat-file blob FETCH_HEAD:backfill_reliable.py > backfill_reliable.py.new 2>nul && move /y backfill_reliable.py.new backfill_reliable.py >nul 2>&1
+    if exist backfill_reliable.py.new del /q backfill_reliable.py.new >nul 2>&1
+    if exist backfill_reliable.py (
+        "%PYEXE%" backfill_reliable.py --rolling-days 45 >> %LOG% 2>&1
+        if errorlevel 1 (
+            echo [WARN] backfill_reliable failed - keep existing archive >> %LOG%
+        ) else (
+            echo done > "rob_data\.backfill_%TODAY%.done"
+        )
+    ) else (
+        echo [WARN] backfill_reliable.py not found, skip >> %LOG%
+    )
+)
+
 REM ---- [0/5] git 操作互斥锁 ----
 REM 本机 7 个计划任务并发操作同一仓库, 2026-09-22/09-24 两次 .git 对象库损坏。
 REM 全程持锁(含刷新的 6-8 分钟), 他人持锁最多等 5 分钟, 等不到跳过本轮(下轮重试)。
