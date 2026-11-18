@@ -494,10 +494,9 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     return cons, bunker_total, bunker_oil, basis, head_info
 
 
-def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None,
-                    head_mode="strict"):
-    """head_mode='strict'(默认, 2026-11-16 定稿): 期初只认当天 BERTH / 当天 NOON, 缺则标注。
-    'loose': 旧的边界前后最近(仅用于对比历史数字, 页面不再使用)。"""
+def _compute_voyages_once(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None,
+                          head_mode="strict"):
+    """单遍计算。外层 compute_voyages() 会跑两遍以实现 ETB 当天加油的守恒归属修正。"""
     fs = load_full_schedule(dm_html)
     if not fs:
         return []
@@ -655,6 +654,76 @@ def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bu
         (x.get("lane") or "").strip().upper(),
     ))
     return voyages
+
+
+def compute_voyages(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=None, bunker_types=None,
+                    head_mode="strict"):
+    """head_mode='strict'(默认, 2026-11-16 定稿): 期初只认当天 BERTH / 当天 NOON, 缺则标注。
+    'loose': 旧的边界前后最近(仅用于对比历史数字, 页面不再使用)。
+
+    ETB 当天加油归属修正(2026-11-18 用户拍板, 守恒):
+      加油日志只有日期, 被解析为当天 00:00。若 ETB 时刻晚于 00:00(绝大多数), 这笔油
+      按 `start_dt <= bd` 判断会落进【上一航次】窗口 —— 于是上一航次虚高、本航次因
+      "期末 ROB 跳高却没加油" 触发负数护栏(NEG) 而空白。
+      用户口径: 当本航次期末 ROB > 期初 ROB(即 NEG) 且 ETB 当天有对应油种加油时,
+      把这笔油【从上一航次挪到本航次】, 而不是本航次单独再加一遍(那样总量虚高一倍)。
+      实现: 迭代计算。每轮找出 NEG 且 ETB 当天有对应油种的航次, 把该 (船, ETB日, 油种)
+      的加油登记日 +1 天 -> bd 变成次日 00:00, 落入本航次窗口(start<=bd<=end), 同时因
+      bd > 上一航次 end(=本航次 start) 而自动从上一航次移出。相邻两航次合计守恒。
+      挪走后上一航次可能新变成 NEG(如 XD88 2637 依赖 10-31 的油), 若它 ETB 当天也有油
+      则下一轮继续挪 —— 迭代至无新增或达到上限, 用 moved 集合防止同一笔油重复挪。
+      只影响这类 NEG 航次, 其余航次数字零变化。
+    """
+    base = _compute_voyages_once(dm_html, history_csv, bunkering, bunker_types, head_mode)
+    if not bunker_types:
+        return base
+    OILS4 = ("ls", "hs", "mg", "us")
+    shifted = {v: {d: dict(m) for d, m in days.items()} for v, days in bunker_types.items()}
+    moved = set()                       # (vessel, date, oil) 已挪过, 防重复/死循环
+    cur = base
+    total_moved = []
+    for _round in range(6):             # 上限 6 轮, 防异常数据导致死循环
+        # 找本轮新增: 某油种 NEG 且 ETB 当天有该油种加油(且尚未挪过)
+        need = defaultdict(lambda: defaultdict(dict))
+        for v in cur:
+            ef = v.get("empty_flags") or {}
+            d = v["start"][:10]
+            daymap = (shifted.get(v["vessel"]) or {}).get(d) or {}
+            for i, o in enumerate(OILS4):
+                if ef.get(o) != "NEG" or (v["vessel"], d, o) in moved:
+                    continue
+                amt = float(daymap.get(o) or 0)
+                if amt > 0:
+                    need[v["vessel"]][d][o] = amt
+        if not need:
+            break
+        round_moved = []
+        for vessel, dmap in need.items():
+            days = shifted.get(vessel) or {}
+            for d, oils in dmap.items():
+                try:
+                    nd = (datetime.datetime.strptime(d, "%Y-%m-%d") + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                except Exception:
+                    continue
+                src = days.get(d) or {}
+                dst = days.setdefault(nd, {})
+                for o, amt in oils.items():
+                    src[o] = float(src.get(o) or 0) - amt
+                    if src[o] <= 0:
+                        src.pop(o, None)
+                    dst[o] = float(dst.get(o) or 0) + amt
+                    moved.add((vessel, d, o))
+                    round_moved.append("%s %s %s=%.2f" % (vessel[:16], d, o, amt))
+                if not src:
+                    days.pop(d, None)
+        if not round_moved:
+            break
+        total_moved.extend(round_moved)
+        cur = _compute_voyages_once(dm_html, history_csv, bunkering, shifted, head_mode)
+    if total_moved:
+        print("[voyage] ETB 当天加油归本航次(守恒, 按油种, %d 轮): %s"
+              % (len(total_moved), "; ".join(total_moved)))
+    return cur
 
 
 if __name__ == "__main__":
