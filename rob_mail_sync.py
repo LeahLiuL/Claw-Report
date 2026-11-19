@@ -34,6 +34,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROB_DIR = os.path.join(BASE, "rob_data")
 RESULTS = os.path.join(ROB_DIR, "rob_results.json")
 HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
+SEEN_IDS = os.path.join(ROB_DIR, "rob_mail_seen_ids.json")  # already-parsed mail EntryIDs
 SNAP_FIELDS = R.SNAP_FIELDS
 
 MAX_DEPTH = 4
@@ -364,7 +365,22 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=3)
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--reset-seen", action="store_true",
+                    help="clear the parsed-mail cache and reparse everything")
     args = ap.parse_args()
+
+    # already-parsed mail EntryIDs: skip them so long-window backfills only
+    # parse newly arrived/sorted mail
+    seen = set()
+    if os.path.exists(SEEN_IDS) and not args.reset_seen:
+        try:
+            seen = set(json.load(open(SEEN_IDS, encoding="utf-8")))
+        except Exception:
+            pass
+    if args.reset_seen and os.path.exists(SEEN_IDS):
+        os.remove(SEEN_IDS)
+    new_seen = set()
+    print("mail cache: %d known IDs" % len(seen))
 
     import pythoncom
     pythoncom.CoInitialize()
@@ -400,12 +416,15 @@ def main():
             continue
         cur_rt = (rec.get("report_time") or "")[:19]
         for ts, folder, eid, subj, via in lst:
+            if eid in seen:
+                continue
             got = parse_one(ns, folder, eid)
             nparsed += 1
             if got is None:
                 nnorob += 1
                 continue
             rob, recv, subj2, se = got
+            new_seen.add(eid)
             new = recv.strftime("%Y-%m-%d %H:%M:%S")
             nhit += 1
             rt = (rob.get("REPORT_KIND") or "").strip().upper()
@@ -456,6 +475,10 @@ def main():
               ensure_ascii=False, indent=2)
     n = append_history(results, newhist)
     print("wrote %d vessels, %d new history rows" % (len(updates), n))
+    if new_seen:
+        seen |= new_seen
+        json.dump(sorted(seen), open(SEEN_IDS, "w", encoding="utf-8"))
+        print("mail cache: +%d new IDs (total %d)" % (len(new_seen), len(seen)))
 
 
 if __name__ == "__main__":
