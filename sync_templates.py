@@ -13,14 +13,11 @@ reset --hard。于是每次渲染用的都是"上一轮结束时"同步到的那
 
 == 安全边界（写死在代码里，不依赖调用方）==
   1. 只允许写 templates/ 下的文件（扩展名白名单），外加 ALLOW_ROOT_CODE 里显式列出的
-     根目录代码脚本（voyage_consumption.py 航次油耗算法 + rob_refresh.py 抓取/渲染主脚本）。
+     根目录代码脚本（默认只有 voyage_consumption.py —— 航次油耗算法）。
      任何其它路径（rob_data/、*.csv、*.json、*.jsonl、*.xlsx、*.db ...）一律拒写。
-     ⚠️ 为什么允许 voyage_consumption.py：rob_refresh.py 在 [3/5] 才跑，它 import 的
+     ⚠️ 为什么允许这一个脚本：rob_refresh.py 在 [3/5] 才跑，它 import 的
      voyage_consumption 若还是上一轮的旧版，页面算出来的航次油耗就会滞后一班
      （2026-11-12 期初口径修正后实测：新模板 + 旧算法 = 页面数字会被下一轮覆盖回去）。
-     ⚠️ 为什么允许 rob_refresh.py（2026-11-19 加）：fetch 只动 FETCH_HEAD、不动工作树，
-     而 harvest/backfill/render 全链路共用的 extract_rob() 就在这个文件里。不同步的话
-     附件 ROB 解析规则的修复（如 BERTH 报告 POB 优先）也要滞后一班才生效。
   2. 先把所有 blob 读进内存并校验（非空 / 大小 / HTML 结构完整），
      全部通过才开始落盘；任一不通过就跳过该文件，绝不半截写入。
   3. 落盘前把当前文件备份到 rob_data/tpl_backup/<时间戳>/（.gitignore 已排除，
@@ -45,12 +42,7 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 TPL_DIR = "templates"
 ALLOW_EXT = (".html", ".htm", ".css", ".js", ".svg", ".ico")
 # 根目录代码脚本白名单（显式列表，不做 *.py 通配 —— 避免把数据/临时脚本带进来）。
-#  - voyage_consumption.py: 航次油耗算法, [3/5] render 时 import (2026-11-12 起)
-#  - rob_refresh.py        : 抓取+渲染主脚本, extract_rob() 全链路共用的附件 ROB 解析器。
-#    加进来的原因(2026-11-19): BERTH 报告 POB 优先修正就在这个文件里, 而 fetch 只动
-#    FETCH_HEAD 不动工作树; 若不在这里同步, 每轮 [0/5]harvest/[0b/5]backfill/[3/5]render
-#    用的还是上一轮旧解析器, 解析规则修复要滞后一班才生效(同 2026-11-12 的老问题)。
-ALLOW_ROOT_CODE = ("voyage_consumption.py", "rob_refresh.py")
+ALLOW_ROOT_CODE = ("voyage_consumption.py",)
 REF_CANDIDATES = ("FETCH_HEAD", "origin/main")
 BACKUP_ROOT = os.path.join("rob_data", "tpl_backup")
 KEEP_BACKUPS = 5
