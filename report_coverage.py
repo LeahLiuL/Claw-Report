@@ -50,7 +50,9 @@ def load_targets(types, since=""):
         v = r.get("vessel") or ""
         vn = norm(v)
         key = (vn, rt, typ, i)
-        idx[key] = {"vessel": v, "rt": rt, "type": typ, "row": i, "vn": vn}
+        idx[key] = {"vessel": v, "rt": rt, "type": typ, "row": i, "vn": vn,
+                    "code": (r.get("code") or "").strip(),
+                    "lane": (r.get("lane") or "").strip()}
         bytime[rt].append(key)
         byday[(vn, rt[:10])].append(key)   # 船名+日期 -> keys(模糊命中用)
     return idx, bytime, byday
@@ -194,6 +196,29 @@ def main():
         log("    精确命中 %5d (%.1f%%)  秒级时间+船名都对上" % (e, 100.0 * e / tot if tot else 0))
         log("    模糊命中 %5d (%.1f%%)  同船同日有(时间被改/转发)" % (f - e, 100.0 * (f - e) / tot if tot else 0))
         log("    真缺失   %5d (%.1f%%)  同船同日都找不到" % (miss, 100.0 * miss / tot if tot else 0))
+    # 按船分组导出真缺失清单(逐条明细 + 每船汇总)
+    import collections
+    missed_all = [v for k, v in idx.items() if k not in seen_fuzzy]
+    detail_p = os.path.join("rob_data", "missing_reports_detail.csv")
+    with open(detail_p, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["vessel", "code", "lane", "report_type", "report_time"])
+        for v in sorted(missed_all, key=lambda x: (x["type"], x["vessel"], x["rt"])):
+            w.writerow([v["vessel"], v["code"], v["lane"], v["type"], v["rt"]])
+    log("  明细已导出: %s (%d 条)" % (detail_p, len(missed_all)))
+
+    grp = collections.defaultdict(lambda: collections.Counter())
+    for v in missed_all:
+        grp[(v["vessel"], v["code"], v["lane"])][v["type"]] += 1
+    sum_p = os.path.join("rob_data", "missing_reports_by_vessel.csv")
+    with open(sum_p, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["vessel", "code", "lane", "miss_berth", "miss_noon", "miss_total", "rank"])
+        ranked = sorted(grp.items(), key=lambda kv: -sum(kv[1].values()))
+        for rank, ((vessel, code, lane), c) in enumerate(ranked, 1):
+            w.writerow([vessel, code, lane, c["BERTH"], c["NOON"], sum(c.values()), rank])
+    log("  汇总已导出: %s (%d 艘船)" % (sum_p, len(grp)))
+
     for t in sorted(types):
         missed = [v for k, v in idx.items() if v["type"] == t and k not in seen_fuzzy]
         missed.sort(key=lambda v: v["rt"], reverse=True)
