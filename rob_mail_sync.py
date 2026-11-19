@@ -184,6 +184,29 @@ def collect_candidates(ns, days, results, toks, sender_map):
     """
     inbox = ns.GetDefaultFolder(6)
     folders = [inbox] + walk_folders(inbox)
+
+    # 2026-11-19: scan ALL account stores; vesselreport@culines.com first
+    # (dedicated crew-report mailbox, RPA auto-sorts mail into RPA_* folders),
+    # then other stores (leahliu) as fallback.
+    seen_ids = {f.EntryID for f in folders}
+    for si in range(1, ns.Stores.Count + 1):
+        st = ns.Stores(si)
+        sname = (st.DisplayName or "").lower()
+        try:
+            if st.ExchangeStoreType == 1:   # 1 = archive/PST store, skip
+                continue
+        except Exception:
+            pass
+        try:
+            st_inbox = st.GetDefaultFolder(6)
+        except Exception:
+            continue
+        extra = [st_inbox] + walk_folders(st_inbox)
+        if "vesselreport" in sname:
+            folders = [f for f in extra if f.EntryID not in seen_ids] + folders
+        else:
+            folders += [f for f in extra if f.EntryID not in seen_ids]
+        seen_ids.update(f.EntryID for f in extra)
     print("folders: %d" % len(folders))
 
     since = datetime.datetime.now() - datetime.timedelta(days=days)
