@@ -37,8 +37,8 @@ HISTORY_CSV = os.path.join(ROB_DIR, "rob_history.csv")
 SNAP_FIELDS = R.SNAP_FIELDS
 
 MAX_DEPTH = 4
-PER_FOLDER_CAP = 1200
-PER_VESSEL = 60      # max report mails kept per vessel in one run
+PER_FOLDER_CAP = int(os.environ.get("ROB_FOLDER_CAP", "1200"))
+PER_VESSEL = int(os.environ.get("ROB_PER_VESSEL", "60"))   # max report mails kept per vessel in one run
 
 
 def norm(s):
@@ -182,32 +182,19 @@ def collect_candidates(ns, days, results, toks, sender_map):
       2. for reports with NO vessel name in the subject (e.g. "CUL NOON REPORT20261022"),
          resolve the sender's SMTP address and look it up in the runtime sender map
     """
-    inbox = ns.GetDefaultFolder(6)
-    folders = [inbox] + walk_folders(inbox)
-
-    # 2026-11-19: scan ALL account stores; vesselreport@culines.com first
-    # (dedicated crew-report mailbox, RPA auto-sorts mail into RPA_* folders),
-    # then other stores (leahliu) as fallback.
-    seen_ids = {f.EntryID for f in folders}
+    # 2026-11-19: dedicated mailbox ONLY. RPA_* folders are SIBLINGS of Inbox
+    # at the mailbox root -> walk from GetRootFolder(), not the Inbox subtree.
+    target = None
     for si in range(1, ns.Stores.Count + 1):
         st = ns.Stores(si)
-        sname = (st.DisplayName or "").lower()
-        try:
-            if st.ExchangeStoreType == 1:   # 1 = archive/PST store, skip
-                continue
-        except Exception:
-            pass
-        try:
-            st_inbox = st.GetDefaultFolder(6)
-        except Exception:
-            continue
-        extra = [st_inbox] + walk_folders(st_inbox)
-        if "vesselreport" in sname:
-            folders = [f for f in extra if f.EntryID not in seen_ids] + folders
-        else:
-            folders += [f for f in extra if f.EntryID not in seen_ids]
-        seen_ids.update(f.EntryID for f in extra)
-    print("folders: %d" % len(folders))
+        if "vesselreport" in (st.DisplayName or "").lower():
+            target = st
+            break
+    if target is None:
+        raise RuntimeError("vesselreport@culines.com store not found in Outlook")
+    root = target.GetRootFolder()
+    folders = [root] + walk_folders(root)
+    print("store: %s | folders: %d" % (target.DisplayName, len(folders)))
 
     since = datetime.datetime.now() - datetime.timedelta(days=days)
     filt = "[ReceivedTime] >= '%s'" % since.strftime("%m/%d/%Y %H:%M %p")
