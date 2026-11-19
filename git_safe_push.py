@@ -12,9 +12,9 @@ reset 时这些提交被移出 main(仅存于 backup 分支) —— 表现为"�
      保证后续任何 reset 都不会丢数据;
   2. 权威远端: git ls-remote 取 main 的真实 SHA(本地 origin/main 引用不可信);
   3. 备份: 每轮把 HEAD 备份到 backup/safe-push-prev, 任何时候可恢复;
-  4. 同步: 本地领先→直接快进推送; 远端领先→前向 reset; 分叉→rebase 到远端;
-     rebase 冲突(罕见, 各自动化改不同文件)→abort→reset 到远端→从备份检出
-     本会话产物文件→重新提交再推(生成物以本会话最新为准);
+  4. 同步: 本地领先→直接快进推送; 远端领先→前向 reset;
+     分叉→fetch + 对齐远端 + 从备份检出本会话产物→重新提交再推
+     (2026-11-19 起**禁用 rebase**: 本沙箱 rebase 曾丢 .git/refs 与 objects);
   5. 推送: token 认证(读 .update_token 或环境变量 GITHUB_TOKEN, 绝不硬编码入库);
      被其它自动化抢推则回到 2, 最多 3 轮;
   6. 收尾: 还原 remote URL(防 token 泄漏), 打印中文结果。
@@ -152,23 +152,23 @@ def main():
         if is_ancestor(server, head):
             print("  本地领先, 快进推送。")
         else:
-            # 分叉: 本地提交重放到远端之上
-            print("  检测到分叉, fetch + rebase 到远端 %s ..." % server[:8])
+            # 2026-11-19: 绝不用 rebase —— 本沙箱 rebase 会丢 .git/refs 和 objects,
+            # 已造成一次全仓损坏(只能重新 clone)。改为 fetch 后硬对齐远端,
+            # 再把本会话快照提交里的产物文件从备份分支检出、重新提交。
+            print("  检测到分叉, fetch + 对齐远端 + 从备份恢复本会话产物 ...")
             sh(["fetch", "origin", BRANCH])
-            r = sh(["rebase", server], check=False)
-            if r.returncode != 0:
-                print("  rebase 冲突, 降级: reset 到远端 + 从备份恢复本会话产物 + 重新提交")
-                sh(["rebase", "--abort"], check=False)
-                sh(["reset", "--hard", server])
-                if our_files:
-                    sh(["checkout", BACKUP, "--"] + our_files, check=False)
-                    sh(["add", "--"] + our_files)
-                    st2 = sh(["diff", "--cached", "--name-only"]).stdout.strip()
-                    if st2:
-                        sh(["commit", "-m", args.message])
-                        print("  产物已按本会话最新版本重新提交。")
+            sh(["reset", "--hard", server])
+            if our_files:
+                sh(["checkout", BACKUP, "--"] + our_files, check=False)
+                sh(["add", "--"] + our_files)
+                st2 = sh(["diff", "--cached", "--name-only"]).stdout.strip()
+                if st2:
+                    sh(["commit", "-m", args.message])
+                    print("  产物已按本会话最新版本重新提交: %s" % ", ".join(our_files[:8]))
                 else:
-                    print("  无产物文件需恢复(纯同步), 已对齐远端。")
+                    print("  产物与远端一致, 无需重提交。")
+            else:
+                print("  无本会话产物(纯同步), 已对齐远端; 本地独有提交仍保留在备份分支 %s" % BACKUP)
 
         if push_with_token(token):
             print("  推送成功。")
