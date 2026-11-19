@@ -488,9 +488,28 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
         if f_empty[k] and f_empty[k] != "NA":
             _en.append(_label + ": " + f_empty[k])
     empty_note = "; ".join(_en)
+    # 逐油种导出真正参与计算的端点 ROB(供 Voyage 表单元格内嵌 S/E 小字)。
+    # 注意必须在负数护栏之后取 first/last —— H+ 护栏会把期初替换成开航后的读数,
+    # 页面上看到的端点必须和公式里的数一致, 否则用户核对 S-E+B=消耗 会对不上。
+    rob_start, rob_end = {}, {}
+    rob_start_at, rob_end_at, rob_basis = {}, {}, {}
+    for _i, _o in enumerate(oils):
+        if first[_i] is not None:
+            rob_start[_o] = round(first[_i], 2)
+        if last[_i] is not None:
+            rob_end[_o] = round(last[_i], 2)
+        if f_dt[_i] is not None:
+            rob_start_at[_o] = f_dt[_i].strftime("%Y-%m-%d %H:%M")
+        if l_dt[_i] is not None:
+            rob_end_at[_o] = l_dt[_i].strftime("%Y-%m-%d %H:%M")
+        if f_basis[_i] or l_basis[_i]:
+            rob_basis[_o] = (f_basis[_i] or "") + "/" + (l_basis[_i] or "")
     head_info = {"flag": flag, "note": "; ".join(notes),
                  "empty_flags": {o: f_empty[i] for i, o in enumerate(oils)},
-                 "empty_note": empty_note}
+                 "empty_note": empty_note,
+                 "rob_start": rob_start, "rob_end": rob_end,
+                 "rob_start_at": rob_start_at, "rob_end_at": rob_end_at,
+                 "rob_basis": rob_basis}
     return cons, bunker_total, bunker_oil, basis, head_info
 
 
@@ -645,6 +664,11 @@ def _compute_voyages_once(dm_html=DM_HTML, history_csv=HISTORY_CSV, bunkering=No
                 "head_note": head_info["note"],
                 "empty_flags": head_info.get("empty_flags", {}),
                 "empty_note": head_info.get("empty_note", ""),
+                "start_rob": head_info.get("rob_start", {}),
+                "end_rob": head_info.get("rob_end", {}),
+                "start_rob_at": head_info.get("rob_start_at", {}),
+                "end_rob_at": head_info.get("rob_end_at", {}),
+                "rob_basis": head_info.get("rob_basis", {}),
                 "legs": legs,
             })
     # 排序: 航线(Lane)升序 -> 同航线内 start 倒序(最新航次在最前); 无航线的排在最后

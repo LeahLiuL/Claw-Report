@@ -146,6 +146,13 @@ function _loadXlsx(cb) {
   .rottitle { font-size: 12.5px; color: #1F4E79; margin-bottom: 5px; }
   .rotsub { color: #8a99ab; font-size: 11.5px; font-weight: 400; }
   .emptyflag { display:inline-block; min-width:13px; height:13px; line-height:13px; text-align:center; border-radius:50%; background:#c0392b; color:#fff; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:2px; }
+  /* ---- voyage 单元格内嵌端点 ROB (S/E) 与合并后的 Bunker 摘要 ---- */
+  .voy-oil-sub { font-size:10.5px; line-height:1.35; color:#8a99ab; border-top:1px dashed #dbe6f0; margin-top:3px; padding-top:3px; white-space:nowrap; cursor:help; }
+  .voy-oil-sub .s { color:#1F4E79; font-weight:700; }
+  .voy-oil-sub .e { color:#6b7a8c; }
+  .bk-mini { display:flex; flex-direction:column; gap:1px; font-size:10.5px; line-height:1.35; color:#a46700; white-space:nowrap; cursor:help; }
+  .bk-mini span { display:inline-block; min-width:38px; text-align:left; color:#8a99ab; }
+  .bk-mini .bk-total { border-top:1px solid #e6c98f; margin-top:2px; padding-top:2px; font-weight:700; }
   .trendtbl.rot { width: auto; min-width: 560px; margin-top: 2px; background: #fbfdff; }
   .trendtbl.rot th { background: #e8eff6; color: #1F4E79; }
   .dash-banner { margin: 0 28px 8px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
@@ -296,12 +303,14 @@ function _loadXlsx(cb) {
       <span class="lbl">Lane:</span>
       <select id="voyLane" onchange="renderVoyage()"><option value="">All</option></select>
       <label style="font-size:12px;color:#5a6e82"><input type="checkbox" id="voyOnlyData" onchange="renderVoyage()" checked> only computed</label>
+      <label style="font-size:12px;color:#5a6e82" title="在 LSFO/HSFO/MGO/ULSFO 单元格下方显示计算所用的 Start/End ROB"><input type="checkbox" id="voyShowROB" onchange="renderVoyage()" checked> show ROB endpoints</label>
+      <label style="font-size:12px;color:#5a6e82" title="勾选后把合并的 Bunker 列展开回 LSFO/HSFO/MGO/ULSFO/Total 五列"><input type="checkbox" id="voyDetailBunker" onchange="renderVoyage()"> detailed bunker</label>
       <button onclick="showTable()">&larr; Dashboard</button>
     </div>
     <div class="trendgrid">
       <div class="panel">
         <h3>Voyage Fuel Consumption (per voyage, ROB-based)</h3>
-        <div class="panel-note"><b>航次号已合并方向</b>：<code>2630W</code> 与 <code>2630E</code> 只是方向不同，属<b>同一航次 2630</b>（Voy 列下方小字显示包含的方向）。因此航次区间 = 该航次<b>全部方向中最早的首港 Berth</b>（例：CUHP 2630 取 2630W 首港 TWKEL）→ <b>下一航次</b>最早的首港 Berth（2631W 首港 TWKEL）。<br>航次油耗 = <b>期初ROB − 期末ROB + 该航次加油量(B.Total)</b>。期初只取<b>开航当天</b>的报告，<b>不跨天回退</b>：当天有 <b>BERTH</b> 报告就用它；当天没有 BERTH 才用<b>当天的午报</b>（NOON，Start 列标 <b style="color:#d6842b">N</b>）；当天两种报告都没有则该航次不出数（标 <b style="color:#c0392b">H!</b>，需补报告）；<b style="color:#c0392b">H+</b> = 开航后有未登记加油，期初改用开航后的读数。点行首的 <b>▸</b> 可展开该航次的 <b>rotation 明细</b>（跨方向合并，含挂靠港所属 Voy / ETA / ETB / ETD）。<b>B.LSFO / B.HSFO / B.MGO / B.ULSFO</b> = 该航次《燃油添加日志》记录的分油种加油量（仅体积，不含价格），<b>B.Total</b> 为其合计。<b>Total</b> = LSFO+HSFO+MGO+ULSFO 消耗。单位 MT。状态: completed=已完成 / ongoing=进行中。</div>
+        <div class="panel-note"><b>航次号已合并方向</b>：<code>2630W</code> 与 <code>2630E</code> 只是方向不同，属<b>同一航次 2630</b>（Voy 列下方小字显示包含的方向）。因此航次区间 = 该航次<b>全部方向中最早的首港 Berth</b>（例：CUHP 2630 取 2630W 首港 TWKEL）→ <b>下一航次</b>最早的首港 Berth（2631W 首港 TWKEL）。<br>航次油耗 = <b>期初ROB − 期末ROB + 该航次加油量(B.Total)</b>。期初只取<b>开航当天</b>的报告，<b>不跨天回退</b>：当天有 <b>BERTH</b> 报告就用它；当天没有 BERTH 才用<b>当天的午报</b>（NOON，Start 列标 <b style="color:#d6842b">N</b>）；当天两种报告都没有则该航次不出数（标 <b style="color:#c0392b">H!</b>，需补报告）；<b style="color:#c0392b">H+</b> = 开航后有未登记加油，期初改用开航后的读数。点行首的 <b>▸</b> 可展开该航次的 <b>rotation 明细</b>（跨方向合并，含挂靠港所属 Voy / ETA / ETB / ETD）。<b>B.LSFO / B.HSFO / B.MGO / B.ULSFO</b> = 该航次《燃油添加日志》记录的分油种加油量（仅体积，不含价格），<b>B.Total</b> 为其合计。<b>Total</b> = LSFO+HSFO+MGO+ULSFO 消耗。单位 MT。状态: completed=已完成 / ongoing=进行中。<br><b>S / E</b> = 该油种计算实际使用的期初/期末 ROB（单元格内小字，悬停看读数时间与 B/N 来源；公式 <b>S − E + Bunker = 消耗</b>），可勾选 <b>show ROB endpoints</b> 关闭。Bunker 默认合并为一列竖排显示，勾选 <b>detailed bunker</b> 可切回原 5 列。</div>
         <div id="voyTable" style="max-height:560px;overflow:auto"></div>
       </div>
       <div class="panel">
@@ -414,7 +423,39 @@ function oilCell(r, field, code) {
   if (r.empty_note) tip += ' | ' + r.empty_note;
   var warn = (v === null || v === undefined) && g && g !== 'NA'
     ? ' <span class="emptyflag" title="' + tip.replace(/"/g, '&quot;') + '">!</span>' : '';
-  return '<td class="n">' + fmt(v) + warn + '</td>';
+  // 端点 ROB 内嵌: 只加小字、不加列, 油种仍各自分开。
+  // S/E 用的是 voyage_consumption.py 实际参与公式的 first/last(含 H+ 护栏替换后的值)。
+  var sub = '';
+  var showEl = document.getElementById('voyShowROB');
+  if (showEl && showEl.checked) {
+    var sr = (r.start_rob || {})[code], er = (r.end_rob || {})[code];
+    if (sr !== undefined || er !== undefined) {
+      var sa = (r.start_rob_at || {})[code] || '—';
+      var ea = (r.end_rob_at || {})[code] || '—';
+      var bs = (r.rob_basis || {})[code] || '';
+      var t = code.toUpperCase() + ' 端点 ROB (计算所用)\n'
+            + 'S ' + (sr === undefined ? '—' : fmt(sr)) + ' @ ' + sa + (bs ? ' [' + bs + ']' : '') + '\n'
+            + 'E ' + (er === undefined ? '—' : fmt(er)) + ' @ ' + ea
+            + '\n公式: S - E + Bunker = ' + (v === null || v === undefined ? '—' : fmt(v));
+      sub = '<div class="voy-oil-sub" title="' + t.replace(/"/g, '&quot;').replace(/\n/g, '&#10;') + '">'
+          + '<span class="s">S ' + (sr === undefined ? '—' : fmt(sr)) + '</span> / '
+          + '<span class="e">E ' + (er === undefined ? '—' : fmt(er)) + '</span></div>';
+    }
+  }
+  return '<td class="n">' + fmt(v) + warn + sub + '</td>';
+}
+function bunkerCell(r, total) {
+  // 默认把 B.LSFO~B.Total 五列合成一列竖排摘要; detailed bunker 开关可切回五列。
+  var t = '该航次《燃油添加日志》加油量 (MT, 不含价格)\n'
+        + 'LSFO ' + fmt(r.bunker_ls) + ' / HSFO ' + fmt(r.bunker_hs)
+        + ' / MGO ' + fmt(r.bunker_mg) + ' / ULSFO ' + fmt(r.bunker_us)
+        + '\nTotal ' + (total ? fmt(Math.round(total * 100) / 100) : '');
+  var h = '<td class="n bunker"><div class="bk-mini" title="' + t.replace(/"/g, '&quot;').replace(/\n/g, '&#10;') + '">';
+  [['ls', 'LSFO'], ['hs', 'HSFO'], ['mg', 'MGO'], ['us', 'ULSFO']].forEach(function(p) {
+    h += '<div><span>' + p[1] + '</span>' + fmt(r['bunker_' + p[0]]) + '</div>';
+  });
+  h += '<div class="bk-total"><span>Total</span>' + (total ? fmt(Math.round(total * 100) / 100) : '') + '</div></div></td>';
+  return h;
 }
 function _num(v) {
   if (v === null || v === undefined || v === '') return null;
@@ -1277,6 +1318,9 @@ function renderVoyage() {
   }
   var lane = document.getElementById('voyLane').value;
   var only = document.getElementById('voyOnlyData').checked;
+  var detailBkEl = document.getElementById('voyDetailBunker');
+  var detailBk = !!(detailBkEl && detailBkEl.checked);
+  var ncols = detailBk ? 20 : 16;   // 展开 Bunker 时 5 列, 合并时 1 列
   var rows = DATA.voyages || [];
   if (!document.getElementById('voyLane').dataset.filled) {
     var ls = {}; rows.forEach(function(r) { if (r.lane) ls[r.lane] = 1; });
@@ -1318,11 +1362,13 @@ function renderVoyage() {
     + '<th title="LSFO consumption (MT)">LSFO</th><th title="HSFO consumption (MT)">HSFO</th>'
     + '<th title="MGO consumption (MT)">MGO</th><th title="ULSFO consumption (MT)">ULSFO</th>'
     + '<th title="Total LSFO+HSFO+MGO+ULSFO consumption (MT)">Total</th>'
-    + '<th title="Bunkered VLSFO in window (MT, from 燃油添加日志)">B.LSFO</th>'
-    + '<th title="Bunkered HSFO in window (MT)">B.HSFO</th>'
-    + '<th title="Bunkered MGO in window (MT)">B.MGO</th>'
-    + '<th title="Bunkered ULSFO in window (MT)">B.ULSFO</th>'
-    + '<th title="Bunkered total (all oil types)">B.Total</th>'
+    + (detailBk
+        ? '<th title="Bunkered VLSFO in window (MT, from 燃油添加日志)">B.LSFO</th>'
+          + '<th title="Bunkered HSFO in window (MT)">B.HSFO</th>'
+          + '<th title="Bunkered MGO in window (MT)">B.MGO</th>'
+          + '<th title="Bunkered ULSFO in window (MT)">B.ULSFO</th>'
+          + '<th title="Bunkered total (all oil types)">B.Total</th>'
+        : '<th title="Bunkered by oil type (MT, from 燃油添加日志). Tick \'detailed bunker\' to split into 5 columns.">Bunker (MT)</th>')
     + '<th>Status</th></tr>';
   function basisBadge(b){
     if(!b) return '';
@@ -1361,12 +1407,14 @@ function renderVoyage() {
       + '<td>' + r.start + headBadge(r) + '</td><td>' + (r.end || '—') + '</td><td>' + (r.days == null ? '—' : r.days) + '</td>'
       + oilCell(r, 'ls', 'ls') + oilCell(r, 'hs', 'hs') + oilCell(r, 'mg', 'mg') + oilCell(r, 'us', 'us')
       + '<td class="n">' + (r.hasData ? fmt(Math.round(tot * 100) / 100) : '—') + '</td>'
-      + '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
-      + '<td class="n bunker">' + fmt(r.bunker_mg) + '</td><td class="n bunker">' + fmt(r.bunker_us) + '</td>'
-      + '<td class="n bunker">' + (bt ? fmt(Math.round(bt * 100) / 100) : '') + '</td>'
+      + (detailBk
+          ? '<td class="n bunker">' + fmt(r.bunker_ls) + '</td><td class="n bunker">' + fmt(r.bunker_hs) + '</td>'
+            + '<td class="n bunker">' + fmt(r.bunker_mg) + '</td><td class="n bunker">' + fmt(r.bunker_us) + '</td>'
+            + '<td class="n bunker">' + (bt ? fmt(Math.round(bt * 100) / 100) : '') + '</td>'
+          : bunkerCell(r, bt))
       + '<td>' + (r.status || '') + basisBadge(r.basis) + '</td></tr>';
     if (open && rot.length) {
-      h += '<tr class="rotdetail"><td class="n"></td><td colspan="19">'
+      h += '<tr class="rotdetail"><td class="n"></td><td colspan="' + (ncols - 1) + '">'
         + '<div class="rotbox"><div class="rottitle">Rotation — <b>' + r.vessel + '</b> '
         + r.voy + (r.voy_dirs ? '(' + r.voy_dirs + ')' : '') + ' &nbsp;<span class="rotsub">'
         + (r.lane || '') + ' · first port ' + (r.first_port || '') + '</span></div>'
