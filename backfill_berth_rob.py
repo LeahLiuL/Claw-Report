@@ -6,16 +6,27 @@ r"""全量 BERTH ROB 强制回刷: 用新 extract_rob(POB 优先) 重解析历�
 最下方的 ANCHOR AWEIGH(起锚)/DROP ANCHOR(抛锚) ROB, 而航次期初应取靠泊 POB ROB。
 实例 CUL XIAMEN 2625: POB 635.57 被 ANCHOR AWEIGH 的 651.18 覆盖。
 新规则(prio POB50>FWE40>ANCHOR AWEIGH30>DROP20)对【今后抓取】已生效, 但历史 CSV
-里 3600 条 BERTH 行仍是旧值 —— 三重去重(每日/回补/报告归档)都跳过已存在记录,
-不会自动回刷。本脚本做这一次性的强制重解析。
+里 BERTH 行仍是旧值 —— 三重去重(每日/回补/报告归档)都跳过已存在记录, 不会自动回刷。
+本脚本做这一次性的强制重解析。
+
+== 2026-11-19 本机修正(重要) ==
+原版有两处致命问题, 在本机实测卡死/零命中, 已修:
+  1. scan_folder 把同一个 idx 参数当两种结构用(船名token索引 vs (船名,时间)行索引),
+     判船处 `tok in fn` 对元组 key 抛 TypeError -> 外层吞掉 -> 命中0/假成功。
+  2. 只扫 Inbox.Folders 下的船名夹。但 vesselreport 邮箱里 RPA_成功(16748)/RPA_失败(1951)
+     是 Inbox 的【兄弟节点】, 位于 root 层, 且平铺无船名夹 -> 原逻辑一封都定位不到;
+     又因逐封 Items.Item(i) 索引访问 + 全 store 扫描 -> COM 挂死(CPU 近 0)。
+  现改为: 只锁 vesselreport store, 从 GetRootFolder() 遍历所有文件夹, 用
+  Items.Restrict([ReceivedTime]范围) 过滤, `for it in sub` 迭代(非索引), 先按秒级
+  时间把候选收窄到 CSV 目标行, 再判船+重解析。与 rob_mail_sync.py 口径一致。
 
 == 做法 ==
 1. 读 rob_history.csv 全部 report_type=BERTH 行建索引:
    key=(norm(vessel), report_time[:19]) -> 行号 + 当前 oil 值 + 船名。
-   (CSV 的 report_time 就是邮件 ReceivedTime, 见 rob_refresh.apply_hit, 秒级精确匹配。)
-2. 扫 Outlook 所有 CULINES.COM / VESSELREPORT Store 的收件箱【一级船名夹及 Master 子夹】:
-   对每封邮件用 ReceivedTime[:19] + 船名 token(主题或文件夹名) 在索引里查, 命中才处理。
-3. 用新的 R.extract_rob(att) 重解析附件, 与 CSV 当前 oil 值对比, 有差异才记录。
+   并建 bytime: report_time[:19] -> [key,...] 供秒级时间预筛。
+2. 扫 vesselreport@culines.com 的全部文件夹(root + 递归), 每夹 Restrict 时间范围。
+3. 命中(时间秒级相同 + 船名 token 匹配主题/附件名)才用 R.extract_rob(att) 重解析, 与
+   CSV 当前值对比, 有差异才记录。
 4. 默认 dry-run(只报告不写); --apply 才写, 且写前强制备份 CSV。
 
 == 安全护栏 ==
@@ -27,13 +38,14 @@ r"""全量 BERTH ROB 强制回刷: 用新 extract_rob(POB 优先) 重解析历�
 
 == 用法(culadmin 那台, OUTLOOK.EXE 已打开并加载主界面) ==
   python backfill_berth_rob.py --dry-run                       # 全量预演, 看命中率+差异清单
-  python backfill_berth_rob.py --dry-run --vessel CUL XIAMEN   # 单船预演(先验证定位是否正确)
+  python backfill_berth_rob.py --dry-run --vessel "CUL XIAMEN"  # 单船预演(先验证定位是否正确)
   python backfill_berth_rob.py --dry-run --limit 5             # 前5条差异预演
-  python backfill_berth_rob.py --apply --vessel CUL XIAMEN     # 单船正式回刷
-  python backfill_berth_rob.py --apply                         # 全量正式回刷
+  python backfill_berth_rob.py --apply --vessel "CUL XIAMEN"    # 单船正式回刷
+  python backfill_berth_rob.py --apply                          # 全量正式回刷
+  调试: env BERTH_REPARSE_SCAN_CAP=N 限制每夹最多迭代 N 封(0=不限)
 """
 import sys, os, csv, argparse, time, shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 
 sys.stdout.reconfigure(encoding="utf-8")
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -44,8 +56,8 @@ import rob_refresh as R
 HISTORY_CSV = os.path.join(BASE, "rob_data", "rob_history.csv")
 OIL_COLS = ("lsfo", "hsfo", "mgo", "ulsfo", "bw", "fw")
 OIL_KEYS = ("LSFO", "HSFO", "MGO", "ULSFO", "BW", "FW")
-MAX_ITEMS = int(os.environ.get("BERTH_REPARSE_MAX_ITEMS", "8000"))
-TOP_INBOX_SKIP = 20000   # 顶层平铺收件箱(6万封)不扫, BERTH 报告都在船名夹
+SCAN_CAP = int(os.environ.get("BERTH_REPARSE_SCAN_CAP", "0"))   # 0=不限
+MAX_DEPTH = 4
 
 
 def log(msg):
@@ -75,6 +87,14 @@ def load_targets(vessel_filter="", since=""):
         idx[key] = {"row": i, "old": {o: r[ci[o]] for o in OIL_COLS},
                     "vessel": vessel, "rt": rt}
     return rows, hdr, ci, idx
+
+
+def build_bytime(idx):
+    """report_time(秒) -> [key,...], 供秒级时间预筛。"""
+    d = {}
+    for key in idx:
+        d.setdefault(key[1], []).append(key)
+    return d
 
 
 def same_num(a, b, tol=0.005):
@@ -113,52 +133,73 @@ def build_vessel_index():
     return idx
 
 
-def scan_folder(fld, targets, idx, seen, changes, args):
-    """扫描单个文件夹的邮件, 命中目标则重解析对比。targets 为船名 token 集合(空=靠主题判船)。"""
+def walk_folders(f, depth=0, out=None):
+    if out is None:
+        out = []
+    if depth > MAX_DEPTH:
+        return out
     try:
-        cnt = fld.Items.Count
+        for c in f.Folders:
+            out.append(c)
+            walk_folders(c, depth + 1, out)
     except Exception:
-        return 0, 0
-    if cnt > MAX_ITEMS:
-        log("  [skip big] %s (%d items)" % (fld.Name, cnt))
-        return 0, 0
-    matched_folder_vessels = set()
-    if targets:
-        fn = R.norm(fld.Name or "")
-        for tok, vname in idx.items():
-            if tok in fn:
-                matched_folder_vessels.add(vname)
+        pass
+    return out
+
+
+def pick_key(rt, subject, attnames, bytime, vidx, seen):
+    """秒级时间命中后选 key; 单候选直接用, 多候选靠主题/附件名 token 判船。"""
+    keys = bytime.get(rt, [])
+    if not keys:
+        return None
+    fresh = [k for k in keys if k not in seen]
+    if not fresh:
+        return None
+    if len(fresh) == 1:
+        return fresh[0]
+    blob = R.norm(subject) + " " + " ".join(R.norm(a) for a in attnames)
+    for k in fresh:
+        if k[0] and k[0] in blob:
+            return k
+    return None
+
+
+def scan_folder(fld, vidx, idx, bytime, seen, changes, args, filt):
+    """扫描单个文件夹, 时间预筛命中目标行才重解析对比。"""
+    try:
+        items = fld.Items
+        items.Sort("[ReceivedTime]", True)
+        sub = items.Restrict(filt) if filt else items
+    except Exception as e:
+        log("  [warn] %s 取子集失败: %s" % (fld.Name, str(e)[:40]))
+        return 0, False   # 系统文件夹(日历/联系人等)无 ReceivedTime, 跳过
     hit = 0
-    for i in range(1, cnt + 1):
+    n = 0
+    for it in sub:                      # 迭代而非 Items.Item(i) 索引(避免 COM 挂死)
+        n += 1
+        if SCAN_CAP and n > SCAN_CAP:
+            break
         try:
-            it = fld.Items.Item(i)
+            t = it.ReceivedTime
+            rt = t.strftime("%Y-%m-%d %H:%M:%S") if hasattr(t, "strftime") else ""
         except Exception:
             continue
-        if it is None:
-            continue
-        try:
-            recv = it.ReceivedTime
-            rt = recv.strftime("%Y-%m-%d %H:%M:%S") if hasattr(recv, "strftime") else ""
-        except Exception:
-            continue
-        if not rt:
-            continue
+        if not rt or rt not in bytime:
+            continue                    # 秒级时间预筛: 绝大多数邮件在此被排除
         try:
             subj = str(it.Subject or "")
         except Exception:
             subj = ""
-        normsubj = R.norm(subj)
-        # 判船: 文件夹名命中的船 + 主题 token 命中的船
-        cands = set(matched_folder_vessels)
-        for tok, vname in idx.items():
-            if tok in normsubj:
-                cands.add(vname)
-        hit_key = None
-        for vname in cands:
-            k = (R.norm(vname), rt)
-            if k in idx and k not in seen:
-                hit_key = k
-                break
+        attnames = []
+        try:
+            for a in it.Attachments:
+                try:
+                    attnames.append(a.FileName)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        hit_key = pick_key(rt, subj, attnames, bytime, vidx, seen)
         if hit_key is None:
             continue
         try:
@@ -190,15 +231,15 @@ def scan_folder(fld, targets, idx, seen, changes, args):
                 {o: p[0] for o, p in diffs.items()},
                 {o: p[1] for o, p in diffs.items()}))
             if args.limit and len(changes) >= args.limit:
-                return hit, 1
-    return hit, 0
+                return hit, True
+    return hit, False
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true", help="真正写 CSV(默认 dry-run)")
     ap.add_argument("--dry-run", action="store_true", help="显式预演(默认)")
-    ap.add_argument("--vessel", default="", help="只处理某船/代码, 如 CUL XIAMEN / H708")
+    ap.add_argument("--vessel", default="", help="只处理某船/代码, 如 \"CUL XIAMEN\" / CUXM")
     ap.add_argument("--limit", type=int, default=0, help="最多记录 N 条差异(小批验证, 0=不限)")
     ap.add_argument("--since", default="", help="只处理 report_time>=YYYY-MM-DD")
     args = ap.parse_args()
@@ -210,50 +251,45 @@ def main():
     if not idx:
         return 0
     vidx = build_vessel_index()
+    bytime = build_bytime(idx)
+
+    # 时间范围 -> Restrict 过滤串(与 CSV report_time 同为本地时间)
+    times = sorted(bytime)
+    lo = datetime.strptime(times[0], "%Y-%m-%d %H:%M:%S") - timedelta(days=1)
+    hi = datetime.strptime(times[-1], "%Y-%m-%d %H:%M:%S") + timedelta(days=1)
+    filt = "[ReceivedTime] >= '%s' AND [ReceivedTime] <= '%s'" % (
+        lo.strftime("%m/%d/%Y %H:%M %p"), hi.strftime("%m/%d/%Y %H:%M %p"))
+    log("时间过滤: %s ~ %s" % (times[0][:10], times[-1][:10]))
+
+    ns = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
+    target = None
+    for si in range(1, ns.Stores.Count + 1):
+        st = ns.Stores(si)
+        if "vesselreport" in (st.DisplayName or "").lower():
+            target = st
+            break
+    if target is None:
+        log("[FATAL] 找不到 vesselreport@culines.com store")
+        return 2
+    log("[store] %s" % target.DisplayName)
+    root = target.GetRootFolder()
+    folders = [root] + walk_folders(root)
+    log("待扫文件夹: %d 个" % len(folders))
 
     seen, changes = set(), []
     t0 = time.time()
-    ns = win32.Dispatch("Outlook.Application").GetNamespace("MAPI")
-    for st in ns.Stores:
-        name = (st.DisplayName or "").upper()
-        if "CULINES.COM" not in name and "VESSELREPORT" not in name:
-            continue
-        log("[store] %s" % st.DisplayName)
+    for fi, fld in enumerate(folders):
         try:
-            root = st.GetRootFolder()
-            inbox, bn = None, -1
-            for f in root.Folders:
-                if f.Name.strip() in ("收件箱", "Inbox", "INBOX"):
-                    try:
-                        c = f.Items.Count
-                    except Exception:
-                        c = 0
-                    if c > bn:
-                        inbox, bn = f, c
-            if inbox is None:
-                continue
-            # 只扫一级船名夹 + 其 Master 子夹; 顶层大收件箱跳过
-            for sf in inbox.Folders:
-                fn = R.norm(sf.Name or "")
-                is_vessel_folder = any(tok in fn for tok in vidx)
-                if not is_vessel_folder:
-                    continue
-                flds = [sf]
-                try:
-                    for ssf in sf.Folders:
-                        if "MASTER" in (ssf.Name or "").upper():
-                            flds.append(ssf)
-                except Exception:
-                    pass
-                for fld in flds:
-                    _, stop = scan_folder(fld, True, idx, seen, changes, args)
-                    if stop:
-                        break
-                if args.limit and len(changes) >= args.limit:
-                    break
-        except Exception as e:
-            log("  [warn] store 遍历异常: %s" % str(e)[:80])
-        if args.limit and len(changes) >= args.limit:
+            cnt = fld.Items.Count
+        except Exception:
+            cnt = -1
+        if not cnt:
+            continue
+        log("[%d/%d] %s (%s items)" % (fi + 1, len(folders), fld.Name, cnt))
+        hit, stop = scan_folder(fld, vidx, idx, bytime, seen, changes, args, filt)
+        if hit:
+            log("   命中 %d 封" % hit)
+        if stop:
             break
 
     log("")
