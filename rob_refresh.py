@@ -432,9 +432,27 @@ def extract_rob(att):
     #   NOON  : "ROB LSFO | 598.17 | MT | ROB MGO | 372.84"   (一行多个键值对)
     #   BERTH : "POB/FWE/ANCHOR AWEIGH ROB LSFO | 602.35"     (阶段前缀)
     # 规则: 单元格含 "ROB" 且 ROB 之后的 token 是已知油种代码时, 取该单元格右侧第一个
-    # 数值。同一油种重复出现时后值覆盖前值(BERTH 按 POB/FWE/ANCHOR AWEIGH 排列,
-    # 最晚阶段即最新存量)。
+    # 数值。**BERTH 报告按阶段优先级取: POB(靠泊) > FWE > ANCHOR AWEIGH > DROP ANCHOR
+    # > 其他**。原因: 航次期初 = 首港靠泊时的 ROB, 只有 POB 行才是靠泊存量; 旧的
+    # "后值覆盖前值"会取到表格最下方的 ANCHOR AWEIGH(起锚)/DROP ANCHOR(抛锚) 值,
+    # 那是离港时的存量, 与靠泊差几十吨。实例: CUL XIAMEN 2625 的 09-13 BERTH
+    # 报告 POB ROB LSFO=635.57(红框), 却被 ANCHOR AWEIGH 的 651.18 覆盖。
+    # NOON/SAILING 报告无阶段前缀(优先级 0), 只有一组 ROB, 不受影响。
     oil_codes = ("LSFO", "HSFO", "ULSFO", "MGO", "BW", "FW", "REFEER", "REEFER")
+    stage_prio = {
+        "POB": 50,            # Point of Berthing 靠泊 —— 航次期初要的就是这个
+        "FWE": 40,            # 引航/进港阶段
+        "ANCHOR AWEIGH": 30,  # 起锚
+        "DROP ANCHOR": 20,    # 抛锚
+    }
+
+    def _stage_of(cu, pos):
+        """ROB 左侧的阶段前缀 -> 优先级。无前缀(NOON/SAILING 普通 ROB)=0。"""
+        prefix = cu[:pos].upper()
+        for name in sorted(stage_prio, key=lambda x: -len(x)):
+            if name in prefix:
+                return stage_prio[name]
+        return 0
 
     import re as _re
 
@@ -461,6 +479,7 @@ def extract_rob(att):
         tok = tail.split()[0].strip(" :|-")
         if tok not in oil_codes:
             return None
+        prio = _stage_of(cu, pos)
         # 向右找数值, 但遇到"有内容的文本"(单位 MT / 下一个键名 'POB ROB HSFO')
         # 必须停止 —— BERTH 报告一行放多组 "键 | 值 | MT", 若跨过 MT 继续扫,
         # 空值会误抓到下一组的 0(例: 'POB ROB LSFO | (空) | MT | POB ROB HSFO | 0')
@@ -475,7 +494,7 @@ def extract_rob(att):
             n = _as_num(v)
             if n is None:
                 break
-            return (tok, round(n, 3))   # 收敛浮点尾巴(3651.5230000000006 -> 3651.523)
+            return (tok, round(n, 3), prio)   # 收敛浮点尾巴(3651.5230000000006 -> 3651.523)
         return None
 
     # ---- draft 前/中/后吃水: 同行业务模板在 'DRAFT FWD|值|M|DRAFT MID|值|M|DRAFT AFT|值|M'
@@ -502,6 +521,7 @@ def extract_rob(att):
         return None
 
     rob = {}
+    rob_prio = {}  # 每个油种当前已采纳值的阶段优先级: POB>FWE>ANCHOR AWEIGH>DROP ANCHOR>无前缀
     full_text = []  # 收集附件正文全文, 用于基于内容判定报告类型
     speed_cands = []  # (priority, value): 航速候选, 取优先级最高者
     for ws in wb.worksheets:
@@ -512,8 +532,14 @@ def extract_rob(att):
                     full_text.append(cu)
                     got = _take(cu, i, row)
                     if got:
-                        k, v = got
-                        rob["REFEER" if k == "REEFER" else k] = v
+                        k, v, prio = got
+                        key = "REFEER" if k == "REEFER" else k
+                        # 优先级严格更高才覆盖; 同级后进覆盖前进(兼容 NOON 一行多组相同 oil)。
+                        # 这样 BERTH 报告里 POB(50) 一旦读到, ANCHOR AWEIGH(30)/DROP(20)
+                        # 就无法覆盖它 —— 期初取靠泊 ROB, 而非离港 ROB。
+                        if prio >= rob_prio.get(key, -1):
+                            rob[key] = v
+                            rob_prio[key] = prio
                     gotd = _take_draft(cu, i, row)
                     if gotd:
                         k, v = gotd
