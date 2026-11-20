@@ -257,15 +257,30 @@ def _window_consumption(berth_series, noon_series, start_dt, end_dt, bunker_by_d
     oils = ["ls", "hs", "mg", "us"]
     bunker_oil = [0.0, 0.0, 0.0, 0.0]
     now = datetime.datetime.now()
-    # 零值脏数据防护: 若该船该油种在整条读数序列里存在 >0 值, 则 0.0 视为脏数据
-    # (如 RACINE 多条 BERTH 报 lsfo=0 而前后都是 1800+ MT), 取边界读数时跳过;
-    # 若该油种全程为 0(船本就不烧该油), 0 是真实值, 保留。
+    # 零值脏数据防护 + 「本船是否烧该油种」判定(2026-11-20 修订):
+    # 旧规则: 只要全历史出现过一次 >0 就认定本船在烧该油 -> CUL HAIPHONG 3/21 那封
+    #   BERTH 报告把别的油列读串(HSFO 2 条 / ULSFO 1 条脏正读数), 之后每个航次当天报告
+    #   没有该油读数 -> 判 MISSING -> 整行 H! + 空格红点, 实际这船只烧 LSFO/MGO。
+    # 新规则(双门槛, 满足任一即判为不烧):
+    #   (a) 正读数占该船全部读数的比例 < 2% (且绝对数 <= 5) -> 零星脏读数, 非在用油种;
+    #   (b) 距本船最新一次该油种正读数 > 60 天 -> 早已停烧/换油(如切 LSFO 的旧 HSFO)。
+    # 用「本船最新读数」而非系统 now 作参考, 避免误伤整体已停更的船
+    #   (如 MEDKON LIA / ZHONG GU CHENG DU 数据止于 8 月, 但当时各油种都在用)。
     has_pos = [False, False, False, False]
-    for _src in (berth_series, noon_series):
-        for _p in _src:
-            for _k in range(4):
-                if (_p[1][_k] is not None and 0 < _p[1][_k] <= 5000.0):
-                    has_pos[_k] = True
+    _all_pts = list(berth_series) + list(noon_series)
+    _vessel_latest = max((p[0] for p in _all_pts), default=None)
+    _n_pts = len(_all_pts)
+    for _k in range(4):
+        _pos_dts = [p[0] for p in _all_pts
+                    if p[1][_k] is not None and 0 < p[1][_k] <= 5000.0]
+        if not _pos_dts:
+            continue
+        _cnt, _ratio = len(_pos_dts), len(_pos_dts) / _n_pts if _n_pts else 0
+        if _cnt <= 5 and _ratio < 0.02:
+            continue    # (a) 零星脏读数
+        if _vessel_latest and (_vessel_latest - max(_pos_dts)).days > 60:
+            continue    # (b) 早已停烧
+        has_pos[_k] = True
     # 边界读数搜索窗口: 边界前后各容忍一段, 超出则认为该边界确实没有可用读数。
     # 两侧都不能放太松, 否则会把隔壁航次刚用过的读数借来, 两段就重叠了。
     PREV_MAX = datetime.timedelta(days=5)
