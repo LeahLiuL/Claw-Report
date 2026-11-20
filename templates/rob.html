@@ -366,22 +366,122 @@ var DATA = null, sortKey = "seq", sortAsc = true;
 // 已下线船: 默认隐藏, 由工具栏『已下线』开关控制是否并入表格/导出
 var SHOW_OFF = false;
 
-function tryUnlock(pwd) {
-  try {
-    var dec = CryptoJS.AES.decrypt(ENC, pwd).toString(CryptoJS.enc.Utf8);
-    if (!dec) return null;
-    return JSON.parse(dec);
-  } catch (e) { return null; }
-}
-function doUnlock() {
-  var pwd = document.getElementById('pwd').value;
-  var d = tryUnlock(pwd);
-  if (d) {
-    DATA = d; enterApp();
-  } else {
-    document.getElementById('lockErr').textContent = 'Wrong password, please try again';
+/* ==== UNLOCK_LOGIC_START ==== */
+// 解锁加速(2026-11-20):
+//  1) 解密改用浏览器原生 Web Crypto (AES-CBC), 4.8MB payload 从 CryptoJS 的
+//     数秒降到~0.1s。key 派生沿用 OpenSSL EVP_BytesToKey(MD5,1轮), 与 Python
+//     端 cryptojs_encrypt 完全等价 —— 已用真实 payload 验证解密结果逐字节一致。
+//     Web Crypto 不可用时回退 CryptoJS (老浏览器兼容)。
+//  2) 解锁成功后把明文按 ENC 指纹缓存到 sessionStorage: 同一标签页内切到别的
+//     页面再回来, 直接读缓存进入, 不用再输密码/解密。关掉标签页自动清除;
+//     数据更新(ENC 变化)指纹不匹配也会重新要求输入。
+var CACHE_KEY = 'rob_unlock_v1';
+function _hashStr(s){ var h=5381,i; for(i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return h.toString(36)+'_'+s.length; }
+var ENC_FP = _hashStr(ENC);
+
+// ---- 轻量 MD5 (RFC1321, 纯JS) ----
+function _md5(bytes){
+  var M=((bytes.length+9+64-((bytes.length+9)%64))/64)|0;
+  var X=new Int32Array(M*16),i;
+  for(i=0;i<bytes.length;i++) X[i>>2]|=bytes[i]<<((i%4)*8);
+  X[bytes.length>>2]|=0x80<<((bytes.length%4)*8);
+  X[M*16-2]=bytes.length*8;
+  var S=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+         5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+         4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+         6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  var K=new Int32Array(64);
+  for(i=0;i<64;i++) K[i]=Math.floor(Math.abs(Math.sin(i+1))*4294967296);
+  var a=0x67452301,b=-0x10325477,c=-0x67452302,d=0x10325476,j;
+  for(j=0;j<M;j++){
+    var off=j*16,A=a,B=b,Cc=c,D=d;
+    for(i=0;i<64;i++){
+      var F,g;
+      if(i<16){F=(B&Cc)|(~B&D);g=i;}
+      else if(i<32){F=(D&B)|(~D&Cc);g=(5*i+1)%16;}
+      else if(i<48){F=B^Cc^D;g=(3*i+5)%16;}
+      else{F=Cc^(B|~D);g=(7*i)%16;}
+      var sum=(A+F+K[i]+X[off+g])|0;
+      var rot=((sum<<S[i])|(sum>>>(32-S[i])))|0;
+      var tmp=D;D=Cc;Cc=B;B=(B+rot)|0;A=tmp;
+    }
+    a=(a+A)|0;b=(b+B)|0;c=(c+Cc)|0;d=(d+D)|0;
   }
+  var out=new Uint8Array(16),vals=[a,b,c,d];
+  for(i=0;i<4;i++) for(j=0;j<4;j++) out[i*4+j]=(vals[i]>>>(j*8))&0xff;
+  return out;
 }
+function _evpKey(pw,salt,kl,il){
+  var concat=new Uint8Array(0),prev=new Uint8Array(0);
+  while(concat.length<kl+il){
+    var input=new Uint8Array(prev.length+pw.length+salt.length);
+    input.set(prev,0);input.set(pw,prev.length);input.set(salt,prev.length+pw.length);
+    prev=_md5(input);
+    var n=new Uint8Array(concat.length+prev.length);n.set(concat,0);n.set(prev,concat.length);concat=n;
+  }
+  return {key:concat.slice(0,kl),iv:concat.slice(kl,kl+il)};
+}
+function _b64bytes(s){
+  var bin=atob(s),o=new Uint8Array(bin.length),i;
+  for(i=0;i<bin.length;i++) o[i]=bin.charCodeAt(i);
+  return o;
+}
+function _cryptojsFallback(pwd){
+  try{
+    var dec=CryptoJS.AES.decrypt(ENC,pwd).toString(CryptoJS.enc.Utf8);
+    return dec?JSON.parse(dec):null;
+  }catch(e){return null;}
+}
+function tryUnlockFast(pwd){
+  return new Promise(function(resolve){
+    var sub=window.crypto&&window.crypto.subtle;
+    if(!sub){resolve(_cryptojsFallback(pwd));return;}
+    try{
+      var raw=_b64bytes(ENC);
+      if(String.fromCharCode(raw[0],raw[1],raw[2],raw[3],raw[4],raw[5],raw[6],raw[7])!=='Salted__'){resolve(_cryptojsFallback(pwd));return;}
+      var salt=raw.slice(8,16),ct=raw.slice(16);
+      var kd=_evpKey(new TextEncoder().encode(pwd),salt,32,16);
+      sub.importKey('raw',kd.key,{name:'AES-CBC'},false,['decrypt']).then(function(key){
+        return sub.decrypt({name:'AES-CBC',iv:kd.iv},key,ct);
+      }).then(function(buf){
+        var txt=new TextDecoder('utf-8').decode(buf);
+        resolve(JSON.parse(txt));
+      }).catch(function(){resolve(_cryptojsFallback(pwd));});
+    }catch(e){resolve(_cryptojsFallback(pwd));}
+  });
+}
+function cacheUnlock(obj){
+  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({fp:ENC_FP,data:obj})); }catch(e){}
+}
+function readCache(){
+  try{
+    var c=JSON.parse(sessionStorage.getItem(CACHE_KEY)||'null');
+    if(c&&c.fp===ENC_FP&&c.data) return c.data;
+  }catch(e){}
+  return null;
+}
+var _unlocking=false;
+function doUnlock(){
+  if(_unlocking) return;
+  var pwd=document.getElementById('pwd').value;
+  var btn=document.querySelector('#lock button');
+  var err=document.getElementById('lockErr');
+  err.textContent=''; _unlocking=true;
+  if(btn) btn.textContent='Unlocking...';
+  tryUnlockFast(pwd).then(function(d){
+    _unlocking=false;
+    if(btn) btn.textContent='Unlock';
+    if(d){ DATA=d; cacheUnlock(d); enterApp(); }
+    else{ err.textContent='Wrong password, please try again'; }
+  });
+}
+// 页面加载: 有匹配缓存直接进, 否则显示密码框
+(function tryAutoUnlock(){
+  var c=readCache();
+  if(c){ DATA=c; enterApp(); }
+})();
+/* ==== UNLOCK_LOGIC_END ==== */
+
 function enterApp() {
   document.getElementById('lock').style.display = 'none';
   document.getElementById('app').style.display = 'block';

@@ -81,13 +81,23 @@ def build(out_path=DEFAULT_PREVIEW):
     # 2) app 默认可见(不再靠 doUnlock 切换)
     tpl = tpl.replace('<div id="app" style="display:none">', '<div id="app">')
 
-    # 3) 明文注入 DATA, 去掉 ENC 占位
-    old_assign = 'var ENC = "__ENC__";\nvar DATA = null, sortKey = "seq", sortAsc = true;'
-    safe = payload.replace("</", "<\\/")          # 防止字符串里的 </script> 提前闭合
-    new_assign = 'var DATA = %s;\nvar sortKey = "seq", sortAsc = true;' % safe
-    if old_assign not in tpl:
+    # 3) 明文注入 DATA, 去掉 ENC 占位。
+    #    解锁加速区(2026-11-20)从 var ENC...DATA 之后一直到 UNLOCK_LOGIC_END,
+    #    整块按标记切除(内部含 MD5/WebCrypto/sessionStorage, 预览页全不需要)。
+    tpl_start = 'var ENC = "__ENC__";\nvar DATA = null, sortKey = "seq", sortAsc = true;'
+    mstart = tpl.find(tpl_start)
+    if mstart < 0:
         raise SystemExit("[ERR] 模板里找不到 DATA 赋值片段, 结构可能已变")
-    tpl = tpl.replace(old_assign, new_assign)
+    # 找到解锁区结束标记, 从 tpl_start 到 END 整段替换为明文 DATA 赋值
+    end_marker = "/* ==== UNLOCK_LOGIC_END ==== */"
+    mend = tpl.find(end_marker, mstart)
+    safe = payload.replace("</", "<\\/")          # 防止字符串里的 </script> 提前闭合
+    new_assign = 'var DATA = %s;\nvar sortKey = "seq", sortAsc = true;\n' % safe
+    if mend >= 0:
+        tpl = tpl[:mstart] + new_assign + tpl[mend + len(end_marker):]
+    else:
+        # 兼容旧模板: 只有一行 ENC/DATA 赋值的情况
+        tpl = tpl.replace(tpl_start, new_assign, 1)
 
     # 4) enterApp 里对已删除 #lock 的引用
     tpl = tpl.replace("  document.getElementById('lock').style.display = 'none';\n", "")
@@ -107,7 +117,8 @@ def build(out_path=DEFAULT_PREVIEW):
 
     # 自检
     chk = open(out_path, encoding="utf-8").read()
-    bad = [t for t in ("doUnlock", "tryUnlock", "getElementById('lock')", "getElementById('pwd')", "__ENC__")
+    bad = [t for t in ("doUnlock", "tryUnlock", "tryUnlockFast", "getElementById('lock')",
+                       "getElementById('pwd')", "__ENC__", "UNLOCK_LOGIC_START", "UNLOCK_LOGIC_END")
            if t in chk]
     ok = ('var DATA = {"updated"' in chk) and ('enterApp();' in chk) and not bad
     print("preview ->", out_path, "(%d bytes)" % len(chk))
