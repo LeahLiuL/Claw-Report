@@ -30,6 +30,10 @@ def stats():
     n_legs = a.execute("SELECT COUNT(*) FROM legs").fetchone()[0]
     n_vess_a = a.execute("SELECT COUNT(DISTINCT vessel) FROM voyages WHERE vessel!=''").fetchone()[0]
     amin, amax = a.execute("SELECT MIN(voy_completed),MAX(voy_completed) FROM voyages WHERE voy_completed!=''").fetchone()
+    try:
+        last_parse = a.execute("SELECT v FROM meta WHERE k='last_parse'").fetchone()[0]
+    except Exception:
+        last_parse = ""
     leg_cols = [r[1] for r in a.execute("PRAGMA table_info(legs)")]
     voy_cols = [r[1] for r in a.execute("PRAGMA table_info(voyages)")]
     a.close()
@@ -37,7 +41,7 @@ def stats():
         n_reports=n_reports, n_fields=n_fields, n_vess_s=n_vess_s,
         s_from=(dmin or "")[:10], s_to=(dmax or "")[:10], types=types,
         n_voy=n_voy, n_legs=n_legs, n_vess_a=n_vess_a,
-        a_from=(amin or "")[:10], a_to=(amax or "")[:10],
+        a_from=(amin or "")[:10], a_to=(amax or "")[:10], last_parse=last_parse,
         leg_cols=leg_cols, voy_cols=voy_cols,
         sz_s=os.path.getsize(REPORTS_DB) / 1e6, sz_a=os.path.getsize(ABSTRACT_DB) / 1e6,
     )
@@ -174,6 +178,7 @@ WHERE mail_id=(SELECT mail_id FROM reports
       <div class="cell"><div class="k">覆盖时间</div><div class="v" style="font-size:13px">__A_FROM__<br>→ __A_TO__</div></div>
     </div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:6px">每港→下一港的 distance / speed / 各油种油耗；航次级含总距离、加油/结存/总消耗。</div>
+    <div style="font-size:12px;background:rgba(76,175,120,.12);border:1px solid rgba(76,175,120,.35);color:#8fe0b0;padding:8px 11px;border-radius:6px;margin-bottom:10px">🔄 <b>每日自动更新</b>：每天定时从 Outlook 抓新邮件并覆盖本库（last_parse: __LAST_PARSE__）。另一台电脑每天重新下载此文件即为最新数据；reports.db（全字段库）不在此每日更新范围内。</div>
     <div class="actions">
       <a class="btn primary" href="__PAGES__/abstract_log_report.html" target="_blank">🔍 在线分析（不用下载）</a>
       <a class="btn sec" href="__REL__/abstract_log.db" download>⬇ 下载 abstract_log.db</a>
@@ -221,6 +226,7 @@ ORDER BY nm_per_mt DESC LIMIT 10;</pre>
         "__N_VOY__": str(d["n_voy"]), "__N_LEGS__": str(d["n_legs"]),
         "__N_VES_A__": str(d["n_vess_a"]),
         "__A_FROM__": d["a_from"], "__A_TO__": d["a_to"],
+        "__LAST_PARSE__": d["last_parse"] or "—",
         "__VOY_COLS__": voy_cols_js, "__LEG_COLS__": leg_cols_js,
         "__REL__": REL, "__PAGES__": PAGES,
     }
