@@ -108,6 +108,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM ---- [3b/5] Abstract Log daily core (collect -> upload db -> regen DATABASES.html) ----
+REM  No git operations inside; DATABASES.html (tracked) is picked up by the push below.
+REM  Failure here never blocks ROB. See rob_data\abstract_daily.log
+echo [3b/5] abstract_core ... >> %LOG%
+call "%~dp0abstract_core.bat" >> %LOG% 2>&1
+if errorlevel 1 echo [WARN] abstract_core failed, ROB continues >> %LOG%
+
 echo [4/5] safe commit and push ^(git_safe_push.py^) ...
 set CLAW_LOCK_OWNER=rob_update
 "%PYEXE%" git_safe_push.py -m "ROB auto update %date%" >> %LOG% 2>&1
