@@ -1015,6 +1015,58 @@ def _hours_of(s):
     return int(m.group(1)) + int(m.group(2)) / 60.0
 
 
+def load_abstract():
+    """读 abstract_log.db -> 精简 dict, 内嵌进加密 payload 供 Abstract Log tab 用。
+
+    只导出前端渲染需要的列; 航段仅保留有效段(dist>0); 浮点收敛到 3 位控制体积。
+    db 缺失/损坏时返回空结构, 绝不影响 ROB 主流程。
+    """
+    empty = {"voyages": [], "legs": [], "updated": ""}
+    db = os.path.join(ROB_DIR, "abstract_log.db")
+    if not os.path.exists(db):
+        print("[WARN] abstract_log.db 不存在, Abstract Log tab 将为空:", db)
+        return empty
+    try:
+        import sqlite3
+        con = sqlite3.connect(db)
+        con.row_factory = sqlite3.Row
+        vcols = ["vessel", "voyage_no", "received", "voy_ttl_distance",
+                 "voy_ttl_days", "ttl_me_fo", "ttl_ae_fo", "ttl_sea_hrs",
+                 "tot_cons_hsfo", "tot_cons_lsfo", "tot_cons_mgo",
+                 "bunk_start_port", "bunk_end_port", "leg_count",
+                 "bunk_start_hsfo", "bunk_start_lsfo", "bunk_start_mgo",
+                 "bunk_end_hsfo", "bunk_end_lsfo", "bunk_end_mgo"]
+        lcols = ["vessel", "voyage_no", "received", "seq", "from_port", "to_port",
+                 "dist_sea_gps", "dist_sea_log", "avg_sog", "sea_hrs",
+                 "fo_me_sea", "fo_ae_sea", "fo_blr_sea", "total_cons_fo",
+                 "total_cons_do", "fuel_index"]
+
+        def _clean(v):
+            return round(v, 3) if isinstance(v, float) else v
+
+        voy = [{k: _clean(r[k]) for k in vcols}
+               for r in con.execute("select %s from voyages" % ",".join(vcols))]
+        # 有效航段: GPS 或 LOG 距离 >0 (剔除锚地/移泊伪段与空 to_port)
+        legs = [{k: _clean(r[k]) for k in lcols}
+                for r in con.execute(
+                    "select %s from legs where (dist_sea_gps>0 or dist_sea_log>0) "
+                    "and from_port is not null and from_port!='' " % ",".join(lcols))]
+        updated = ""
+        try:
+            row = con.execute("select v from meta where k='last_parse'").fetchone()
+            if row:
+                updated = row[0]
+        except Exception:
+            pass
+        con.close()
+        print("Abstract: voyages=%d valid_legs=%d (last_parse %s)"
+              % (len(voy), len(legs), updated or "-"))
+        return {"voyages": voy, "legs": legs, "updated": updated}
+    except Exception as e:
+        print("[WARN] read abstract_log.db failed:", e)
+        return empty
+
+
 def build_html(results):
     # ---- 已下线船过滤(任何入口都必须过这道闸) ----
     # 2026-11-12: drop_offline 只在 main() 的 fleet 合并里生效, 其它支线直接把
@@ -1205,6 +1257,10 @@ def build_html(results):
         _upd += "  [未连接 Outlook]"
     if OL_STATE.get("pool_small"):
         _upd += "  [邮件池 %s-深度兜底可能漏抓]" % OL_STATE.get("pool_size")
+    # ---- Abstract Log 航次/航段数据(来自 culadmin 每日采集的 abstract_log.db) ----
+    # 只导出前端需要的列, 仅保留有效航段(距离>0), 控制 payload 体积(约 0.29MB)。
+    # db 由 [3b/5] abstract_core 更新, 本渲染在 [3/5] 先跑 -> 用的是上一轮 db(滞后一轮, 可接受)。
+    abstract = load_abstract()
     payload = {"updated": _upd,
                "vessels": vessels,
                "offline": offline,
@@ -1213,7 +1269,8 @@ def build_html(results):
                "bunkering_types": bunker_types,
                "voyages": voyages,
                "draft_max": draft_max,
-               "tdr": tdr}
+               "tdr": tdr,
+               "abstract": abstract}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)
     back = cryptojs_decrypt(enc, PASSWORD)
