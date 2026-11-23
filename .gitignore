@@ -38,6 +38,12 @@ draft_preview.html
 # git add -A 时把 400+MB 塞进历史(git 历史会永久膨胀, 无法简单删除)
 bapfile.db
 *.db
+
+# 全字段报告库的 xlsx 原件归档(~500MB/1.7万封, 绝不入库; db 已被 *.db 忽略)
+rob_data/report_archive/
+rob_data/diag_report_fields_dump.txt
+rob_data/collect_full.log
+rob_data/parse_full.log
 Vessel Bapfile*.xlsx
 Vessel Bapfile.xlsx.dl.*
 site/data/
