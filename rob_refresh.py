@@ -432,16 +432,15 @@ def extract_rob(att):
     #   NOON  : "ROB LSFO | 598.17 | MT | ROB MGO | 372.84"   (一行多个键值对)
     #   BERTH : "POB/FWE/ANCHOR AWEIGH ROB LSFO | 602.35"     (阶段前缀)
     # 规则: 单元格含 "ROB" 且 ROB 之后的 token 是已知油种代码时, 取该单元格右侧第一个
-    # 数值。**BERTH 报告按阶段优先级取: POB(靠泊) > FWE > ANCHOR AWEIGH > DROP ANCHOR
-    # > 其他**。原因: 航次期初 = 首港靠泊时的 ROB, 只有 POB 行才是靠泊存量; 旧的
-    # "后值覆盖前值"会取到表格最下方的 ANCHOR AWEIGH(起锚)/DROP ANCHOR(抛锚) 值,
-    # 那是离港时的存量, 与靠泊差几十吨。实例: CUL XIAMEN 2625 的 09-13 BERTH
-    # 报告 POB ROB LSFO=635.57(红框), 却被 ANCHOR AWEIGH 的 651.18 覆盖。
+    # 数值。**BERTH 报告按阶段优先级取: FWE > POB(靠泊) > ANCHOR AWEIGH > DROP ANCHOR
+    # > 其他**(2026-11-23 用户定稿: 优先取 FWE ROB, 没有 FWE 行才退回 POB)。
+    # 旧的"后值覆盖前值"会取到表格最下方的 ANCHOR AWEIGH(起锚)/DROP ANCHOR(抛锚) 值,
+    # 那是离港时的存量; 2026-11-19 先改成 POB 优先, 现进一步按用户口径改为 FWE 优先。
     # NOON/SAILING 报告无阶段前缀(优先级 0), 只有一组 ROB, 不受影响。
     oil_codes = ("LSFO", "HSFO", "ULSFO", "MGO", "BW", "FW", "REFEER", "REEFER")
     stage_prio = {
-        "POB": 50,            # Point of Berthing 靠泊 —— 航次期初要的就是这个
-        "FWE": 40,            # 引航/进港阶段
+        "FWE": 60,            # 引航/进港阶段 —— 用户优先要这个(FWE ROB LSFO/MGO/HSFO)
+        "POB": 50,            # Point of Berthing 靠泊 —— 没有 FWE 行时退回这个
         "ANCHOR AWEIGH": 30,  # 起锚
         "DROP ANCHOR": 20,    # 抛锚
     }
@@ -534,9 +533,9 @@ def extract_rob(att):
                     if got:
                         k, v, prio = got
                         key = "REFEER" if k == "REEFER" else k
-                        # 优先级严格更高才覆盖; 同级后进覆盖前进(兼容 NOON 一行多组相同 oil)。
-                        # 这样 BERTH 报告里 POB(50) 一旦读到, ANCHOR AWEIGH(30)/DROP(20)
-                        # 就无法覆盖它 —— 期初取靠泊 ROB, 而非离港 ROB。
+                        # 优先级更高才覆盖; 同级后进覆盖前进(兼容 NOON 一行多组相同 oil)。
+                        # 这样 BERTH 报告里 FWE(60) 一旦读到, POB(50)/ANCHOR(30)/DROP(20)
+                        # 都无法覆盖它 —— 期初优先取 FWE ROB, 没有 FWE 才退到 POB。
                         if prio >= rob_prio.get(key, -1):
                             rob[key] = v
                             rob_prio[key] = prio
