@@ -320,6 +320,9 @@ function _loadXlsx(cb){
   .login-box .login-err { color: #e74c3c; font-size: 12px; margin-bottom: 8px; min-height: 18px; }
   .login-box button { width: 100%; padding: 10px; background: #1F4E79; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
   .login-box button:hover { background: #2E75B6; }
+  .login-box .remember { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; color: #5a6e82; margin: -2px 0 14px; cursor: pointer; }
+  .login-box .remember input { width: auto; margin: 0; cursor: pointer; }
+  .login-box button:disabled { opacity: .7; cursor: progress; }
 
   /* ── BOA berth-on-arrival stats section ─────────────────────────────── */
   .range-opt { display: inline-flex; align-items: center; gap: 6px; background: #eef2f7; border: 1px solid #d5dee8; border-radius: 16px; padding: 4px 11px; cursor: pointer; font-size: 12px; color: #3b4a5a; user-select: none; }
@@ -353,6 +356,7 @@ function _loadXlsx(cb){
     <h2>&#128274; Access Restricted</h2>
     <div class="sub">CUL Daily Movement Dashboard</div>
     <input type="password" id="loginPwd" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" autofocus>
+    <label class="remember"><input type="checkbox" id="loginRemember"> Remember this device for 30 days</label>
     <div class="login-err" id="loginErr"></div>
     <button onclick="doLogin()">Sign In</button>
   </div>
@@ -4977,12 +4981,37 @@ if(typeof window!=='undefined' && !window.__chRO){
    LOGIN
    ═══════════════════════════════════════════════════════════════════ */
 var LOGIN_PWD='CUL1234';
+var LOGIN_REMEMBER_MS = 30*24*60*60*1000;
+function loginRememberOk(){
+  try{
+    var exp = Number(localStorage.getItem('cul_auth_exp') || 0);
+    if(exp > Date.now()) return true;
+    if(exp) localStorage.removeItem('cul_auth_exp');
+  }catch(e){}
+  return sessionStorage.getItem('cul_auth') === '1';
+}
 function doLogin(){
   var v=document.getElementById('loginPwd').value.trim();
   if(v===LOGIN_PWD){
+    var btn=document.querySelector('#loginOverlay button');
+    if(btn){ btn.disabled=true; btn.textContent='Signing in…'; }
+    var err=document.getElementById('loginErr');
+    if(err) err.textContent='';
+    var cb=document.getElementById('loginRemember');
+    try{
+      if(cb && cb.checked) localStorage.setItem('cul_auth_exp', String(Date.now()+LOGIN_REMEMBER_MS));
+      else localStorage.removeItem('cul_auth_exp');
+    }catch(e){}
     sessionStorage.setItem('cul_auth','1');
-    document.getElementById('loginOverlay').classList.add('hidden');
-    init();
+    // 先让按钮的 Signing in… 状态绘制出来，再跑同步的 init()（约 0.5s）
+    var start=function(){
+      var lo=document.getElementById('loginOverlay');
+      if(lo) lo.classList.add('hidden');
+      init();
+      if(btn){ btn.disabled=false; btn.textContent='Sign In'; }
+    };
+    if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(start,0); });
+    else setTimeout(start,0);
   } else {
     document.getElementById('loginErr').textContent='Incorrect password';
     document.getElementById('loginPwd').value='';
@@ -5814,7 +5843,7 @@ function switchYear(y){
 // Placed at the very end so every top-level data assignment (MAINT_RECORDS,
 // TODAY_DATA, COLUMN_DEFS_*, …) has executed before init() runs. Running it
 // earlier (at parse time) left MAINT_RECORDS undefined on reload.
-if(sessionStorage.getItem('cul_auth') === '1'){
+if(loginRememberOk()){
   var _lo = document.getElementById('loginOverlay');
   if(_lo) _lo.classList.add('hidden');
   init();
