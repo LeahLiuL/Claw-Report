@@ -8,29 +8,30 @@
 
 ---
 
-## 一、这台电脑（culadmin，有 Outlook）——只需做一次
+## 一、这台电脑（culadmin，有 Outlook）——不用做任何事 ✅
 
-双击运行：
+Abstract 更新**已经嵌入现有的 ROB 计划任务**，跟着 ROB 一起跑，无需新建任务、无需双击任何东西：
 
-```
-install_abstract_task.bat
-```
-
-它会注册一个 Windows 计划任务：
-
-| 任务名 | 频率 | 做什么 |
+| 现有任务 | 频率 | 触发 |
 |---|---|---|
-| `ClawReport_Abstract_0600` | 每天 06:00 | 抓邮件 → 更新 db → 上传 → 更新公告页 → push |
+| `ClawReport_ROB_0100` | 每天 01:00 | ROB 跑完 → 自动接着跑 Abstract |
+| `ClawReport_ROB_1300` | 每天 13:00 | 同上 |
 
-> 选 06:00 是为了避开 ROB 的 01:00 / 13:00 任务，避免 git 锁冲突（脚本里也加了锁）。
+实现位置：`rob_update.bat` 在 `[3/5]` 后调用 `abstract_core.bat`（采集 → 上传 → 重生成公告页），
+随后 ROB 原有的 `git_safe_push` 会把更新后的 `DATABASES.html` 一起推送。
 
-立即测试一次（不用等到 06:00）：
+> Abstract 步骤失败不会影响 ROB；反之亦然。日志独立：`rob_data\abstract_daily.log`
+
+想立即手动跑一次（在仓库目录）：
 
 ```
-schtasks /Run /TN "ClawReport_Abstract_0600"
+python abstract_daily_sync.py --days 5 --apply
+python upload_abstract_db.py --apply
+python databases_page_gen.py
 ```
 
-看日志：`rob_data\abstract_daily.log`
+> 备注：也保留了一个独立安装脚本 `install_abstract_task.bat`（每天 06:00 单独跑），
+> 但**正常不需要用**——已经嵌入 ROB 任务了。只有当你想把 Abstract 和 ROB 彻底分开时才需要它。
 
 ---
 
@@ -75,8 +76,10 @@ python abstract_log_report_gen.py
 | `abstract_daily_sync.py` | 从 Outlook 抓 abstract 邮件 → 增量入库（核心采集） |
 | `upload_abstract_db.py` | checkpoint WAL + 覆盖上传线上 db（不碰 reports.db） |
 | `databases_page_gen.py` | 重新生成公告页（含新时间戳） |
-| `abstract_daily_update.bat` | 每天定时入口，串起上面三步 + git push |
-| `install_abstract_task.bat` | 一次性注册计划任务（你双击运行） |
+| `abstract_core.bat` | 核心三步的 bat（无 git 操作），被 rob_update.bat 调用 ← **实际每天运行的就是它** |
+| `rob_update.bat` | ROB 定时任务，末尾已嵌入 abstract_core 调用（无需新建任务） |
+| `abstract_daily_update.bat` | 独立完整入口（含 git push），备用 |
+| `install_abstract_task.bat` | 独立任务安装脚本，备用（正常不需要） |
 
 ---
 
