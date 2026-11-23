@@ -65,7 +65,7 @@ tr:hover td{background:#1a2230;}
 <body>
 <div class="header">
   <div><h1>CUL Abstract Log 航次数据分析</h1><div class="sub">每港→下一港 距离 / 航速 / 油耗 · 源自船长 Abstract Log 报告全字段解析</div></div>
-  <div class="stamp">数据截至 2026-11-23 15:51</div>
+  <div class="stamp">数据截至 2026-11-23 15:55</div>
 </div>
 <div class="wrap">
   <div class="cards" id="cards"></div>
@@ -95,6 +95,7 @@ tr:hover td{background:#1a2230;}
   <div class="view" id="v-voyages">
     <div class="panel">
       <h2>航次汇总 <span id="voyCount" style="color:var(--muted);font-weight:400"></span></h2>
+      <div class="info">"数据质量"列交叉校验底部油量表的总消耗与加油−结存。标 ⚠ 的行是<b>原始附件填报存疑</b>（多集中在 HDX HONGYUAN / SUNNY 68 / EXPRESS BERLIN / C LION），其"总耗/油效"不可信；<b>航段明细里的逐段油耗不受影响，可正常分析</b>。</div>
       <div class="tbl-wrap" style="margin-top:10px"><table id="voyTable"><thead></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -187,7 +188,20 @@ const voyCols=[
   ['tot_cons_lsfo','总耗LSFO(MT)',x=>fmt(x.tot_cons_lsfo,1)],
   ['tot_cons_mgo','总耗MGO(MT)',x=>fmt(x.tot_cons_mgo,1)],
   ['bunk_start_port','加油港',null],
-  ['eff','油效(NM/MT)',x=>x.voy_ttl_distance&&x.tot_cons_lsfo?fmt(x.voy_ttl_distance/x.tot_cons_lsfo,1):'—']
+  ['eff','油效(NM/MT)',x=>{
+    if(!x.voy_ttl_distance||!x.tot_cons_lsfo)return '—';
+    const e=x.voy_ttl_distance/x.tot_cons_lsfo;
+    const bad=e>500||e<5;
+    return bad?`<span class="b-warn badge" title="原始附件底部油量表填报异常, 油效不可信">⚠ ${fmt(e,1)}</span>`:fmt(e,1);
+  }],
+  ['qc','数据质量',x=>{
+    // 交叉校验: 底部表"总消耗" vs "加油-结存", 偏差>30% 视为填报存疑
+    if(x.bunk_start_lsfo==null||x.bunk_end_lsfo==null||!x.tot_cons_lsfo)return '<span class="b-good badge">—</span>';
+    const theo=x.bunk_start_lsfo-x.bunk_end_lsfo;
+    if(Math.abs(theo-x.tot_cons_lsfo)>Math.max(x.tot_cons_lsfo*0.3,5))
+      return `<span class="b-warn badge" title="表内总耗 ${fmt(x.tot_cons_lsfo,1)} 与 加油-结存 ${fmt(theo,1)} 不符, 原始填报存疑, 航段油耗仍可用">⚠ 总耗存疑</span>`;
+    return '<span class="b-good badge">✓ 一致</span>';
+  }]
 ];
 let legSort={k:'received',dir:-1},voySort={k:'voy_completed',dir:-1};
 function makeTable(tbl,cols,rows,sort,countEl){
