@@ -133,6 +133,17 @@ def _build_vessel_index():
     return inv_mail, toks
 
 
+# 下线船 code→船名对照(_guess_vessel 只认在营 61 艘 token, 这些船会被漏掉)。
+# 依据 cul_daily_movement.html 下线船表 + 主题实测。用于 parse 时按附件 VESSEL_NAME 兜底,
+# 保证 --parse --force 重跑不会把已回填船名退化成空。
+OFFLINE_CODE2VESSEL = {
+    "UGSZ": "UGL SHENZHEN", "UGGZ": "UGL SHENZHEN",
+    "CUJCK": "CUL JAKARTA", "CUJK": "CUL JAKARTA",
+    "HDHY": "HDX HONGYUAN", "GFMQ": "GUO FU MIN QIANG", "HOGE": "HOOGE",
+    "ZPYY": "ZHONG PENG YOU YI", "TBFZ": "TB FENGZE", "CSJ7": "CHANG SHENG JI 7",
+}
+
+
 def _guess_vessel(subject, sender, all_text, inv_mail, toks):
     mail = (sender or "").lower()
     if mail in inv_mail:
@@ -145,6 +156,10 @@ def _guess_vessel(subject, sender, all_text, inv_mail, toks):
     for v, nv, code in toks:
         if R.norm(v).upper() in hay or v.upper() in hay:
             return v, code
+    # 兜底: 附件正文里若出现下线船 code (如 "TBFZ"), 认领对应船名
+    for code, vname in OFFLINE_CODE2VESSEL.items():
+        if re.search(r"\b" + re.escape(code) + r"\b", hay):
+            return vname, code
     return "", ""
 
 
@@ -406,6 +421,14 @@ def parse_all(force=False, limit=None):
         vessel, code = (rec or ["", ""])
         if not vessel:
             vessel, code = _guess_vessel(subj, sender, all_text, inv_mail, toks)
+        # 再兜底: 本次抽出的 VESSEL_NAME 字段(code) -> 下线船船名
+        if not vessel:
+            for s, ce, st, lb, fd, vn, vt, un in rows:
+                if fd == "VESSEL_NAME":
+                    vc = str(vt or "").strip().upper()
+                    if vc in OFFLINE_CODE2VESSEL:
+                        vessel, code = OFFLINE_CODE2VESSEL[vc], vc
+                        break
         conn.execute("DELETE FROM fields WHERE mail_id=?", (mid,))
         conn.executemany(
             "INSERT OR IGNORE INTO fields(mail_id,sheet,cell,stage,label,field,value_num,value_text,unit)"

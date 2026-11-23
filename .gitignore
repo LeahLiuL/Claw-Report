@@ -41,6 +41,7 @@ bapfile.db
 
 # 全字段报告库的 xlsx 原件归档(~500MB/1.7万封, 绝不入库; db 已被 *.db 忽略)
 rob_data/report_archive/
+rob_data/reports.db.bak_*
 rob_data/diag_report_fields_dump.txt
 rob_data/collect_full.log
 rob_data/parse_full.log
