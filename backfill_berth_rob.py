@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-r"""全量 BERTH ROB 强制回刷: 用新 extract_rob(POB 优先) 重解析历史 BERTH 报告覆盖 CSV。
+r"""全量 BERTH ROB 强制回刷: 用现行 extract_rob(FWE 优先) 重解析历史 BERTH 报告覆盖 CSV。
 
 == 背景 ==
-2026-11-19 修复 BERTH 报告 ROB 取值: 旧规则"同一油种后值覆盖前值"会取到附件表格
-最下方的 ANCHOR AWEIGH(起锚)/DROP ANCHOR(抛锚) ROB, 而航次期初应取靠泊 POB ROB。
-实例 CUL XIAMEN 2625: POB 635.57 被 ANCHOR AWEIGH 的 651.18 覆盖。
-新规则(prio POB50>FWE40>ANCHOR AWEIGH30>DROP20)对【今后抓取】已生效, 但历史 CSV
-里 BERTH 行仍是旧值 —— 三重去重(每日/回补/报告归档)都跳过已存在记录, 不会自动回刷。
-本脚本做这一次性的强制重解析。
+BERTH 报告 ROB 取值经两次修正:
+  1) 2026-11-19: 修掉旧规则"同一油种后值覆盖前值"(会取到表格最下方的 ANCHOR AWEIGH
+     起锚 / DROP ANCHOR 抛锚 ROB)。实例 CUL XIAMEN 2625 POB 635.57 被起锚 651.18 覆盖。
+  2) 2026-11-23(用户定稿, commit ade8239f): 改为 FWE 优先 —— prio
+     FWE60 > POB50 > ANCHOR AWEIGH30 > DROP20, 即优先取 FWE ROB, 没有 FWE 才退回 POB。
+现行规则对【今后抓取】已生效, 但历史 CSV 里 BERTH 行仍是旧值 —— 三重去重(每日/回补/
+报告归档)都跳过已存在记录, 不会自动回刷。本脚本做这一次性的强制重解析。
+统计(berth_stage_stats.py, 3991封): 若按 FWE 优先, 1413 条原取 POB 的报告存在 FWE 值会改。
 
 == 2026-11-19 本机修正(重要) ==
 原版有两处致命问题, 在本机实测卡死/零命中, 已修:
