@@ -806,16 +806,19 @@ def main():
     ap.add_argument("--output", default=DEFAULT_OUT)
     ap.add_argument("--today", default=None, help="基准日 YYYY-MM-DD, 默认今天(用于选最近船期行)")
     ap.add_argument("--window", type=int, default=WINDOW_DAYS, help="兼容旧参数, 已被 --year 取代")
-    ap.add_argument("--year", type=int, default=2026, help="船期年份窗口(默认2026): 加载该年第一个 sheet 的全部船期")
+    ap.add_argument("--year", type=int, default=2026, help="起始年份(默认2026): 从该年1/1加载, 并包含下一年的跨年船期")
     ap.add_argument("--no-backup", action="store_true")
     args = ap.parse_args()
 
     today = datetime.strptime(args.today, "%Y-%m-%d").date() if args.today else date.today()
-    # 2026 全年窗口: 加载每个源表第一个 sheet 的全部 {year} 船期, 不再按 today±window 截断
+    # 跨年窗口: 源文件里已有下一年船期(2026-11 扫描到 33 船/664 个 2027 日期单元格,
+    # 最远 2027-05-05)。旧逻辑把 hi 卡在 {year}-12-31, 这些 2027 行被静默丢弃 ——
+    # 典型症状: HONG DA XIN 728 的 2649W/2027-01-04 在网页/导出里看不到。
+    # 改为加载 {year} 1/1 起、覆盖整个下一年; 不再按 today±window 截断。
     lo = date(args.year, 1, 1)
-    hi = date(args.year, 12, 31)
+    hi = date(args.year + 1, 12, 31)
 
-    print(f"[基准日] {today}  年份窗口 {args.year} -> [{lo} ~ {hi}]")
+    print(f"[基准日] {today}  年份窗口 {args.year}+1 -> [{lo} ~ {hi}]")
     print("=== 1/4 读权威表(PIC汇总 = 船代码/显示名/PIC/曾用名 的唯一来源) ===")
     pic_tbl = load_pic(args.pic)                    # C文件夹名 -> E PIC
     pic_code_tbl = load_pic_code_map(args.pic)      # C文件夹名 -> D 船代码  (唯一权威)
