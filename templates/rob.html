@@ -177,7 +177,7 @@ function _loadXlsx(cb) {
   <div class="lock-card">
     <h2>CUL ROB Bunker Report</h2>
     <div class="sub">This page is encrypted. Enter password to continue.</div>
-    <input id="pwd" type="password" placeholder="Password" autofocus>
+    <input id="pwd" type="password" placeholder="Password" autofocus onkeydown="if(event.key==='Enter')doUnlock()">
     <button onclick="doUnlock()">Unlock</button>
     <div id="lockErr"></div>
   </div>
@@ -394,23 +394,76 @@ function _loadXlsx(cb) {
 </div>
 
 <script>
+/* ==== VIEW_STATE_START (预览页也保留) ==== */
+// 视图/滚动位置与解锁逻辑解耦: build_preview.py 会整块切除 UNLOCK_LOGIC,
+// 但预览页仍需要这些函数, 所以放在切除区之前。
+var CACHE_KEY = 'rob_pwd_v1';       // sessionStorage 只存密码(几字节)
+var VIEW_KEY  = 'rob_view_v1';      // 视图 tab + 各表格 scrollTop
+var MEM_KEY   = '__ROB_DATA_CACHE__';
+var _rendered = {};                 // 已渲染过的内部 tab, 切回时不重复重绘
+var _viewState = { tab:'viewDash', scroll:{} };
+function loadViewState(){
+  try{
+    var s=JSON.parse(sessionStorage.getItem(VIEW_KEY)||'null');
+    if(s && typeof s==='object'){ _viewState.tab=s.tab||'viewDash'; _viewState.scroll=s.scroll||{}; }
+  }catch(e){}
+}
+function saveViewState(tabId){
+  try{
+    var sc=_viewState.scroll||(_viewState.scroll={}), root=document.getElementById(tabId);
+    if(root){
+      root.querySelectorAll('[id]').forEach(function(el){
+        if(el.scrollTop>0) sc[el.id]=el.scrollTop;
+        else if(Object.prototype.hasOwnProperty.call(sc,el.id) && el.scrollTop===0) delete sc[el.id];
+      });
+    }
+    sc['__win_'+tabId] = Math.round(window.scrollY || document.documentElement.scrollTop || 0);
+    _viewState.tab = tabId;
+    sessionStorage.setItem(VIEW_KEY, JSON.stringify(_viewState));
+  }catch(e){}
+}
+function saveTabPointer(tabId){
+  _viewState.tab = tabId;
+  try{ sessionStorage.setItem(VIEW_KEY, JSON.stringify(_viewState)); }catch(e){}
+}
+function restoreViewState(tabId){
+  try{
+    var sc=_viewState.scroll||{}, root=document.getElementById(tabId);
+    // 用 setTimeout 而不是 requestAnimationFrame: 后台标签/无头环境下 rAF 可能不触发
+    setTimeout(function(){ setTimeout(function(){
+      if(root) root.querySelectorAll('[id]').forEach(function(el){
+        if(typeof sc[el.id]==='number' && el.scrollTop!==sc[el.id]) el.scrollTop=sc[el.id];
+      });
+      var y=sc['__win_'+tabId];
+      if(typeof y==='number') window.scrollTo(0,y);
+    },0);},0);
+  }catch(e){}
+}
+/* ==== VIEW_STATE_END ==== */
 var ENC = "__ENC__";
 var DATA = null, sortKey = "seq", sortAsc = true;
 // 已下线船: 默认隐藏, 由工具栏『已下线』开关控制是否并入表格/导出
 var SHOW_OFF = false;
 
 /* ==== UNLOCK_LOGIC_START ==== */
-// 解锁加速(2026-11-20):
-//  1) 解密改用浏览器原生 Web Crypto (AES-CBC), 4.8MB payload 从 CryptoJS 的
-//     数秒降到~0.1s。key 派生沿用 OpenSSL EVP_BytesToKey(MD5,1轮), 与 Python
-//     端 cryptojs_encrypt 完全等价 —— 已用真实 payload 验证解密结果逐字节一致。
+// 解锁加速 + 记忆(2026-11-24):
+//  1) 解密用浏览器原生 Web Crypto (AES-CBC), 5.2MB payload ~0.1s。key 派生沿用
+//     OpenSSL EVP_BytesToKey(MD5,1轮), 与 Python 端 cryptojs_encrypt 等价。
 //     Web Crypto 不可用时回退 CryptoJS (老浏览器兼容)。
-//  2) 解锁成功后把明文按 ENC 指纹缓存到 sessionStorage: 同一标签页内切到别的
-//     页面再回来, 直接读缓存进入, 不用再输密码/解密。关掉标签页自动清除;
-//     数据更新(ENC 变化)指纹不匹配也会重新要求输入。
-var CACHE_KEY = 'rob_unlock_v1';
+//  2) 只把「密码」存 sessionStorage(几字节)。旧版把 4.4M 字符的明文 JSON 写进
+//     sessionStorage, Chrome 5MB 配额直接 QuotaExceeded —— 缓存从来没成功过,
+//     所以每次切 tab / 刷新都要重新输密码。现在浏览器会话内只输一次密码;
+//     关掉浏览器(或标签页)自动清除, 重新打开需要再输一次。
+//  3) 解密后的 DATA 放同源父窗口内存, ENC 指纹变化时自动作废, 避免显示旧数据。
+//  4) 当前视图 tab + 每个表格的 scrollTop 存 sessionStorage, 回到本页恢复原位。
 function _hashStr(s){ var h=5381,i; for(i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return h.toString(36)+'_'+s.length; }
 var ENC_FP = _hashStr(ENC);
+function _hostWin(){ try { return (window.parent && window.parent!==window) ? window.parent : window; }catch(e){ return window; } }
+function _memRead(){ try{ var c=_hostWin()[MEM_KEY]; if(c && c.fp===ENC_FP && c.data) return c.data; }catch(e){} return null; }
+function _memWrite(d){ try{ _hostWin()[MEM_KEY] = {fp:ENC_FP,data:d}; }catch(e){} }
+function _pwdRead(){ try{ return sessionStorage.getItem(CACHE_KEY)||''; }catch(e){ return ''; } }
+function _pwdWrite(p){ try{ sessionStorage.setItem(CACHE_KEY,p); }catch(e){} }
+function _pwdClear(){ try{ sessionStorage.removeItem(CACHE_KEY); }catch(e){} }
 
 // ---- 轻量 MD5 (RFC1321, 纯JS) ----
 function _md5(bytes){
@@ -483,15 +536,14 @@ function tryUnlockFast(pwd){
     }catch(e){resolve(_cryptojsFallback(pwd));}
   });
 }
-function cacheUnlock(obj){
-  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify({fp:ENC_FP,data:obj})); }catch(e){}
+function cacheUnlock(pwd,obj){
+  _pwdWrite(pwd);     // 只存密码, sessionStorage 配额足够
+  _memWrite(obj);     // 大数据放父窗口内存
 }
-function readCache(){
-  try{
-    var c=JSON.parse(sessionStorage.getItem(CACHE_KEY)||'null');
-    if(c&&c.fp===ENC_FP&&c.data) return c.data;
-  }catch(e){}
-  return null;
+function showLock(){
+  var l=document.getElementById('lock'); if(l) l.style.display='flex';
+  var a=document.getElementById('app');  if(a) a.style.display='none';
+  var i=document.getElementById('pwd');  if(i) i.focus();
 }
 var _unlocking=false;
 function doUnlock(){
@@ -504,14 +556,22 @@ function doUnlock(){
   tryUnlockFast(pwd).then(function(d){
     _unlocking=false;
     if(btn) btn.textContent='Unlock';
-    if(d){ DATA=d; cacheUnlock(d); enterApp(); }
+    if(d){ DATA=d; cacheUnlock(pwd,d); enterApp(); }
     else{ err.textContent='Wrong password, please try again'; }
   });
 }
-// 页面加载: 有匹配缓存直接进, 否则显示密码框
+// 页面加载: ①同源父窗口内存命中 → 瞬间进入 ②会话内已存密码 → 自动解密进入
+// ③否则显示密码框。浏览器关闭后 sessionStorage 清空, 需要重新输入。
 (function tryAutoUnlock(){
-  var c=readCache();
-  if(c){ DATA=c; enterApp(); }
+  var m=_memRead();
+  if(m){ DATA=m; enterApp(); return; }
+  var pwd=_pwdRead();
+  if(pwd){
+    tryUnlockFast(pwd).then(function(d){
+      if(d){ DATA=d; _memWrite(d); enterApp(); }
+      else{ _pwdClear(); showLock(); }
+    });
+  }
 })();
 /* ==== UNLOCK_LOGIC_END ==== */
 
@@ -530,6 +590,13 @@ function enterApp() {
   document.getElementById('offCnt').textContent = offs.length ? '(' + offs.length + ')' : '';
   document.getElementById('offBtn').style.display = offs.length ? '' : 'none';
   renderRows();
+  _rendered.viewDash = true;
+  // 恢复到上次浏览的内部视图 / 表格位置(同一浏览器会话内有效)
+  loadViewState();
+  var t = _viewState.tab;
+  if (t && t !== 'viewDash' && document.getElementById(t) &&
+      document.querySelector('.tab-btn[data-tab="' + t + '"]')) switchTab(t);
+  else restoreViewState('viewDash');
 }
 function stat(n, lbl, miss) {
   return '<div class="stat"><div class="num' + (miss ? ' miss' : '') + '">' + n +
@@ -1052,27 +1119,36 @@ function renderAbSum(d, v, body){
    旧函数 showTable/showTrend/showDraft/showVoyage 保留为兼容包装,
    面板内部的 "Back to Table" 按钮仍可正常工作并同步 tab 高亮。 */
 function switchTab(id, btn) {
+  // 离开当前视图前先记下滚动位置; 隐藏元素后 scrollTop 会被浏览器清零
+  var prevEl = document.querySelector('.tab-content.active');
+  if (prevEl && prevEl.id !== id) saveViewState(prevEl.id);
   document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   var el = document.getElementById(id);
   if (el) el.classList.add('active');
   if (!btn) btn = document.querySelector('.tab-btn[data-tab="' + id + '"]');
   if (btn) btn.classList.add('active');
-  if (id === 'trend') { initTrend(); renderTrend(); }
-  else if (id === 'draft') renderDraft();
-  else if (id === 'voyage') {
-    // 自选时间段默认近 30 天
-    var fEl = document.getElementById('perFrom'), tEl = document.getElementById('perTo');
-    if (fEl && !fEl.value) {
-      var d0 = new Date(); d0.setDate(d0.getDate() - 30);
-      fEl.value = d0.toISOString().slice(0, 10);
-      tEl.value = new Date().toISOString().slice(0, 10);
+  // 已渲染过的视图直接显示, 不重绘 —— 保留筛选条件、展开行和表格位置
+  if (!_rendered[id]) {
+    if (id === 'trend') { initTrend(); renderTrend(); }
+    else if (id === 'draft') renderDraft();
+    else if (id === 'voyage') {
+      // 自选时间段默认近 30 天
+      var fEl = document.getElementById('perFrom'), tEl = document.getElementById('perTo');
+      if (fEl && !fEl.value) {
+        var d0 = new Date(); d0.setDate(d0.getDate() - 30);
+        fEl.value = d0.toISOString().slice(0, 10);
+        tEl.value = new Date().toISOString().slice(0, 10);
+      }
+      renderVoyage(); renderPeriod();
     }
-    renderVoyage(); renderPeriod();
+    else if (id === 'tdr') { buildTdrVesselDrop(); renderTDR(); }
+    else if (id === 'abstract') { initAbstract(); renderAbstract(); }
+    else if (id === 'viewDash') renderRows();
+    _rendered[id] = true;
   }
-  else if (id === 'tdr') { buildTdrVesselDrop(); renderTDR(); }
-  else if (id === 'abstract') { initAbstract(); renderAbstract(); }
-  else if (id === 'viewDash') renderRows();
+  saveTabPointer(id);
+  restoreViewState(id);
 }
 function showTable() { switchTab('viewDash'); }
 function showTrend() { switchTab('trend'); }

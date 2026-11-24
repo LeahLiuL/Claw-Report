@@ -23,7 +23,7 @@ LOCK_BLOCK = '''<div id="lock">
   <div class="lock-card">
     <h2>CUL ROB Bunker Report</h2>
     <div class="sub">This page is encrypted. Enter password to continue.</div>
-    <input id="pwd" type="password" placeholder="Password" autofocus>
+    <input id="pwd" type="password" placeholder="Password" autofocus onkeydown="if(event.key==='Enter')doUnlock()">
     <button onclick="doUnlock()">Unlock</button>
     <div id="lockErr"></div>
   </div>
