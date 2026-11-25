@@ -2346,7 +2346,7 @@ const AGENT_BY_PORT       = __AGENT_BY_PORT__;
 
 // Default route display order (user-specified 2026-08-05). Unknown routes sort to the end.
 // Expanded from combined tokens: NP2-REX -> NP2,REX | RES-CGX -> RES,CGX | CGS-AEM-IMR -> CGS,AEM,IMR
-var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','CGS','AEM','EVHA','SGX','SJA','JPS','SHTG','RTS','WAT','KCI','GTS','SL1','CGX','HLX','IMR','NAX','RES'];
+var ROUTE_ORDER = ['ST3','SCT3','NSCT1','HDT','NSX','CST','CCT','NP2','REX','CGS','AEM','SGX','SJA','JPS','SHTG','RTS','WAT','KCI','GTS','SL1','CGX','HLX','IMR','NAX','RES'];
 // 时间列 → 分钟级排序键（显示值 'MM/DD HH:MM' 无年份，*Raw 只有日期，只有 *Sort 可精确排序）
 var TIME_SORT_KEY = {eta:'etaSort', etb:'etbSort', etd:'etdSort'};
 

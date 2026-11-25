@@ -51,9 +51,10 @@ DEFAULT_PIC = os.path.join(GEN_DIR, "PIC汇总.xlsx")
 
 # 航线分组顺序(固化常量, 与当前网页/大Excel展示一致; 新增航线追加到末尾)。
 # 组内按船名(文件夹名)排序。如要调整顺序, 改这里即可。
-ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM","EVHA",
+ROUTE_ORDER = ["ST3","CHT","HDT","CST","CCT","NP2","REX","CGS","AEM",
                "SGX","SJA","JPS","SHTG","RTS","WAT","KCI","GTS","NSX","SL1","CGX","HLX","IMR","NAX","RES","NSCT1",
                "ME3","RBC1"]   # ME3/RBC1: 用户 2026-10-28 确认为真实航线(KR CELEBES / CUL NANSHA 等)
+# 注: EVHA 是船代码(EVERLASTING HARVEST), 不是航线; 已从 ROUTE_ORDER 移除并在 is_lane_code 硬拦截。
 # 注: KCI(RACINE)/GTS(TB JINJIANG) 为用户确认的真实服务名, 已并入上表。
 #     WAT 原为 KR CELEBES 的服务名, 2026-10-22 用户确认【lane 一律以源文件最新值为准】后改为 ME3
 #     (源文件名 "KR CELEBES ME3 SCH" + 源内段标题均为 ME3); WAT 保留在排序表里仅作历史兼容。
@@ -246,6 +247,10 @@ PORT_CODES = {
     "USNYC","USLGB","USSAV","USLAX","USLGB","USHOU","USCHS",
 }
 
+# 船代码黑名单: 这些码长得像 lane, 但其实是 vessel code, 绝不作为航线。
+# EVHA = EVERLASTING HARVEST(旧名), THMY = THE HARMONY(当前名)。
+VESSEL_CODE_BLOCKLIST = {"EVHA", "THMY"}
+
 def is_port_code(code):
     """端口码硬判: 这些码即使出现在标题样位置也绝不当作 lane。"""
     return norm(code) in PORT_CODES
@@ -259,6 +264,8 @@ def is_lane_code(code):
     """
     n = norm(code)
     if not n:
+        return False
+    if n in VESSEL_CODE_BLOCKLIST:
         return False
     if n in PORT_CODES:
         return False
