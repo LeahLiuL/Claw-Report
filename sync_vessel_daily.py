@@ -3,22 +3,25 @@
 """
 Vessel Daily Report 数据同步（Fuel Report 新 tab）.
 
-数据源（2026-11-26 改版）:
-  1) 油耗数据: Schedule-Simulation/shipping_data/vessels.csv
+数据源（2026-11-26 二改: 用户已把 TCD/Actual 拆成独立 CSV）:
+  1) 油耗数据(首选, 真分流):
+     Schedule-Simulation/shipping_data/vessels_actual.csv  -> actual 组
+     Schedule-Simulation/shipping_data/vessels_tcd.csv     -> tcd 组
+     Schedule-Simulation/shipping_data/vessels_legacy.csv  -> 补档(见下)
      GitHub raw 优先(用户可能直接在浏览器改), 本地文件兜底。
-     列: vessel_code / vessel_name / speed_knots / lsfo_mt_day /
-         hsfo_mt_day / mgo_mt_day / portstay_lsfo_mt_day / portstay_mgo_mt_day
-  2) 船清单: Full Schedule (bi_vessel_departure.csv) 默认口径:
+     列同旧 vessels.csv: vessel_code / vessel_name / speed_knots /
+         lsfo_mt_day / hsfo_mt_day / mgo_mt_day /
+         portstay_lsfo_mt_day / portstay_mgo_mt_day / hire_daily
+     legacy 补档规则: 按船归属(该船在哪组有档就补到哪组, 都有则补 ACT;
+     都没有的按 ACT), 只补该组缺失的 speed, 已有档不覆盖; 全 0 行忽略。
+  2) 兜底: 三份拆分 CSV 任一份读不到时, 回退读旧 vessels.csv
+     (按行内标注列分流; 无标注则同份数据放两组 + split_by_flag=false)。
+  3) 船清单: Full Schedule (bi_vessel_departure.csv) 默认口径:
      operator=CUL, Service Type O lanes 隐藏, ETA 窗口 = 今天-15天 ~ 下月同日.
      船代码 = vessel_voyage 前 4 位; 船名来自 vessel_names.json.
 
-TCD / Actual 标注(前向兼容):
-  用户之后会在 vessels.csv 加一列标注每行是 TCD 还是 Actual。
-  本脚本会自动识别常见列名(data_type / type / basis / category /
-  TCD / source / 数据类型 / 口径 ...)与取值(tcd/theory/设计, actual/act/实际)。
-  识别到标注列 -> 按标注分流到 tcd / actual;
-  未识别到     -> 同一份数据同时放进 tcd 和 actual, 并写 split_by_flag=false,
-                 前端明确提示"CSV 未标注 TCD/Actual, 两列为同一数据"。
+TCD / Actual 标注:
+  拆分文件可用时 split_by_flag=true, 前端"同一份数据"提示自动消失。
 
 输出:
   rob_data/vessel_daily_report.json
@@ -41,6 +44,9 @@ ROB_DIR = os.path.join(HERE, "rob_data")
 OUT_JSON = os.path.join(ROB_DIR, "vessel_daily_report.json")
 
 VESSELS_CSV = "vessels.csv"
+VESSELS_ACTUAL_CSV = "vessels_actual.csv"
+VESSELS_TCD_CSV = "vessels_tcd.csv"
+VESSELS_LEGACY_CSV = "vessels_legacy.csv"
 LOCAL_SCHED_DIR = r"C:\Users\leahliu\WorkBuddy\Schedule-Simulation\shipping_data"
 GH_RAW = "https://raw.githubusercontent.com/LeahLiuL/Schedule-Simulation/main/shipping_data/"
 LANE_TYPE_O_FALLBACK = set('AE1 CNN CNT CTT CV6 EUF EXS FDR ISS LHT MCT ME2 MED NCT PRD PRF RE1 SEA SHT TCX TWS TWT WAT XRF YRD YRF'.split())
@@ -182,6 +188,76 @@ def parse_vessels_csv(txt):
     return tcd, actual, split
 
 
+def parse_one_group(txt):
+    """把单份已分流的 CSV(actual/tcd/legacy)解析成 {code:{code,name,speeds,port_stay}}.
+
+    所有行归入同一组; 全 0 档(speed>0 但三个油种都<=0 且 PS 也<=0)视为占位忽略。
+    """
+    out = {}
+    reader = csv.DictReader(io.StringIO(txt))
+    for row in reader:
+        code = (row.get('vessel_code') or '').strip()
+        if not code or code.lower() in ('vessel code', 'code', 'vessel_code'):
+            continue
+        name = (row.get('vessel_name') or '').strip()
+        speed = _num(row.get('speed_knots'))
+        if speed is None or speed <= 0:
+            continue
+        lsfo = _num(row.get('lsfo_mt_day'))
+        hsfo = _num(row.get('hsfo_mt_day'))
+        mgo = _num(row.get('mgo_mt_day'))
+        ps_lsfo = _num(row.get('portstay_lsfo_mt_day'))
+        ps_mgo = _num(row.get('portstay_mgo_mt_day'))
+        nz = lambda v: (v or 0) > 0
+        if not any(nz(v) for v in (lsfo, hsfo, mgo, ps_lsfo, ps_mgo)):
+            continue  # 全 0 占位船, 页面留空
+        d = out.get(code)
+        if d is None:
+            d = {"code": code, "name": name, "speeds": [],
+                 "port_stay": {"lsfo": None, "mgo": None}}
+            out[code] = d
+        if name and not d["name"]:
+            d["name"] = name
+        d["speeds"].append({"speed": speed, "lsfo": lsfo,
+                            "hsfo": hsfo, "mgo": mgo})
+        if ps_lsfo is not None and nz(ps_lsfo):
+            d["port_stay"]["lsfo"] = ps_lsfo
+        if ps_mgo is not None and nz(ps_mgo):
+            d["port_stay"]["mgo"] = ps_mgo
+    for d in out.values():
+        d["speeds"].sort(key=lambda b: b["speed"])
+    return out
+
+
+def merge_legacy(tcd, actual, legacy):
+    """legacy 档按船归属补进实际组: 该船在哪组有档就补到哪组(都有→ACT, 都没有→ACT).
+
+    只补该组缺失的 speed; 已有档不覆盖(优先信任 ACT/TCD 拆分源)。
+    """
+    added = {"tcd": 0, "actual": 0}
+    for code, ld in legacy.items():
+        in_t, in_a = code in tcd, code in actual
+        dst = tcd if (in_t and not in_a) else actual
+        bucket = "tcd" if dst is tcd else "actual"
+        d = dst.get(code)
+        if d is None:
+            d = {"code": code, "name": ld.get("name", code), "speeds": [],
+                 "port_stay": {"lsfo": None, "mgo": None}}
+            dst[code] = d
+        have = {b["speed"] for b in d["speeds"]}
+        for b in ld["speeds"]:
+            if b["speed"] not in have:
+                d["speeds"].append(dict(b))
+                have.add(b["speed"])
+                added[bucket] += 1
+        for k in ("lsfo", "mgo"):
+            if d["port_stay"].get(k) is None and ld["port_stay"].get(k) is not None:
+                d["port_stay"][k] = ld["port_stay"][k]
+    for d in list(tcd.values()) + list(actual.values()):
+        d["speeds"].sort(key=lambda b: b["speed"])
+    return added
+
+
 def full_schedule_vessels():
     """返回 (vessels, window); 失败返回 ([], None)."""
     txt = _read_text("bi_vessel_departure.csv")
@@ -237,13 +313,29 @@ def full_schedule_vessels():
 
 def build_daily_report():
     """刷新并返回 payload 片段; 任何异常都抛给调用方兜底."""
-    txt = _read_text(VESSELS_CSV, remote_first=True)
-    if not txt:
-        raise RuntimeError("vessels.csv 无法从 GitHub 或本地读取")
-    tcd, actual, split = parse_vessels_csv(txt)
+    atxt = _read_text(VESSELS_ACTUAL_CSV, remote_first=True)
+    ttxt = _read_text(VESSELS_TCD_CSV, remote_first=True)
+    ltxt = _read_text(VESSELS_LEGACY_CSV, remote_first=True)
+    legacy_note = ""
+    if atxt and ttxt:
+        # 首选: 用户已拆分的 ACT/TCD CSV, 真分流
+        actual = parse_one_group(atxt)
+        tcd = parse_one_group(ttxt)
+        split = True
+        source = "vessels_actual.csv + vessels_tcd.csv (Schedule-Simulation/shipping_data)"
+        if ltxt:
+            added = merge_legacy(tcd, actual, parse_one_group(ltxt))
+            legacy_note = " legacy补档 TCD+%d ACT+%d" % (added["tcd"], added["actual"])
+    else:
+        # 兜底: 旧合并 CSV + 行内标注识别
+        txt = _read_text(VESSELS_CSV, remote_first=True)
+        if not txt:
+            raise RuntimeError("vessels_actual.csv / vessels_tcd.csv / vessels.csv 均无法读取")
+        tcd, actual, split = parse_vessels_csv(txt)
+        source = "vessels.csv (Schedule-Simulation/shipping_data, fallback)"
     fs, window = full_schedule_vessels()
     out = {
-        "source": "vessels.csv (Schedule-Simulation/shipping_data)",
+        "source": source,
         "parsed": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "window": window,
         "split_by_flag": split,
@@ -254,8 +346,9 @@ def build_daily_report():
     os.makedirs(ROB_DIR, exist_ok=True)
     with open(OUT_JSON, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
-    print("[daily] vessels.csv TCD=%d Actual=%d split_by_flag=%s | Full Schedule=%d (%s) -> %s"
-          % (len(tcd), len(actual), split, len(fs), window, OUT_JSON))
+    print("[daily] %s TCD=%d Actual=%d split_by_flag=%s%s | Full Schedule=%d (%s) -> %s"
+          % (source.split(' ')[0], len(tcd), len(actual), split,
+             legacy_note, len(fs), window, OUT_JSON))
     return out
 
 
