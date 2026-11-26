@@ -1249,6 +1249,21 @@ def build_html(results):
             tdr = json.load(open(TDR_JSON, encoding="utf-8")).get("vessels", {})
         except Exception as e:
             print("[WARN] read tdr_consumption.json failed:", e)
+    # ---- Vessel Daily Report (2026-11-26): TCD/Actual 日耗曲线 + Full Schedule 船清单 ----
+    # 优先实时重读《Vessel Daily Consumption.xlsx》+ Full Schedule CSV; 任一失败
+    # 则沿用仓库里已有的 vessel_daily_report.json, 不影响主渲染。
+    daily_report = {}
+    DAILY_JSON = os.path.join(ROB_DIR, "vessel_daily_report.json")
+    try:
+        import sync_vessel_daily as _vd
+        _vd.build_daily_report()
+    except Exception as _e:
+        print("[sync] 跳过 Vessel Daily Report 刷新(沿用已有 JSON):", _e)
+    if os.path.exists(DAILY_JSON):
+        try:
+            daily_report = json.load(open(DAILY_JSON, encoding="utf-8"))
+        except Exception as e:
+            print("[WARN] read vessel_daily_report.json failed:", e)
     _upd = datetime.now().strftime("%Y-%m-%d %H:%M")
     if OL_STATE.get("offline"):
         # Outlook 离线(或缓存未同步): 本次"刷新"读的是本地缓存, 数据可能根本没更新
@@ -1270,6 +1285,7 @@ def build_html(results):
                "voyages": voyages,
                "draft_max": draft_max,
                "tdr": tdr,
+               "daily_report": daily_report,
                "abstract": abstract}
     enc = cryptojs_encrypt(json.dumps(payload, ensure_ascii=False), PASSWORD)
     # Python 端自校验(确保 JS 端能解开)

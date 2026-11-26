@@ -164,6 +164,17 @@ function _loadXlsx(cb) {
   .ab-sec { font-size:13px; color:#1F4E79; font-weight:700; margin:2px 0 6px; }
   .ab-meta { font-size:11.5px; color:#8a99ab; font-weight:400; }
   .trendtbl.abs td.n { font-variant-numeric: tabular-nums; }
+  /* ---- Vessel Daily Report tab ---- */
+  .vd-main td { cursor:pointer; }
+  .vd-main:hover td { background:#eaf2fa; }
+  .vd-code { display:inline-block; margin-left:5px; padding:1px 5px; border-radius:9px;
+             background:#dfe8f2; color:#5a6e82; font-size:10px; font-weight:700; }
+  .vd-arrow { color:#8a99ab; margin-left:6px; font-size:11px; }
+  .vd-empty { color:#c3ccd6; }
+  .vd-sub { margin:6px 0 10px 18px; width:calc(100% - 18px); font-size:12px; }
+  .vd-sub th { background:#e8eff6; color:#1F4E79; }
+  .vd-sub td { padding:5px 8px; }
+  .vd-sub .vd-hi { background:#f0f7ff; font-weight:600; }
   .dash-banner { margin: 0 28px 8px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
   .dash-banner.asof { background: #eaf2fa; border: 1px solid #bcd4ea; color: #1F4E79; }
   .dash-banner.range { background: #fff4e6; border: 1px solid #f0c987; color: #9a6700; }
@@ -201,6 +212,7 @@ function _loadXlsx(cb) {
     <button class="tab-btn" data-tab="voyage" onclick="switchTab('voyage',this)">&#9973; Voyage</button>
     <button class="tab-btn" data-tab="tdr" onclick="switchTab('tdr',this)">&#9889; TCD vs Actual</button>
     <button class="tab-btn" data-tab="abstract" onclick="switchTab('abstract',this)">&#128203; Abstract Log</button>
+    <button class="tab-btn" data-tab="daily" onclick="switchTab('daily',this)">&#128202; Vessel Daily Report</button>
   </div>
   <div id="viewDash" class="tab-content active">
   <div class="stats" id="stats"></div>
@@ -383,6 +395,22 @@ function _loadXlsx(cb) {
       <h3 id="abTitle">Abstract Log Analysis</h3>
       <div class="panel-note">源自船长每半航次发送的 <b>Abstract Log Report</b>（culadmin 每日自动采集）。<b>Segment compare</b>：按 <b>港口对</b> 把同一航段跨航次对齐，看相同航线下 speed / 油耗 / 距离的变化（绿色＝较上一航次改善，红色＝变差，箭头按油耗与航速方向）；这样即使各船 rotation 不同、同一船不同航次港口不同，也能只看相同段做对比。<b>Voyage timeline</b>：按航次时间序列展示总距离 / 油耗 / 油效。<b>Voyage summary</b>：单航次汇总与数据质量校验。距离优先 GPS、为 0 回退 LOG；仅显示距离&gt;0 的有效段（已剔除锚地/移泊伪段）。FO=燃油，ME=主机，AE=辅机。t/NM=每海里主机油耗。</div>
       <div id="abBody" style="max-height:600px;overflow:auto"></div>
+    </div>
+  </div>
+
+  <div id="daily" class="tab-content">
+    <div class="trendbar" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <span class="lbl">Vessel:</span>
+      <input id="dailyQ" type="text" placeholder="Search vessel / code / lane..." oninput="renderDailyReport()" style="width:240px">
+      <span class="ab-meta" id="dailyMeta"></span>
+      <button onclick="dailyExpandAll(true)">Expand all</button>
+      <button onclick="dailyExpandAll(false)">Collapse all</button>
+      <button onclick="showTable()">&larr; Dashboard</button>
+    </div>
+    <div class="panel" style="margin:0 28px">
+      <h3>Vessel Daily Report — TCD vs Actual consumption</h3>
+      <div class="panel-note">船清单来自 <b>Full Schedule</b> 默认口径（CUL、ETA 近 15 天到下月同日）；油耗取自《Vessel Daily Consumption.xlsx》的 <b>TCD</b> 与 <b>Actual</b> 两个 sheet。每船一行，展示最高航速档各油种 MT/日；点船展开看完整速度曲线与港口停留消耗。Full Schedule 有但 xlsx 无数据的船照常显示、消耗留空。</div>
+      <div id="dailyBody" style="max-height:660px;overflow:auto"></div>
     </div>
   </div>
 
@@ -1144,11 +1172,73 @@ function switchTab(id, btn) {
     }
     else if (id === 'tdr') { buildTdrVesselDrop(); renderTDR(); }
     else if (id === 'abstract') { initAbstract(); renderAbstract(); }
+    else if (id === 'daily') renderDailyReport();
     else if (id === 'viewDash') renderRows();
     _rendered[id] = true;
   }
   saveTabPointer(id);
   restoreViewState(id);
+}
+/* ================= Vessel Daily Report (TCD vs Actual) ================= */
+var _dailyExpanded = {};
+function vdFmt(v){
+  if(v===null||v===undefined||v==='') return '<span class="vd-empty">—</span>';
+  var n=Number(v); return isNaN(n)? String(v) : n.toFixed(1);
+}
+function vdTopBand(d){ return (d && d.speeds && d.speeds.length) ? d.speeds[d.speeds.length-1] : null; }
+function vdDetailHtml(v, t, a){
+  var bands={};
+  ((t&&t.speeds)||[]).forEach(function(b){ bands[b.speed]=bands[b.speed]||{}; bands[b.speed].t=b; });
+  ((a&&a.speeds)||[]).forEach(function(b){ bands[b.speed]=bands[b.speed]||{}; bands[b.speed].a=b; });
+  var keys=Object.keys(bands).map(Number).sort(function(x,y){return x-y;});
+  var h='<tr><td colspan="10"><table class="trendtbl vd-sub"><thead><tr>'+
+    '<th>Speed (kn)</th><th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th>'+
+    '<th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th></tr></thead><tbody>';
+  if(!keys.length) h+='<tr><td colspan="7" class="vd-empty">No speed curve for this vessel in xlsx</td></tr>';
+  keys.forEach(function(s){
+    var p=bands[s], tb=p.t, ab=p.a;
+    h+='<tr><td class="n vd-hi">'+s.toFixed(1)+'</td>'+
+       '<td class="n">'+vdFmt(tb&&tb.lsfo)+'</td><td class="n">'+vdFmt(tb&&tb.hsfo)+'</td><td class="n">'+vdFmt(tb&&tb.mgo)+'</td>'+
+       '<td class="n">'+vdFmt(ab&&ab.lsfo)+'</td><td class="n">'+vdFmt(ab&&ab.hsfo)+'</td><td class="n">'+vdFmt(ab&&ab.mgo)+'</td></tr>';
+  });
+  var tp=(t&&t.port_stay)||{}, ap=(a&&a.port_stay)||{};
+  h+='</tbody></table><div class="panel-note" style="margin:2px 0 6px">Port stay (MT/day): '+
+     'TCD LSFO '+vdFmt(tp.lsfo)+' · TCD MGO '+vdFmt(tp.mgo)+' &nbsp;|&nbsp; '+
+     'Actual LSFO '+vdFmt(ap.lsfo)+' · Actual MGO '+vdFmt(ap.mgo)+'</div></td></tr>';
+  return h;
+}
+function renderDailyReport(){
+  var body=document.getElementById('dailyBody'), sc=body?body.scrollTop:0;
+  var dr=DATA.daily_report||{}, fs=dr.full_schedule||[], tcd=dr.tcd||{}, act=dr.actual||{};
+  var win=dr.window||{}, q=(document.getElementById('dailyQ').value||'').trim().toLowerCase();
+  var meta=document.getElementById('dailyMeta');
+  if(meta) meta.textContent=(win.from?(win.from+' → '+win.to):'—')+' · '+fs.length+' vessels · parsed '+(dr.parsed||'—');
+  if(!body) return;
+  var list=fs.filter(function(v){ return !q || ((v.code||'')+' '+(v.name||'')+' '+(v.lane||'')).toLowerCase().indexOf(q)>=0; });
+  if(!fs.length){ body.innerHTML='<div class="panel-note">No daily report data. Run sync_vessel_daily.py on the server.</div>'; return; }
+  if(!list.length){ body.innerHTML='<div class="panel-note">No vessel matches the search.</div>'; return; }
+  var h='<table class="trendtbl"><thead><tr><th>Vessel</th><th>Lane</th>'+
+    '<th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th><th>TCD PS</th>'+
+    '<th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th><th>Act PS</th></tr></thead><tbody>';
+  list.forEach(function(v){
+    var t=tcd[v.code], a=act[v.code], tb=vdTopBand(t), ab=vdTopBand(a), open=!!_dailyExpanded[v.code];
+    h+='<tr class="vd-main" onclick="vdToggle(\''+v.code+'\')">'+
+       '<td class="vessel">'+(v.name||v.code)+'<span class="vd-code">'+v.code+'</span><span class="vd-arrow">'+(open?'▾':'▸')+'</span></td>'+
+       '<td class="c">'+(v.lane||'')+'</td>'+
+       '<td class="n">'+vdFmt(tb&&tb.lsfo)+'</td><td class="n">'+vdFmt(tb&&tb.hsfo)+'</td><td class="n">'+vdFmt(tb&&tb.mgo)+'</td>'+
+       '<td class="n">'+vdFmt(t&&t.port_stay&&t.port_stay.lsfo)+'</td>'+
+       '<td class="n">'+vdFmt(ab&&ab.lsfo)+'</td><td class="n">'+vdFmt(ab&&ab.hsfo)+'</td><td class="n">'+vdFmt(ab&&ab.mgo)+'</td>'+
+       '<td class="n">'+vdFmt(a&&a.port_stay&&a.port_stay.lsfo)+'</td></tr>';
+    if(open) h+=vdDetailHtml(v,t,a);
+  });
+  body.innerHTML=h+'</tbody></table>';
+  body.scrollTop=sc;
+}
+function vdToggle(code){ _dailyExpanded[code]=!_dailyExpanded[code]; renderDailyReport(); }
+function dailyExpandAll(on){
+  var fs=(DATA.daily_report||{}).full_schedule||[];
+  fs.forEach(function(v){ _dailyExpanded[v.code]=on; });
+  renderDailyReport();
 }
 function showTable() { switchTab('viewDash'); }
 function showTrend() { switchTab('trend'); }

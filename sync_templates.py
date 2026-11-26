@@ -50,7 +50,7 @@ ALLOW_EXT = (".html", ".htm", ".css", ".js", ".svg", ".ico")
 #    加进来的原因(2026-11-19): BERTH 报告 POB 优先修正就在这个文件里, 而 fetch 只动
 #    FETCH_HEAD 不动工作树; 若不在这里同步, 每轮 [0/5]harvest/[0b/5]backfill/[3/5]render
 #    用的还是上一轮旧解析器, 解析规则修复要滞后一班才生效(同 2026-11-12 的老问题)。
-ALLOW_ROOT_CODE = ("voyage_consumption.py", "rob_refresh.py")
+ALLOW_ROOT_CODE = ("voyage_consumption.py", "rob_refresh.py", "sync_vessel_daily.py")
 REF_CANDIDATES = ("FETCH_HEAD", "origin/main")
 BACKUP_ROOT = os.path.join("rob_data", "tpl_backup")
 KEEP_BACKUPS = 5
