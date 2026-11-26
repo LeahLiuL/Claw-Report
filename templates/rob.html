@@ -403,6 +403,7 @@ function _loadXlsx(cb) {
       <span class="lbl">Vessel:</span>
       <input id="dailyQ" type="text" placeholder="Search vessel / code / lane..." oninput="renderDailyReport()" style="width:240px">
       <span class="ab-meta" id="dailyMeta"></span>
+      <span id="dailyNote" style="display:none;color:#e8a33d;font-weight:600;font-size:12px"></span>
       <button onclick="dailyExpandAll(true)">Expand all</button>
       <button onclick="dailyExpandAll(false)">Collapse all</button>
       <button onclick="showTable()">&larr; Dashboard</button>
@@ -1196,7 +1197,7 @@ function vdDetailHtml(v, t, a){
   var h='<tr><td colspan="12"><table class="trendtbl vd-sub"><thead><tr>'+
     '<th>Speed (kn)</th><th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th>'+
     '<th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th></tr></thead><tbody>';
-  if(!keys.length) h+='<tr><td colspan="7" class="vd-empty">No speed curve for this vessel in xlsx</td></tr>';
+  if(!keys.length) h+='<tr><td colspan="7" class="vd-empty">No speed curve for this vessel in vessels.csv</td></tr>';
   keys.forEach(function(s){
     var p=bands[s], tb=p.t, ab=p.a;
     h+='<tr><td class="n vd-hi">'+s.toFixed(1)+'</td>'+
@@ -1215,6 +1216,13 @@ function renderDailyReport(){
   var win=dr.window||{}, q=(document.getElementById('dailyQ').value||'').trim().toLowerCase();
   var meta=document.getElementById('dailyMeta');
   if(meta) meta.textContent=(win.from?(win.from+' → '+win.to):'—')+' · '+fs.length+' vessels · parsed '+(dr.parsed||'—');
+  var note=document.getElementById('dailyNote');
+  if(note){
+    if(dr.split_by_flag===false){
+      note.textContent='⚠ vessels.csv 未标注 TCD/Actual — TCD 与 Act 为同一份数据';
+      note.style.display='';
+    } else note.style.display='none';
+  }
   if(!body) return;
   var list=fs.filter(function(v){ return !q || ((v.code||'')+' '+(v.name||'')+' '+(v.lane||'')).toLowerCase().indexOf(q)>=0; });
   if(!fs.length){ body.innerHTML='<div class="panel-note">No daily report data. Run sync_vessel_daily.py on the server.</div>'; return; }
