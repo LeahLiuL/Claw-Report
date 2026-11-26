@@ -79,6 +79,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM ---- [3/4d] abstract log daily core (collect+upload+pagegen, no git) ----
+REM  Failure here never blocks ROB. See rob_data\abstract_daily.log
+echo [3/4d] abstract_core ... >> %LOG%
+call "%~dp0abstract_core.bat" >> %LOG% 2>&1
+if errorlevel 1 echo [WARN] abstract_core failed, ROB continues >> %LOG%
+
 REM ---- [4/4] safe push ----
 echo [4/4] safe commit and push ... >> %LOG%
 set CLAW_LOCK_OWNER=rob_fast
