@@ -1187,12 +1187,13 @@ function vdFmt(v){
   var n=Number(v); return isNaN(n)? String(v) : n.toFixed(1);
 }
 function vdTopBand(d){ return (d && d.speeds && d.speeds.length) ? d.speeds[d.speeds.length-1] : null; }
+function vdSpd(b){ return b && b.speed !== null && b.speed !== undefined ? b.speed.toFixed(1) : '<span class="vd-empty">—</span>'; }
 function vdDetailHtml(v, t, a){
   var bands={};
   ((t&&t.speeds)||[]).forEach(function(b){ bands[b.speed]=bands[b.speed]||{}; bands[b.speed].t=b; });
   ((a&&a.speeds)||[]).forEach(function(b){ bands[b.speed]=bands[b.speed]||{}; bands[b.speed].a=b; });
   var keys=Object.keys(bands).map(Number).sort(function(x,y){return x-y;});
-  var h='<tr><td colspan="10"><table class="trendtbl vd-sub"><thead><tr>'+
+  var h='<tr><td colspan="12"><table class="trendtbl vd-sub"><thead><tr>'+
     '<th>Speed (kn)</th><th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th>'+
     '<th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th></tr></thead><tbody>';
   if(!keys.length) h+='<tr><td colspan="7" class="vd-empty">No speed curve for this vessel in xlsx</td></tr>';
@@ -1219,15 +1220,17 @@ function renderDailyReport(){
   if(!fs.length){ body.innerHTML='<div class="panel-note">No daily report data. Run sync_vessel_daily.py on the server.</div>'; return; }
   if(!list.length){ body.innerHTML='<div class="panel-note">No vessel matches the search.</div>'; return; }
   var h='<table class="trendtbl"><thead><tr><th>Vessel</th><th>Lane</th>'+
-    '<th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th><th>TCD PS</th>'+
-    '<th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th><th>Act PS</th></tr></thead><tbody>';
+    '<th>TCD Spd</th><th>TCD LSFO</th><th>TCD HSFO</th><th>TCD MGO</th><th>TCD PS</th>'+
+    '<th>Act Spd</th><th>Act LSFO</th><th>Act HSFO</th><th>Act MGO</th><th>Act PS</th></tr></thead><tbody>';
   list.forEach(function(v){
     var t=tcd[v.code], a=act[v.code], tb=vdTopBand(t), ab=vdTopBand(a), open=!!_dailyExpanded[v.code];
     h+='<tr class="vd-main" onclick="vdToggle(\''+v.code+'\')">'+
        '<td class="vessel">'+(v.name||v.code)+'<span class="vd-code">'+v.code+'</span><span class="vd-arrow">'+(open?'▾':'▸')+'</span></td>'+
        '<td class="c">'+(v.lane||'')+'</td>'+
+       '<td class="n vd-hi">'+vdSpd(tb)+'</td>'+
        '<td class="n">'+vdFmt(tb&&tb.lsfo)+'</td><td class="n">'+vdFmt(tb&&tb.hsfo)+'</td><td class="n">'+vdFmt(tb&&tb.mgo)+'</td>'+
        '<td class="n">'+vdFmt(t&&t.port_stay&&t.port_stay.lsfo)+'</td>'+
+       '<td class="n vd-hi">'+vdSpd(ab)+'</td>'+
        '<td class="n">'+vdFmt(ab&&ab.lsfo)+'</td><td class="n">'+vdFmt(ab&&ab.hsfo)+'</td><td class="n">'+vdFmt(ab&&ab.mgo)+'</td>'+
        '<td class="n">'+vdFmt(a&&a.port_stay&&a.port_stay.lsfo)+'</td></tr>';
     if(open) h+=vdDetailHtml(v,t,a);
