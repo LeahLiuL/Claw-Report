@@ -31,7 +31,8 @@ LOCK_BLOCK = '''<div id="lock">
 
 '''
 
-PWD_LISTENER = """document.getElementById('pwd').addEventListener('keydown', function(e) {
+PWD_LISTENER = """var _pwdEl = document.getElementById('pwd');
+if (_pwdEl) _pwdEl.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doUnlock();
 });
 """
@@ -70,6 +71,18 @@ def build(out_path=DEFAULT_PREVIEW):
           % (len(obj.get("vessels", [])), len(obj.get("history", [])),
              len(obj.get("voyages", [])), len(obj.get("bunkering", {}))))
 
+    # Vessel Daily Report: 生产 payload 要等 culadmin 下一轮才有该字段,
+    # 预览页用本地 sync_vessel_daily.py 生成的 JSON 补上, 保证效果图能看到新 tab。
+    daily_json = os.path.join(BASE, "rob_data", "vessel_daily_report.json")
+    if "daily_report" not in obj and os.path.exists(daily_json):
+        try:
+            obj["daily_report"] = json.load(open(daily_json, encoding="utf-8"))
+            payload = json.dumps(obj, ensure_ascii=False)
+            print("preview: injected daily_report from local JSON (%d vessels)"
+                  % len(obj["daily_report"].get("full_schedule", [])))
+        except Exception as e:
+            print("[WARN] inject daily_report failed:", e)
+
     tpl = open(TPL, encoding="utf-8").read()
 
     # 1) 去掉密码锁 UI
@@ -92,7 +105,10 @@ def build(out_path=DEFAULT_PREVIEW):
     end_marker = "/* ==== UNLOCK_LOGIC_END ==== */"
     mend = tpl.find(end_marker, mstart)
     safe = payload.replace("</", "<\\/")          # 防止字符串里的 </script> 提前闭合
-    new_assign = 'var DATA = %s;\nvar sortKey = "seq", sortAsc = true;\n' % safe
+    # 注意: SHOW_OFF 原本定义在 471~474 的切除区内, 必须补回, 否则
+    # currentDashRows() 抛 ReferenceError, Dashboard 表格全空。
+    new_assign = ('var DATA = %s;\nvar sortKey = "seq", sortAsc = true;\n'
+                  'var SHOW_OFF = false;\n') % safe
     if mend >= 0:
         tpl = tpl[:mstart] + new_assign + tpl[mend + len(end_marker):]
     else:

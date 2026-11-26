@@ -968,7 +968,8 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'ROB Report');
   XLSX.writeFile(wb, 'CUL_ROB_Report_' + DATA.updated.replace(/[^0-9]/g, '').slice(0, 12) + '.xlsx');
 }
-document.getElementById('pwd').addEventListener('keydown', function(e) {
+var _pwdEl = document.getElementById('pwd');
+if (_pwdEl) _pwdEl.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doUnlock();
 });
 
