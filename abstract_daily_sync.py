@@ -119,14 +119,19 @@ def main():
     ap.add_argument("--days", type=int, default=5, help="回补窗口(天), 默认5")
     ap.add_argument("--apply", action="store_true", help="写库(默认 dry-run)")
     ap.add_argument("--limit", type=int, default=0, help="最多处理N封(验证用)")
+    ap.add_argument("--cap", type=int, default=0, help="每文件夹扫描上限(0=用默认400; 历史回补可设大)")
     ap.add_argument("--out", default=OUT_DB)
     args = ap.parse_args()
+
+    global PER_FOLDER_CAP
+    if args.cap > 0:
+        PER_FOLDER_CAP = args.cap
 
     R = _load("rob_mail_sync.py", "rms")
     RD = _load("report_db.py", "rdb")
     A = _load("abstract_log_db.py", "aldb")
 
-    log("START days=%d apply=%s limit=%d" % (args.days, args.apply, args.limit))
+    log("START days=%d apply=%s limit=%d cap=%d" % (args.days, args.apply, args.limit, PER_FOLDER_CAP))
 
     app, ns = R.ensure_outlook()  # mode>=700 门控, 未同步完会 sys.exit(2)
 
