@@ -2203,7 +2203,13 @@ function exportFullScheduleExcel(wb){
       var anchorLane=(vkey(r) in vesselLaneRank) ? (getLaneOrder()[vesselLaneRank[vkey(r)]]||r.route||'') : (r.route||'');
       var _vn = r.vesselCur || r.vessel || '';
       if(r.vessel && _vn && r.vessel !== _vn){ _vn += ' (was ' + r.vessel + ')'; }
-      var titleText='Lane: '+anchorLane+'    Vessel: '+_vn+'    Code: '+(r.code||'')+'    PIC: '+(r.pic||'');
+      // title code: use master table (TODAY_DATA.vessels) by CURRENT ship name, so renamed
+      // vessels (e.g. THE HARMONY ex EVERLASTING HARVEST) show the current code (THMY)
+      // instead of the old code stored in the first grouped row.
+      var _curName = r.vesselCur || r.vessel || '';
+      var _master = (TODAY_DATA.vessels||[]).find(function(x){ return (x.vesselCur||x.vessel) === _curName; });
+      var _titleCode = (_master && _master.code) || r.code || '';
+      var titleText='Lane: '+anchorLane+'    Vessel: '+_vn+'    Code: '+_titleCode+'    PIC: '+(r.pic||'');
       var titleRow=[];
       for(var c=0;c<numCols;c++) titleRow[c]={v:'',s:vTitleS};
       titleRow[0]={v:titleText,s:vTitleS};
